@@ -229,7 +229,7 @@ const VideoModal = ({ src, onClose }) => (
 );
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onSave, sessionStartTime, restTimers }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers }) {
     const [lightbox,    setLightbox]   = useState(null);
     const [videoModal,  setVideoModal] = useState(null);
     return (
@@ -326,7 +326,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             ))}
                         </section>
                         <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
-                            onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onBack} isSuperset={group.isSuperset} />
+                            onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onFinish} isSuperset={group.isSuperset} />
                         {restTimers[ex.id]>0 && (
                             <div className="mt-3 flex justify-center">
                                 <div className="bg-blue-600 text-white px-6 py-2.5 rounded-full shadow-lg flex items-center gap-2 border-2 border-white animate-pulse">
@@ -548,6 +548,18 @@ function App() {
         }
     },[]);
 
+    // חסימת כפתור חזרה של הטלפון במסך תרגיל
+    useEffect(()=>{
+        if (view!=='detail') return;
+        history.pushState(null,'');
+        const handler = ()=>{
+            history.pushState(null,'');
+            requestConfirm('לצאת מהתרגיל?',()=>{ setView('list'); setActiveGroup(null); });
+        };
+        window.addEventListener('popstate', handler);
+        return ()=>window.removeEventListener('popstate', handler);
+    },[view]);
+
     // Timers
     useEffect(()=>{
         if (!isWorkoutActive) return;
@@ -653,13 +665,15 @@ function App() {
         });
     };
 
-    const completedCount = useMemo(()=>
-        sortedGroups.filter(g=>{ const ids=g.exercises.map(e=>e.id); return logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); }).length
-    ,[sortedGroups,logs,sessionStartTime]);
+    const isGroupDone = useCallback((g)=>
+        g.exercises.every(ex=>{
+            const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+            return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+        })
+    ,[logs,sessionStartTime]);
 
-    const nextIncompleteIndex = useMemo(()=>
-        sortedGroups.findIndex(g=>{ const ids=g.exercises.map(e=>e.id); return !logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); })
-    ,[sortedGroups,logs,sessionStartTime]);
+    const completedCount    = useMemo(()=>sortedGroups.filter(isGroupDone).length,          [sortedGroups,isGroupDone]);
+    const nextIncompleteIndex = useMemo(()=>sortedGroups.findIndex(g=>!isGroupDone(g)),     [sortedGroups,isGroupDone]);
 
     useEffect(()=>{
         if (view!=='list') return;
@@ -703,7 +717,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>requestConfirm('לצאת מהתרגיל?',()=>{setView('list');setActiveGroup(null);})} onSave={handleSaveSet} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>requestConfirm('לצאת מהתרגיל?',()=>{setView('list');setActiveGroup(null);})} onFinish={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
@@ -745,8 +759,7 @@ function App() {
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
                 {sortedGroups.map((group,idx)=>{
-                    const ids    = group.exercises.map(e=>e.id);
-                    const isDone = logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime);
+                    const isDone = isGroupDone(group);
                     const isNext = idx===nextIncompleteIndex;
                     return (
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
