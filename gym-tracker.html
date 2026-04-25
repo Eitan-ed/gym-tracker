@@ -268,7 +268,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 <img src={`images/${EXERCISE_IMAGES[ex.id]}`} alt={ex.title}
                                     onClick={()=>setLightbox(`images/${EXERCISE_IMAGES[ex.id]}`)}
                                     className="w-full rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
-                                <div className="text-[10px] text-slate-400 mt-1 px-1 text-center">הטכניקה</div>
                             </div>
                         )}
                         {imgSrc && (
