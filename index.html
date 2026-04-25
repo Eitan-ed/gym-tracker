@@ -270,11 +270,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     className="w-full rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
                             </div>
                         )}
-                        {imgSrc && (
-                            <img src={imgSrc} alt={ex.title}
-                                onClick={()=>setLightbox(imgSrc)}
-                                className="w-full rounded-2xl mb-3 object-cover max-h-52 shadow cursor-pointer active:opacity-80" />
-                        )}
                         {videos?.[ex.id] ? (
                             <div className="flex items-center gap-2 mb-3">
                                 <a href={`https://youtu.be/${videos[ex.id]}`} target="_blank" rel="noopener noreferrer"
