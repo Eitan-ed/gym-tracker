@@ -478,14 +478,18 @@ const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSet
                     <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Settings" size={20} className="text-rose-500" /> הגדרות אימון</h3>
                     <div className="space-y-4">
                         {[
-                            {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120]},
-                            {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60]}
+                            {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120,150,180]},
+                            {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60,90,120]}
                         ].map(({label,key,opts})=>(
                             <div key={key} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                 <span className="font-bold text-sm text-slate-700">{label}</span>
                                 <select className="bg-white border border-slate-200 rounded-xl px-3 py-1 font-black text-rose-600 outline-none"
                                     value={settings[key]} onChange={e=>onUpdateSettings(key,Number(e.target.value))}>
-                                    {opts.map(o=><option key={o} value={o}>{o} שניות</option>)}
+                                    {opts.map(o=>{
+                                        const m = Math.floor(o/60), s = o%60;
+                                        const label = s===0 ? `${m} דק'` : m>0 ? `${m}:${String(s).padStart(2,'0')} דק'` : `${s} שנ'`;
+                                        return <option key={o} value={o}>{label}</option>;
+                                    })}
                                 </select>
                             </div>
                         ))}
