@@ -220,13 +220,28 @@ const EXERCISE_VIDEOS = {
 };
 
 // ─── VideoModal ─────────────────────────────────────────────
-const VideoModal = ({ src, onClose }) => (
-    <div className="fixed inset-0 z-[600] bg-black/95 flex items-center justify-center p-4" onClick={onClose}>
-        <video src={src} controls autoPlay muted playsInline
-            className="max-w-full max-h-full rounded-xl shadow-2xl"
-            onClick={e=>e.stopPropagation()} />
-    </div>
-);
+let _videoModalOpen = false;
+
+const VideoModal = ({ src, onClose }) => {
+    useEffect(()=>{
+        _videoModalOpen = true;
+        history.pushState({gym:'video'},'');
+        const handler = ()=>{ _videoModalOpen = false; onClose(); };
+        window.addEventListener('popstate', handler);
+        return ()=>{ _videoModalOpen = false; window.removeEventListener('popstate', handler); };
+    },[]);
+    return (
+        <div className="fixed inset-0 z-[600] bg-black/95 flex items-center justify-center p-4" onClick={onClose}>
+            <button onClick={onClose}
+                className="absolute top-5 left-5 w-11 h-11 bg-white/20 rounded-full flex items-center justify-center text-white z-10 active:bg-white/40">
+                <Icon name="X" size={22} />
+            </button>
+            <video src={src} controls autoPlay muted playsInline
+                className="max-w-full max-h-full rounded-xl shadow-2xl"
+                onClick={e=>e.stopPropagation()} />
+        </div>
+    );
+};
 
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers }) {
@@ -553,6 +568,7 @@ function App() {
         if (view!=='detail') return;
         history.pushState(null,'');
         const handler = ()=>{
+            if (_videoModalOpen) return;
             history.pushState(null,'');
             requestConfirm('לצאת מהתרגיל?',()=>{ setView('list'); setActiveGroup(null); });
         };
