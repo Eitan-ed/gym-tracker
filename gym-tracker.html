@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>אימון פול-באדי</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; background:#f8fafc; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        .no-scrollbar::-webkit-scrollbar { display:none; }
+        .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+        @keyframes pulse-border {
+            0%,100% { border-color: rgba(16,185,129,0.4); }
+            50%      { border-color: rgba(16,185,129,1);   }
+        }
+        .timer-active { animation: pulse-border 2s infinite; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        .fade-in { animation: fadeIn 0.2s ease; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, memo } = React;
+
+// ============================================================
+//  Firebase Config
+// ============================================================
+const firebaseConfig = {
+    apiKey:            "AIzaSyCJSQK8wQ2CYzX22ECFUL0Pew-OmTVyaQE",
+    authDomain:        "gym-tracker-eitan.firebaseapp.com",
+    projectId:         "gym-tracker-eitan",
+    storageBucket:     "gym-tracker-eitan.firebasestorage.app",
+    messagingSenderId: "333162679454",
+    appId:             "1:333162679454:web:99cc20d535673b71d0bf8f"
+};
+// ============================================================
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth   = firebase.auth();
+const db      = firebase.firestore();
+const APP_ID  = 'gym-tracker-v1';
+
+db.enablePersistence().catch(() => {});
+
+// Icons — SVG inline (ללא תלות בספרייה חיצונית)
+const ICONS = {
+    Home:         [['path',{d:"m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}],['polyline',{points:"9 22 9 12 15 12 15 22"}]],
+    Timer:        [['line',{x1:"10",x2:"14",y1:"2",y2:"2"}],['line',{x1:"12",x2:"15",y1:"14",y2:"11"}],['circle',{cx:"12",cy:"14",r:"8"}]],
+    RotateCcw:    [['path',{d:"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"}],['path',{d:"M3 3v5h5"}]],
+    Plus:         [['path',{d:"M5 12h14"}],['path',{d:"M12 5v14"}]],
+    Settings:     [['path',{d:"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"}],['circle',{cx:"12",cy:"12",r:"3"}]],
+    History:      [['path',{d:"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"}],['path',{d:"M3 3v5h5"}],['path',{d:"M12 7v5l4 2"}]],
+    CheckCircle2: [['circle',{cx:"12",cy:"12",r:"10"}],['path',{d:"m9 12 2 2 4-4"}]],
+    ChevronLeft:  [['path',{d:"m15 18-6-6 6-6"}]],
+    ChevronDown:  [['path',{d:"m6 9 6 6 6-6"}]],
+    BookOpen:     [['path',{d:"M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"}],['path',{d:"M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"}]],
+    Trash:        [['path',{d:"M3 6h18"}],['path',{d:"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"}],['path',{d:"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"}]],
+    Trash2:       [['path',{d:"M3 6h18"}],['path',{d:"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"}],['path',{d:"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"}],['line',{x1:"10",x2:"10",y1:"11",y2:"17"}],['line',{x1:"14",x2:"14",y1:"11",y2:"17"}]],
+    Database:     [['ellipse',{cx:"12",cy:"5",rx:"9",ry:"3"}],['path',{d:"M3 5V19A9 3 0 0 0 21 19V5"}],['path',{d:"M3 12A9 3 0 0 0 21 12"}]],
+    Download:     [['path',{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"}],['polyline',{points:"7 10 12 15 17 10"}],['line',{x1:"12",x2:"12",y1:"15",y2:"3"}]],
+    Upload:       [['path',{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"}],['polyline',{points:"17 8 12 3 7 8"}],['line',{x1:"12",x2:"12",y1:"3",y2:"15"}]],
+    AlertCircle:  [['circle',{cx:"12",cy:"12",r:"10"}],['line',{x1:"12",x2:"12",y1:"8",y2:"12"}],['line',{x1:"12",x2:"12.01",y1:"16",y2:"16"}]],
+    Dumbbell:     [['path',{d:"M14.4 14.4 9.6 9.6"}],['path',{d:"M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"}],['path',{d:"m21.5 21.5-1.4-1.4"}],['path',{d:"M3.9 3.9 2.5 2.5"}],['path',{d:"M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"}]],
+    Clock:        [['circle',{cx:"12",cy:"12",r:"10"}],['polyline',{points:"12 6 12 12 16 14"}]],
+};
+const Icon = ({ name, size=24, className="" }) => {
+    const paths = ICONS[name];
+    if (!paths) return null;
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className={className}>
+            {paths.map(([tag,attrs],i) => React.createElement(tag,{key:i,...attrs}))}
+        </svg>
+    );
+};
+
+// --- מאגר תרגילים ---
+const exerciseGroups = [
+    { id:1,  badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
+    { id:2,  badgeColor:'bg-blue-100 text-blue-700',    title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
+    { id:3,  badgeColor:'bg-indigo-100 text-indigo-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-indigo-500 to-indigo-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
+    { id:4,  badgeColor:'bg-purple-100 text-purple-700',title:'כפיפת מרפקים בשיפוע חיובי', category:'יד קדמית', icon:'💪', color:'from-purple-500 to-purple-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע חיובי. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
+    { id:5,  badgeColor:'bg-orange-100 text-orange-700',title:'סופר-סט כתפיים',             category:'כתפיים',   icon:'🏋️', color:'from-orange-500 to-orange-700',  machine:'מכונה',   isSuperset:true, exercises:[
+        {id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',            tips:['גב צמוד','אחיזה ניטרלית']},
+        {id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.',            tips:['כתפיים רחוקות מהאוזניים']}
+    ]},
+    { id:6,  badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
+    { id:7,  badgeColor:'bg-sky-100 text-sky-700',       title:'סופר-סט גרביטון',          category:'גב/חזה',   icon:'🧗', color:'from-sky-500 to-sky-700',        machine:'גרביטון', isSuperset:true, exercises:[
+        {id:'ex7a', title:'מתח גרביטון',    howTo:'רד עד למטה ליישור מלא ומשוך מעלה.',                         tips:['סנטר מעל המוט']},
+        {id:'ex7b', title:'מקבילים גרביטון',howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                    tips:['הישענות קדימה']}
+    ]},
+    { id:8,  badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
+    { id:9,  badgeColor:'bg-red-100 text-red-700',       title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
+    { id:10, badgeColor:'bg-amber-100 text-amber-700',   title:'קומפלט בטן',                category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',    machine:'חופשי',   isSuperset:true, exercises:[
+        {id:'ex10a',title:'כפיפות בטן',    howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',                    tips:['לא למשוך צוואר']},
+        {id:'ex10b',title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',                         tips:['תנועה איטית']}
+    ]}
+];
+
+// ─── Roller ────────────────────────────────────────────────
+const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) => {
+    const options = useMemo(() => {
+        const o = [];
+        for (let i = min; i <= max; i += step) o.push(i);
+        return o;
+    }, [min, max, step]);
+    return (
+        <div className="flex flex-col items-center flex-1">
+            <span className="text-[8px] font-black text-slate-400 mb-1 uppercase tracking-tighter">{label}</span>
+            <select value={value} onChange={e => onChange(parseFloat(e.target.value))}
+                className={`w-full p-2.5 rounded-xl border-none text-center font-black text-base appearance-none outline-none transition-all
+                    ${isChanged ? 'text-blue-600 ring-2 ring-blue-100 bg-blue-50' : 'bg-slate-100/60 text-slate-400 font-normal'}`}>
+                {options.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+        </div>
+    );
+});
+
+// ─── ExerciseEntryRow ──────────────────────────────────────
+// תיקון 1: bg-emerald-500 (היה bg-emerald-50 — טקסט לא נראה)
+// תיקון 2: try/finally — isSaving לא נתקע בשגיאה
+function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset }) {
+    // תיקון: דגל נפרד לכל שדה — wC=ק"ג שונה, rC=חזרות שונה
+    const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
+    const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        setS1(p=>({...p,wC:false,rC:false}));
+        setS2(p=>({...p,wC:false,rC:false}));
+    }, [sessionStartTime]);
+
+    const done = useMemo(() => ({
+        s1: logs.some(l => l.exId===ex.id && l.setNum===1 && new Date(l.timestamp).getTime()>sessionStartTime),
+        s2: logs.some(l => l.exId===ex.id && l.setNum===2 && new Date(l.timestamp).getTime()>sessionStartTime)
+    }), [logs, ex.id, sessionStartTime]);
+
+    const handleSetSave = async (num, state) => {
+        setIsSaving(true);
+        try {
+            await onSave(ex.id, num, state.w, state.r, isSuperset);
+            if (num===2 && isLast) setTimeout(onFinish, 800);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-3" dir="rtl">
+            {[1,2].map(num => {
+                const state    = num===1 ? s1 : s2;
+                const setState = num===1 ? setS1 : setS2;
+                const isDone   = num===1 ? done.s1 : done.s2;
+                return (
+                    <div key={num} className="bg-white p-3.5 rounded-[1.8rem] border border-slate-100 shadow-sm flex items-center gap-3">
+                        <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center shrink-0 shadow-lg">
+                            <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
+                            <span className="text-lg font-black leading-none">{num}</span>
+                        </div>
+                        <div className="flex flex-1 gap-2.5">
+                            <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
+                            <Roller label="חזרות" min={1} max={50}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
+                        </div>
+                        <button onClick={() => handleSetSave(num, state)} disabled={isDone||isSaving}
+                            className={`px-6 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all shrink-0 shadow-lg active:scale-95
+                                ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
+                            {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
+                        </button>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ─── DetailView ────────────────────────────────────────────
+const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, onBack, onSave, sessionStartTime, restTimer }) => (
+    <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
+        <div className={`bg-gradient-to-br ${group.color} p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0`}>
+            <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow-lg">
+                <Icon name="Home" size={22} />
+            </button>
+            <div className="flex items-center gap-4 px-10">
+                <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner">{group.icon}</div>
+                <h2 className="text-xl font-black text-white leading-none tracking-tight">{group.title}</h2>
+            </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-6 pb-40">
+            {group.exercises.map((ex, exIdx) => {
+                const exHistory = logs.filter(l=>l.exId===ex.id)
+                    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
+                return (
+                    <div key={ex.id} className="border-b border-slate-100 pb-6 last:border-0">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="w-8 h-8 bg-slate-900 text-white text-sm rounded-full flex items-center justify-center font-black shrink-0">{exIdx+1}</span>
+                            <h3 className="font-black text-slate-800 text-[17px] underline decoration-blue-500/20 underline-offset-8">{ex.title} ({group.category})</h3>
+                        </div>
+                        {images?.[ex.id] && (
+                            <img src={images[ex.id]} alt={ex.title}
+                                className="w-full rounded-2xl mb-3 object-cover max-h-48 shadow" />
+                        )}
+                        <label className="flex items-center gap-2 text-[11px] font-black text-slate-400 cursor-pointer mb-3">
+                            <input type="file" accept="image/*" capture="environment" className="hidden"
+                                onChange={e => onSaveImage(ex.id, e.target.files[0])} />
+                            📷 {images?.[ex.id] ? 'החלף תמונה' : 'הוסף תמונה לתרגיל'}
+                        </label>
+                        <section className="bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-4 shadow-inner">
+                            <div className="flex justify-between items-center mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-4 bg-blue-600 rounded-full" />
+                                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                        <Icon name="BookOpen" size={14} className="text-blue-500" /> איך לבצע
+                                    </span>
+                                </div>
+                                <span className="bg-slate-200 px-3 py-1 rounded-full text-[10px] font-black text-slate-600">מכשיר: {group.machine}</span>
+                            </div>
+                            <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 mb-4 font-medium">{ex.howTo}</p>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {ex.tips.map((t,i)=>(
+                                    <div key={i} className="bg-white p-2.5 rounded-xl border border-slate-100 text-[11px] text-slate-600 flex items-start gap-2 shadow-sm">
+                                        <Icon name="CheckCircle2" size={14} className="text-emerald-500 mt-0.5 shrink-0" /><span className="font-bold">{t}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <textarea defaultValue={notes?.[ex.id]||''} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                                placeholder="הוסף דגשים והערות אישיות..."
+                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 min-h-[60px] resize-none" />
+                        </section>
+                        <section className="flex gap-2 mb-5 overflow-x-auto no-scrollbar py-1">
+                            {exHistory.map((h,i)=>(
+                                <div key={i} className={`p-2.5 rounded-2xl border shrink-0 text-[10px] ${i<2?'bg-indigo-50/80 border-indigo-200 shadow-sm':'bg-slate-50/50 border-slate-100 opacity-70'}`}>
+                                    <span className={`font-bold block mb-1 ${i<2?'text-indigo-500':'text-slate-400'}`}>{new Date(h.timestamp).toLocaleDateString('he-IL')}</span>
+                                    <span className={`font-black ${i<2?'text-indigo-900':'text-slate-600'}`}>סט {h.setNum}: {h.weight}kg × {h.reps}</span>
+                                </div>
+                            ))}
+                        </section>
+                        <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
+                            onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onBack} isSuperset={group.isSuperset} />
+                    </div>
+                );
+            })}
+        </div>
+        {restTimer>0 && (
+            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200]">
+                <div className="bg-blue-600 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 border-2 border-white animate-pulse">
+                    <Icon name="Clock" size={20} />
+                    <span className="font-black text-lg font-mono">מנוחה: {restTimer}</span>
+                </div>
+            </div>
+        )}
+    </div>
+));
+
+// ─── HistoryView ───────────────────────────────────────────
+// תיקון 3: [...items].sort — לא מוטייט מערך מקורי
+const HistoryView = ({ logs, onBack, onDeleteDate, onDeleteOne, requestConfirm }) => {
+    const [expandedDate, setExpandedDate] = useState(null);
+    const grouped = useMemo(() => {
+        const g = {};
+        logs.forEach(l => {
+            const d = new Date(l.timestamp).toLocaleDateString('he-IL');
+            if (!g[d]) g[d] = [];
+            g[d].push(l);
+        });
+        return Object.entries(g).sort((a,b)=>new Date(b[1][0].timestamp)-new Date(a[1][0].timestamp));
+    }, [logs]);
+
+    return (
+        <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
+            <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
+                <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
+                <h2 className="text-xl font-black text-white text-center">היסטוריה</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32">
+                {grouped.length===0 ? (
+                    <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400">
+                        <Icon name="Dumbbell" size={64} className="mb-4 text-slate-300" />
+                        <p className="font-black text-xl">אין היסטוריה עדיין</p>
+                    </div>
+                ) : grouped.map(([date,items])=>(
+                    <div key={date} className="bg-slate-50 rounded-[2.2rem] border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="flex justify-between items-center bg-white p-1">
+                            <button onClick={()=>setExpandedDate(expandedDate===date?null:date)} className="flex-1 flex justify-between items-center p-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                                    <span className="font-black text-slate-800">{date}</span>
+                                </div>
+                                <Icon name="ChevronDown" size={20} className={`text-slate-400 transition-transform duration-300 ${expandedDate===date?'rotate-180':''}`} />
+                            </button>
+                            <button onClick={()=>requestConfirm('למחוק את כל יום האימון?',()=>onDeleteDate(items))} className="p-4 text-red-300 active:text-red-500">
+                                <Icon name="Trash" size={20} />
+                            </button>
+                        </div>
+                        {expandedDate===date && (
+                            <div className="p-4 bg-white border-t border-slate-100 space-y-3">
+                                {[...items].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).map(it => {
+                                    const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===it.exId);
+                                    return (
+                                        <div key={it.id} className="flex justify-between items-center text-xs border-b border-slate-50 last:border-0 pb-3">
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={()=>requestConfirm('למחוק סט זה?',()=>onDeleteOne(it.id))} className="text-red-200 hover:text-red-500">
+                                                    <Icon name="Trash2" size={12} />
+                                                </button>
+                                                <span className="font-black text-slate-700">{ex?.title||'תרגיל'}</span>
+                                            </div>
+                                            <span className="text-blue-600 font-black bg-blue-50 px-2.5 py-1 rounded-xl">סט {it.setNum}: {it.weight}kg × {it.reps}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// ─── ManageView ────────────────────────────────────────────
+// תיקון 4: onUpdateSettings קריאה אחת עם '_bulk'
+const ManageView = ({ logs, notes, settings, onBack, onUpdateSettings, requestConfirm, showToast, user, onLogout }) => {
+    const handleBackup = () => {
+        const blob = new Blob([JSON.stringify({logs,notes,settings})], {type:'application/json'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url;
+        a.download = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('הגיבוי הורד בהצלחה');
+    };
+
+    const handleRestore = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        requestConfirm('שחזור ימחוק את כל הנתונים הקיימים. להמשיך?', () => {
+            const reader = new FileReader();
+            reader.onload = async ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (!data.logs) throw new Error();
+                    showToast('משחזר נתונים...');
+                    const base = db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid);
+                    for (const log of logs) await base.collection('logs').doc(log.id).delete();
+                    for (const log of data.logs) {
+                        const {id,...logData} = log;
+                        await base.collection('logs').doc(id||crypto.randomUUID()).set(logData);
+                    }
+                    if (data.notes) for (const [exId,text] of Object.entries(data.notes))
+                        await base.collection('notes').doc(exId).set({text});
+                    if (data.settings) {
+                        await base.set({settings:data.settings},{merge:true});
+                        onUpdateSettings('_bulk', data.settings);  // קריאה אחת בלבד
+                    }
+                    showToast('הנתונים שוחזרו בהצלחה');
+                } catch { showToast('שגיאה בשחזור', true); }
+            };
+            reader.readAsText(file);
+        }, () => { e.target.value = null; });
+    };
+
+    return (
+        <div className="flex flex-col h-screen bg-slate-50 overflow-hidden fade-in" dir="rtl">
+            <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
+                <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
+                <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
+                    <div className="space-y-4">
+                        <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
+                            <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
+                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">הורדת קובץ למכשיר</div></div>
+                        </button>
+                        <label className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]">
+                            <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
+                            <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
+                            <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
+                        </label>
+                    </div>
+                </section>
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Settings" size={20} className="text-rose-500" /> הגדרות אימון</h3>
+                    <div className="space-y-4">
+                        {[
+                            {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120]},
+                            {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60]}
+                        ].map(({label,key,opts})=>(
+                            <div key={key} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                <span className="font-bold text-sm text-slate-700">{label}</span>
+                                <select className="bg-white border border-slate-200 rounded-xl px-3 py-1 font-black text-rose-600 outline-none"
+                                    value={settings[key]} onChange={e=>onUpdateSettings(key,Number(e.target.value))}>
+                                    {opts.map(o=><option key={o} value={o}>{o} שניות</option>)}
+                                </select>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+                {user && (
+                    <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-800 mb-1 flex items-center gap-2"><Icon name="Clock" size={20} className="text-slate-400" /> חשבון</h3>
+                        <p className="text-xs text-slate-400 font-bold mb-4">{user.email}</p>
+                        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-rose-50 p-4 rounded-2xl border border-rose-100 text-rose-600 font-black active:scale-[0.98]">
+                            יציאה מהחשבון
+                        </button>
+                    </section>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── מסך כניסה ─────────────────────────────────────────────
+const LoginScreen = ({ onLogin, isLoading }) => (
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 p-8" dir="rtl">
+        <div className="bg-black w-full max-w-sm py-5 mb-10 shadow-2xl rounded-2xl">
+            <h1 className="text-2xl font-black text-white tracking-widest text-center uppercase">אימון פול-באדי</h1>
+        </div>
+        <div className="bg-white rounded-3xl p-8 shadow-xl w-full max-w-xs text-center">
+            <div className="text-5xl mb-4">🏋️</div>
+            <h2 className="text-xl font-black text-slate-800 mb-2">ברוך הבא</h2>
+            <p className="text-sm text-slate-500 mb-8 font-bold">התחבר כדי לשמור את האימונים שלך</p>
+            <button onClick={onLogin} disabled={isLoading}
+                className="w-full bg-white border-2 border-slate-200 rounded-2xl p-4 flex items-center justify-center gap-3 font-black text-slate-700 shadow-md active:scale-95 transition-all hover:border-blue-300 disabled:opacity-50">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                {isLoading ? 'מתחבר...' : 'כניסה עם Google'}
+            </button>
+        </div>
+    </div>
+);
+
+// ─── App ───────────────────────────────────────────────────
+function App() {
+    const [user,             setUser]             = useState(null);
+    const [authReady,        setAuthReady]        = useState(false);
+    const [authLoading,      setAuthLoading]      = useState(false);
+    const [view,             setView]             = useState('list');
+    const [activeGroup,      setActiveGroup]      = useState(null);
+    const [logs,             setLogs]             = useState([]);
+    const [workoutSec,       setWorkoutSec]       = useState(0);
+    const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
+    const [restTimer,        setRestTimer]        = useState(0);
+    const [sessionStartTime, setSessionStartTime] = useState(()=>Date.now());
+    const [confirmAction,    setConfirmAction]    = useState(null);
+    const [toast,            setToast]            = useState(null);
+    const [notes,            setNotes]            = useState({});
+    const [images,           setImages]           = useState({});
+    const [settings,         setSettings]         = useState({normalRest:90,supersetRest:30});
+
+    const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
+    const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
+
+    // Auth state
+    useEffect(()=>{
+        return auth.onAuthStateChanged(u=>{ setUser(u); setAuthReady(true); });
+    },[]);
+
+    const handleLogin = async () => {
+        setAuthLoading(true);
+        try {
+            await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        } catch(e) { setAuthLoading(false); }
+    };
+
+    // Firestore sync
+    useEffect(()=>{
+        if (!user) return;
+        const base = db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid);
+        const u1 = base.collection('logs').onSnapshot(snap=>setLogs(snap.docs.map(d=>({id:d.id,...d.data()}))));
+        const u2 = base.collection('notes').onSnapshot(snap=>{ const n={}; snap.forEach(d=>n[d.id]=d.data().text); setNotes(n); });
+        const u3 = base.onSnapshot(doc=>{ if(doc.exists&&doc.data().settings) setSettings(doc.data().settings); });
+        const u4 = base.collection('images').onSnapshot(snap=>{ const m={}; snap.forEach(d=>m[d.id]=d.data().url); setImages(m); });
+        return ()=>{ u1(); u2(); u3(); u4(); };
+    },[user]);
+
+    // Timers
+    useEffect(()=>{
+        if (!isWorkoutActive) return;
+        const t = setInterval(()=>setWorkoutSec(s=>s+1),1000);
+        return ()=>clearInterval(t);
+    },[isWorkoutActive]);
+
+    useEffect(()=>{
+        if (restTimer<=0) return;
+        const t = setInterval(()=>setRestTimer(s=>s-1),1000);
+        return ()=>clearInterval(t);
+    },[restTimer]);
+
+    const base = () => db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid);
+
+    const handleUpdateSettings = async (key,value) => {
+        const newSettings = key==='_bulk' ? value : {...settings,[key]:value};
+        setSettings(newSettings);
+        await base().set({settings:newSettings},{merge:true});
+    };
+
+    const handleSaveSet = async (exId,setNum,weight,reps,isSuperset)=>{
+        try {
+            await base().collection('logs').add({exId,setNum,weight,reps,timestamp:new Date().toISOString()});
+            setRestTimer(isSuperset ? settings.supersetRest : settings.normalRest);
+        } catch(e) { showToast('שגיאה בשמירה: '+e.message,true); }
+    };
+
+    const handleSaveNote = async (exId,text)=>{
+        await base().collection('notes').doc(exId).set({text});
+    };
+
+    const handleSaveImage = (exId, file) => {
+        if (!user || !file) return;
+        showToast('מעלה תמונה...');
+        const canvas = document.createElement('canvas');
+        const ctx    = canvas.getContext('2d');
+        const img    = new Image();
+        const reader = new FileReader();
+        reader.onload = ev => {
+            img.onload = async () => {
+                // כיווץ ל-600px מקסימום — ~50-80KB
+                const MAX = 600;
+                const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+                canvas.width  = Math.round(img.width  * ratio);
+                canvas.height = Math.round(img.height * ratio);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const url = canvas.toDataURL('image/jpeg', 0.75);
+                try {
+                    await base().collection('images').doc(exId).set({ url });
+                    showToast('התמונה נשמרה');
+                } catch(e) { showToast('שגיאה בשמירת תמונה', true); }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const startNewWorkout = ()=>{
+        setWorkoutSec(0); setIsWorkoutActive(false); setRestTimer(0);
+        setSessionStartTime(Date.now()); setView('list'); setActiveGroup(null);
+    };
+
+    const handleDeleteLog  = async id=>{
+        await base().collection('logs').doc(id).delete();
+        showToast('הרשומה נמחקה');
+    };
+    const handleDeleteDate = async items=>{
+        for (const item of items) await base().collection('logs').doc(item.id).delete();
+        showToast('יום האימון נמחק');
+    };
+
+    const completedCount = useMemo(()=>
+        exerciseGroups.filter(g=>{ const ids=g.exercises.map(e=>e.id); return logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); }).length
+    ,[logs,sessionStartTime]);
+
+    const nextIncompleteIndex = useMemo(()=>
+        exerciseGroups.findIndex(g=>{ const ids=g.exercises.map(e=>e.id); return !logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); })
+    ,[logs,sessionStartTime]);
+
+    useEffect(()=>{
+        if (view!=='list') return;
+        setTimeout(()=>{
+            const idx = nextIncompleteIndex>0 ? nextIncompleteIndex-1 : 0;
+            document.getElementById(`ex-btn-${idx}`)?.scrollIntoView({behavior:'smooth',block:'center'});
+        },250);
+    },[view,nextIncompleteIndex]);
+
+    const handleOpenExercise = group=>{
+        if (workoutSec===0&&!isWorkoutActive) {
+            requestConfirm('להפעיל טיימר?',
+                ()=>{ setIsWorkoutActive(true); setActiveGroup(group); setView('detail'); },
+                ()=>{                           setActiveGroup(group); setView('detail'); }
+            );
+        } else { setActiveGroup(group); setView('detail'); }
+    };
+
+    // Overlays — תמיד מעל
+    const overlays = (
+        <>
+            {confirmAction && (
+                <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
+                        <h3 className="text-lg font-black text-slate-800 mb-5 text-center">{confirmAction.text}</h3>
+                        <div className="flex gap-3">
+                            <button onClick={()=>{ confirmAction.onCancel?.(); setConfirmAction(null); }} className="flex-1 p-3 rounded-xl font-bold text-slate-500 bg-slate-100 active:scale-95">ביטול</button>
+                            <button onClick={()=>{ confirmAction.onConfirm(); setConfirmAction(null); }} className="flex-1 p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">אישור</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* תיקון 5: AlertCircle לשגיאה, CheckCircle2 להצלחה */}
+            {toast && (
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[300px]">
+                    <div className={`px-5 py-3 rounded-2xl shadow-2xl font-black text-sm flex items-center justify-center gap-2 ${toast.isError?'bg-rose-500':'bg-emerald-500'} text-white`}>
+                        <Icon name={toast.isError?'AlertCircle':'CheckCircle2'} size={20} /> {toast.msg}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+
+    if (!authReady) return <div className="h-screen flex items-center justify-center bg-slate-50"><div className="text-slate-400 text-xl font-black">טוען...</div></div>;
+    if (!user) return <LoginScreen onLogin={handleLogin} isLoading={authLoading} />;
+
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimer={restTimer} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
+    if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} user={user} onLogout={()=>auth.signOut()} /></>;
+
+    // List view
+    return (
+        <>
+        {overlays}
+        <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
+            <header className="bg-white pb-6 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
+                <div className="bg-black w-full py-5 mb-8 shadow-2xl">
+                    <h1 className="text-2xl font-black text-white tracking-widest text-center uppercase">אימון פול-באדי</h1>
+                </div>
+                <div className="flex items-center justify-center px-6 relative h-32">
+                    <button onClick={()=>setIsWorkoutActive(v=>!v)}
+                        className={`flex flex-col items-center justify-center w-28 h-28 rounded-full shadow-xl border-[5px] transition-all active:scale-95 outline-none
+                            ${isWorkoutActive?'bg-emerald-50 border-emerald-500 timer-active':'bg-white border-red-500'}`}>
+                        <Icon name="Timer" size={26} className={isWorkoutActive?'animate-pulse mb-0.5 text-emerald-600':'mb-0.5 text-red-500 opacity-80'} />
+                        <span className="font-mono text-2xl font-black tracking-widest" dir="ltr">
+                            {`${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`}
+                        </span>
+                    </button>
+                    <div className="absolute left-8">
+                        <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
+                            className="p-3.5 bg-slate-100 text-slate-600 rounded-full shadow-md active:rotate-180 transition-transform">
+                            <Icon name="RotateCcw" size={22} />
+                        </button>
+                    </div>
+                </div>
+                <div className="w-full max-w-[16rem] mx-auto px-2 mt-6">
+                    <div className="flex justify-between text-[11px] font-black text-slate-400 mb-1.5 px-1">
+                        <span>{Math.round(completedCount/exerciseGroups.length*100)}%</span>
+                        <span>בוצעו {completedCount} / {exerciseGroups.length}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden" dir="ltr">
+                        <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-700" style={{width:`${completedCount/exerciseGroups.length*100}%`}} />
+                    </div>
+                </div>
+            </header>
+
+            <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
+                {exerciseGroups.map((group,idx)=>{
+                    const ids    = group.exercises.map(e=>e.id);
+                    const isDone = logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime);
+                    const isNext = idx===nextIncompleteIndex;
+                    return (
+                        <button id={`ex-btn-${idx}`} key={group.id} onClick={()=>handleOpenExercise(group)}
+                            className={`w-full p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98]
+                                ${isDone?'bg-emerald-50 shadow-sm opacity-80':isNext?'bg-slate-900 shadow-lg scale-[1.02]':'bg-white border border-slate-100 shadow-sm'}`}>
+                            <div className={`flex items-center justify-between p-4 rounded-[1.4rem] ${isDone?'bg-slate-50':'bg-white'}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
+                                    <div>
+                                        <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>{group.title}</div>
+                                        <div className={`inline-block px-2.5 py-1 mt-1.5 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':group.badgeColor}`}>{group.category}</div>
+                                    </div>
+                                </div>
+                                {isDone
+                                    ? <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><Icon name="CheckCircle2" size={20} /></div>
+                                    : <div className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-slate-300"><Icon name="ChevronLeft" size={20} /></div>}
+                            </div>
+                        </button>
+                    );
+                })}
+            </main>
+
+            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-100 px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl shadow-xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))'}}>
+                <button onClick={()=>setView('history')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
+                    <Icon name="History" size={24} /><span className="text-[11px] font-black">היסטוריה</span>
+                </button>
+                <button onClick={()=>requestConfirm('להתחיל אימון חדש?',startNewWorkout)}
+                    className="flex flex-col items-center gap-1 text-blue-600 -mt-14 bg-white p-3 rounded-full shadow-2xl border-4 border-slate-50 active:scale-90">
+                    <div className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl"><Icon name="Plus" size={36} /></div>
+                    <span className="text-[11px] font-black mt-1">אימון חדש</span>
+                </button>
+                <button onClick={()=>setView('manage')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
+                    <Icon name="Settings" size={24} /><span className="text-[11px] font-black">ניהול</span>
+                </button>
+            </nav>
+        </div>
+        </>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
