@@ -270,6 +270,24 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     className="w-full rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
                             </div>
                         )}
+                        {!imgSrc && (
+                            <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mb-3">
+                                <input type="file" accept="image/*" className="hidden"
+                                    onChange={e => onSaveImage(ex.id, e.target.files[0])} />
+                                📷 הוסף תמונה שלך
+                            </label>
+                        )}
+                        {imgSrc && (
+                            <div className="flex items-center gap-2 mb-3">
+                                <img src={imgSrc} alt={ex.title}
+                                    onClick={()=>setLightbox(imgSrc)}
+                                    className="flex-1 rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
+                                <button onClick={()=>onRemoveImage(ex.id)}
+                                    className="text-[11px] font-black text-red-300 active:text-red-500 shrink-0">
+                                    הסר
+                                </button>
+                            </div>
+                        )}
                         {videos?.[ex.id] ? (
                             <div className="flex items-center gap-2 mb-3">
                                 <a href={`https://youtu.be/${videos[ex.id]}`} target="_blank" rel="noopener noreferrer"
