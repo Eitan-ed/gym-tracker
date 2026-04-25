@@ -212,7 +212,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
 }
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, videos, onSaveVideo, onDeleteVideo, onBack, onSave, sessionStartTime, restTimer }) => (
+const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onSave, sessionStartTime, restTimer }) => (
     <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0`}>
             <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow-lg">
@@ -238,6 +238,19 @@ const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, 
                             <img src={images?.[ex.id] || EXERCISE_IMAGES[ex.id]} alt={ex.title}
                                 className="w-full rounded-2xl mb-3 object-cover max-h-52 shadow" />
                         )}
+                        <div className="flex items-center gap-3 mb-3">
+                            <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer">
+                                <input type="file" accept="image/*" className="hidden"
+                                    onChange={e => onSaveImage(ex.id, e.target.files[0])} />
+                                📷 {images?.[ex.id] ? 'החלף תמונה' : 'הוסף תמונה'}
+                            </label>
+                            {images?.[ex.id] && (
+                                <button onClick={()=>onRemoveImage(ex.id)}
+                                    className="text-[11px] font-black text-red-300 active:text-red-500">
+                                    הסר תמונה
+                                </button>
+                            )}
+                        </div>
                         {videos?.[ex.id] ? (
                             <div className="flex items-center gap-2 mb-3">
                                 <a href={`https://youtu.be/${videos[ex.id]}`} target="_blank" rel="noopener noreferrer"
@@ -511,6 +524,11 @@ function App() {
         showToast('הסרטון הוסר');
     };
 
+    const handleRemoveImage = (exId) => {
+        setImages(prev=>{ const n={...prev}; delete n[exId]; return n; });
+        showToast('התמונה הוסרה');
+    };
+
     const handleSaveImage = (exId, file) => {
         if (!file) return;
         showToast('טוען תמונה...');
@@ -599,7 +617,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimer={restTimer} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimer={restTimer} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
