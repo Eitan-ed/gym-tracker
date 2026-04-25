@@ -470,16 +470,15 @@ function App() {
     const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
     const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
 
-    // Auth state
+    // Auth state + טיפול בחזרה מ-redirect
     useEffect(()=>{
+        auth.getRedirectResult().catch(()=>{});
         return auth.onAuthStateChanged(u=>{ setUser(u); setAuthReady(true); });
     },[]);
 
-    const handleLogin = async () => {
+    const handleLogin = () => {
         setAuthLoading(true);
-        try {
-            await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-        } catch(e) { setAuthLoading(false); }
+        auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
     };
 
     // Firestore sync
