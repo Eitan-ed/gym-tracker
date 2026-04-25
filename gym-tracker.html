@@ -703,7 +703,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>requestConfirm('לצאת מהתרגיל?',()=>{setView('list');setActiveGroup(null);})} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
