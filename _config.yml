@@ -1,0 +1,2 @@
+include: [".htaccess"]
+keep_files: [".htaccess", ".nojekyll", "index.html", "gym-tracker.html", "images", "videos"]
