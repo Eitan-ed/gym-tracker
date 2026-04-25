@@ -219,6 +219,14 @@ const EXERCISE_VIDEOS = {
     ex9:'ex9.mp4', ex10a:'ex10a.mp4', ex10b:'ex10b.mp4'
 };
 
+// ─── EXERCISE_IMAGES ────────────────────────────────────────
+const EXERCISE_IMAGES = {
+    ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
+    ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
+    ex7a:'ex7a.png', ex7b:'ex7b.png', ex8:'ex8.png',
+    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png'
+};
+
 // ─── VideoModal ─────────────────────────────────────────────
 let _videoModalOpen = false;
 
@@ -270,6 +278,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             <span className="w-8 h-8 bg-slate-900 text-white text-sm rounded-full flex items-center justify-center font-black shrink-0">{exIdx+1}</span>
                             <h3 className="font-black text-slate-800 text-[17px] underline decoration-blue-500/20 underline-offset-8">{ex.title} ({group.category})</h3>
                         </div>
+                        {EXERCISE_IMAGES[ex.id] && (
+                            <div className="mb-3">
+                                <img src={`images/${EXERCISE_IMAGES[ex.id]}`} alt={ex.title}
+                                    onClick={()=>setLightbox(`images/${EXERCISE_IMAGES[ex.id]}`)}
+                                    className="w-full rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
+                                <div className="text-[10px] text-slate-400 mt-1 px-1 text-center">הטכניקה</div>
+                            </div>
+                        )}
                         {imgSrc && (
                             <img src={imgSrc} alt={ex.title}
                                 onClick={()=>setLightbox(imgSrc)}
