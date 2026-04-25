@@ -574,8 +574,7 @@ function App() {
         history.pushState(null,'');
         const handler = ()=>{
             if (_videoModalOpen) return;
-            history.pushState(null,'');
-            requestConfirm('לצאת מהתרגיל?',()=>{ setView('list'); setActiveGroup(null); });
+            setView('list'); setActiveGroup(null);
         };
         window.addEventListener('popstate', handler);
         return ()=>window.removeEventListener('popstate', handler);
@@ -707,7 +706,12 @@ function App() {
     },[view,nextIncompleteIndex]);
 
     const handleOpenExercise = group=>{
-        setActiveGroup(group); setView('detail');
+        if (workoutSec===0&&!isWorkoutActive) {
+            requestConfirm('להפעיל טיימר?',
+                ()=>{ setIsWorkoutActive(true); setActiveGroup(group); setView('detail'); },
+                ()=>{                           setActiveGroup(group); setView('detail'); }
+            );
+        } else { setActiveGroup(group); setView('detail'); }
     };
 
     // Overlays — תמיד מעל
@@ -735,7 +739,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>requestConfirm('לצאת מהתרגיל?',()=>{setView('list');setActiveGroup(null);})} onFinish={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
