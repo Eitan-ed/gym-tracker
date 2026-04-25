@@ -463,10 +463,8 @@ function App() {
 
     // התחברות אנונימית אוטומטית
     useEffect(()=>{
-        const unsub = auth.onAuthStateChanged(u=>{
-            if (u) { setUser(u); setAuthReady(true); }
-            else   { auth.signInAnonymously(); }
-        });
+        auth.signInAnonymously().catch(console.error);
+        const unsub = auth.onAuthStateChanged(u=>{ setUser(u); setAuthReady(true); });
         return unsub;
     },[]);
 
