@@ -256,7 +256,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             {group.exercises.map((ex, exIdx) => {
                 const exHistory = logs.filter(l=>l.exId===ex.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
-                const imgSrc = images?.[ex.id] || EXERCISE_IMAGES?.[ex.id];
+                const imgSrc = images?.[ex.id];
                 return (
                     <div key={ex.id} className="border-b border-slate-100 pb-6 last:border-0">
                         <div className="flex items-center gap-3 mb-4">
@@ -472,6 +472,13 @@ const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSet
         }, () => { e.target.value = null; });
     };
 
+    const handleClearImages = () => {
+        requestConfirm('מחוק את כל התמונות המקומיות?', () => {
+            setImages({});
+            showToast('כל התמונות נמחקו');
+        });
+    };
+
     return (
         <div className="flex flex-col h-screen bg-slate-50 overflow-hidden fade-in" dir="rtl">
             <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
@@ -491,6 +498,10 @@ const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSet
                             <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
                             <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
                         </label>
+                        <button onClick={handleClearImages} className="w-full flex items-center gap-3 bg-orange-50 p-4 rounded-2xl border border-orange-100 text-orange-700 active:scale-[0.98]">
+                            <div className="bg-orange-100 p-2 rounded-xl"><Icon name="Trash2" size={20} /></div>
+                            <div><div className="font-black text-sm">נקה תמונות</div><div className="text-[10px] font-bold opacity-70">מחוק את כל התמונות המקומיות</div></div>
+                        </button>
                     </div>
                 </section>
                 <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
