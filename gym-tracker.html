@@ -211,8 +211,28 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     );
 }
 
+// ─── EXERCISE_VIDEOS ───────────────────────────────────────
+const EXERCISE_VIDEOS = {
+    ex1:'ex1.mp4', ex2:'ex2.mp4', ex3:'ex3.mp4', ex4:'ex4.mp4',
+    ex5a:'ex5a.mp4', ex5b:'ex5b.mp4', ex6:'ex6.mp4',
+    ex7a:'ex7a.mp4', ex7b:'ex7b.mp4', ex8:'ex8.mp4',
+    ex9:'ex9.mp4', ex10a:'ex10a.mp4', ex10b:'ex10b.mp4'
+};
+
+// ─── VideoModal ─────────────────────────────────────────────
+const VideoModal = ({ src, onClose }) => (
+    <div className="fixed inset-0 z-[600] bg-black/95 flex items-center justify-center p-4" onClick={onClose}>
+        <video src={src} controls autoPlay muted playsInline
+            className="max-w-full max-h-full rounded-xl shadow-2xl"
+            onClick={e=>e.stopPropagation()} />
+    </div>
+);
+
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onSave, sessionStartTime, restTimer }) => (
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onSave, sessionStartTime, restTimers }) {
+    const [lightbox,    setLightbox]   = useState(null);
+    const [videoModal,  setVideoModal] = useState(null);
+    return (
     <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0`}>
             <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow-lg">
@@ -228,15 +248,17 @@ const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, 
             {group.exercises.map((ex, exIdx) => {
                 const exHistory = logs.filter(l=>l.exId===ex.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
+                const imgSrc = images?.[ex.id] || EXERCISE_IMAGES?.[ex.id];
                 return (
                     <div key={ex.id} className="border-b border-slate-100 pb-6 last:border-0">
                         <div className="flex items-center gap-3 mb-4">
                             <span className="w-8 h-8 bg-slate-900 text-white text-sm rounded-full flex items-center justify-center font-black shrink-0">{exIdx+1}</span>
                             <h3 className="font-black text-slate-800 text-[17px] underline decoration-blue-500/20 underline-offset-8">{ex.title} ({group.category})</h3>
                         </div>
-                        {(images?.[ex.id] || EXERCISE_IMAGES?.[ex.id]) && (
-                            <img src={images?.[ex.id] || EXERCISE_IMAGES[ex.id]} alt={ex.title}
-                                className="w-full rounded-2xl mb-3 object-cover max-h-52 shadow" />
+                        {imgSrc && (
+                            <img src={imgSrc} alt={ex.title}
+                                onClick={()=>setLightbox(imgSrc)}
+                                className="w-full rounded-2xl mb-3 object-cover max-h-52 shadow cursor-pointer active:opacity-80" />
                         )}
                         <div className="flex items-center gap-3 mb-3">
                             <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer">
@@ -263,7 +285,15 @@ const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, 
                                 </button>
                             </div>
                         ) : (
+                            <>
+                            {EXERCISE_VIDEOS[ex.id] && (
+                                <button onClick={()=>setVideoModal(`videos/${EXERCISE_VIDEOS[ex.id]}`)}
+                                    className="w-full flex items-center gap-2 bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-2xl font-black text-sm active:scale-95 mb-2">
+                                    ▶ צפה בסרטון
+                                </button>
+                            )}
                             <VideoInput exId={ex.id} onSave={onSaveVideo} />
+                            </>
                         )}
                         <section className="bg-slate-50 p-4 rounded-3xl border border-slate-100 mb-4 shadow-inner">
                             <div className="flex justify-between items-center mb-3">
@@ -297,20 +327,27 @@ const DetailView = memo(({ group, logs, notes, onSaveNote, images, onSaveImage, 
                         </section>
                         <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                             onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onBack} isSuperset={group.isSuperset} />
+                        {restTimers[ex.id]>0 && (
+                            <div className="mt-3 flex justify-center">
+                                <div className="bg-blue-600 text-white px-6 py-2.5 rounded-full shadow-lg flex items-center gap-2 border-2 border-white animate-pulse">
+                                    <Icon name="Clock" size={18} />
+                                    <span className="font-black text-base font-mono">מנוחה: {restTimers[ex.id]}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             })}
         </div>
-        {restTimer>0 && (
-            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200]">
-                <div className="bg-blue-600 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 border-2 border-white animate-pulse">
-                    <Icon name="Clock" size={20} />
-                    <span className="font-black text-lg font-mono">מנוחה: {restTimer}</span>
-                </div>
+        {lightbox && (
+            <div className="fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
+                <img src={lightbox} alt="" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
             </div>
         )}
+        {videoModal && <VideoModal src={videoModal} onClose={()=>setVideoModal(null)} />}
     </div>
-));
+    );
+});
 
 // ─── HistoryView ───────────────────────────────────────────
 // תיקון 3: [...items].sort — לא מוטייט מערך מקורי
@@ -377,17 +414,21 @@ const HistoryView = ({ logs, onBack, onDeleteDate, onDeleteOne, requestConfirm }
     );
 };
 
+// ─── Backup helper ─────────────────────────────────────────
+const triggerBackupDownload = data => {
+    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+};
+
 // ─── ManageView ────────────────────────────────────────────
-// תיקון 4: onUpdateSettings קריאה אחת עם '_bulk'
 const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos }) => {
     const handleBackup = () => {
-        const blob = new Blob([JSON.stringify({logs,notes,images,videos,settings})], {type:'application/json'});
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url;
-        a.download = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        triggerBackupDownload({logs,notes,images,videos,settings});
         showToast('הגיבוי הורד בהצלחה');
     };
 
@@ -463,7 +504,12 @@ function App() {
     const [logs,             setLogs]             = useState(()=>LS.get('gym-logs',[]));
     const [workoutSec,       setWorkoutSec]       = useState(0);
     const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
-    const [restTimer,        setRestTimer]        = useState(0);
+    const [restTimers,       setRestTimers]       = useState({});
+    const [groupOrder,       setGroupOrder]       = useState(()=>{
+        const saved = LS.get('gym-group-order', null);
+        if (saved && saved.length === exerciseGroups.length) return saved;
+        return exerciseGroups.map(g=>g.id);
+    });
     const [sessionStartTime, setSessionStartTime] = useState(()=>Date.now());
     const [confirmAction,    setConfirmAction]    = useState(null);
     const [toast,            setToast]            = useState(null);
@@ -476,11 +522,27 @@ function App() {
     const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
 
     // שמירה אוטומטית ב-localStorage
-    useEffect(()=>{ LS.set('gym-logs',     logs);     },[logs]);
-    useEffect(()=>{ LS.set('gym-notes',    notes);    },[notes]);
-    useEffect(()=>{ LS.set('gym-images',   images);   },[images]);
-    useEffect(()=>{ LS.set('gym-videos',   videos);   },[videos]);
-    useEffect(()=>{ LS.set('gym-settings', settings); },[settings]);
+    useEffect(()=>{ LS.set('gym-logs',        logs);       },[logs]);
+    useEffect(()=>{ LS.set('gym-notes',       notes);      },[notes]);
+    useEffect(()=>{ LS.set('gym-images',      images);     },[images]);
+    useEffect(()=>{ LS.set('gym-videos',      videos);     },[videos]);
+    useEffect(()=>{ LS.set('gym-settings',    settings);   },[settings]);
+    useEffect(()=>{ LS.set('gym-group-order', groupOrder); },[groupOrder]);
+
+    // גיבוי יומי אוטומטי
+    useEffect(()=>{
+        const last = LS.get('gym-last-backup', 0);
+        if (Date.now() - last > 86400000) {
+            triggerBackupDownload({
+                logs:     LS.get('gym-logs',     []),
+                notes:    LS.get('gym-notes',    {}),
+                images:   LS.get('gym-images',   {}),
+                videos:   LS.get('gym-videos',   {}),
+                settings: LS.get('gym-settings', {normalRest:90,supersetRest:30})
+            });
+            LS.set('gym-last-backup', Date.now());
+        }
+    },[]);
 
     // Timers
     useEffect(()=>{
@@ -490,10 +552,16 @@ function App() {
     },[isWorkoutActive]);
 
     useEffect(()=>{
-        if (restTimer<=0) return;
-        const t = setInterval(()=>setRestTimer(s=>s-1),1000);
+        const t = setInterval(()=>{
+            setRestTimers(prev=>{
+                if (Object.keys(prev).length === 0) return prev;
+                const next = {};
+                Object.entries(prev).forEach(([k,v])=>{ if (v>1) next[k]=v-1; });
+                return next;
+            });
+        },1000);
         return ()=>clearInterval(t);
-    },[restTimer]);
+    },[]);
 
     const handleUpdateSettings = (key,value) => {
         const newSettings = key==='_bulk' ? value : {...settings,[key]:value};
@@ -503,7 +571,7 @@ function App() {
     const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
         const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
         setLogs(prev=>[...prev, newLog]);
-        setRestTimer(isSuperset ? settings.supersetRest : settings.normalRest);
+        setRestTimers(prev=>({...prev,[exId]:isSuperset ? settings.supersetRest : settings.normalRest}));
     };
 
     const handleSaveNote = (exId,text) => {
@@ -553,7 +621,7 @@ function App() {
     };
 
     const startNewWorkout = ()=>{
-        setWorkoutSec(0); setIsWorkoutActive(false); setRestTimer(0);
+        setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({});
         setSessionStartTime(Date.now()); setView('list'); setActiveGroup(null);
     };
 
@@ -567,13 +635,27 @@ function App() {
         showToast('יום האימון נמחק');
     };
 
+    const sortedGroups = useMemo(()=>
+        groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean)
+    ,[groupOrder]);
+
+    const handleMoveGroup = (idx, dir) => {
+        setGroupOrder(prev=>{
+            const next = [...prev];
+            const target = idx + dir;
+            if (target < 0 || target >= next.length) return prev;
+            [next[idx], next[target]] = [next[target], next[idx]];
+            return next;
+        });
+    };
+
     const completedCount = useMemo(()=>
-        exerciseGroups.filter(g=>{ const ids=g.exercises.map(e=>e.id); return logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); }).length
-    ,[logs,sessionStartTime]);
+        sortedGroups.filter(g=>{ const ids=g.exercises.map(e=>e.id); return logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); }).length
+    ,[sortedGroups,logs,sessionStartTime]);
 
     const nextIncompleteIndex = useMemo(()=>
-        exerciseGroups.findIndex(g=>{ const ids=g.exercises.map(e=>e.id); return !logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); })
-    ,[logs,sessionStartTime]);
+        sortedGroups.findIndex(g=>{ const ids=g.exercises.map(e=>e.id); return !logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime); })
+    ,[sortedGroups,logs,sessionStartTime]);
 
     useEffect(()=>{
         if (view!=='list') return;
@@ -617,7 +699,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimer={restTimer} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
@@ -658,27 +740,39 @@ function App() {
             </header>
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
-                {exerciseGroups.map((group,idx)=>{
+                {sortedGroups.map((group,idx)=>{
                     const ids    = group.exercises.map(e=>e.id);
                     const isDone = logs.some(l=>ids.includes(l.exId)&&new Date(l.timestamp).getTime()>sessionStartTime);
                     const isNext = idx===nextIncompleteIndex;
                     return (
-                        <button id={`ex-btn-${idx}`} key={group.id} onClick={()=>handleOpenExercise(group)}
-                            className={`w-full p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98]
-                                ${isDone?'bg-emerald-50 shadow-sm opacity-80':isNext?'bg-slate-900 shadow-lg scale-[1.02]':'bg-white border border-slate-100 shadow-sm'}`}>
-                            <div className={`flex items-center justify-between p-4 rounded-[1.4rem] ${isDone?'bg-slate-50':'bg-white'}`}>
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
-                                    <div>
-                                        <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>{group.title}</div>
-                                        <div className={`inline-block px-2.5 py-1 mt-1.5 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':group.badgeColor}`}>{group.category}</div>
-                                    </div>
-                                </div>
-                                {isDone
-                                    ? <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><Icon name="CheckCircle2" size={20} /></div>
-                                    : <div className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-slate-300"><Icon name="ChevronLeft" size={20} /></div>}
+                        <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
+                            <div className="flex flex-col gap-1 shrink-0">
+                                <button onClick={()=>handleMoveGroup(idx,-1)} disabled={idx===0}
+                                    className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:bg-slate-200 disabled:opacity-20">
+                                    <Icon name="ChevronUp" size={14} />
+                                </button>
+                                <button onClick={()=>handleMoveGroup(idx,1)} disabled={idx===sortedGroups.length-1}
+                                    className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:bg-slate-200 disabled:opacity-20">
+                                    <Icon name="ChevronDown" size={14} />
+                                </button>
                             </div>
-                        </button>
+                            <button onClick={()=>handleOpenExercise(group)}
+                                className={`flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98]
+                                    ${isDone?'bg-emerald-50 shadow-sm opacity-80':isNext?'bg-slate-900 shadow-lg scale-[1.02]':'bg-white border border-slate-100 shadow-sm'}`}>
+                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem] ${isDone?'bg-slate-50':'bg-white'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
+                                        <div>
+                                            <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>{group.title}</div>
+                                            <div className={`inline-block px-2.5 py-1 mt-1.5 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':group.badgeColor}`}>{group.category}</div>
+                                        </div>
+                                    </div>
+                                    {isDone
+                                        ? <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><Icon name="CheckCircle2" size={20} /></div>
+                                        : <div className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-slate-300"><Icon name="ChevronLeft" size={20} /></div>}
+                                </div>
+                            </button>
+                        </div>
                     );
                 })}
             </main>
