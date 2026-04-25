@@ -12,9 +12,6 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; background:#f8fafc; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
@@ -34,25 +31,11 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
 
-// ============================================================
-//  Firebase Config
-// ============================================================
-const firebaseConfig = {
-    apiKey:            "AIzaSyCJSQK8wQ2CYzX22ECFUL0Pew-OmTVyaQE",
-    authDomain:        "gym-tracker-eitan.firebaseapp.com",
-    projectId:         "gym-tracker-eitan",
-    storageBucket:     "gym-tracker-eitan.firebasestorage.app",
-    messagingSenderId: "333162679454",
-    appId:             "1:333162679454:web:99cc20d535673b71d0bf8f"
+// ─── localStorage helpers ───────────────────────────────────
+const LS = {
+    get: (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
+    set: (k, v)   => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
-// ============================================================
-
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth   = firebase.auth();
-const db      = firebase.firestore();
-const APP_ID  = 'gym-tracker-v1';
-
-db.enablePersistence().catch(() => {});
 
 // Icons — SVG inline (ללא תלות בספרייה חיצונית)
 const ICONS = {
@@ -374,9 +357,9 @@ const HistoryView = ({ logs, onBack, onDeleteDate, onDeleteOne, requestConfirm }
 
 // ─── ManageView ────────────────────────────────────────────
 // תיקון 4: onUpdateSettings קריאה אחת עם '_bulk'
-const ManageView = ({ logs, notes, settings, onBack, onUpdateSettings, requestConfirm, showToast, user, onLogout }) => {
+const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos }) => {
     const handleBackup = () => {
-        const blob = new Blob([JSON.stringify({logs,notes,settings})], {type:'application/json'});
+        const blob = new Blob([JSON.stringify({logs,notes,images,videos,settings})], {type:'application/json'});
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href = url;
@@ -391,23 +374,15 @@ const ManageView = ({ logs, notes, settings, onBack, onUpdateSettings, requestCo
         if (!file) return;
         requestConfirm('שחזור ימחוק את כל הנתונים הקיימים. להמשיך?', () => {
             const reader = new FileReader();
-            reader.onload = async ev => {
+            reader.onload = ev => {
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!data.logs) throw new Error();
-                    showToast('משחזר נתונים...');
-                    const base = db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid);
-                    for (const log of logs) await base.collection('logs').doc(log.id).delete();
-                    for (const log of data.logs) {
-                        const {id,...logData} = log;
-                        await base.collection('logs').doc(id||crypto.randomUUID()).set(logData);
-                    }
-                    if (data.notes) for (const [exId,text] of Object.entries(data.notes))
-                        await base.collection('notes').doc(exId).set({text});
-                    if (data.settings) {
-                        await base.set({settings:data.settings},{merge:true});
-                        onUpdateSettings('_bulk', data.settings);  // קריאה אחת בלבד
-                    }
+                    if (data.logs)     setLogs(data.logs);
+                    if (data.notes)    setNotes(data.notes);
+                    if (data.images)   setImages(data.images);
+                    if (data.videos)   setVideos(data.videos);
+                    if (data.settings) onUpdateSettings('_bulk', data.settings);
                     showToast('הנתונים שוחזרו בהצלחה');
                 } catch { showToast('שגיאה בשחזור', true); }
             };
@@ -461,43 +436,29 @@ const ManageView = ({ logs, notes, settings, onBack, onUpdateSettings, requestCo
 
 // ─── App ───────────────────────────────────────────────────
 function App() {
-    const [user,             setUser]             = useState(null);
-    const [authReady,        setAuthReady]        = useState(false);
     const [view,             setView]             = useState('list');
     const [activeGroup,      setActiveGroup]      = useState(null);
-    const [logs,             setLogs]             = useState([]);
+    const [logs,             setLogs]             = useState(()=>LS.get('gym-logs',[]));
     const [workoutSec,       setWorkoutSec]       = useState(0);
     const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
     const [restTimer,        setRestTimer]        = useState(0);
     const [sessionStartTime, setSessionStartTime] = useState(()=>Date.now());
     const [confirmAction,    setConfirmAction]    = useState(null);
     const [toast,            setToast]            = useState(null);
-    const [notes,            setNotes]            = useState({});
-    const [images,           setImages]           = useState({});
-    const [videos,           setVideos]           = useState({});
-    const [settings,         setSettings]         = useState({normalRest:90,supersetRest:30});
+    const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
+    const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
+    const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
+    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:30}));
 
     const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
     const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
 
-    // התחברות אנונימית אוטומטית
-    useEffect(()=>{
-        auth.signInAnonymously().catch(console.error);
-        const unsub = auth.onAuthStateChanged(u=>{ setUser(u); setAuthReady(true); });
-        return unsub;
-    },[]);
-
-    // Firestore sync
-    useEffect(()=>{
-        if (!user) return;
-        const base = db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid);
-        const u1 = base.collection('logs').onSnapshot(snap=>setLogs(snap.docs.map(d=>({id:d.id,...d.data()}))));
-        const u2 = base.collection('notes').onSnapshot(snap=>{ const n={}; snap.forEach(d=>n[d.id]=d.data().text); setNotes(n); });
-        const u3 = base.onSnapshot(doc=>{ if(doc.exists&&doc.data().settings) setSettings(doc.data().settings); });
-        const u4 = base.collection('images').onSnapshot(snap=>{ const m={}; snap.forEach(d=>m[d.id]=d.data().url); setImages(m); });
-        const u5 = base.collection('videos').onSnapshot(snap=>{ const m={}; snap.forEach(d=>m[d.id]=d.data().url); setVideos(m); });
-        return ()=>{ u1(); u2(); u3(); u4(); u5(); };
-    },[user]);
+    // שמירה אוטומטית ב-localStorage
+    useEffect(()=>{ LS.set('gym-logs',     logs);     },[logs]);
+    useEffect(()=>{ LS.set('gym-notes',    notes);    },[notes]);
+    useEffect(()=>{ LS.set('gym-images',   images);   },[images]);
+    useEffect(()=>{ LS.set('gym-videos',   videos);   },[videos]);
+    useEffect(()=>{ LS.set('gym-settings', settings); },[settings]);
 
     // Timers
     useEffect(()=>{
@@ -512,60 +473,52 @@ function App() {
         return ()=>clearInterval(t);
     },[restTimer]);
 
-    const base = () => db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid);
-
-    const handleUpdateSettings = async (key,value) => {
+    const handleUpdateSettings = (key,value) => {
         const newSettings = key==='_bulk' ? value : {...settings,[key]:value};
         setSettings(newSettings);
-        await base().set({settings:newSettings},{merge:true});
     };
 
-    const handleSaveSet = async (exId,setNum,weight,reps,isSuperset)=>{
-        if (!user) { showToast('מחכה לחיבור, נסה שוב', true); return; }
-        try {
-            await base().collection('logs').add({exId,setNum,weight,reps,timestamp:new Date().toISOString()});
-            setRestTimer(isSuperset ? settings.supersetRest : settings.normalRest);
-        } catch(e) { showToast('שגיאה בשמירה: '+e.message,true); }
+    const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
+        const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
+        setLogs(prev=>[...prev, newLog]);
+        setRestTimer(isSuperset ? settings.supersetRest : settings.normalRest);
     };
 
-    const handleSaveNote = async (exId,text)=>{
-        await base().collection('notes').doc(exId).set({text});
+    const handleSaveNote = (exId,text) => {
+        setNotes(prev=>({...prev,[exId]:text}));
     };
 
-    const handleSaveVideo = async (exId, url) => {
-        if (!user || !url.trim()) return;
+    const handleSaveVideo = (exId, url) => {
+        if (!url.trim()) return;
         const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
         const videoId = match ? match[1] : null;
         if (!videoId) { showToast('קישור YouTube לא תקין', true); return; }
-        await base().collection('videos').doc(exId).set({ url: videoId });
+        setVideos(prev=>({...prev,[exId]:videoId}));
         showToast('הסרטון נשמר');
     };
 
-    const handleDeleteVideo = async (exId) => {
-        await base().collection('videos').doc(exId).delete();
+    const handleDeleteVideo = (exId) => {
+        setVideos(prev=>{ const n={...prev}; delete n[exId]; return n; });
         showToast('הסרטון הוסר');
     };
 
     const handleSaveImage = (exId, file) => {
-        if (!user || !file) return;
-        showToast('מעלה תמונה...');
+        if (!file) return;
+        showToast('טוען תמונה...');
         const canvas = document.createElement('canvas');
         const ctx    = canvas.getContext('2d');
         const img    = new Image();
         const reader = new FileReader();
         reader.onload = ev => {
-            img.onload = async () => {
-                // כיווץ ל-600px מקסימום — ~50-80KB
-                const MAX = 600;
-                const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+            img.onload = () => {
+                const MAX = 800;
+                const ratio = Math.min(MAX/img.width, MAX/img.height, 1);
                 canvas.width  = Math.round(img.width  * ratio);
                 canvas.height = Math.round(img.height * ratio);
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                const url = canvas.toDataURL('image/jpeg', 0.75);
-                try {
-                    await base().collection('images').doc(exId).set({ url });
-                    showToast('התמונה נשמרה');
-                } catch(e) { showToast('שגיאה בשמירת תמונה', true); }
+                const url = canvas.toDataURL('image/jpeg', 0.8);
+                setImages(prev=>({...prev,[exId]:url}));
+                showToast('התמונה נשמרה');
             };
             img.src = ev.target.result;
         };
@@ -577,12 +530,13 @@ function App() {
         setSessionStartTime(Date.now()); setView('list'); setActiveGroup(null);
     };
 
-    const handleDeleteLog  = async id=>{
-        await base().collection('logs').doc(id).delete();
+    const handleDeleteLog  = id=>{
+        setLogs(prev=>prev.filter(l=>l.id!==id));
         showToast('הרשומה נמחקה');
     };
-    const handleDeleteDate = async items=>{
-        for (const item of items) await base().collection('logs').doc(item.id).delete();
+    const handleDeleteDate = items=>{
+        const ids = new Set(items.map(i=>i.id));
+        setLogs(prev=>prev.filter(l=>!ids.has(l.id)));
         showToast('יום האימון נמחק');
     };
 
@@ -636,11 +590,9 @@ function App() {
         </>
     );
 
-    if (!authReady) return <div className="h-screen flex items-center justify-center bg-slate-50"><div className="text-slate-400 text-xl font-black">טוען...</div></div>;
-
     if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimer={restTimer} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} user={user} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
     // List view
     return (
