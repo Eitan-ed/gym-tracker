@@ -244,7 +244,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals }) {
     const [lightbox,    setLightbox]   = useState(null);
     const [videoModal,  setVideoModal] = useState(null);
     return (
@@ -343,10 +343,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                             onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onFinish} isSuperset={group.isSuperset} />
                         {restTimers[ex.id]>0 && (
-                            <div className="mt-3 flex justify-center">
-                                <div className="bg-blue-600 text-white px-6 py-2.5 rounded-full shadow-lg flex items-center gap-2 border-2 border-white animate-pulse">
-                                    <Icon name="Clock" size={18} />
-                                    <span className="font-black text-base font-mono">מנוחה: {restTimers[ex.id]}</span>
+                            <div className="mt-3 flex items-center gap-3 px-1">
+                                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow flex items-center gap-2 shrink-0">
+                                    <Icon name="Clock" size={16} />
+                                    <span className="font-black text-sm font-mono">{restTimers[ex.id]}</span>
+                                </div>
+                                <div className="flex-1 h-3 bg-blue-100 rounded overflow-hidden">
+                                    <div className="h-full bg-blue-600 transition-all duration-1000"
+                                        style={{width:`${((restTimerTotals[ex.id]||1)-restTimers[ex.id])/(restTimerTotals[ex.id]||1)*100}%`}} />
                                 </div>
                             </div>
                         )}
@@ -524,6 +528,7 @@ function App() {
     const [workoutSec,       setWorkoutSec]       = useState(0);
     const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
     const [restTimers,       setRestTimers]       = useState({});
+    const [restTimerTotals, setRestTimerTotals]   = useState({});
     const [groupOrder,       setGroupOrder]       = useState(()=>{
         const saved = LS.get('gym-group-order', null);
         if (saved && saved.length === exerciseGroups.length) return saved;
@@ -603,7 +608,9 @@ function App() {
     const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
         const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
         setLogs(prev=>[...prev, newLog]);
-        setRestTimers(prev=>({...prev,[exId]:isSuperset ? settings.supersetRest : settings.normalRest}));
+        const dur = isSuperset ? settings.supersetRest : settings.normalRest;
+        setRestTimers(prev=>({...prev,[exId]:dur}));
+        setRestTimerTotals(prev=>({...prev,[exId]:dur}));
     };
 
     const handleSaveNote = (exId,text) => {
@@ -653,7 +660,7 @@ function App() {
     };
 
     const startNewWorkout = ()=>{
-        setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({});
+        setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
         setSessionStartTime(Date.now()); setView('list'); setActiveGroup(null);
     };
 
@@ -733,7 +740,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>requestConfirm('לצאת מהתרגיל?',()=>{setView('list');setActiveGroup(null);})} onFinish={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>requestConfirm('לצאת מהתרגיל?',()=>{setView('list');setActiveGroup(null);})} onFinish={()=>{setView('list');setActiveGroup(null);}} onSave={handleSaveSet} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
 
