@@ -707,12 +707,7 @@ function App() {
     },[view,nextIncompleteIndex]);
 
     const handleOpenExercise = group=>{
-        if (workoutSec===0&&!isWorkoutActive) {
-            requestConfirm('להפעיל טיימר?',
-                ()=>{ setIsWorkoutActive(true); setActiveGroup(group); setView('detail'); },
-                ()=>{                           setActiveGroup(group); setView('detail'); }
-            );
-        } else { setActiveGroup(group); setView('detail'); }
+        setActiveGroup(group); setView('detail');
     };
 
     // Overlays — תמיד מעל
@@ -753,21 +748,19 @@ function App() {
                 <div className="bg-black w-full py-5 mb-8 shadow-2xl">
                     <h1 className="text-2xl font-black text-white tracking-widest text-center uppercase">אימון פול-באדי</h1>
                 </div>
-                <div className="flex items-center justify-center px-6 relative h-32">
+                <div className="flex items-center justify-center gap-3 px-6 mt-2 mb-1">
                     <button onClick={()=>setIsWorkoutActive(v=>!v)}
-                        className={`flex flex-col items-center justify-center w-28 h-28 rounded-full shadow-xl border-[5px] transition-all active:scale-95 outline-none
-                            ${isWorkoutActive?'bg-emerald-50 border-emerald-500 timer-active':'bg-white border-red-500'}`}>
-                        <Icon name="Timer" size={26} className={isWorkoutActive?'animate-pulse mb-0.5 text-emerald-600':'mb-0.5 text-red-500 opacity-80'} />
-                        <span className="font-mono text-2xl font-black tracking-widest" dir="ltr">
+                        className={`flex items-center gap-3 px-5 py-2.5 rounded-lg shadow transition-all active:scale-95 outline-none
+                            ${isWorkoutActive?'bg-emerald-600 text-white':'bg-slate-200 text-slate-600'}`}>
+                        <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
+                        <span className="font-mono text-xl font-black tracking-widest" dir="ltr">
                             {`${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`}
                         </span>
                     </button>
-                    <div className="absolute left-8">
-                        <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
-                            className="p-3.5 bg-slate-100 text-slate-600 rounded-full shadow-md active:rotate-180 transition-transform">
-                            <Icon name="RotateCcw" size={22} />
-                        </button>
-                    </div>
+                    <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
+                        className="p-2.5 bg-slate-200 text-slate-500 rounded-lg shadow active:rotate-180 transition-transform">
+                        <Icon name="RotateCcw" size={18} />
+                    </button>
                 </div>
                 <div className="w-full max-w-[16rem] mx-auto px-2 mt-6">
                     <div className="flex justify-between text-[11px] font-black text-slate-400 mb-1.5 px-1">
