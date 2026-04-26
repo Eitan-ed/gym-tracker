@@ -131,7 +131,7 @@ function VideoInput({ exId, onSave }) {
 }
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
-function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset }) {
+function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal }) {
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
     const [isSaving, setIsSaving] = useState(false);
@@ -169,28 +169,53 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         }
     };
 
+    const timerActive = done.s1 && !done.s2 && restTimer > 0;
+    const progress    = restTimerTotal > 0 ? ((restTimerTotal - restTimer) / restTimerTotal) * 100 : 0;
+
     return (
-        <div className="space-y-3" dir="rtl">
-            {[1,2].map(num => {
+        <div className="space-y-0" dir="rtl">
+            {[1,2].map((num, idx) => {
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
+                const isDisabled = isDone || isSaving || (num===2 && !done.s1) || (num===2 && timerActive);
                 return (
-                    <div key={num} className="bg-white p-3.5 rounded-[1.8rem] border border-slate-100 shadow-sm flex items-center gap-3">
-                        <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center shrink-0 shadow-lg">
-                            <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
-                            <span className="text-lg font-black leading-none">{num}</span>
+                    <React.Fragment key={num}>
+                        <div className="bg-white p-3.5 rounded-[1.8rem] border border-slate-100 shadow-sm flex items-center gap-3">
+                            <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center shrink-0 shadow-lg">
+                                <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
+                                <span className="text-lg font-black leading-none">{num}</span>
+                            </div>
+                            <div className="flex flex-1 gap-2.5">
+                                <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
+                                <Roller label="חזרות" min={1} max={50}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
+                            </div>
+                            <button onClick={() => handleSetSave(num, state)} disabled={isDisabled}
+                                className={`px-6 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all shrink-0 shadow-lg active:scale-95
+                                    ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : isDisabled ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
+                                {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
+                            </button>
                         </div>
-                        <div className="flex flex-1 gap-2.5">
-                            <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
-                            <Roller label="חזרות" min={1} max={50}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
-                        </div>
-                        <button onClick={() => handleSetSave(num, state)} disabled={isDone||isSaving}
-                            className={`px-6 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all shrink-0 shadow-lg active:scale-95
-                                ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
-                            {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
-                        </button>
-                    </div>
+
+                        {/* טיימר + פס מפריד בין סט 1 לסט 2 */}
+                        {num===1 && timerActive && (
+                            <div className="flex items-center gap-3 px-2 py-2">
+                                <div className="bg-blue-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-2 shrink-0 shadow">
+                                    <Icon name="Clock" size={14} />
+                                    <span className="font-black text-sm font-mono">{restTimer}</span>
+                                </div>
+                                <div className="flex-1 h-3 bg-blue-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                        style={{width:`${progress}%`}} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ריווח רגיל בין הסטים כשאין טיימר */}
+                        {num===1 && !timerActive && (
+                            <div className="h-3" />
+                        )}
+                    </React.Fragment>
                 );
             })}
         </div>
@@ -342,19 +367,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             ))}
                         </section>
                         <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
-                            onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onFinish} isSuperset={group.isSuperset} />
-                        {restTimers[ex.id]>0 && (
-                            <div className="mt-3 flex items-center gap-3 px-1">
-                                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow flex items-center gap-2 shrink-0">
-                                    <Icon name="Clock" size={16} />
-                                    <span className="font-black text-sm font-mono">{restTimers[ex.id]}</span>
-                                </div>
-                                <div className="flex-1 h-3 bg-blue-100 rounded overflow-hidden">
-                                    <div className="h-full bg-blue-600 transition-all duration-1000"
-                                        style={{width:`${((restTimerTotals[ex.id]||1)-restTimers[ex.id])/(restTimerTotals[ex.id]||1)*100}%`}} />
-                                </div>
-                            </div>
-                        )}
+                            onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onFinish} isSuperset={group.isSuperset}
+                            restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0} />
                     </div>
                 );
             })}
