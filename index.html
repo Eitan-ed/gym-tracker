@@ -674,7 +674,12 @@ function App() {
                 }
             });
             if (doBeep)        playCountdownBeep();
-            if (completedExId) { playRestCompleteSound(); setScrollToExId(completedExId); }
+            if (completedExId) {
+                playRestCompleteSound();
+                const targetGroup = exerciseGroups.find(g => g.exercises.some(e => e.id === completedExId));
+                if (targetGroup) { setActiveGroup(targetGroup); setView('detail'); }
+                setScrollToExId(completedExId);
+            }
             setRestTimers(next);
         },1000);
         return ()=>clearInterval(t);
