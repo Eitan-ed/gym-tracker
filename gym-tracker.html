@@ -546,6 +546,7 @@ function App() {
         return exerciseGroups.map(g=>g.id);
     });
     const [sessionStartTime, setSessionStartTime] = useState(()=>Date.now());
+    const [sessionEndTime,   setSessionEndTime]   = useState(null);
     const [confirmAction,    setConfirmAction]    = useState(null);
     const [toast,            setToast]            = useState(null);
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
@@ -615,12 +616,36 @@ function App() {
         setSettings(newSettings);
     };
 
+    const playSetCompleteSound = () => {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = ctx.currentTime;
+            const notes = [800, 600, 800];
+            const duration = 0.1;
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, now + i*duration);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + i*duration + duration*0.8);
+                osc.start(now + i*duration);
+                osc.stop(now + i*duration + duration);
+            });
+        } catch (e) {}
+    };
+
     const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
         const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
         setLogs(prev=>[...prev, newLog]);
         const dur = isSuperset ? settings.supersetRest : settings.normalRest;
         setRestTimers(prev=>({...prev,[exId]:dur}));
         setRestTimerTotals(prev=>({...prev,[exId]:dur}));
+        if (setNum === 2) {
+            setTimeout(playSetCompleteSound, 100);
+        }
     };
 
     const handleSaveNote = (exId,text) => {
@@ -763,7 +788,7 @@ function App() {
                 <div className="bg-black w-full py-5 mb-8 shadow-2xl">
                     <h1 className="text-2xl font-black text-white tracking-widest text-center uppercase">אימון פול-באדי</h1>
                 </div>
-                <div className="flex items-center justify-center gap-3 px-6 mt-2 mb-1">
+                <div className="flex items-center justify-center gap-3 px-6 mt-2 mb-3">
                     <button onClick={()=>setIsWorkoutActive(v=>!v)}
                         className={`flex items-center gap-3 px-5 py-2.5 rounded-lg shadow transition-all active:scale-95 outline-none
                             ${isWorkoutActive?'bg-emerald-600 text-white':'bg-slate-200 text-slate-600'}`}>
@@ -776,6 +801,17 @@ function App() {
                         className="p-2.5 bg-slate-200 text-slate-500 rounded-lg shadow active:rotate-180 transition-transform">
                         <Icon name="RotateCcw" size={18} />
                     </button>
+                </div>
+                <div className="flex justify-center gap-4 text-xs font-bold text-slate-500 px-6 mb-3">
+                    <div className="flex items-center gap-1">
+                        <Icon name="Clock" size={14} />
+                        <span>{new Date(sessionStartTime).toLocaleDateString('he-IL')}</span>
+                    </div>
+                    <div className="text-slate-300">—</div>
+                    <div className="flex items-center gap-1">
+                        <Icon name="CheckCircle2" size={14} />
+                        <span>{new Date(sessionEndTime || Date.now()).toLocaleDateString('he-IL')}</span>
+                    </div>
                 </div>
                 <div className="w-full max-w-[16rem] mx-auto px-2 mt-6">
                     <div className="flex justify-between text-[11px] font-black text-slate-400 mb-1.5 px-1">
