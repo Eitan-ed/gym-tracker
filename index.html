@@ -556,10 +556,10 @@ const playRestCompleteSound = () => {
 };
 
 // ─── ManageView ────────────────────────────────────────────
-const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime }) => {
+const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder }) => {
     const handleBackup = () => {
         triggerBackupDownload({
-            logs, notes, images, videos, settings,
+            logs, notes, images, videos, settings, groupOrder,
             sessionStart:   sessionStartTime,
             sessionEnd:     sessionEndTime,
             lastWorkoutSec: LS.get('gym-last-workout-sec', 0)
@@ -576,13 +576,14 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!data.logs) throw new Error();
-                    if (data.logs)          setLogs(data.logs);
-                    if (data.notes)         setNotes(data.notes);
-                    if (data.images)        setImages(data.images);
-                    if (data.videos)        setVideos(data.videos);
-                    if (data.settings)      onUpdateSettings('_bulk', data.settings);
-                    if (data.sessionStart)  setSessionStartTime(data.sessionStart);
-                    if (data.sessionEnd)    setSessionEndTime(data.sessionEnd);
+                    if (data.logs)           setLogs(data.logs);
+                    if (data.notes)          setNotes(data.notes);
+                    if (data.images)         setImages(data.images);
+                    if (data.videos)         setVideos(data.videos);
+                    if (data.settings)       onUpdateSettings('_bulk', data.settings);
+                    if (data.sessionStart)   setSessionStartTime(data.sessionStart);
+                    if (data.sessionEnd)     setSessionEndTime(data.sessionEnd);
+                    if (data.groupOrder)     setGroupOrder(data.groupOrder);
                     if (data.lastWorkoutSec) LS.set('gym-last-workout-sec', data.lastWorkoutSec);
                     showToast('הנתונים שוחזרו בהצלחה');
                 } catch { showToast('שגיאה בשחזור', true); }
@@ -689,6 +690,7 @@ function App() {
                 settings:      LS.get('gym-settings',       {normalRest:90,supersetRest:60}),
                 sessionStart:  LS.get('gym-session-start',  null),
                 sessionEnd:    LS.get('gym-session-end',    null),
+                groupOrder:    LS.get('gym-group-order',    null),
                 lastWorkoutSec:LS.get('gym-last-workout-sec',0)
             });
             LS.set('gym-last-backup', Date.now());
@@ -958,7 +960,7 @@ function App() {
 
     if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={()=>{ setIsWorkoutActive(false); LS.set('gym-last-workout-sec', workoutSec); setView('list'); setActiveGroup(null); }} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} /></>;
 
     // List view
     return (
