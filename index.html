@@ -106,7 +106,7 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) =>
         <div className="flex flex-col items-center flex-1">
             <span className="text-[8px] font-black text-slate-400 mb-1 uppercase tracking-tighter">{label}</span>
             <select value={value} onChange={e => onChange(parseFloat(e.target.value))}
-                className={`w-full p-2.5 rounded-xl border-none text-center font-black text-base appearance-none outline-none transition-all
+                className={`w-full p-1.5 rounded-xl border-none text-center font-black text-base appearance-none outline-none transition-all
                     ${isChanged ? 'text-blue-600 ring-2 ring-blue-100 bg-blue-50' : 'bg-slate-100/60 text-slate-400 font-normal'}`}>
                 {options.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
@@ -313,64 +313,80 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             </div>
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-6 pb-40">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-40">
             {group.exercises.map((ex, exIdx) => {
                 const exHistory = logs.filter(l=>l.exId===ex.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
                 const imgSrc = images?.[ex.id];
                 return (
-                    <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-6 last:border-0">
+                    <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
                         <div className="flex items-center gap-3 mb-4">
                             <span className="w-8 h-8 bg-slate-900 text-white text-sm rounded-full flex items-center justify-center font-black shrink-0">{exIdx+1}</span>
                             <h3 className="font-black text-slate-800 text-[17px] underline decoration-blue-500/20 underline-offset-8">{ex.title} ({group.category})</h3>
                         </div>
-                        {EXERCISE_IMAGES[ex.id] && (
-                            <div className="mb-3">
-                                <img src={`images/${EXERCISE_IMAGES[ex.id]}`} alt={ex.title}
-                                    onClick={()=>setLightbox(`images/${EXERCISE_IMAGES[ex.id]}`)}
-                                    className="w-full rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
-                            </div>
-                        )}
-                        {!imgSrc && (
-                            <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mb-3">
-                                <input type="file" accept="image/*" className="hidden"
-                                    onChange={e => onSaveImage(ex.id, e.target.files[0])} />
-                                📷 הוסף תמונה שלך
-                            </label>
-                        )}
-                        {imgSrc && (
-                            <div className="flex items-center gap-2 mb-3">
-                                <img src={imgSrc} alt={ex.title}
-                                    onClick={()=>setLightbox(imgSrc)}
-                                    className="flex-1 rounded-2xl object-cover max-h-48 shadow cursor-pointer active:opacity-80" />
-                                <button onClick={()=>onRemoveImage(ex.id)}
-                                    className="text-[11px] font-black text-red-300 active:text-red-500 shrink-0">
-                                    הסר
-                                </button>
-                            </div>
-                        )}
-                        {videos?.[ex.id] ? (
-                            <div className="flex items-center gap-2 mb-3">
-                                <a href={`https://youtu.be/${videos[ex.id]}`} target="_blank" rel="noopener noreferrer"
-                                    className="flex-1 flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-2.5 rounded-2xl font-black text-sm active:scale-95">
-                                    ▶ צפה בסרטון YouTube
-                                </a>
-                                <button onClick={()=>onDeleteVideo(ex.id)}
-                                    className="p-2.5 text-slate-300 active:text-red-400">
-                                    <Icon name="Trash2" size={16} />
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                            {EXERCISE_VIDEOS[ex.id] && (
-                                <button onClick={()=>setVideoModal(`videos/${EXERCISE_VIDEOS[ex.id]}`)}
-                                    className="w-full flex items-center gap-2 bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-2xl font-black text-sm active:scale-95 mb-2">
-                                    ▶ צפה בסרטון
-                                </button>
-                            )}
-                            <VideoInput exId={ex.id} onSave={onSaveVideo} />
-                            </>
-                        )}
+                        {(()=>{
+                            const staticImg  = EXERCISE_IMAGES[ex.id];
+                            const dispImgSrc = imgSrc || (staticImg ? `images/${staticImg}` : null);
+                            const isPersonal = !!imgSrc;
+                            const youtubeId  = videos?.[ex.id];
+                            const localVid   = EXERCISE_VIDEOS[ex.id];
+                            const hasVideo   = youtubeId || localVid;
+                            return (
+                                <div className="mb-3">
+                                    <div className={`flex gap-2 ${dispImgSrc || hasVideo ? 'mb-0' : ''}`}>
+                                        {/* תמונה */}
+                                        {dispImgSrc && (
+                                            <div className="relative flex-1 min-w-0">
+                                                <img src={dispImgSrc} alt={ex.title}
+                                                    onClick={()=>setLightbox(dispImgSrc)}
+                                                    className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80"
+                                                    style={{maxHeight:'9rem'}} />
+                                                {isPersonal && (
+                                                    <button onClick={()=>onRemoveImage(ex.id)}
+                                                        className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">
+                                                        הסר
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                        {/* כפתור וידאו */}
+                                        {hasVideo && (
+                                            <div className={`flex flex-col justify-stretch ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`}>
+                                                {youtubeId ? (
+                                                    <div className="flex flex-col gap-1 h-full">
+                                                        <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
+                                                            className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95"
+                                                            style={{minHeight:'5rem'}}>
+                                                            <span className="text-2xl">▶</span>
+                                                            <span className="text-[11px]">YouTube</span>
+                                                        </a>
+                                                        <button onClick={()=>onDeleteVideo(ex.id)}
+                                                            className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">
+                                                            הסר
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={()=>setVideoModal(`videos/${localVid}`)}
+                                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
+                                                        style={{minHeight:'5rem'}}>
+                                                        <span className="text-2xl">▶</span>
+                                                        <span className="text-[11px]">סרטון</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!dispImgSrc && (
+                                        <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mt-2">
+                                            <input type="file" accept="image/*" className="hidden"
+                                                onChange={e => onSaveImage(ex.id, e.target.files[0])} />
+                                            📷 הוסף תמונה שלך
+                                        </label>
+                                    )}
+                                    {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo} />}
+                                </div>
+                            );
+                        })()}
                         <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-4 shadow-inner overflow-hidden">
                             <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                                 className="w-full flex justify-between items-center p-3 active:bg-slate-100">
