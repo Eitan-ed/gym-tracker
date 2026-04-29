@@ -30,6 +30,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
+const APP_VERSION = '1.2';
 
 
 // ─── localStorage helpers ───────────────────────────────────
@@ -77,7 +78,7 @@ const exerciseGroups = [
     { id:1,  badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
     { id:2,  badgeColor:'bg-blue-100 text-blue-700',    title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
     { id:3,  badgeColor:'bg-indigo-100 text-indigo-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-indigo-500 to-indigo-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
-    { id:4,  badgeColor:'bg-purple-100 text-purple-700',title:'כפיפת מרפקים בשיפוע חיובי', category:'יד קדמית', icon:'💪', color:'from-purple-500 to-purple-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע חיובי. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
+    { id:4,  badgeColor:'bg-purple-100 text-purple-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-purple-500 to-purple-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
     { id:5,  badgeColor:'bg-orange-100 text-orange-700',title:'סופר-סט כתפיים',             category:'כתפיים',   icon:'🏋️', color:'from-orange-500 to-orange-700',  machine:'מכונה',   isSuperset:true, exercises:[
         {id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',            tips:['גב צמוד','אחיזה ניטרלית']},
         {id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.',            tips:['כתפיים רחוקות מהאוזניים']}
@@ -90,8 +91,8 @@ const exerciseGroups = [
     { id:8,  badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:9,  badgeColor:'bg-red-100 text-red-700',       title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
     { id:10, badgeColor:'bg-amber-100 text-amber-700',   title:'קומפלט בטן',                category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',    machine:'חופשי',   isSuperset:true, exercises:[
-        {id:'ex10a',title:'כפיפות בטן',    howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',                    tips:['לא למשוך צוואר']},
-        {id:'ex10b',title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',                         tips:['תנועה איטית']}
+        {id:'ex10b',title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',                         tips:['תנועה איטית']},
+        {id:'ex10a',title:'כפיפות בטן',    howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',                    tips:['לא למשוך צוואר']}
     ]}
 ];
 
@@ -164,7 +165,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         try {
             await onSave(ex.id, num, state.w, state.r, isSuperset);
             if (num === 1) {
-                setS2(p=>({...p, w:state.w, r:state.r}));
+                // sync s2 from s1 — reset Changed flags so they show gray
+                setS2({w:state.w, r:state.r, wC:false, rC:false});
                 setTimeout(()=> set2Ref.current?.scrollIntoView({behavior:'smooth', block:'center'}), 150);
             }
             if (num===2 && isLast) setTimeout(onFinish, 800);
@@ -178,9 +180,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     const betweenDone   = done.s1 && !done.s2 && restTimer === 0 && restTimerTotal > 0;
     const betweenShow   = betweenActive || betweenDone;
     // טיימר אחרי סט 2 (לקראת תרגיל הבא)
-    const afterShow     = done.s2 && restTimer > 0;
+    const afterShow     = done.s2 && (restTimer > 0 || (restTimerTotal > 0 && restTimer === 0));
 
-    const progress = restTimerTotal > 0 ? ((restTimerTotal - restTimer) / restTimerTotal) * 100 : 0;
+    // מד הפוך: מלא → ריק
+    const timerBarWidth = restTimerTotal > 0 ? (betweenDone ? 0 : (restTimer / restTimerTotal) * 100) : 0;
 
     return (
         <div className="space-y-0" dir="rtl">
@@ -188,12 +191,17 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
-                const isDisabled = isDone || isSaving || (num===2 && !done.s1) || (num===2 && betweenActive);
+                // disabled: רק אם לא עשינו סט 1. טיימר לא חוסם (אפשר לסמן במהלכו)
+                const isDisabled = isDone || isSaving || (num===2 && !done.s1);
+                // אפור ויזואלית גם בזמן טיימר פעיל (אך לחיץ)
+                const isGray = isDisabled || (num===2 && betweenActive);
                 return (
                     <React.Fragment key={num}>
                         <div ref={num===2 ? set2Ref : undefined}
-                            className="bg-white p-2.5 rounded-[1.6rem] border border-slate-100 shadow-sm flex items-center gap-2">
-                            <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg">
+                            className={`bg-white p-2.5 rounded-[1.6rem] border shadow-sm flex items-center gap-2
+                                ${num===2 && betweenDone ? 'border-slate-700 shadow-md' : 'border-slate-100'}`}>
+                            <div className={`w-10 h-10 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg
+                                ${num===2 && betweenDone ? 'bg-blue-600' : 'bg-slate-900'}`}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
@@ -203,12 +211,12 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             </div>
                             <button onClick={() => handleSetSave(num, state)} disabled={isDisabled}
                                 className={`px-5 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shrink-0 shadow-lg active:scale-95
-                                    ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : isDisabled ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
+                                    ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : isGray ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
                                 {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
                             </button>
                         </div>
 
-                        {/* טיימר בין סט 1 לסט 2 */}
+                        {/* טיימר בין סט 1 לסט 2 — מד הפוך (מלא לריק) */}
                         {num===1 && betweenShow && (
                             <div className="flex items-center gap-2 px-2 py-1.5">
                                 <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-white text-sm font-mono font-black
@@ -218,7 +226,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 </div>
                                 <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
                                     <div className={`h-full rounded-full transition-all duration-1000 ${betweenDone ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                        style={{width:`${betweenDone ? 100 : progress}%`}} />
+                                        style={{width:`${timerBarWidth}%`}} />
                                 </div>
                             </div>
                         )}
@@ -231,13 +239,14 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
             {/* טיימר אחרי סט 2 — מנוחה לקראת התרגיל הבא */}
             {afterShow && (
                 <div className="flex items-center gap-2 px-2 py-1.5 mt-1">
-                    <div className="bg-indigo-600 text-white px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-sm font-mono font-black">
+                    <div className={`text-white px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-sm font-mono font-black
+                        ${restTimer===0 ? 'bg-emerald-500' : 'bg-blue-600'}`}>
                         <Icon name="Clock" size={13} />
-                        <span>{restTimer}</span>
+                        <span>{restTimer===0 ? '✓' : restTimer}</span>
                     </div>
-                    <div className="flex-1 h-2.5 bg-indigo-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-                            style={{width:`${restTimerTotal > 0 ? ((restTimerTotal - restTimer) / restTimerTotal) * 100 : 0}%`}} />
+                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-1000 ${restTimer===0 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                            style={{width:`${restTimerTotal > 0 ? (restTimer / restTimerTotal) * 100 : 0}%`}} />
                     </div>
                 </div>
             )}
@@ -254,12 +263,7 @@ const EXERCISE_VIDEOS = {
 };
 
 // ─── EXERCISE_IMAGES ────────────────────────────────────────
-const EXERCISE_IMAGES = {
-    ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
-    ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
-    ex7a:'ex7a.png', ex7b:'ex7b.png', ex8:'ex8.png',
-    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png'
-};
+const EXERCISE_IMAGES = {};
 
 // ─── VideoModal ─────────────────────────────────────────────
 let _videoModalOpen = false;
@@ -286,10 +290,10 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── SingleSetRow ──────────────────────────────────────────
-function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSaving, onSave }) {
+function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSaving, onSave, isSecond }) {
     return (
-        <div className={`flex items-center gap-2 p-2 rounded-2xl border ${isDone ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100 shadow-sm'}`}>
-            <span className="text-[11px] font-black text-slate-700 shrink-0 w-[4.5rem] truncate leading-tight">{ex.title}</span>
+        <div className={`flex items-center gap-2 p-2 rounded-2xl border ${isDone ? 'bg-slate-50 border-slate-100' : isSecond ? 'bg-red-50 border-red-100 shadow-sm' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <span className={`text-[11px] font-black shrink-0 w-[4.5rem] truncate leading-tight ${isSecond ? 'text-red-700' : 'text-slate-700'}`}>{ex.title}</span>
             <div className="flex flex-1 gap-1.5">
                 <Roller label="ק״ג"   min={0}   max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
                 <Roller label="חזרות" min={1}   max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
@@ -304,7 +308,7 @@ function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSavin
 }
 
 // ─── SupersetSection ───────────────────────────────────────
-function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, restTimers, restTimerTotals, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, showDetails, setShowDetails, group, setLightbox, setVideoModal }) {
+function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, restTimers, restTimerTotals, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, showDetails, setShowDetails, group, setLightbox, setVideoModal, playingVideos, setPlayingVideos }) {
     const [sA1, setSA1] = useState({w:10,r:10,wC:false,rC:false});
     const [sA2, setSA2] = useState({w:10,r:10,wC:false,rC:false});
     const [sB1, setSB1] = useState({w:10,r:10,wC:false,rC:false});
@@ -345,7 +349,9 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
 
     const renderTimer = (rt, tot) => {
         if (!tot) return null;
-        const done = rt===0, prog = tot > 0 ? ((tot-rt)/tot)*100 : 100;
+        const done = rt===0;
+        // מד הפוך: מלא → ריק
+        const prog = tot > 0 ? (done ? 0 : (rt/tot)*100) : 0;
         return (
             <div className="flex items-center gap-2 px-1 py-1">
                 <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${done?'bg-emerald-500':'bg-blue-600'}`}>
@@ -362,8 +368,8 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
         setIsSaving(true);
         try {
             await onSave(exId, setNum, state.w, state.r, true);
-            if (exId===exA.id && setNum===1) setSA2(p=>({...p,w:state.w,r:state.r}));
-            if (exId===exB.id && setNum===1) setSB2(p=>({...p,w:state.w,r:state.r}));
+            if (exId===exA.id && setNum===1) setSA2({w:state.w,r:state.r,wC:false,rC:false});
+            if (exId===exB.id && setNum===1) setSB2({w:state.w,r:state.r,wC:false,rC:false});
             if (exId===exB.id && setNum===2) setTimeout(onFinish, 800);
         } finally { setIsSaving(false); }
     };
@@ -400,10 +406,15 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
                                     <button onClick={()=>onDeleteVideo(ex.id)} className="text-[9px] font-black text-slate-300 active:text-red-400 text-center py-0.5">הסר</button>
                                 </div>
                             ) : (
-                                <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                                    className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95" style={{minHeight:'4rem'}}>
-                                    <span className="text-xl">▶</span><span className="text-[10px]">סרטון</span>
-                                </button>
+                                playingVideos?.[ex.id] ? (
+                                    <video src={`videos/${localVid}`} autoPlay muted playsInline controls
+                                        className="flex-1 rounded-2xl w-full" style={{minHeight:'4rem'}}/>
+                                ) : (
+                                    <button onClick={()=>setPlayingVideos?.(p=>({...p,[ex.id]:true}))}
+                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95" style={{minHeight:'4rem'}}>
+                                        <span className="text-xl">▶</span><span className="text-[10px]">סרטון</span>
+                                    </button>
+                                )
                             )}
                         </div>
                     )}
@@ -475,7 +486,7 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
                 <div className="space-y-1.5">
                     <SingleSetRow ex={exA} setNum={1} state={sA1} setState={setSA1} isDone={doneA1} isDisabled={false}  isSaving={isSaving} onSave={handleSave}/>
                     {showTAB && renderTimer(rtA, totA)}
-                    <SingleSetRow ex={exB} setNum={1} state={sB1} setState={setSB1} isDone={doneB1} isDisabled={disB1} isSaving={isSaving} onSave={handleSave}/>
+                    <SingleSetRow ex={exB} setNum={1} state={sB1} setState={setSB1} isDone={doneB1} isDisabled={disB1} isSaving={isSaving} onSave={handleSave} isSecond/>
                 </div>
             </div>
 
@@ -487,7 +498,7 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
                 <div className="space-y-1.5">
                     <SingleSetRow ex={exA} setNum={2} state={sA2} setState={setSA2} isDone={doneA2} isDisabled={disA2} isSaving={isSaving} onSave={handleSave}/>
                     {showTA2 && renderTimer(rtA, totA)}
-                    <SingleSetRow ex={exB} setNum={2} state={sB2} setState={setSB2} isDone={doneB2} isDisabled={disB2} isSaving={isSaving} onSave={handleSave}/>
+                    <SingleSetRow ex={exB} setNum={2} state={sB2} setState={setSB2} isDone={doneB2} isDisabled={disB2} isSaving={isSaving} onSave={handleSave} isSecond/>
                 </div>
             </div>
         </div>
@@ -496,12 +507,16 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
 
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone }) {
-    const [lightbox,    setLightbox]   = useState(null);
-    const [videoModal,  setVideoModal] = useState(null);
-    const [showDetails, setShowDetails] = useState(()=>
-        group.exercises.reduce((acc,ex)=>({...acc,[ex.id]:!group.isSuperset}),{})
-    );
+    const [lightbox,      setLightbox]     = useState(null);
+    const [videoModal,    setVideoModal]   = useState(null);
+    const [playingVideos, setPlayingVideos]= useState({});
+    const [showDetails,   setShowDetails]  = useState(()=>{
+        const saved = LS.get('gym-show-details', null);
+        if (saved) return saved;
+        return group.exercises.reduce((acc,ex)=>({...acc,[ex.id]:!group.isSuperset}),{});
+    });
     const scrollRef = React.useRef(null);
+    useEffect(()=>{ LS.set('gym-show-details', showDetails); },[showDetails]);
 
     useEffect(()=>{
         if (!scrollToExId) return;
@@ -534,16 +549,35 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     videos={videos} onSaveVideo={onSaveVideo} onDeleteVideo={onDeleteVideo}
                     showDetails={showDetails} setShowDetails={setShowDetails}
                     group={group} setLightbox={setLightbox} setVideoModal={setVideoModal}
+                    playingVideos={playingVideos} setPlayingVideos={setPlayingVideos}
                 />
             ) : group.exercises.map((ex, exIdx) => {
                 const exHistory = logs.filter(l=>l.exId===ex.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
                 const imgSrc = images?.[ex.id];
+                // טיימר מתרגיל קודם
+                const prevEx = exIdx > 0 ? group.exercises[exIdx-1] : null;
+                const prevRt  = prevEx ? (restTimers[prevEx.id]||0) : 0;
+                const prevTot = prevEx ? (restTimerTotals[prevEx.id]||0) : 0;
+                const prevDoneS2 = prevEx ? logs.some(l=>l.exId===prevEx.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime) : false;
+                const showPrevTimer = prevDoneS2 && prevTot > 0;
                 return (
                     <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
-                        <div className="flex items-center gap-3 mb-4">
+                        {/* טיימר מנוחה מהתרגיל הקודם */}
+                        {showPrevTimer && (
+                            <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
+                                <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-white text-sm font-mono font-black ${prevRt===0?'bg-emerald-500':'bg-blue-600'}`}>
+                                    <Icon name="Clock" size={13}/><span>{prevRt===0?'✓':prevRt}</span>
+                                </div>
+                                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all duration-1000 ${prevRt===0?'bg-emerald-500':'bg-blue-500'}`}
+                                        style={{width:`${prevTot>0?(prevRt/prevTot)*100:0}%`}}/>
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-3 mb-3">
                             <span className="w-8 h-8 bg-slate-900 text-white text-sm rounded-full flex items-center justify-center font-black shrink-0">{exIdx+1}</span>
-                            <h3 className="font-black text-slate-800 text-[17px] underline decoration-blue-500/20 underline-offset-8">{ex.title} ({group.category})</h3>
+                            <h3 className="font-black text-slate-800 text-[15px] truncate">{ex.title} ({group.category})</h3>
                         </div>
                         {(()=>{
                             const staticImg  = EXERCISE_IMAGES[ex.id];
@@ -587,12 +621,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
-                                                        style={{minHeight:'5rem'}}>
-                                                        <span className="text-2xl">▶</span>
-                                                        <span className="text-[11px]">סרטון</span>
-                                                    </button>
+                                                    playingVideos[ex.id] ? (
+                                                        <video src={`videos/${localVid}`} autoPlay muted playsInline controls
+                                                            className="flex-1 rounded-2xl w-full" style={{minHeight:'5rem'}}/>
+                                                    ) : (
+                                                        <button onClick={()=>setPlayingVideos(p=>({...p,[ex.id]:true}))}
+                                                            className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
+                                                            style={{minHeight:'5rem'}}>
+                                                            <span className="text-2xl">▶</span>
+                                                            <span className="text-[11px]">סרטון</span>
+                                                        </button>
+                                                    )
                                                 )}
                                             </div>
                                         )}
@@ -1189,8 +1228,9 @@ function App() {
         {overlays}
         <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
             <header className="bg-white pb-6 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
-                <div className="bg-black w-full py-5 mb-8 shadow-2xl">
+                <div className="bg-black w-full py-5 mb-8 shadow-2xl relative">
                     <h1 className="text-2xl font-black text-white tracking-widest text-center uppercase">אימון פול-באדי</h1>
+                    <span className="absolute bottom-2 left-3 text-[9px] text-white/30 font-bold" dir="ltr">v.{APP_VERSION}</span>
                 </div>
                 {(() => {
                     const start = new Date(sessionStartTime);
@@ -1208,7 +1248,7 @@ function App() {
                             {/* שעון — רקע זהה לתאריכים */}
                             <div className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-4 py-3 border shrink-0 transition-all
                                 ${isWorkoutActive
-                                    ? 'bg-emerald-500 border-emerald-400 text-white'
+                                    ? 'bg-blue-600 border-blue-500 text-white'
                                     : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 text-slate-700'}`}>
                                 <button onClick={()=>setIsWorkoutActive(v=>!v)} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                                     <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
