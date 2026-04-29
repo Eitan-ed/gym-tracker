@@ -541,26 +541,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-40">
-            {(()=>{
-                // טיימר מנוחה שנמשך מהתרגיל הקודם (מקבוצה אחרת)
-                const groupExIds = new Set(group.exercises.map(e=>e.id));
-                const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
-                const coRt = coExId ? restTimers[coExId] : 0;
-                const coTot = coExId ? restTimerTotals[coExId] : 0;
-                if (!coExId) return null;
-                const coDone = coRt===0;
-                const coW = coTot>0 ? (coDone?0:(coRt/coTot)*100) : 0;
-                return (
-                    <div className="flex items-center gap-2 px-2 py-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm -mt-1 mb-1">
-                        <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${coDone?'bg-emerald-500':'bg-blue-600'}`}>
-                            <Icon name="Clock" size={13}/><span>{coDone?'✓':coRt}</span>
-                        </div>
-                        <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all duration-1000 ${coDone?'bg-emerald-500':'bg-blue-500'}`} style={{width:`${coW}%`}}/>
-                        </div>
-                    </div>
-                );
-            })()}
             {group.isSuperset ? (
                 <SupersetSection
                     exA={group.exercises[0]} exB={group.exercises[1]}
@@ -707,6 +687,25 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 </div>
                             ))}
                         </section>
+                        {(()=>{
+                            // טיימר מנוחה מתרגיל קודם (מקבוצה אחרת)
+                            const groupExIds = new Set(group.exercises.map(e=>e.id));
+                            const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
+                            if (!coExId) return null;
+                            const coRt = restTimers[coExId], coTot = restTimerTotals[coExId];
+                            const coDone = coRt===0;
+                            return (
+                                <div className="flex items-center gap-2 px-2 py-2 mb-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${coDone?'bg-emerald-500':'bg-blue-600'}`}>
+                                        <Icon name="Clock" size={13}/><span>{coDone?'✓':coRt}</span>
+                                    </div>
+                                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all duration-1000 ${coDone?'bg-emerald-500':'bg-blue-500'}`}
+                                            style={{width:`${coTot>0?(coDone?0:(coRt/coTot)*100):0}%`}}/>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                             onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onFinish} isSuperset={group.isSuperset}
                             restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0} />
