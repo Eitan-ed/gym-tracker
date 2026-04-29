@@ -556,9 +556,14 @@ const playRestCompleteSound = () => {
 };
 
 // ─── ManageView ────────────────────────────────────────────
-const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos }) => {
+const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime }) => {
     const handleBackup = () => {
-        triggerBackupDownload({logs,notes,images,videos,settings});
+        triggerBackupDownload({
+            logs, notes, images, videos, settings,
+            sessionStart:   sessionStartTime,
+            sessionEnd:     sessionEndTime,
+            lastWorkoutSec: LS.get('gym-last-workout-sec', 0)
+        });
         showToast('הגיבוי הורד בהצלחה');
     };
 
@@ -571,23 +576,19 @@ const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSet
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!data.logs) throw new Error();
-                    if (data.logs)     setLogs(data.logs);
-                    if (data.notes)    setNotes(data.notes);
-                    if (data.images)   setImages(data.images);
-                    if (data.videos)   setVideos(data.videos);
-                    if (data.settings) onUpdateSettings('_bulk', data.settings);
+                    if (data.logs)          setLogs(data.logs);
+                    if (data.notes)         setNotes(data.notes);
+                    if (data.images)        setImages(data.images);
+                    if (data.videos)        setVideos(data.videos);
+                    if (data.settings)      onUpdateSettings('_bulk', data.settings);
+                    if (data.sessionStart)  setSessionStartTime(data.sessionStart);
+                    if (data.sessionEnd)    setSessionEndTime(data.sessionEnd);
+                    if (data.lastWorkoutSec) LS.set('gym-last-workout-sec', data.lastWorkoutSec);
                     showToast('הנתונים שוחזרו בהצלחה');
                 } catch { showToast('שגיאה בשחזור', true); }
             };
             reader.readAsText(file);
         }, () => { e.target.value = null; });
-    };
-
-    const handleClearImages = () => {
-        requestConfirm('מחוק את כל התמונות המקומיות?', () => {
-            setImages({});
-            showToast('כל התמונות נמחקו');
-        });
     };
 
     return (
@@ -609,10 +610,6 @@ const ManageView = ({ logs, notes, images, videos, settings, onBack, onUpdateSet
                             <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
                             <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
                         </label>
-                        <button onClick={handleClearImages} className="w-full flex items-center gap-3 bg-orange-50 p-4 rounded-2xl border border-orange-100 text-orange-700 active:scale-[0.98]">
-                            <div className="bg-orange-100 p-2 rounded-xl"><Icon name="Trash2" size={20} /></div>
-                            <div><div className="font-black text-sm">נקה תמונות</div><div className="text-[10px] font-bold opacity-70">מחוק את כל התמונות המקומיות</div></div>
-                        </button>
                     </div>
                 </section>
                 <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
@@ -656,8 +653,8 @@ function App() {
         if (saved && saved.length === exerciseGroups.length) return saved;
         return exerciseGroups.map(g=>g.id);
     });
-    const [sessionStartTime, setSessionStartTime] = useState(()=>Date.now());
-    const [sessionEndTime,   setSessionEndTime]   = useState(null);
+    const [sessionStartTime, setSessionStartTime] = useState(()=>LS.get('gym-session-start', Date.now()));
+    const [sessionEndTime,   setSessionEndTime]   = useState(()=>LS.get('gym-session-end', null));
     const [editingDates,     setEditingDates]     = useState(null);
     const [scrollToExId,     setScrollToExId]     = useState(null);
     const [confirmAction,    setConfirmAction]    = useState(null);
@@ -665,29 +662,34 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
-    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:30}));
+    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60}));
 
     const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
     const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
 
     // שמירה אוטומטית ב-localStorage
-    useEffect(()=>{ LS.set('gym-logs',        logs);       },[logs]);
-    useEffect(()=>{ LS.set('gym-notes',       notes);      },[notes]);
-    useEffect(()=>{ LS.set('gym-images',      images);     },[images]);
-    useEffect(()=>{ LS.set('gym-videos',      videos);     },[videos]);
-    useEffect(()=>{ LS.set('gym-settings',    settings);   },[settings]);
-    useEffect(()=>{ LS.set('gym-group-order', groupOrder); },[groupOrder]);
+    useEffect(()=>{ LS.set('gym-logs',           logs);             },[logs]);
+    useEffect(()=>{ LS.set('gym-notes',          notes);            },[notes]);
+    useEffect(()=>{ LS.set('gym-images',         images);           },[images]);
+    useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
+    useEffect(()=>{ LS.set('gym-settings',       settings);         },[settings]);
+    useEffect(()=>{ LS.set('gym-group-order',    groupOrder);       },[groupOrder]);
+    useEffect(()=>{ LS.set('gym-session-start',  sessionStartTime); },[sessionStartTime]);
+    useEffect(()=>{ LS.set('gym-session-end',    sessionEndTime);   },[sessionEndTime]);
 
     // גיבוי יומי אוטומטי
     useEffect(()=>{
         const last = LS.get('gym-last-backup', 0);
         if (Date.now() - last > 86400000) {
             triggerBackupDownload({
-                logs:     LS.get('gym-logs',     []),
-                notes:    LS.get('gym-notes',    {}),
-                images:   LS.get('gym-images',   {}),
-                videos:   LS.get('gym-videos',   {}),
-                settings: LS.get('gym-settings', {normalRest:90,supersetRest:30})
+                logs:          LS.get('gym-logs',           []),
+                notes:         LS.get('gym-notes',          {}),
+                images:        LS.get('gym-images',         {}),
+                videos:        LS.get('gym-videos',         {}),
+                settings:      LS.get('gym-settings',       {normalRest:90,supersetRest:60}),
+                sessionStart:  LS.get('gym-session-start',  null),
+                sessionEnd:    LS.get('gym-session-end',    null),
+                lastWorkoutSec:LS.get('gym-last-workout-sec',0)
             });
             LS.set('gym-last-backup', Date.now());
         }
@@ -773,7 +775,7 @@ function App() {
         setLogs(prev=>[...prev, newLog]);
         const dur = isSuperset ? settings.supersetRest : settings.normalRest;
         setRestTimers({[exId]: dur});
-        setRestTimerTotals({[exId]: dur});
+        setRestTimerTotals(prev => ({...prev, [exId]: dur}));
     };
 
     const handleSaveNote = (exId,text) => {
@@ -956,7 +958,7 @@ function App() {
 
     if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={()=>{ setIsWorkoutActive(false); LS.set('gym-last-workout-sec', workoutSec); setView('list'); setActiveGroup(null); }} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} /></>;
 
     // List view
     return (
