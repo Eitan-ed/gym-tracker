@@ -388,7 +388,7 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
         const youtubeId = videos?.[ex.id];
         const localVid  = EXERCISE_VIDEOS[ex.id];
         const hasVideo  = youtubeId || localVid;
-        const history   = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
+        const history   = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
         return (
             <div key={ex.id} id={`ex-row-${ex.id}`} className="mb-3">
                 {/* תמונה + וידאו */}
@@ -556,7 +556,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 />
             ) : group.exercises.map((ex, exIdx) => {
                 const exHistory = logs.filter(l=>l.exId===ex.id)
-                    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
+                    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
                 const imgSrc = images?.[ex.id];
                 // טיימר מתרגיל קודם
                 const prevEx = exIdx > 0 ? group.exercises[exIdx-1] : null;
