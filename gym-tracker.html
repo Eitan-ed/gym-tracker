@@ -285,6 +285,215 @@ const VideoModal = ({ src, onClose }) => {
     );
 };
 
+// ─── SingleSetRow ──────────────────────────────────────────
+function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSaving, onSave }) {
+    return (
+        <div className={`flex items-center gap-2 p-2 rounded-2xl border ${isDone ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <span className="text-[11px] font-black text-slate-700 shrink-0 w-[4.5rem] truncate leading-tight">{ex.title}</span>
+            <div className="flex flex-1 gap-1.5">
+                <Roller label="ק״ג"   min={0}   max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
+                <Roller label="חזרות" min={1}   max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
+            </div>
+            <button onClick={()=>onSave(ex.id, setNum, state)} disabled={isDone||isDisabled||isSaving}
+                className={`px-4 h-9 rounded-xl font-black text-sm transition-all shrink-0 active:scale-95
+                    ${isDone ? 'bg-slate-100 text-slate-300' : (isDisabled||isSaving) ? 'bg-slate-100 text-slate-300' : 'bg-emerald-500 text-white shadow shadow-emerald-200'}`}>
+                {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
+            </button>
+        </div>
+    );
+}
+
+// ─── SupersetSection ───────────────────────────────────────
+function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, restTimers, restTimerTotals, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, showDetails, setShowDetails, group, setLightbox, setVideoModal }) {
+    const [sA1, setSA1] = useState({w:10,r:10,wC:false,rC:false});
+    const [sA2, setSA2] = useState({w:10,r:10,wC:false,rC:false});
+    const [sB1, setSB1] = useState({w:10,r:10,wC:false,rC:false});
+    const [sB2, setSB2] = useState({w:10,r:10,wC:false,rC:false});
+    const [isSaving, setIsSaving] = useState(false);
+    const initA = React.useRef(false), initB = React.useRef(false);
+
+    useEffect(()=>{
+        if (!initA.current && logs.length > 0) {
+            const l = [...logs].filter(x=>x.exId===exA.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+            if (l) { setSA1(p=>({...p,w:l.weight,r:l.reps})); setSA2(p=>({...p,w:l.weight,r:l.reps})); initA.current=true; }
+        }
+        if (!initB.current && logs.length > 0) {
+            const l = [...logs].filter(x=>x.exId===exB.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+            if (l) { setSB1(p=>({...p,w:l.weight,r:l.reps})); setSB2(p=>({...p,w:l.weight,r:l.reps})); initB.current=true; }
+        }
+    },[logs]);
+
+    useEffect(()=>{ initA.current=false; initB.current=false; },[sessionStartTime]);
+
+    const doneA1 = logs.some(l=>l.exId===exA.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
+    const doneB1 = logs.some(l=>l.exId===exB.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
+    const doneA2 = logs.some(l=>l.exId===exA.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
+    const doneB2 = logs.some(l=>l.exId===exB.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
+
+    const rtA = restTimers[exA.id]||0,     rtB = restTimers[exB.id]||0;
+    const totA = restTimerTotals[exA.id]||0, totB = restTimerTotals[exB.id]||0;
+
+    // disable לפי סדר: A1 → B1 → A2 → B2
+    const disB1 = !doneA1 || rtA > 0;
+    const disA2 = !doneB1 || rtB > 0;
+    const disB2 = !doneA2 || rtA > 0;
+
+    // מתי להציג טיימר בכל שלב
+    const showTAB = doneA1 && !doneB1 && totA > 0;  // בין A1 ל-B1
+    const showTBA = doneB1 && !doneA2 && totB > 0;  // בין B1 ל-A2
+    const showTA2 = doneA2 && !doneB2 && totA > 0;  // בין A2 ל-B2
+
+    const renderTimer = (rt, tot) => {
+        if (!tot) return null;
+        const done = rt===0, prog = tot > 0 ? ((tot-rt)/tot)*100 : 100;
+        return (
+            <div className="flex items-center gap-2 px-1 py-1">
+                <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${done?'bg-emerald-500':'bg-blue-600'}`}>
+                    <Icon name="Clock" size={13}/><span>{done?'✓':rt}</span>
+                </div>
+                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-1000 ${done?'bg-emerald-500':'bg-blue-500'}`} style={{width:`${prog}%`}}/>
+                </div>
+            </div>
+        );
+    };
+
+    const handleSave = async (exId, setNum, state) => {
+        setIsSaving(true);
+        try {
+            await onSave(exId, setNum, state.w, state.r, true);
+            if (exId===exA.id && setNum===1) setSA2(p=>({...p,w:state.w,r:state.r}));
+            if (exId===exB.id && setNum===1) setSB2(p=>({...p,w:state.w,r:state.r}));
+            if (exId===exB.id && setNum===2) setTimeout(onFinish, 800);
+        } finally { setIsSaving(false); }
+    };
+
+    // פרטי תרגיל (תמונה + how-to + היסטוריה)
+    const renderDetails = (ex) => {
+        const imgSrc = images?.[ex.id];
+        const staticImg = EXERCISE_IMAGES[ex.id];
+        const dispImg = imgSrc || (staticImg ? `images/${staticImg}` : null);
+        const isPersonal = !!imgSrc;
+        const youtubeId = videos?.[ex.id];
+        const localVid  = EXERCISE_VIDEOS[ex.id];
+        const hasVideo  = youtubeId || localVid;
+        const history   = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
+        return (
+            <div key={ex.id} id={`ex-row-${ex.id}`} className="mb-3">
+                {/* תמונה + וידאו */}
+                <div className="flex gap-2 mb-2">
+                    {dispImg && (
+                        <div className="relative flex-1 min-w-0">
+                            <img src={dispImg} alt={ex.title} onClick={()=>setLightbox(dispImg)}
+                                className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'7rem'}}/>
+                            {isPersonal && <button onClick={()=>onRemoveImage(ex.id)} className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
+                        </div>
+                    )}
+                    {hasVideo && (
+                        <div className={`flex flex-col ${dispImg?'w-[35%] shrink-0':'flex-1'}`}>
+                            {youtubeId ? (
+                                <div className="flex flex-col gap-1 h-full">
+                                    <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
+                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95" style={{minHeight:'4rem'}}>
+                                        <span className="text-xl">▶</span><span className="text-[10px]">YouTube</span>
+                                    </a>
+                                    <button onClick={()=>onDeleteVideo(ex.id)} className="text-[9px] font-black text-slate-300 active:text-red-400 text-center py-0.5">הסר</button>
+                                </div>
+                            ) : (
+                                <button onClick={()=>setVideoModal(`videos/${localVid}`)}
+                                    className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95" style={{minHeight:'4rem'}}>
+                                    <span className="text-xl">▶</span><span className="text-[10px]">סרטון</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+                {!dispImg && (
+                    <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mb-1">
+                        <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])}/> 📷 הוסף תמונה שלך
+                    </label>
+                )}
+                {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo}/>}
+
+                {/* כותרת + how-to מקופל */}
+                <section className="bg-slate-50 rounded-2xl border border-slate-100 mb-2 overflow-hidden">
+                    <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
+                        className="w-full flex justify-between items-center px-3 py-2 active:bg-slate-100">
+                        <span className="text-[13px] font-black text-slate-800">{ex.title}</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="bg-slate-200 px-2 py-0.5 rounded-full text-[9px] font-black text-slate-600">{group.machine}</span>
+                            <Icon name={showDetails[ex.id]?'ChevronUp':'ChevronDown'} size={14} className="text-slate-400"/>
+                        </div>
+                    </button>
+                    {showDetails[ex.id] && (
+                        <div className="px-3 pb-3">
+                            <p className="text-[12px] text-slate-600 bg-white/60 p-2.5 rounded-xl border border-slate-200/50 mb-2 font-medium">{ex.howTo}</p>
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                {ex.tips.map((t,i)=>(
+                                    <div key={i} className="bg-white p-1.5 rounded-xl border border-slate-100 text-[10px] text-slate-600 flex items-center gap-1.5 shadow-sm">
+                                        <Icon name="CheckCircle2" size={12} className="text-emerald-500 shrink-0"/><span className="font-bold">{t}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <textarea defaultValue={notes?.[ex.id]||''} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                                placeholder="הוסף דגשים..." rows={notes?.[ex.id]?(notes[ex.id].split('\n').length+1):2}
+                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-2 text-[12px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none"/>
+                        </div>
+                    )}
+                    {!showDetails[ex.id] && notes?.[ex.id] && (
+                        <div className="px-3 pb-2">
+                            <textarea defaultValue={notes[ex.id]} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                                rows={notes[ex.id].split('\n').length+1}
+                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-2 text-[12px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none"/>
+                        </div>
+                    )}
+                </section>
+
+                {/* היסטוריה */}
+                {history.length > 0 && (
+                    <section className="flex gap-1.5 mb-1 overflow-x-auto no-scrollbar py-0.5">
+                        {history.map((h,i)=>(
+                            <div key={i} className={`p-2 rounded-xl border shrink-0 text-[10px] ${i<2?'bg-indigo-50/80 border-indigo-200 shadow-sm':'bg-slate-50/50 border-slate-100 opacity-70'}`}>
+                                <span className={`font-bold block ${i<2?'text-indigo-500':'text-slate-400'}`}>{new Date(h.timestamp).toLocaleDateString('he-IL')}</span>
+                                <span className={`font-black ${i<2?'text-indigo-900':'text-slate-600'}`}>סט {h.setNum}: {h.weight}kg×{h.reps}</span>
+                            </div>
+                        ))}
+                    </section>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div>
+            {renderDetails(exA)}
+            {renderDetails(exB)}
+
+            {/* ─── סט 1 ─── */}
+            <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100 mb-2">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2 px-1">סט 1</div>
+                <div className="space-y-1.5">
+                    <SingleSetRow ex={exA} setNum={1} state={sA1} setState={setSA1} isDone={doneA1} isDisabled={false}  isSaving={isSaving} onSave={handleSave}/>
+                    {showTAB && renderTimer(rtA, totA)}
+                    <SingleSetRow ex={exB} setNum={1} state={sB1} setState={setSB1} isDone={doneB1} isDisabled={disB1} isSaving={isSaving} onSave={handleSave}/>
+                </div>
+            </div>
+
+            {showTBA && <div className="mb-2">{renderTimer(rtB, totB)}</div>}
+
+            {/* ─── סט 2 ─── */}
+            <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2 px-1">סט 2</div>
+                <div className="space-y-1.5">
+                    <SingleSetRow ex={exA} setNum={2} state={sA2} setState={setSA2} isDone={doneA2} isDisabled={disA2} isSaving={isSaving} onSave={handleSave}/>
+                    {showTA2 && renderTimer(rtA, totA)}
+                    <SingleSetRow ex={exB} setNum={2} state={sB2} setState={setSB2} isDone={doneB2} isDisabled={disB2} isSaving={isSaving} onSave={handleSave}/>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone }) {
     const [lightbox,    setLightbox]   = useState(null);
@@ -314,7 +523,19 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-40">
-            {group.exercises.map((ex, exIdx) => {
+            {group.isSuperset ? (
+                <SupersetSection
+                    exA={group.exercises[0]} exB={group.exercises[1]}
+                    logs={logs} sessionStartTime={sessionStartTime}
+                    onSave={onSave} onFinish={onFinish}
+                    restTimers={restTimers} restTimerTotals={restTimerTotals}
+                    notes={notes} onSaveNote={onSaveNote}
+                    images={images} onSaveImage={onSaveImage} onRemoveImage={onRemoveImage}
+                    videos={videos} onSaveVideo={onSaveVideo} onDeleteVideo={onDeleteVideo}
+                    showDetails={showDetails} setShowDetails={setShowDetails}
+                    group={group} setLightbox={setLightbox} setVideoModal={setVideoModal}
+                />
+            ) : group.exercises.map((ex, exIdx) => {
                 const exHistory = logs.filter(l=>l.exId===ex.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
                 const imgSrc = images?.[ex.id];
