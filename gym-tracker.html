@@ -30,7 +30,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 
 // ─── localStorage helpers ───────────────────────────────────
@@ -263,7 +263,12 @@ const EXERCISE_VIDEOS = {
 };
 
 // ─── EXERCISE_IMAGES ────────────────────────────────────────
-const EXERCISE_IMAGES = {};
+const EXERCISE_IMAGES = {
+    ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
+    ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
+    ex7a:'ex7a.png', ex7b:'ex7b.png', ex8:'ex8.png',
+    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png'
+};
 
 // ─── VideoModal ─────────────────────────────────────────────
 let _videoModalOpen = false;
@@ -527,13 +532,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 
     return (
     <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
-        <div className={`bg-gradient-to-br ${group.color} p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0`}>
-            <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow-lg">
-                <Icon name="Home" size={22} />
+        <div className={`bg-gradient-to-br ${group.color} py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0`}>
+            <button onClick={onBack} className="absolute top-3 left-4 p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
+                <Icon name="Home" size={18} />
             </button>
-            <div className="flex items-center gap-4 px-10">
-                <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner">{group.icon}</div>
-                <h2 className="text-xl font-black text-white leading-none tracking-tight">{group.title}</h2>
+            <div className="flex items-center gap-3 px-9">
+                <h2 className="text-base font-black text-white leading-none tracking-tight">{group.title}</h2>
             </div>
         </div>
 
@@ -874,7 +878,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>
                 </section>
                 <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Settings" size={20} className="text-rose-500" /> הגדרות אימון</h3>
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Settings" size={20} className="text-blue-500" /> הגדרות אימון</h3>
                     <div className="space-y-4">
                         {[
                             {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120,150,180]},
@@ -882,7 +886,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         ].map(({label,key,opts})=>(
                             <div key={key} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                 <span className="font-bold text-sm text-slate-700">{label}</span>
-                                <select className="bg-white border border-slate-200 rounded-xl px-3 py-1 font-black text-rose-600 outline-none"
+                                <select className="bg-white border border-slate-200 rounded-xl px-3 py-1 font-black text-blue-600 outline-none"
                                     value={settings[key]} onChange={e=>onUpdateSettings(key,Number(e.target.value))}>
                                     {opts.map(o=>{
                                         const m = Math.floor(o/60), s = o%60;
@@ -1133,6 +1137,19 @@ function App() {
         },250);
     },[view,nextIncompleteIndex]);
 
+    const handleExerciseComplete = useCallback(()=>{
+        const nextGroup = sortedGroups.find(g=>!isGroupDone(g));
+        if (nextGroup) {
+            setActiveGroup(nextGroup);
+            // נשאר ב-detail view, הטיימר ממשיך
+        } else {
+            setIsWorkoutActive(false);
+            LS.set('gym-last-workout-sec', workoutSec);
+            setView('list');
+            setActiveGroup(null);
+        }
+    },[sortedGroups,isGroupDone,workoutSec]);
+
     const handleOpenExercise = group=>{
         if (workoutSec===0&&!isWorkoutActive) {
             requestConfirm('להפעיל טיימר?',
@@ -1218,7 +1235,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={()=>{ setIsWorkoutActive(false); LS.set('gym-last-workout-sec', workoutSec); setView('list'); setActiveGroup(null); }} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} /></>;
 
@@ -1228,9 +1245,17 @@ function App() {
         {overlays}
         <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
             <header className="bg-white pb-6 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
-                <div className="bg-black w-full py-5 mb-8 shadow-2xl relative">
-                    <h1 className="text-2xl font-black text-white tracking-widest text-center uppercase">אימון פול-באדי</h1>
-                    <span className="absolute bottom-2 left-3 text-[9px] text-white/30 font-bold" dir="ltr">v.{APP_VERSION}</span>
+                <div className="w-full mb-6 relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
+                    <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
+                    <div className="relative py-5 px-4 flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-2">
+                            <Icon name="Dumbbell" size={20} className="text-blue-400" />
+                            <h1 className="text-2xl font-black text-white tracking-widest" style={{letterSpacing:'0.15em'}}>אימון פול-באדי</h1>
+                            <Icon name="Dumbbell" size={20} className="text-blue-400" />
+                        </div>
+                        <div className="h-[2px] w-24 rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"/>
+                    </div>
+                    <span className="absolute bottom-1.5 left-3 text-[9px] text-white/30 font-bold" dir="ltr">v.{APP_VERSION}</span>
                 </div>
                 {(() => {
                     const start = new Date(sessionStartTime);
@@ -1255,7 +1280,7 @@ function App() {
                                     <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{timerStr}</span>
                                 </button>
                                 <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
-                                    className={`text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded-full transition-colors
+                                    className={`text-[13px] font-bold flex items-center gap-1 px-2 py-1 rounded-full transition-colors
                                         ${isWorkoutActive ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-500'}`}>
                                     <Icon name="RotateCcw" size={11} /> אפס
                                 </button>
