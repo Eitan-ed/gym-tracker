@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
@@ -30,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.9';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -726,7 +729,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 
 // ─── HistoryView ───────────────────────────────────────────
 // תיקון 3: [...items].sort — לא מוטייט מערך מקורי
-const HistoryView = ({ logs, onBack, onDeleteDate, onDeleteOne, requestConfirm }) => {
+const fmtDur = sec => { const m=Math.floor(sec/60), s=sec%60; return `${m}:${String(s).padStart(2,'0')}`; };
+
+const HistoryView = ({ logs, sessionDurations, onBack, onDeleteDate, onDeleteOne, requestConfirm }) => {
     const [expandedDate, setExpandedDate] = useState(null);
     const grouped = useMemo(() => {
         const g = {};
@@ -750,13 +755,20 @@ const HistoryView = ({ logs, onBack, onDeleteDate, onDeleteOne, requestConfirm }
                         <Icon name="Dumbbell" size={64} className="mb-4 text-slate-300" />
                         <p className="font-black text-xl">אין היסטוריה עדיין</p>
                     </div>
-                ) : grouped.map(([date,items])=>(
+                ) : grouped.map(([date,items])=>{
+                    const dur = Object.entries(sessionDurations||{}).find(([ts])=>
+                        new Date(Number(ts)).toLocaleDateString('he-IL')===date
+                    )?.[1];
+                    return (
                     <div key={date} className="bg-slate-50 rounded-[2.2rem] border border-slate-100 shadow-sm overflow-hidden">
                         <div className="flex justify-between items-center bg-white p-1">
                             <button onClick={()=>setExpandedDate(expandedDate===date?null:date)} className="flex-1 flex justify-between items-center p-4">
                                 <div className="flex items-center gap-4">
                                     <div className="w-3 h-3 rounded-full bg-blue-500" />
-                                    <span className="font-black text-slate-800">{getDayNameHe(items[0].timestamp)} {date}</span>
+                                    <div>
+                                        <span className="font-black text-slate-800">{getDayNameHe(items[0].timestamp)} {date}</span>
+                                        {dur > 0 && <span className="mr-2 text-[11px] font-bold text-slate-400"><Icon name="Clock" size={11} className="inline mb-0.5 ml-1"/>{fmtDur(dur)}</span>}
+                                    </div>
                                 </div>
                                 <Icon name="ChevronDown" size={20} className={`text-slate-400 transition-transform duration-300 ${expandedDate===date?'rotate-180':''}`} />
                             </button>
@@ -783,7 +795,7 @@ const HistoryView = ({ logs, onBack, onDeleteDate, onDeleteOne, requestConfirm }
                             </div>
                         )}
                     </div>
-                ))}
+                ); })}
             </div>
         </div>
     );
@@ -836,7 +848,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             logs, notes, images, videos, settings, groupOrder,
             sessionStart:   sessionStartTime,
             sessionEnd:     sessionEndTime,
-            lastWorkoutSec: LS.get('gym-last-workout-sec', 0)
+            lastWorkoutSec:   LS.get('gym-last-workout-sec',   0),
+            showDetails:      LS.get('gym-show-details',       {}),
+            sessionDurations: LS.get('gym-session-durations',  {})
         });
         showToast('הגיבוי הורד בהצלחה');
     };
@@ -859,6 +873,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     if (data.sessionEnd)     setSessionEndTime(data.sessionEnd);
                     if (data.groupOrder)     setGroupOrder(data.groupOrder);
                     if (data.lastWorkoutSec) LS.set('gym-last-workout-sec', data.lastWorkoutSec);
+                    if (data.showDetails)       LS.set('gym-show-details',       data.showDetails);
+                    if (data.sessionDurations) { LS.set('gym-session-durations', data.sessionDurations); setSessionDurations(data.sessionDurations); }
                     showToast('הנתונים שוחזרו בהצלחה');
                 } catch { showToast('שגיאה בשחזור', true); }
             };
@@ -941,11 +957,13 @@ function App() {
     const [editingDates,     setEditingDates]     = useState(null);
     const [scrollToExId,     setScrollToExId]     = useState(null);
     const [confirmAction,    setConfirmAction]    = useState(null);
+    const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
     const [toast,            setToast]            = useState(null);
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
     const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60}));
+    const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
 
     const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
     const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
@@ -958,7 +976,8 @@ function App() {
     useEffect(()=>{ LS.set('gym-settings',       settings);         },[settings]);
     useEffect(()=>{ LS.set('gym-group-order',    groupOrder);       },[groupOrder]);
     useEffect(()=>{ LS.set('gym-session-start',  sessionStartTime); },[sessionStartTime]);
-    useEffect(()=>{ LS.set('gym-session-end',    sessionEndTime);   },[sessionEndTime]);
+    useEffect(()=>{ LS.set('gym-session-end',       sessionEndTime);    },[sessionEndTime]);
+    useEffect(()=>{ LS.set('gym-session-durations', sessionDurations);  },[sessionDurations]);
 
     // גיבוי יומי אוטומטי
     useEffect(()=>{
@@ -973,7 +992,9 @@ function App() {
                 sessionStart:  LS.get('gym-session-start',  null),
                 sessionEnd:    LS.get('gym-session-end',    null),
                 groupOrder:    LS.get('gym-group-order',    null),
-                lastWorkoutSec:LS.get('gym-last-workout-sec',0)
+                lastWorkoutSec:  LS.get('gym-last-workout-sec',  0),
+                showDetails:     LS.get('gym-show-details',     {}),
+                sessionDurations:LS.get('gym-session-durations', {})
             });
             LS.set('gym-last-backup', Date.now());
         }
@@ -1164,6 +1185,7 @@ function App() {
         } else {
             setIsWorkoutActive(false);
             LS.set('gym-last-workout-sec', workoutSec);
+            if (workoutSec > 0) setSessionDurations(prev=>({...prev, [sessionStartTime]: workoutSec}));
             setView('list');
             setActiveGroup(null);
         }
@@ -1197,6 +1219,27 @@ function App() {
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[300px]">
                     <div className={`px-5 py-3 rounded-2xl shadow-2xl font-black text-sm flex items-center justify-center gap-2 ${toast.isError?'bg-rose-500':'bg-emerald-500'} text-white`}>
                         <Icon name={toast.isError?'AlertCircle':'CheckCircle2'} size={20} /> {toast.msg}
+                    </div>
+                </div>
+            )}
+            {/* Modal אימון חדש */}
+            {showNewWorkoutModal && (
+                <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
+                        <h3 className="text-lg font-black text-slate-800 mb-2 text-center">אימון חדש</h3>
+                        <p className="text-sm text-slate-500 text-center mb-5">לשמור גיבוי של האימון הנוכחי לפני האיפוס?</p>
+                        <div className="flex flex-col gap-2">
+                            <button onClick={()=>{
+                                if (workoutSec > 0) setSessionDurations(prev=>({...prev, [sessionStartTime]: workoutSec}));
+                                triggerBackupDownload({logs, notes, images, videos, settings, groupOrder, sessionStart:sessionStartTime, sessionEnd:sessionEndTime, lastWorkoutSec:LS.get('gym-last-workout-sec',0), showDetails:LS.get('gym-show-details',{}), sessionDurations:{...sessionDurations, ...(workoutSec>0?{[sessionStartTime]:workoutSec}:{})}});
+                                setShowNewWorkoutModal(false);
+                                startNewWorkout();
+                            }} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">שמור גיבוי והתחל</button>
+                            <button onClick={()=>{ setShowNewWorkoutModal(false); startNewWorkout(); }}
+                                className="w-full p-3 rounded-xl font-bold text-white bg-rose-500 active:scale-95">התחל בלי שמירה</button>
+                            <button onClick={()=>setShowNewWorkoutModal(false)}
+                                className="w-full p-3 rounded-xl font-bold text-slate-500 bg-slate-100 active:scale-95">ביטול</button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1255,7 +1298,7 @@ function App() {
     );
 
     if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
-    if (view==='history') return <>{overlays}<HistoryView logs={logs} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
+    if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} /></>;
 
     // List view
@@ -1307,8 +1350,7 @@ function App() {
 
                             {/* תאריכים + מד */}
                             <div onClick={()=>{
-                                const firstLog = logs.length>0 ? Math.min(...logs.map(l=>new Date(l.timestamp).getTime())) : sessionStartTime;
-                                setEditingDates({start:firstLog, end:sessionEndTime});
+                                        setEditingDates({start:sessionStartTime, end:sessionEndTime});
                             }}
                                 className="flex-1 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none"
                                 style={{WebkitUserSelect:'none'}}>
@@ -1388,7 +1430,7 @@ function App() {
                 <button onClick={()=>setView('history')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
                     <Icon name="History" size={24} /><span className="text-[11px] font-black">היסטוריה</span>
                 </button>
-                <button onClick={()=>requestConfirm('להתחיל אימון חדש?',startNewWorkout)}
+                <button onClick={()=>setShowNewWorkoutModal(true)}
                     className="flex flex-col items-center gap-1 text-blue-600 -mt-14 bg-white p-3 rounded-full shadow-2xl border-4 border-slate-50 active:scale-90">
                     <div className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl"><Icon name="Plus" size={36} /></div>
                     <span className="text-[11px] font-black mt-1">אימון חדש</span>
