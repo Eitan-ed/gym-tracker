@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -252,7 +252,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         } finally { setIsSaving(false); }
     };
 
-    const betweenTimer = done.s1 && !done.s2 && restTimerTotal > 0;
+    const betweenTimer = done.s1 && !done.s2 && restTimerTotal > 0 && !forceSet2Disabled;
 
     const conicStyle = (rt, tot) => {
         if (!tot) return null;
@@ -1154,7 +1154,15 @@ function App() {
     },[sortedGroups,logs,workoutStartTime,workoutSec]);
 
     const handleExerciseComplete = useCallback(()=>{
-        const nextGroup = sortedGroups.find(g=>!isGroupDone(g));
+        // קריאה ישירה מ-refs כדי להימנע מ-stale closure אחרי setLogs
+        const curLogs = logsRef.current;
+        const curWst  = sstRef.current;
+        const curSkip = skippedRef.current;
+        const isDone = g => curSkip.includes(g.id) || g.exercises.every(ex=>{
+            const sl = curLogs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>curWst);
+            return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+        });
+        const nextGroup = sortedGroups.find(g=>!isDone(g));
         if (nextGroup) {
             setActiveGroup(nextGroup); setView('detail');
             setScrollToExId(nextGroup.exercises[0].id);
@@ -1166,7 +1174,7 @@ function App() {
             setView('list');
             setActiveGroup(null);
         }
-    },[sortedGroups,isGroupDone,workoutSec,workoutStartTime]);
+    },[sortedGroups,workoutSec,workoutStartTime]);
 
     const handleOpenExercise = group=>{
         if (workoutSec===0&&!isWorkoutActive) {
