@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -101,20 +101,70 @@ const exerciseGroups = [
 ];
 
 // ─── Roller ────────────────────────────────────────────────
+const ITEM_H = 24;
+const HALF   = 2;
+const VIS    = HALF * 2 + 1;
+
 const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) => {
     const options = useMemo(() => {
         const o = [];
         for (let i = min; i <= max; i += step) o.push(i);
         return o;
     }, [min, max, step]);
+
+    const listRef    = React.useRef(null);
+    const settling   = React.useRef(false);
+    const timerRef   = React.useRef(null);
+
+    // scroll to value
+    const scrollTo = useCallback((idx, smooth=false) => {
+        if (!listRef.current) return;
+        listRef.current.scrollTo({ top: idx * ITEM_H, behavior: smooth ? 'smooth' : 'instant' });
+    }, []);
+
+    useEffect(() => {
+        const idx = options.indexOf(value);
+        if (idx >= 0) scrollTo(idx);
+    }, [value, options, scrollTo]);
+
+    const handleScroll = useCallback(() => {
+        if (settling.current) return;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            if (!listRef.current) return;
+            const idx = Math.round(listRef.current.scrollTop / ITEM_H);
+            const c = Math.min(Math.max(idx, 0), options.length - 1);
+            settling.current = true;
+            scrollTo(c, true);
+            onChange(options[c]);
+            setTimeout(() => { settling.current = false; }, 250);
+        }, 80);
+    }, [options, onChange, scrollTo]);
+
     return (
         <div className="flex flex-col items-center flex-1">
-            <span className="text-[8px] font-black text-slate-400 mb-1 uppercase tracking-tighter">{label}</span>
-            <select value={value} onChange={e => onChange(parseFloat(e.target.value))}
-                className={`w-full p-1.5 rounded-xl border-none text-center font-black text-base appearance-none outline-none transition-all
-                    ${isChanged ? 'text-blue-600 ring-2 ring-blue-100 bg-blue-50' : 'bg-slate-100/60 text-slate-400 font-normal'}`}>
-                {options.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
+            <span className="text-[8px] font-black text-slate-400 mb-0.5 uppercase tracking-tighter">{label}</span>
+            <div className={`relative w-full rounded-xl overflow-hidden ${isChanged ? 'ring-2 ring-blue-100 bg-blue-50' : 'bg-slate-100/60'}`}
+                style={{height: VIS * ITEM_H + 'px'}}>
+                <div className="absolute inset-x-0 pointer-events-none z-10"
+                    style={{top: HALF*ITEM_H+'px', height: ITEM_H+'px',
+                        borderTop:'1px solid rgba(0,0,0,0.08)', borderBottom:'1px solid rgba(0,0,0,0.08)'}}/>
+                <div ref={listRef} onScroll={handleScroll}
+                    className="h-full overflow-y-scroll no-scrollbar"
+                    style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
+                    <div style={{height: HALF*ITEM_H+'px'}}/>
+                    {options.map(o => (
+                        <div key={o} style={{height: ITEM_H+'px', scrollSnapAlign:'center'}}
+                            className={`flex items-center justify-center select-none transition-all
+                                ${o===value
+                                    ? `font-black text-sm ${isChanged?'text-blue-600':'text-slate-800'}`
+                                    : 'font-bold text-[11px] text-slate-300'}`}>
+                            {o}
+                        </div>
+                    ))}
+                    <div style={{height: HALF*ITEM_H+'px'}}/>
+                </div>
+            </div>
         </div>
     );
 });
@@ -140,7 +190,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
     const [isSaving, setIsSaving] = useState(false);
-    const set2Ref = React.useRef(null);
 
     const initialized = React.useRef(false);
     useEffect(() => {
@@ -168,26 +217,33 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         setIsSaving(true);
         try {
             await onSave(ex.id, num, state.w, state.r, isSuperset);
-            if (num === 1) {
-                // sync s2 from s1 — reset Changed flags so they show gray
-                setS2({w:state.w, r:state.r, wC:false, rC:false});
-                setTimeout(()=> set2Ref.current?.scrollIntoView({behavior:'smooth', block:'center'}), 150);
-            }
+            if (num === 1) setS2({w:state.w, r:state.r, wC:false, rC:false});
             if (num===2 && isLast) setTimeout(onFinish, 800);
-        } finally {
-            setIsSaving(false);
-        }
+        } finally { setIsSaving(false); }
     };
 
-    // טיימר בין סט 1 לסט 2
-    const betweenActive = done.s1 && !done.s2 && restTimer > 0;
-    const betweenDone   = done.s1 && !done.s2 && restTimer === 0 && restTimerTotal > 0;
-    const betweenShow   = betweenActive || betweenDone;
-    // טיימר אחרי סט 2 (לקראת תרגיל הבא)
-    const afterShow     = done.s2 && (restTimer > 0 || (restTimerTotal > 0 && restTimer === 0));
+    const handleSkipSet = async (num) => {
+        setIsSaving(true);
+        try {
+            await onSave(ex.id, num, 0, 0, isSuperset);
+            if (num === 1) setS2({w:0, r:0, wC:false, rC:false});
+            if (num===2 && isLast) setTimeout(onFinish, 800);
+        } finally { setIsSaving(false); }
+    };
 
-    // מד הפוך: מלא → ריק
-    const timerBarWidth = restTimerTotal > 0 ? (betweenDone ? 0 : (restTimer / restTimerTotal) * 100) : 0;
+    const betweenTimer = done.s1 && !done.s2 && restTimerTotal > 0;
+    const afterShow    = done.s2 && restTimerTotal > 0 && (restTimer > 0 || restTimer === 0);
+
+    // conic-gradient border style for set 2 card
+    const s2ConicStyle = () => {
+        if (!betweenTimer) return null;
+        if (restTimer === 0) return { border:'2px solid #0f172a', borderRadius:'1.6rem', boxShadow:'0 2px 12px rgba(15,23,42,0.18)' };
+        const deg = (restTimer / restTimerTotal) * 360;
+        return {
+            border:'2px solid transparent', borderRadius:'1.6rem',
+            background:`linear-gradient(white,white) padding-box, conic-gradient(from -90deg, #3b82f6 0deg, #3b82f6 ${deg}deg, #e2e8f0 ${deg}deg, #e2e8f0 360deg) border-box`
+        };
+    };
 
     return (
         <div className="space-y-0" dir="rtl">
@@ -195,17 +251,15 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
-                // disabled: רק אם לא עשינו סט 1. טיימר לא חוסם (אפשר לסמן במהלכו)
-                const isDisabled = isDone || isSaving || (num===2 && !done.s1);
-                // אפור ויזואלית גם בזמן טיימר פעיל (אך לחיץ)
-                const isGray = isDisabled || (num===2 && betweenActive);
+                const canAct   = !isDone && !isSaving && (num===1 || done.s1);
+                const conicSt  = num===2 ? s2ConicStyle() : null;
                 return (
                     <React.Fragment key={num}>
-                        <div ref={num===2 ? set2Ref : undefined}
-                            className={`bg-white p-2.5 rounded-[1.6rem] border shadow-sm flex items-center gap-2
-                                ${num===2 && betweenDone ? 'border-slate-700 shadow-md' : 'border-slate-100'}`}>
+                        <div style={conicSt||undefined}
+                            className={`bg-white p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all
+                                ${conicSt ? '' : `border shadow-sm ${num===2 && betweenTimer && restTimer===0 ? 'border-slate-700 shadow-md' : 'border-slate-100'}`}`}>
                             <div className={`w-10 h-10 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg
-                                ${num===2 && betweenDone ? 'bg-blue-600' : 'bg-slate-900'}`}>
+                                ${num===2 && betweenTimer && restTimer===0 ? 'bg-blue-600' : 'bg-slate-900'}`}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
@@ -213,34 +267,25 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
                                 <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
                             </div>
-                            <button onClick={() => handleSetSave(num, state)} disabled={isDisabled}
-                                className={`px-5 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shrink-0 shadow-lg active:scale-95
-                                    ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : isGray ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
-                                {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
-                            </button>
-                        </div>
-
-                        {/* טיימר בין סט 1 לסט 2 — מד הפוך (מלא לריק) */}
-                        {num===1 && betweenShow && (
-                            <div className="flex items-center gap-2 px-2 py-1.5">
-                                <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-white text-sm font-mono font-black
-                                    ${betweenDone ? 'bg-emerald-500' : 'bg-blue-600'}`}>
-                                    <Icon name="Clock" size={13} />
-                                    <span>{betweenDone ? '✓' : restTimer}</span>
-                                </div>
-                                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full transition-all duration-1000 ${betweenDone ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                        style={{width:`${timerBarWidth}%`}} />
-                                </div>
+                            <div className="flex flex-col items-center gap-0.5 shrink-0">
+                                <button onClick={() => handleSetSave(num, state)} disabled={!canAct}
+                                    className={`px-4 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95
+                                        ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : !canAct ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
+                                    {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
+                                </button>
+                                {!isDone && (
+                                    <button onClick={()=>handleSkipSet(num)} disabled={!canAct && !(num===2 && done.s1)}
+                                        className="text-[10px] font-bold text-slate-300 active:text-orange-400 leading-none px-1">
+                                        דלג
+                                    </button>
+                                )}
                             </div>
-                        )}
-
-                        {num===1 && !betweenShow && <div className="h-1.5" />}
+                        </div>
+                        {num===1 && <div className="h-1.5" />}
                     </React.Fragment>
                 );
             })}
 
-            {/* טיימר אחרי סט 2 — מנוחה לקראת התרגיל הבא */}
             {afterShow && (
                 <div className="flex items-center gap-2 px-2 py-1.5 mt-1">
                     <div className={`text-white px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-sm font-mono font-black
@@ -249,8 +294,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                         <span>{restTimer===0 ? '✓' : restTimer}</span>
                     </div>
                     <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-1000 ${restTimer===0 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                            style={{width:`${restTimerTotal > 0 ? (restTimer / restTimerTotal) * 100 : 0}%`}} />
+                        <div className={`h-full rounded-full transition-all duration-1000 ${restTimer===0?'bg-emerald-500':'bg-blue-500'}`}
+                            style={{width:`${restTimerTotal>0?(restTimer/restTimerTotal)*100:0}%`}} />
                     </div>
                 </div>
             )}
@@ -299,19 +344,25 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── SingleSetRow ──────────────────────────────────────────
-function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSaving, onSave, isSecond }) {
+function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSaving, onSave, isSecond, isActive }) {
+    const handleSkip = () => onSave(ex.id, setNum, {...state, w:0, r:0});
+    const activeBorder = isActive && !isDone ? (isSecond ? 'ring-2 ring-red-400' : 'ring-2 ring-emerald-400') : '';
     return (
-        <div className={`flex items-center gap-2 p-2 rounded-2xl border ${isDone ? 'bg-slate-50 border-slate-100' : isSecond ? 'bg-red-50 border-red-100 shadow-sm' : 'bg-white border-slate-100 shadow-sm'}`}>
+        <div className={`flex items-center gap-2 p-2 rounded-2xl border ${activeBorder} ${isDone ? 'bg-slate-50 border-slate-100' : isSecond ? 'bg-red-50 border-red-100 shadow-sm' : 'bg-white border-slate-100 shadow-sm'}`}>
             <span className={`text-[11px] font-black shrink-0 w-[4.5rem] truncate leading-tight ${isSecond ? 'text-red-700' : 'text-slate-700'}`}>{ex.title}</span>
             <div className="flex flex-1 gap-1.5">
                 <Roller label="ק״ג"   min={0}   max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
                 <Roller label="חזרות" min={1}   max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
             </div>
-            <button onClick={()=>onSave(ex.id, setNum, state)} disabled={isDone||isDisabled||isSaving}
-                className={`px-4 h-9 rounded-xl font-black text-sm transition-all shrink-0 active:scale-95
-                    ${isDone ? 'bg-slate-100 text-slate-300' : (isDisabled||isSaving) ? 'bg-slate-100 text-slate-300' : 'bg-emerald-500 text-white shadow shadow-emerald-200'}`}>
-                {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
-            </button>
+            <div className="flex flex-col items-center gap-0.5 shrink-0">
+                <button onClick={()=>onSave(ex.id, setNum, state)} disabled={isDone||isDisabled||isSaving}
+                    className={`px-4 h-9 rounded-xl font-black text-sm transition-all active:scale-95
+                        ${isDone ? 'bg-slate-100 text-slate-300' : (isDisabled||isSaving) ? 'bg-slate-100 text-slate-300' : 'bg-emerald-500 text-white shadow shadow-emerald-200'}`}>
+                    {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
+                </button>
+                {!isDone && <button onClick={handleSkip} disabled={isDisabled||isSaving}
+                    className="text-[10px] font-bold text-slate-300 active:text-orange-400 disabled:opacity-0 leading-none py-0.5">דלג</button>}
+            </div>
         </div>
     );
 }
@@ -351,6 +402,10 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
     const disA2 = !doneB1 || rtB > 0;
     const disB2 = !doneA2 || rtA > 0;
 
+    // הסט הפעיל הנוכחי
+    const activeExId  = !doneA1 ? exA.id : !doneB1 ? exB.id : !doneA2 ? exA.id : !doneB2 ? exB.id : null;
+    const activeSetNum= !doneA1 ? 1       : !doneB1 ? 1       : !doneA2 ? 2       : !doneB2 ? 2       : null;
+
     // מתי להציג טיימר בכל שלב
     const showTAB = doneA1 && !doneB1 && totA > 0;  // בין A1 ל-B1
     const showTBA = doneB1 && !doneA2 && totB > 0;  // בין B1 ל-A2
@@ -384,7 +439,7 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
     };
 
     // פרטי תרגיל (תמונה + how-to + היסטוריה)
-    const renderDetails = (ex) => {
+    const renderDetails = (ex, isSecond=false) => {
         const imgSrc = images?.[ex.id];
         const staticImg = EXERCISE_IMAGES[ex.id];
         const dispImg = imgSrc || (staticImg ? `images/${staticImg}` : null);
@@ -395,6 +450,8 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
         const history   = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
         return (
             <div key={ex.id} id={`ex-row-${ex.id}`} className="mb-3">
+                {/* כותרת מעל */}
+                <div className={`text-[13px] font-black mb-1.5 px-0.5 ${isSecond ? 'text-red-700' : 'text-slate-800'}`}>{ex.title}</div>
                 {/* תמונה + וידאו */}
                 <div className="flex gap-2 mb-2">
                     {dispImg && (
@@ -481,16 +538,16 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
 
     return (
         <div>
-            {renderDetails(exA)}
-            {renderDetails(exB)}
+            {renderDetails(exA, false)}
+            {renderDetails(exB, true)}
 
             {/* ─── סט 1 ─── */}
             <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100 mb-2">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2 px-1">סט 1</div>
                 <div className="space-y-1.5">
-                    <SingleSetRow ex={exA} setNum={1} state={sA1} setState={setSA1} isDone={doneA1} isDisabled={false}  isSaving={isSaving} onSave={handleSave}/>
+                    <SingleSetRow ex={exA} setNum={1} state={sA1} setState={setSA1} isDone={doneA1} isDisabled={false}  isSaving={isSaving} onSave={handleSave} isActive={activeExId===exA.id&&activeSetNum===1}/>
                     {showTAB && renderTimer(rtA, totA)}
-                    <SingleSetRow ex={exB} setNum={1} state={sB1} setState={setSB1} isDone={doneB1} isDisabled={disB1} isSaving={isSaving} onSave={handleSave} isSecond/>
+                    <SingleSetRow ex={exB} setNum={1} state={sB1} setState={setSB1} isDone={doneB1} isDisabled={disB1} isSaving={isSaving} onSave={handleSave} isSecond isActive={activeExId===exB.id&&activeSetNum===1}/>
                 </div>
             </div>
 
@@ -500,9 +557,9 @@ function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, r
             <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2 px-1">סט 2</div>
                 <div className="space-y-1.5">
-                    <SingleSetRow ex={exA} setNum={2} state={sA2} setState={setSA2} isDone={doneA2} isDisabled={disA2} isSaving={isSaving} onSave={handleSave}/>
+                    <SingleSetRow ex={exA} setNum={2} state={sA2} setState={setSA2} isDone={doneA2} isDisabled={disA2} isSaving={isSaving} onSave={handleSave} isActive={activeExId===exA.id&&activeSetNum===2}/>
                     {showTA2 && renderTimer(rtA, totA)}
-                    <SingleSetRow ex={exB} setNum={2} state={sB2} setState={setSB2} isDone={doneB2} isDisabled={disB2} isSaving={isSaving} onSave={handleSave} isSecond/>
+                    <SingleSetRow ex={exB} setNum={2} state={sB2} setState={setSB2} isDone={doneB2} isDisabled={disB2} isSaving={isSaving} onSave={handleSave} isSecond isActive={activeExId===exB.id&&activeSetNum===2}/>
                 </div>
             </div>
         </div>
@@ -820,10 +877,22 @@ const playCountdownBeep = () => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = 660; osc.type = 'sine';
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12);
+        osc.frequency.value = 880; osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
+    } catch(e) {}
+};
+const playWarningBeep = () => {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 440; osc.type = 'sine';
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
     } catch(e) {}
 };
 const playRestCompleteSound = () => {
@@ -961,6 +1030,7 @@ function App() {
     const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
     const [skippedGroups,    setSkippedGroups]    = useState([]);
     const [showSummary,      setShowSummary]      = useState(false);
+    const [isWorkoutComplete,setIsWorkoutComplete]= useState(false);
     const [toast,            setToast]            = useState(null);
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
@@ -1025,26 +1095,54 @@ function App() {
     // ref לגישה מה-interval ללא closure ישן
     const restTimersRef = React.useRef({});
     useEffect(()=>{ restTimersRef.current = restTimers; },[restTimers]);
+    const logsRef = React.useRef(logs);
+    useEffect(()=>{ logsRef.current = logs; },[logs]);
+    const sstRef = React.useRef(sessionStartTime);
+    useEffect(()=>{ sstRef.current = sessionStartTime; },[sessionStartTime]);
+    const skippedRef = React.useRef(skippedGroups);
+    useEffect(()=>{ skippedRef.current = skippedGroups; },[skippedGroups]);
 
     useEffect(()=>{
         const t = setInterval(()=>{
             const cur = restTimersRef.current;
             if (Object.keys(cur).length === 0) return;
             const next = {};
-            let doBeep = false, completedExId = null;
+            let doCountdown = false, doWarning = false, completedExId = null;
             Object.entries(cur).forEach(([k,v])=>{
                 if (v > 1) {
                     next[k] = v - 1;
-                    if (v <= 4) doBeep = true;
+                    if (v <= 3) doCountdown = true;
+                    if (v === 21) doWarning = true;
                 } else if (v === 1) {
                     completedExId = k;
                 }
             });
-            if (doBeep)        playCountdownBeep();
+            if (doCountdown)   playCountdownBeep();
+            if (doWarning)     playWarningBeep();
             if (completedExId) {
                 playRestCompleteSound();
+                const curLogs = logsRef.current;
+                const curSst  = sstRef.current;
+                const curSkip = skippedRef.current;
                 const targetGroup = exerciseGroups.find(g => g.exercises.some(e => e.id === completedExId));
-                if (targetGroup) { setActiveGroup(targetGroup); setView('detail'); }
+                if (targetGroup) {
+                    const groupDone = targetGroup.exercises.every(ex => {
+                        const sl = curLogs.filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > curSst);
+                        return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+                    });
+                    if (groupDone) {
+                        const nextGroup = exerciseGroups.find(g => {
+                            if (curSkip.includes(g.id)) return false;
+                            return !g.exercises.every(ex => {
+                                const sl = curLogs.filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > curSst);
+                                return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+                            });
+                        });
+                        if (nextGroup) { setActiveGroup(nextGroup); setView('detail'); }
+                    } else {
+                        setActiveGroup(targetGroup); setView('detail');
+                    }
+                }
                 setScrollToExId(completedExId);
             }
             setRestTimers(next);
@@ -1134,7 +1232,7 @@ function App() {
 
     const startNewWorkout = ()=>{
         setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
-        setSkippedGroups([]); setShowSummary(false);
+        setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
         setSessionStartTime(Date.now()); setView('list'); setActiveGroup(null);
     };
 
@@ -1193,7 +1291,7 @@ function App() {
             });
             if (allDone && newSkipped.length > 0) {
                 setTimeout(()=>{
-                    setIsWorkoutActive(false);
+                    setIsWorkoutActive(false); setIsWorkoutComplete(true);
                     if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[sessionStartTime]:workoutSec})); }
                     setShowSummary(true);
                 }, 300);
@@ -1208,7 +1306,7 @@ function App() {
             setView('list');
             setActiveGroup(null);
         } else {
-            setIsWorkoutActive(false);
+            setIsWorkoutActive(false); setIsWorkoutComplete(true);
             LS.set('gym-last-workout-sec', workoutSec);
             if (workoutSec > 0) setSessionDurations(prev=>({...prev, [sessionStartTime]: workoutSec}));
             setShowSummary(true);
@@ -1403,9 +1501,11 @@ function App() {
                             {/* שעון */}
                             {/* שעון — רקע זהה לתאריכים */}
                             <div className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-4 py-3 border shrink-0 transition-all
-                                ${isWorkoutActive
-                                    ? 'bg-blue-600 border-blue-500 text-white'
-                                    : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 text-slate-700'}`}>
+                                ${isWorkoutComplete
+                                    ? 'bg-emerald-500 border-emerald-400 text-white'
+                                    : isWorkoutActive
+                                        ? 'bg-blue-600 border-blue-500 text-white'
+                                        : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 text-slate-700'}`}>
                                 <button onClick={()=>setIsWorkoutActive(v=>!v)} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                                     <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
                                     <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{timerStr}</span>
