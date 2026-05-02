@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -375,8 +375,16 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 
     useEffect(()=>{
         if (!scrollToExId) return;
-        const el = scrollRef.current?.querySelector(`#ex-row-${scrollToExId}`);
-        if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+        setShowDetails(p => ({...p, [scrollToExId]: false}));
+        const doScroll = () => {
+            const el = scrollRef.current?.querySelector(`#ex-row-${scrollToExId}`);
+            if (el && scrollRef.current) {
+                const offset = el.offsetTop - scrollRef.current.getBoundingClientRect().top +
+                               scrollRef.current.scrollTop;
+                scrollRef.current.scrollTo({ top: Math.max(0, offset - 8), behavior:'smooth' });
+            }
+        };
+        setTimeout(doScroll, 60);
         onScrollDone?.();
     }, [scrollToExId]);
 
@@ -1034,6 +1042,21 @@ function App() {
         const dur = isSuperset ? settings.supersetRest : settings.normalRest;
         setRestTimers({[exId]: dur});
         setRestTimerTotals(prev => ({...prev, [exId]: dur}));
+        // סופרסט: קפיצה מיידית לתרגיל הבא בסדר A1→B1→A2→B2
+        if (isSuperset) {
+            const sg = exerciseGroups.find(g=>g.exercises.some(e=>e.id===exId));
+            if (sg && sg.isSuperset && sg.exercises.length===2) {
+                const [ta,tb] = sg.exercises;
+                const wst = sstRef.current;
+                const allLogs = [...logsRef.current, newLog];
+                const dA1 = allLogs.some(l=>l.exId===ta.id&&l.setNum===1&&new Date(l.timestamp).getTime()>wst);
+                const dB1 = allLogs.some(l=>l.exId===tb.id&&l.setNum===1&&new Date(l.timestamp).getTime()>wst);
+                const dA2 = allLogs.some(l=>l.exId===ta.id&&l.setNum===2&&new Date(l.timestamp).getTime()>wst);
+                const dB2 = allLogs.some(l=>l.exId===tb.id&&l.setNum===2&&new Date(l.timestamp).getTime()>wst);
+                const nextId = !dA1 ? ta.id : !dB1 ? tb.id : !dA2 ? ta.id : !dB2 ? tb.id : null;
+                if (nextId && nextId !== exId) setTimeout(()=>setScrollToExId(nextId), 50);
+            }
+        }
     };
 
     const handleSaveNote = (exId,text) => {
