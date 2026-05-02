@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -253,7 +253,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     };
 
     const betweenTimer = done.s1 && !done.s2 && restTimerTotal > 0;
-    const afterShow    = done.s2 && restTimerTotal > 0;
 
     const conicStyle = (rt, tot) => {
         if (!tot) return null;
@@ -324,19 +323,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 );
             })}
 
-            {afterShow && (
-                <div className="flex items-center gap-2 px-2 py-1.5 mt-1">
-                    <div className={`text-white px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-sm font-mono font-black
-                        ${restTimer===0 ? 'bg-emerald-500' : 'bg-blue-600'}`}>
-                        <Icon name="Clock" size={13} />
-                        <span>{restTimer===0 ? '✓' : restTimer}</span>
-                    </div>
-                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-1000 ${restTimer===0?'bg-emerald-500':'bg-blue-500'}`}
-                            style={{width:`${restTimerTotal>0?(restTimer/restTimerTotal)*100:0}%`}} />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
@@ -401,10 +387,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         onScrollDone?.();
     }, [scrollToExId]);
 
-    // ── renderEx: מרנדר בלוק תרגיל אחד (תמונה + how-to + היסטוריה + ExerciseEntryRow) ──
+    // ── renderEx: מרנדר בלוק תרגיל אחד ──
     const renderEx = (ex, exIdx, { isLast=false, isSuperset:exIsSuperset=false,
         forceSet1Disabled=false, forceSet2Disabled=false,
-        prevRestTimer=0, prevRestTimerTotal=0, showCrossGroup=false } = {}) => {
+        prevRestTimer=0, prevRestTimerTotal=0 } = {}) => {
         const exHistory  = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
         const imgSrc     = images?.[ex.id];
         const staticImg  = EXERCISE_IMAGES[ex.id];
@@ -413,48 +399,93 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const youtubeId  = videos?.[ex.id];
         const localVid   = EXERCISE_VIDEOS[ex.id];
         const hasVideo   = youtubeId || localVid;
+
+        // auto-detect cross-group timer → feed as prevRestTimer for set 1
+        let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
+        if (!fPrevTot) {
+            const groupExIds = new Set(group.exercises.map(e=>e.id));
+            const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
+            if (coExId) { fPrevRt = restTimers[coExId]||0; fPrevTot = restTimerTotals[coExId]||0; }
+        }
+
+        const videoBtn = (full) => youtubeId ? (
+            <div className="flex flex-col gap-1 h-full">
+                <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
+                    className={`flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95`}
+                    style={{minHeight: full ? '5rem' : '3.5rem'}}>
+                    <span className="text-2xl">▶</span><span className="text-[11px]">YouTube</span>
+                </a>
+                <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
+            </div>
+        ) : localVid ? (
+            <button onClick={()=>setVideoModal(`videos/${localVid}`)}
+                className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
+                style={{minHeight: full ? '5rem' : '3.5rem'}}>
+                <span className="text-2xl">▶</span><span className="text-[11px]">סרטון</span>
+            </button>
+        ) : null;
+
         return (
             <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
                 {/* תמונה + וידאו */}
-                {(dispImgSrc || hasVideo) && (
-                    <div className="flex gap-2 mb-0">
-                        {dispImgSrc && (
-                            <div className="relative flex-1 min-w-0">
-                                <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
-                                    className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'9rem'}} />
-                                {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
-                                    className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
-                            </div>
-                        )}
+                {exIsSuperset ? (
+                    /* סופרסט: שמאל = כותרת + תמונה, ימין = וידאו */
+                    <div className="flex gap-2 mb-0" style={{minHeight:'7rem'}}>
+                        <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                            <div className="text-sm font-black text-slate-800 leading-tight px-0.5">{ex.title}</div>
+                            {dispImgSrc && (
+                                <div className="relative flex-1 min-w-0">
+                                    <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
+                                        className="w-full h-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'5rem'}} />
+                                    {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
+                                        className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
+                                </div>
+                            )}
+                            {!dispImgSrc && (
+                                <label className="flex items-center gap-1 text-[10px] font-black text-slate-400 cursor-pointer">
+                                    <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])} />
+                                    📷 הוסף תמונה
+                                </label>
+                            )}
+                        </div>
                         {hasVideo && (
-                            <div className={`flex flex-col justify-stretch ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`}>
-                                {youtubeId ? (
-                                    <div className="flex flex-col gap-1 h-full">
-                                        <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
-                                            className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95" style={{minHeight:'5rem'}}>
-                                            <span className="text-2xl">▶</span><span className="text-[11px]">YouTube</span>
-                                        </a>
-                                        <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
+                            <div className="flex-1 flex flex-col">{videoBtn(false)}</div>
+                        )}
+                        {!hasVideo && !youtubeId && (
+                            <div className="flex-1"><VideoInput exId={ex.id} onSave={onSaveVideo} /></div>
+                        )}
+                    </div>
+                ) : (
+                    /* תרגיל רגיל */
+                    <>
+                        {(dispImgSrc || hasVideo) && (
+                            <div className="flex gap-2 mb-0">
+                                {dispImgSrc && (
+                                    <div className="relative flex-1 min-w-0">
+                                        <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
+                                            className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'9rem'}} />
+                                        {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
+                                            className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
                                     </div>
-                                ) : (
-                                    <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95" style={{minHeight:'5rem'}}>
-                                        <span className="text-2xl">▶</span><span className="text-[11px]">סרטון</span>
-                                    </button>
+                                )}
+                                {hasVideo && (
+                                    <div className={`flex flex-col justify-stretch ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`}>
+                                        {videoBtn(true)}
+                                    </div>
                                 )}
                             </div>
                         )}
-                    </div>
+                        {!dispImgSrc && (
+                            <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mt-2">
+                                <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])} />
+                                📷 הוסף תמונה שלך
+                            </label>
+                        )}
+                        {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo} />}
+                    </>
                 )}
-                {!dispImgSrc && (
-                    <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mt-2">
-                        <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])} />
-                        📷 הוסף תמונה שלך
-                    </label>
-                )}
-                {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo} />}
                 {/* how-to */}
-                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-4 shadow-inner overflow-hidden">
+                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-4 shadow-inner overflow-hidden mt-2">
                     <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className="w-full flex justify-between items-center p-3 active:bg-slate-100">
                         <div className="flex items-center gap-2">
@@ -501,29 +532,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         </div>
                     ))}
                 </section>
-                {/* טיימר מקבוצה אחרת */}
-                {showCrossGroup && (()=>{
-                    const groupExIds = new Set(group.exercises.map(e=>e.id));
-                    const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
-                    if (!coExId) return null;
-                    const coRt=restTimers[coExId], coTot=restTimerTotals[coExId], coDone=coRt===0;
-                    return (
-                        <div className="flex items-center gap-2 px-2 py-2 mb-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${coDone?'bg-emerald-500':'bg-blue-600'}`}>
-                                <Icon name="Clock" size={13}/><span>{coDone?'✓':coRt}</span>
-                            </div>
-                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full transition-all duration-1000 ${coDone?'bg-emerald-500':'bg-blue-500'}`}
-                                    style={{width:`${coTot>0?(coDone?0:(coRt/coTot)*100):0}%`}}/>
-                            </div>
-                        </div>
-                    );
-                })()}
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
-                    prevRestTimer={prevRestTimer} prevRestTimerTotal={prevRestTimerTotal} />
+                    prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot} />
             </div>
         );
     };
@@ -558,14 +571,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             forceSet1Disabled: false,
                             forceSet2Disabled: !doneB1 || rtB > 0,
                             prevRestTimer: 0, prevRestTimerTotal: 0,
-                            showCrossGroup: true,
                         })}
                         {renderEx(exB, 1, {
                             isLast: true, isSuperset: true,
                             forceSet1Disabled: !doneA1 || rtA > 0,
                             forceSet2Disabled: !doneA2 || rtA > 0,
                             prevRestTimer: rtA, prevRestTimerTotal: totA,
-                            showCrossGroup: false,
                         })}
                     </>
                 );
@@ -581,7 +592,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     forceSet2Disabled: false,
                     prevRestTimer:      prevDoneS2 ? prevRt  : 0,
                     prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
-                    showCrossGroup: exIdx === 0,
                 });
             })}
         </div>
@@ -834,6 +844,7 @@ function App() {
         }
         return LS.get('gym-session-start', new Date('2026-04-27').getTime());
     });
+    const [workoutStartTime, setWorkoutStartTime] = useState(()=>LS.get('gym-workout-start', Date.now()));
     const [sessionEndTime,   setSessionEndTime]   = useState(()=>LS.get('gym-session-end', null));
     const [editingDates,     setEditingDates]     = useState(null);
     const [scrollToExId,     setScrollToExId]     = useState(null);
@@ -859,7 +870,8 @@ function App() {
     useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
     useEffect(()=>{ LS.set('gym-settings',       settings);         },[settings]);
     useEffect(()=>{ LS.set('gym-group-order',    groupOrder);       },[groupOrder]);
-    useEffect(()=>{ LS.set('gym-session-start',  sessionStartTime); },[sessionStartTime]);
+    useEffect(()=>{ LS.set('gym-session-start',   sessionStartTime);  },[sessionStartTime]);
+    useEffect(()=>{ LS.set('gym-workout-start',   workoutStartTime);  },[workoutStartTime]);
     useEffect(()=>{ LS.set('gym-session-end',       sessionEndTime);    },[sessionEndTime]);
     useEffect(()=>{ LS.set('gym-session-durations', sessionDurations);  },[sessionDurations]);
 
@@ -908,8 +920,8 @@ function App() {
     useEffect(()=>{ restTimersRef.current = restTimers; },[restTimers]);
     const logsRef = React.useRef(logs);
     useEffect(()=>{ logsRef.current = logs; },[logs]);
-    const sstRef = React.useRef(sessionStartTime);
-    useEffect(()=>{ sstRef.current = sessionStartTime; },[sessionStartTime]);
+    const sstRef = React.useRef(workoutStartTime);
+    useEffect(()=>{ sstRef.current = workoutStartTime; },[workoutStartTime]);
     const skippedRef = React.useRef(skippedGroups);
     useEffect(()=>{ skippedRef.current = skippedGroups; },[skippedGroups]);
 
@@ -937,24 +949,32 @@ function App() {
                 const curSkip = skippedRef.current;
                 const targetGroup = exerciseGroups.find(g => g.exercises.some(e => e.id === completedExId));
                 if (targetGroup) {
-                    const groupDone = targetGroup.exercises.every(ex => {
+                    const isDoneEx = ex => {
                         const sl = curLogs.filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > curSst);
                         return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
-                    });
+                    };
+                    const groupDone = targetGroup.exercises.every(isDoneEx);
                     if (groupDone) {
                         const nextGroup = exerciseGroups.find(g => {
                             if (curSkip.includes(g.id)) return false;
-                            return !g.exercises.every(ex => {
-                                const sl = curLogs.filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > curSst);
-                                return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
-                            });
+                            return !g.exercises.every(isDoneEx);
                         });
-                        if (nextGroup) { setActiveGroup(nextGroup); setView('detail'); }
+                        if (nextGroup) {
+                            setActiveGroup(nextGroup); setView('detail');
+                            setScrollToExId(nextGroup.exercises[0].id);
+                        }
                     } else {
                         setActiveGroup(targetGroup); setView('detail');
+                        // scroll to first undone exercise in the group
+                        const nextEx = targetGroup.exercises.find(ex => {
+                            const sl = curLogs.filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > curSst);
+                            return !sl.some(l=>l.setNum===1) || !sl.some(l=>l.setNum===2);
+                        });
+                        setScrollToExId(nextEx ? nextEx.id : completedExId);
                     }
+                } else {
+                    setScrollToExId(completedExId);
                 }
-                setScrollToExId(completedExId);
             }
             setRestTimers(next);
         },1000);
@@ -1042,9 +1062,10 @@ function App() {
     };
 
     const startNewWorkout = ()=>{
+        const wst = Date.now();
         setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
         setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
-        setSessionStartTime(Date.now()); setView('list'); setActiveGroup(null);
+        setWorkoutStartTime(wst); setView('list'); setActiveGroup(null);
     };
 
     const handleDeleteLog  = id=>{
@@ -1074,10 +1095,10 @@ function App() {
     const isGroupDone = useCallback((g)=>
         skippedGroups.includes(g.id) ||
         g.exercises.every(ex=>{
-            const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+            const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>workoutStartTime);
             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
         })
-    ,[logs,sessionStartTime,skippedGroups]);
+    ,[logs,workoutStartTime,skippedGroups]);
 
     const completedCount    = useMemo(()=>sortedGroups.filter(isGroupDone).length,          [sortedGroups,isGroupDone]);
     const nextIncompleteIndex = useMemo(()=>sortedGroups.findIndex(g=>!isGroupDone(g)),     [sortedGroups,isGroupDone]);
@@ -1096,20 +1117,20 @@ function App() {
             const allDone = sortedGroups.every(g=>{
                 if (newSkipped.includes(g.id)) return true;
                 return g.exercises.every(ex=>{
-                    const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+                    const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>workoutStartTime);
                     return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
                 });
             });
             if (allDone && newSkipped.length > 0) {
                 setTimeout(()=>{
                     setIsWorkoutActive(false); setIsWorkoutComplete(true);
-                    if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[sessionStartTime]:workoutSec})); }
+                    if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[workoutStartTime]:workoutSec})); }
                     setShowSummary(true);
                 }, 300);
             }
             return newSkipped;
         });
-    },[sortedGroups,logs,sessionStartTime,workoutSec]);
+    },[sortedGroups,logs,workoutStartTime,workoutSec]);
 
     const handleExerciseComplete = useCallback(()=>{
         const nextGroup = sortedGroups.find(g=>!isGroupDone(g));
@@ -1119,12 +1140,12 @@ function App() {
         } else {
             setIsWorkoutActive(false); setIsWorkoutComplete(true);
             LS.set('gym-last-workout-sec', workoutSec);
-            if (workoutSec > 0) setSessionDurations(prev=>({...prev, [sessionStartTime]: workoutSec}));
+            if (workoutSec > 0) setSessionDurations(prev=>({...prev, [workoutStartTime]: workoutSec}));
             setShowSummary(true);
             setView('list');
             setActiveGroup(null);
         }
-    },[sortedGroups,isGroupDone,workoutSec,sessionStartTime]);
+    },[sortedGroups,isGroupDone,workoutSec,workoutStartTime]);
 
     const handleOpenExercise = group=>{
         if (workoutSec===0&&!isWorkoutActive) {
@@ -1159,7 +1180,7 @@ function App() {
             )}
             {/* סיכום אימון */}
             {showSummary && (()=>{
-                const sessionLogs = logs.filter(l=>new Date(l.timestamp).getTime()>sessionStartTime);
+                const sessionLogs = logs.filter(l=>new Date(l.timestamp).getTime()>workoutStartTime);
                 const totalSets   = sessionLogs.length;
                 const totalVolume = Math.round(sessionLogs.reduce((s,l)=>s+l.weight*l.reps,0));
                 const doneCount   = sortedGroups.filter(g=>!skippedGroups.includes(g.id)&&isGroupDone(g)).length;
@@ -1208,8 +1229,8 @@ function App() {
                         <p className="text-sm text-slate-500 text-center mb-5">לשמור גיבוי של האימון הנוכחי לפני האיפוס?</p>
                         <div className="flex flex-col gap-2">
                             <button onClick={()=>{
-                                if (workoutSec > 0) setSessionDurations(prev=>({...prev, [sessionStartTime]: workoutSec}));
-                                triggerBackupDownload({logs, notes, images, videos, settings, groupOrder, sessionStart:sessionStartTime, sessionEnd:sessionEndTime, lastWorkoutSec:LS.get('gym-last-workout-sec',0), showDetails:LS.get('gym-show-details',{}), sessionDurations:{...sessionDurations, ...(workoutSec>0?{[sessionStartTime]:workoutSec}:{})}});
+                                if (workoutSec > 0) setSessionDurations(prev=>({...prev, [workoutStartTime]: workoutSec}));
+                                triggerBackupDownload({logs, notes, images, videos, settings, groupOrder, sessionStart:sessionStartTime, sessionEnd:sessionEndTime, lastWorkoutSec:LS.get('gym-last-workout-sec',0), showDetails:LS.get('gym-show-details',{}), sessionDurations:{...sessionDurations, ...(workoutSec>0?{[workoutStartTime]:workoutSec}:{})}});
                                 setShowNewWorkoutModal(false);
                                 startNewWorkout();
                             }} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">שמור גיבוי והתחל</button>
@@ -1275,7 +1296,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={sessionStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} /></>;
 
