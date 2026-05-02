@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -101,39 +101,41 @@ const exerciseGroups = [
 ];
 
 // ─── Roller ────────────────────────────────────────────────
-const ITEM_H = 24;
-const HALF   = 2;
-const VIS    = HALF * 2 + 1;
+const DRUM_H    = 20;
+const DRUM_VIS  = 7;
+const DRUM_HALF = 3;
 
 const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) => {
+    const [open, setOpen] = useState(false);
     const options = useMemo(() => {
         const o = [];
-        for (let i = min; i <= max; i += step) o.push(i);
+        for (let v = min; v <= max; v = parseFloat((v + step).toFixed(10)))
+            o.push(parseFloat(v.toFixed(4)));
         return o;
     }, [min, max, step]);
 
-    const listRef    = React.useRef(null);
-    const settling   = React.useRef(false);
-    const timerRef   = React.useRef(null);
+    const listRef  = React.useRef(null);
+    const settling = React.useRef(false);
+    const timerRef = React.useRef(null);
 
-    // scroll to value
     const scrollTo = useCallback((idx, smooth=false) => {
         if (!listRef.current) return;
-        listRef.current.scrollTo({ top: idx * ITEM_H, behavior: smooth ? 'smooth' : 'instant' });
+        listRef.current.scrollTo({ top: idx * DRUM_H, behavior: smooth ? 'smooth' : 'instant' });
     }, []);
 
     useEffect(() => {
+        if (!open) return;
         const idx = options.indexOf(value);
-        if (idx >= 0) scrollTo(idx);
-    }, [value, options, scrollTo]);
+        if (idx >= 0) requestAnimationFrame(() => scrollTo(idx));
+    }, [open, value, options, scrollTo]);
 
     const handleScroll = useCallback(() => {
         if (settling.current) return;
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
             if (!listRef.current) return;
-            const idx = Math.round(listRef.current.scrollTop / ITEM_H);
-            const c = Math.min(Math.max(idx, 0), options.length - 1);
+            const idx = Math.round(listRef.current.scrollTop / DRUM_H);
+            const c   = Math.min(Math.max(idx, 0), options.length - 1);
             settling.current = true;
             scrollTo(c, true);
             onChange(options[c]);
@@ -144,27 +146,45 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) =>
     return (
         <div className="flex flex-col items-center flex-1">
             <span className="text-[8px] font-black text-slate-400 mb-0.5 uppercase tracking-tighter">{label}</span>
-            <div className={`relative w-full rounded-xl overflow-hidden ${isChanged ? 'ring-2 ring-blue-100 bg-blue-50' : 'bg-slate-100/60'}`}
-                style={{height: VIS * ITEM_H + 'px'}}>
-                <div className="absolute inset-x-0 pointer-events-none z-10"
-                    style={{top: HALF*ITEM_H+'px', height: ITEM_H+'px',
-                        borderTop:'1px solid rgba(0,0,0,0.08)', borderBottom:'1px solid rgba(0,0,0,0.08)'}}/>
-                <div ref={listRef} onScroll={handleScroll}
-                    className="h-full overflow-y-scroll no-scrollbar"
-                    style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
-                    <div style={{height: HALF*ITEM_H+'px'}}/>
-                    {options.map(o => (
-                        <div key={o} style={{height: ITEM_H+'px', scrollSnapAlign:'center'}}
-                            className={`flex items-center justify-center select-none transition-all
-                                ${o===value
-                                    ? `font-black text-sm ${isChanged?'text-blue-600':'text-slate-800'}`
-                                    : 'font-bold text-[11px] text-slate-300'}`}>
-                            {o}
+            <button onClick={() => setOpen(true)}
+                className={`w-full h-10 rounded-xl font-black text-[15px] flex items-center justify-center active:scale-95 transition-all
+                    ${isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800'}`}>
+                {value}
+            </button>
+            {open && (
+                <div className="fixed inset-0 z-[800] flex items-end" onClick={() => setOpen(false)}>
+                    <div className="absolute inset-0 bg-slate-900/50" />
+                    <div className="relative w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center px-5 pt-5 pb-3">
+                            <span className="text-base font-black text-slate-700">{label}</span>
+                            <button onClick={() => setOpen(false)}
+                                className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">
+                                אישור
+                            </button>
                         </div>
-                    ))}
-                    <div style={{height: HALF*ITEM_H+'px'}}/>
+                        <div className="relative mx-6 mb-8" style={{height: DRUM_VIS * DRUM_H + 'px'}}>
+                            <div className="absolute inset-x-0 pointer-events-none z-10"
+                                style={{top: DRUM_HALF * DRUM_H + 'px', height: DRUM_H + 'px',
+                                    background:'rgba(59,130,246,0.07)',
+                                    borderTop:'2px solid rgba(59,130,246,0.3)',
+                                    borderBottom:'2px solid rgba(59,130,246,0.3)'}} />
+                            <div ref={listRef} onScroll={handleScroll}
+                                className="h-full overflow-y-scroll no-scrollbar"
+                                style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
+                                <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
+                                {options.map(o => (
+                                    <div key={o} style={{height: DRUM_H + 'px', scrollSnapAlign:'center'}}
+                                        className={`flex items-center justify-center select-none
+                                            ${o === value ? 'font-black text-[18px] text-slate-900' : 'font-medium text-[13px] text-slate-400'}`}>
+                                        {o}
+                                    </div>
+                                ))}
+                                <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 });
@@ -186,7 +206,8 @@ function VideoInput({ exId, onSave }) {
 }
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
-function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal }) {
+function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
+    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0 }) {
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
     const [isSaving, setIsSaving] = useState(false);
@@ -232,15 +253,14 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     };
 
     const betweenTimer = done.s1 && !done.s2 && restTimerTotal > 0;
-    const afterShow    = done.s2 && restTimerTotal > 0 && (restTimer > 0 || restTimer === 0);
+    const afterShow    = done.s2 && restTimerTotal > 0;
 
-    // conic-gradient border style for set 2 card
-    const s2ConicStyle = () => {
-        if (!betweenTimer) return null;
-        if (restTimer === 0) return { border:'2px solid #0f172a', borderRadius:'1.6rem', boxShadow:'0 2px 12px rgba(15,23,42,0.18)' };
-        const deg = (restTimer / restTimerTotal) * 360;
+    const conicStyle = (rt, tot) => {
+        if (!tot) return null;
+        if (rt === 0) return { border:'4px solid #0f172a', borderRadius:'1.6rem', boxShadow:'0 2px 12px rgba(15,23,42,0.18)' };
+        const deg = (rt / tot) * 360;
         return {
-            border:'2px solid transparent', borderRadius:'1.6rem',
+            border:'4px solid transparent', borderRadius:'1.6rem',
             background:`linear-gradient(white,white) padding-box, conic-gradient(from -90deg, #3b82f6 0deg, #3b82f6 ${deg}deg, #e2e8f0 ${deg}deg, #e2e8f0 360deg) border-box`
         };
     };
@@ -251,15 +271,30 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
-                const canAct   = !isDone && !isSaving && (num===1 || done.s1);
-                const conicSt  = num===2 ? s2ConicStyle() : null;
+                const canAct   = !isDone && !isSaving && (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled));
+                const hasConic1 = num===1 && !done.s1 && prevRestTimerTotal > 0;
+                const hasConic2 = num===2 && betweenTimer;
+                const conic     = hasConic1 ? conicStyle(prevRestTimer, prevRestTimerTotal)
+                                : hasConic2 ? conicStyle(restTimer, restTimerTotal)
+                                : null;
+                const countdown  = hasConic1 ? prevRestTimer : hasConic2 ? restTimer : 0;
+                const showCDown  = !isDone && countdown > 0;
+                const timerDone  = !isDone && !conic && (
+                    (hasConic1 && prevRestTimer===0 && prevRestTimerTotal>0) ||
+                    (num===2 && betweenTimer && restTimer===0)
+                );
+                const isActive   = !conic && canAct;
                 return (
                     <React.Fragment key={num}>
-                        <div style={conicSt||undefined}
+                        <div style={conic||undefined}
                             className={`bg-white p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all
-                                ${conicSt ? '' : `border shadow-sm ${num===2 && betweenTimer && restTimer===0 ? 'border-slate-700 shadow-md' : 'border-slate-100'}`}`}>
+                                ${conic    ? ''
+                                : isActive ? 'border-2 border-slate-900 shadow-md'
+                                : isDone   ? 'border border-slate-100'
+                                : timerDone? 'border border-slate-700 shadow-md'
+                                :            'border border-slate-100 shadow-sm'}`}>
                             <div className={`w-10 h-10 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg
-                                ${num===2 && betweenTimer && restTimer===0 ? 'bg-blue-600' : 'bg-slate-900'}`}>
+                                ${timerDone ? 'bg-blue-600' : 'bg-slate-900'}`}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
@@ -268,14 +303,17 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
                             </div>
                             <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                <button onClick={() => handleSetSave(num, state)} disabled={!canAct}
+                                <button onClick={() => canAct && handleSetSave(num, state)} disabled={!canAct}
                                     className={`px-4 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95
-                                        ${isDone ? 'bg-slate-100 text-slate-300 shadow-none' : !canAct ? 'bg-slate-100 text-slate-300 shadow-none' : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
-                                    {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
+                                        ${isDone    ? 'bg-slate-100 text-slate-300 shadow-none'
+                                        : showCDown ? 'bg-blue-600 text-white shadow-blue-200'
+                                        : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
+                                        : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
+                                    {isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
                                 </button>
                                 {!isDone && (
-                                    <button onClick={()=>handleSkipSet(num)} disabled={!canAct && !(num===2 && done.s1)}
-                                        className="text-[10px] font-bold text-slate-300 active:text-orange-400 leading-none px-1">
+                                    <button onClick={()=>handleSkipSet(num)} disabled={!canAct}
+                                        className="text-[10px] font-bold text-slate-300 active:text-orange-400 disabled:opacity-0 leading-none px-1">
                                         דלג
                                     </button>
                                 )}
@@ -343,229 +381,6 @@ const VideoModal = ({ src, onClose }) => {
     );
 };
 
-// ─── SingleSetRow ──────────────────────────────────────────
-function SingleSetRow({ ex, setNum, state, setState, isDone, isDisabled, isSaving, onSave, isSecond, isActive }) {
-    const handleSkip = () => onSave(ex.id, setNum, {...state, w:0, r:0});
-    const activeBorder = isActive && !isDone ? (isSecond ? 'ring-2 ring-red-400' : 'ring-2 ring-emerald-400') : '';
-    return (
-        <div className={`flex items-center gap-2 p-2 rounded-2xl border ${activeBorder} ${isDone ? 'bg-slate-50 border-slate-100' : isSecond ? 'bg-red-50 border-red-100 shadow-sm' : 'bg-white border-slate-100 shadow-sm'}`}>
-            <span className={`text-[11px] font-black shrink-0 w-[4.5rem] truncate leading-tight ${isSecond ? 'text-red-700' : 'text-slate-700'}`}>{ex.title}</span>
-            <div className="flex flex-1 gap-1.5">
-                <Roller label="ק״ג"   min={0}   max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
-                <Roller label="חזרות" min={1}   max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
-            </div>
-            <div className="flex flex-col items-center gap-0.5 shrink-0">
-                <button onClick={()=>onSave(ex.id, setNum, state)} disabled={isDone||isDisabled||isSaving}
-                    className={`px-4 h-9 rounded-xl font-black text-sm transition-all active:scale-95
-                        ${isDone ? 'bg-slate-100 text-slate-300' : (isDisabled||isSaving) ? 'bg-slate-100 text-slate-300' : 'bg-emerald-500 text-white shadow shadow-emerald-200'}`}>
-                    {isDone ? 'בוצע' : isSaving ? '...' : 'סיום'}
-                </button>
-                {!isDone && <button onClick={handleSkip} disabled={isDisabled||isSaving}
-                    className="text-[10px] font-bold text-slate-300 active:text-orange-400 disabled:opacity-0 leading-none py-0.5">דלג</button>}
-            </div>
-        </div>
-    );
-}
-
-// ─── SupersetSection ───────────────────────────────────────
-function SupersetSection({ exA, exB, logs, sessionStartTime, onSave, onFinish, restTimers, restTimerTotals, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, showDetails, setShowDetails, group, setLightbox, setVideoModal, playingVideos, setPlayingVideos }) {
-    const [sA1, setSA1] = useState({w:10,r:10,wC:false,rC:false});
-    const [sA2, setSA2] = useState({w:10,r:10,wC:false,rC:false});
-    const [sB1, setSB1] = useState({w:10,r:10,wC:false,rC:false});
-    const [sB2, setSB2] = useState({w:10,r:10,wC:false,rC:false});
-    const [isSaving, setIsSaving] = useState(false);
-    const initA = React.useRef(false), initB = React.useRef(false);
-
-    useEffect(()=>{
-        if (!initA.current && logs.length > 0) {
-            const l = [...logs].filter(x=>x.exId===exA.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
-            if (l) { setSA1(p=>({...p,w:l.weight,r:l.reps})); setSA2(p=>({...p,w:l.weight,r:l.reps})); initA.current=true; }
-        }
-        if (!initB.current && logs.length > 0) {
-            const l = [...logs].filter(x=>x.exId===exB.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
-            if (l) { setSB1(p=>({...p,w:l.weight,r:l.reps})); setSB2(p=>({...p,w:l.weight,r:l.reps})); initB.current=true; }
-        }
-    },[logs]);
-
-    useEffect(()=>{ initA.current=false; initB.current=false; },[sessionStartTime]);
-
-    const doneA1 = logs.some(l=>l.exId===exA.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
-    const doneB1 = logs.some(l=>l.exId===exB.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
-    const doneA2 = logs.some(l=>l.exId===exA.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
-    const doneB2 = logs.some(l=>l.exId===exB.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
-
-    const rtA = restTimers[exA.id]||0,     rtB = restTimers[exB.id]||0;
-    const totA = restTimerTotals[exA.id]||0, totB = restTimerTotals[exB.id]||0;
-
-    // disable לפי סדר: A1 → B1 → A2 → B2
-    const disB1 = !doneA1 || rtA > 0;
-    const disA2 = !doneB1 || rtB > 0;
-    const disB2 = !doneA2 || rtA > 0;
-
-    // הסט הפעיל הנוכחי
-    const activeExId  = !doneA1 ? exA.id : !doneB1 ? exB.id : !doneA2 ? exA.id : !doneB2 ? exB.id : null;
-    const activeSetNum= !doneA1 ? 1       : !doneB1 ? 1       : !doneA2 ? 2       : !doneB2 ? 2       : null;
-
-    // מתי להציג טיימר בכל שלב
-    const showTAB = doneA1 && !doneB1 && totA > 0;  // בין A1 ל-B1
-    const showTBA = doneB1 && !doneA2 && totB > 0;  // בין B1 ל-A2
-    const showTA2 = doneA2 && !doneB2 && totA > 0;  // בין A2 ל-B2
-
-    const renderTimer = (rt, tot) => {
-        if (!tot) return null;
-        const done = rt===0;
-        // מד הפוך: מלא → ריק
-        const prog = tot > 0 ? (done ? 0 : (rt/tot)*100) : 0;
-        return (
-            <div className="flex items-center gap-2 px-1 py-1">
-                <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${done?'bg-emerald-500':'bg-blue-600'}`}>
-                    <Icon name="Clock" size={13}/><span>{done?'✓':rt}</span>
-                </div>
-                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-1000 ${done?'bg-emerald-500':'bg-blue-500'}`} style={{width:`${prog}%`}}/>
-                </div>
-            </div>
-        );
-    };
-
-    const handleSave = async (exId, setNum, state) => {
-        setIsSaving(true);
-        try {
-            await onSave(exId, setNum, state.w, state.r, true);
-            if (exId===exA.id && setNum===1) setSA2({w:state.w,r:state.r,wC:false,rC:false});
-            if (exId===exB.id && setNum===1) setSB2({w:state.w,r:state.r,wC:false,rC:false});
-            if (exId===exB.id && setNum===2) setTimeout(onFinish, 800);
-        } finally { setIsSaving(false); }
-    };
-
-    // פרטי תרגיל (תמונה + how-to + היסטוריה)
-    const renderDetails = (ex, isSecond=false) => {
-        const imgSrc = images?.[ex.id];
-        const staticImg = EXERCISE_IMAGES[ex.id];
-        const dispImg = imgSrc || (staticImg ? `images/${staticImg}` : null);
-        const isPersonal = !!imgSrc;
-        const youtubeId = videos?.[ex.id];
-        const localVid  = EXERCISE_VIDEOS[ex.id];
-        const hasVideo  = youtubeId || localVid;
-        const history   = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
-        return (
-            <div key={ex.id} id={`ex-row-${ex.id}`} className="mb-3">
-                {/* כותרת מעל */}
-                <div className={`text-[13px] font-black mb-1.5 px-0.5 ${isSecond ? 'text-red-700' : 'text-slate-800'}`}>{ex.title}</div>
-                {/* תמונה + וידאו */}
-                <div className="flex gap-2 mb-2">
-                    {dispImg && (
-                        <div className="relative flex-1 min-w-0">
-                            <img src={dispImg} alt={ex.title} onClick={()=>setLightbox(dispImg)}
-                                className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'7rem'}}/>
-                            {isPersonal && <button onClick={()=>onRemoveImage(ex.id)} className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
-                        </div>
-                    )}
-                    {hasVideo && (
-                        <div className={`flex flex-col ${dispImg?'w-[35%] shrink-0':'flex-1'}`}>
-                            {youtubeId ? (
-                                <div className="flex flex-col gap-1 h-full">
-                                    <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
-                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95" style={{minHeight:'4rem'}}>
-                                        <span className="text-xl">▶</span><span className="text-[10px]">YouTube</span>
-                                    </a>
-                                    <button onClick={()=>onDeleteVideo(ex.id)} className="text-[9px] font-black text-slate-300 active:text-red-400 text-center py-0.5">הסר</button>
-                                </div>
-                            ) : (
-                                        <button onClick={()=>setVideoModal?.(`videos/${localVid}`)}
-                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95" style={{minHeight:'4rem'}}>
-                                        <span className="text-xl">▶</span><span className="text-[10px]">סרטון</span>
-                                    </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-                {!dispImg && (
-                    <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mb-1">
-                        <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])}/> 📷 הוסף תמונה שלך
-                    </label>
-                )}
-                {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo}/>}
-
-                {/* כותרת + how-to מקופל */}
-                <section className="bg-slate-50 rounded-2xl border border-slate-100 mb-2 overflow-hidden">
-                    <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
-                        className="w-full flex justify-between items-center px-3 py-2 active:bg-slate-100">
-                        <span className="text-[13px] font-black text-slate-800">{ex.title}</span>
-                        <div className="flex items-center gap-1.5">
-                            <span className="bg-slate-200 px-2 py-0.5 rounded-full text-[9px] font-black text-slate-600">{group.machine}</span>
-                            <Icon name={showDetails[ex.id]?'ChevronUp':'ChevronDown'} size={14} className="text-slate-400"/>
-                        </div>
-                    </button>
-                    {showDetails[ex.id] && (
-                        <div className="px-3 pb-3">
-                            <p className="text-[12px] text-slate-600 bg-white/60 p-2.5 rounded-xl border border-slate-200/50 mb-2 font-medium">{ex.howTo}</p>
-                            <div className="flex flex-wrap gap-1.5 mb-2">
-                                {ex.tips.map((t,i)=>(
-                                    <div key={i} className="bg-white p-1.5 rounded-xl border border-slate-100 text-[10px] text-slate-600 flex items-center gap-1.5 shadow-sm">
-                                        <Icon name="CheckCircle2" size={12} className="text-emerald-500 shrink-0"/><span className="font-bold">{t}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <textarea defaultValue={notes?.[ex.id]||''} onBlur={e=>onSaveNote(ex.id,e.target.value)}
-                                placeholder="הוסף דגשים..." rows={notes?.[ex.id]?(notes[ex.id].split('\n').length+1):2}
-                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-2 text-[12px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none"/>
-                        </div>
-                    )}
-                    {!showDetails[ex.id] && notes?.[ex.id] && (
-                        <div className="px-3 pb-2">
-                            <textarea defaultValue={notes[ex.id]} onBlur={e=>onSaveNote(ex.id,e.target.value)}
-                                rows={notes[ex.id].split('\n').length+1}
-                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-2 text-[12px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none"/>
-                        </div>
-                    )}
-                </section>
-
-                {/* היסטוריה */}
-                {history.length > 0 && (
-                    <section className="flex gap-1.5 mb-1 overflow-x-auto no-scrollbar py-0.5">
-                        {history.map((h,i)=>(
-                            <div key={i} className={`p-2 rounded-xl border shrink-0 text-[10px] ${i<2?'bg-indigo-50/80 border-indigo-200 shadow-sm':'bg-slate-50/50 border-slate-100 opacity-70'}`}>
-                                <span className={`font-bold block ${i<2?'text-indigo-500':'text-slate-400'}`}>{getDayNameHe(h.timestamp)} {new Date(h.timestamp).toLocaleDateString('he-IL')}</span>
-                                <span className={`font-black ${i<2?'text-indigo-900':'text-slate-600'}`}>סט {h.setNum}: {h.weight}kg×{h.reps}</span>
-                            </div>
-                        ))}
-                    </section>
-                )}
-            </div>
-        );
-    };
-
-    return (
-        <div>
-            {renderDetails(exA, false)}
-            {renderDetails(exB, true)}
-
-            {/* ─── סט 1 ─── */}
-            <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100 mb-2">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2 px-1">סט 1</div>
-                <div className="space-y-1.5">
-                    <SingleSetRow ex={exA} setNum={1} state={sA1} setState={setSA1} isDone={doneA1} isDisabled={false}  isSaving={isSaving} onSave={handleSave} isActive={activeExId===exA.id&&activeSetNum===1}/>
-                    {showTAB && renderTimer(rtA, totA)}
-                    <SingleSetRow ex={exB} setNum={1} state={sB1} setState={setSB1} isDone={doneB1} isDisabled={disB1} isSaving={isSaving} onSave={handleSave} isSecond isActive={activeExId===exB.id&&activeSetNum===1}/>
-                </div>
-            </div>
-
-            {showTBA && <div className="mb-2">{renderTimer(rtB, totB)}</div>}
-
-            {/* ─── סט 2 ─── */}
-            <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2 px-1">סט 2</div>
-                <div className="space-y-1.5">
-                    <SingleSetRow ex={exA} setNum={2} state={sA2} setState={setSA2} isDone={doneA2} isDisabled={disA2} isSaving={isSaving} onSave={handleSave} isActive={activeExId===exA.id&&activeSetNum===2}/>
-                    {showTA2 && renderTimer(rtA, totA)}
-                    <SingleSetRow ex={exB} setNum={2} state={sB2} setState={setSB2} isDone={doneB2} isDisabled={disB2} isSaving={isSaving} onSave={handleSave} isSecond isActive={activeExId===exB.id&&activeSetNum===2}/>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone }) {
     const [lightbox,      setLightbox]     = useState(null);
@@ -582,9 +397,136 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     useEffect(()=>{
         if (!scrollToExId) return;
         const el = scrollRef.current?.querySelector(`#ex-row-${scrollToExId}`);
-        if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+        if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
         onScrollDone?.();
     }, [scrollToExId]);
+
+    // ── renderEx: מרנדר בלוק תרגיל אחד (תמונה + how-to + היסטוריה + ExerciseEntryRow) ──
+    const renderEx = (ex, exIdx, { isLast=false, isSuperset:exIsSuperset=false,
+        forceSet1Disabled=false, forceSet2Disabled=false,
+        prevRestTimer=0, prevRestTimerTotal=0, showCrossGroup=false } = {}) => {
+        const exHistory  = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
+        const imgSrc     = images?.[ex.id];
+        const staticImg  = EXERCISE_IMAGES[ex.id];
+        const dispImgSrc = imgSrc || (staticImg ? `images/${staticImg}` : null);
+        const isPersonal = !!imgSrc;
+        const youtubeId  = videos?.[ex.id];
+        const localVid   = EXERCISE_VIDEOS[ex.id];
+        const hasVideo   = youtubeId || localVid;
+        return (
+            <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
+                {/* תמונה + וידאו */}
+                {(dispImgSrc || hasVideo) && (
+                    <div className="flex gap-2 mb-0">
+                        {dispImgSrc && (
+                            <div className="relative flex-1 min-w-0">
+                                <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
+                                    className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'9rem'}} />
+                                {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
+                                    className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
+                            </div>
+                        )}
+                        {hasVideo && (
+                            <div className={`flex flex-col justify-stretch ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`}>
+                                {youtubeId ? (
+                                    <div className="flex flex-col gap-1 h-full">
+                                        <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95" style={{minHeight:'5rem'}}>
+                                            <span className="text-2xl">▶</span><span className="text-[11px]">YouTube</span>
+                                        </a>
+                                        <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
+                                    </div>
+                                ) : (
+                                    <button onClick={()=>setVideoModal(`videos/${localVid}`)}
+                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95" style={{minHeight:'5rem'}}>
+                                        <span className="text-2xl">▶</span><span className="text-[11px]">סרטון</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {!dispImgSrc && (
+                    <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mt-2">
+                        <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])} />
+                        📷 הוסף תמונה שלך
+                    </label>
+                )}
+                {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo} />}
+                {/* how-to */}
+                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-4 shadow-inner overflow-hidden">
+                    <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
+                        className="w-full flex justify-between items-center p-3 active:bg-slate-100">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-4 bg-blue-600 rounded-full" />
+                            <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                <Icon name="BookOpen" size={14} className="text-blue-500" /> איך לבצע
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="bg-slate-200 px-3 py-1 rounded-full text-[10px] font-black text-slate-600">{group.machine}</span>
+                            <Icon name={showDetails[ex.id]?'ChevronUp':'ChevronDown'} size={16} className="text-slate-400" />
+                        </div>
+                    </button>
+                    {showDetails[ex.id] && (
+                        <div className="px-4 pb-4">
+                            <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 mb-3 font-medium">{ex.howTo}</p>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {ex.tips.map((t,i)=>(
+                                    <div key={i} className="bg-white p-2 rounded-xl border border-slate-100 text-[11px] text-slate-600 flex items-start gap-2 shadow-sm">
+                                        <Icon name="CheckCircle2" size={13} className="text-emerald-500 mt-0.5 shrink-0" /><span className="font-bold">{t}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <textarea defaultValue={notes?.[ex.id]||''} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                                placeholder="הוסף דגשים והערות אישיות..."
+                                rows={notes?.[ex.id] ? (notes[ex.id].split('\n').length+1) : 2}
+                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                        </div>
+                    )}
+                    {!showDetails[ex.id] && notes?.[ex.id] && (
+                        <div className="px-4 pb-3">
+                            <textarea defaultValue={notes[ex.id]} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                                rows={notes[ex.id].split('\n').length+1}
+                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                        </div>
+                    )}
+                </section>
+                {/* היסטוריה */}
+                <section className="flex gap-2 mb-5 overflow-x-auto no-scrollbar py-1">
+                    {exHistory.map((h,i)=>(
+                        <div key={i} className={`p-2.5 rounded-2xl border shrink-0 text-[10px] ${i<2?'bg-indigo-50/80 border-indigo-200 shadow-sm':'bg-slate-50/50 border-slate-100 opacity-70'}`}>
+                            <span className={`font-bold block mb-1 ${i<2?'text-indigo-500':'text-slate-400'}`}>{getDayNameHe(h.timestamp)} {new Date(h.timestamp).toLocaleDateString('he-IL')}</span>
+                            <span className={`font-black ${i<2?'text-indigo-900':'text-slate-600'}`}>סט {h.setNum}: {h.weight}kg × {h.reps}</span>
+                        </div>
+                    ))}
+                </section>
+                {/* טיימר מקבוצה אחרת */}
+                {showCrossGroup && (()=>{
+                    const groupExIds = new Set(group.exercises.map(e=>e.id));
+                    const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
+                    if (!coExId) return null;
+                    const coRt=restTimers[coExId], coTot=restTimerTotals[coExId], coDone=coRt===0;
+                    return (
+                        <div className="flex items-center gap-2 px-2 py-2 mb-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+                            <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${coDone?'bg-emerald-500':'bg-blue-600'}`}>
+                                <Icon name="Clock" size={13}/><span>{coDone?'✓':coRt}</span>
+                            </div>
+                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full transition-all duration-1000 ${coDone?'bg-emerald-500':'bg-blue-500'}`}
+                                    style={{width:`${coTot>0?(coDone?0:(coRt/coTot)*100):0}%`}}/>
+                            </div>
+                        </div>
+                    );
+                })()}
+                <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
+                    onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
+                    restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
+                    forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
+                    prevRestTimer={prevRestTimer} prevRestTimerTotal={prevRestTimerTotal} />
+            </div>
+        );
+    };
 
     return (
     <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
@@ -602,176 +544,45 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-40">
-            {group.isSuperset ? (
-                <SupersetSection
-                    exA={group.exercises[0]} exB={group.exercises[1]}
-                    logs={logs} sessionStartTime={sessionStartTime}
-                    onSave={onSave} onFinish={onFinish}
-                    restTimers={restTimers} restTimerTotals={restTimerTotals}
-                    notes={notes} onSaveNote={onSaveNote}
-                    images={images} onSaveImage={onSaveImage} onRemoveImage={onRemoveImage}
-                    videos={videos} onSaveVideo={onSaveVideo} onDeleteVideo={onDeleteVideo}
-                    showDetails={showDetails} setShowDetails={setShowDetails}
-                    group={group} setLightbox={setLightbox} setVideoModal={setVideoModal}
-                    playingVideos={playingVideos} setPlayingVideos={setPlayingVideos}
-                />
-            ) : group.exercises.map((ex, exIdx) => {
-                const exHistory = logs.filter(l=>l.exId===ex.id)
-                    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
-                const imgSrc = images?.[ex.id];
-                // טיימר מתרגיל קודם
-                const prevEx = exIdx > 0 ? group.exercises[exIdx-1] : null;
-                const prevRt  = prevEx ? (restTimers[prevEx.id]||0) : 0;
-                const prevTot = prevEx ? (restTimerTotals[prevEx.id]||0) : 0;
-                const prevDoneS2 = prevEx ? logs.some(l=>l.exId===prevEx.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime) : false;
-                const showPrevTimer = prevDoneS2 && prevTot > 0;
+            {group.isSuperset ? (()=>{
+                const [exA, exB] = group.exercises;
+                const rtA=restTimers[exA.id]||0, totA=restTimerTotals[exA.id]||0;
+                const rtB=restTimers[exB.id]||0, totB=restTimerTotals[exB.id]||0;
+                const doneA1=logs.some(l=>l.exId===exA.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
+                const doneB1=logs.some(l=>l.exId===exB.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
+                const doneA2=logs.some(l=>l.exId===exA.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
                 return (
-                    <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
-                        {/* טיימר מנוחה מהתרגיל הקודם */}
-                        {showPrevTimer && (
-                            <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
-                                <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 shadow text-white text-sm font-mono font-black ${prevRt===0?'bg-emerald-500':'bg-blue-600'}`}>
-                                    <Icon name="Clock" size={13}/><span>{prevRt===0?'✓':prevRt}</span>
-                                </div>
-                                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full transition-all duration-1000 ${prevRt===0?'bg-emerald-500':'bg-blue-500'}`}
-                                        style={{width:`${prevTot>0?(prevRt/prevTot)*100:0}%`}}/>
-                                </div>
-                            </div>
-                        )}
-                        {(()=>{
-                            const staticImg  = EXERCISE_IMAGES[ex.id];
-                            const dispImgSrc = imgSrc || (staticImg ? `images/${staticImg}` : null);
-                            const isPersonal = !!imgSrc;
-                            const youtubeId  = videos?.[ex.id];
-                            const localVid   = EXERCISE_VIDEOS[ex.id];
-                            const hasVideo   = youtubeId || localVid;
-                            return (
-                                <div className="mb-3">
-                                    <div className={`flex gap-2 ${dispImgSrc || hasVideo ? 'mb-0' : ''}`}>
-                                        {/* תמונה */}
-                                        {dispImgSrc && (
-                                            <div className="relative flex-1 min-w-0">
-                                                <img src={dispImgSrc} alt={ex.title}
-                                                    onClick={()=>setLightbox(dispImgSrc)}
-                                                    className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80"
-                                                    style={{maxHeight:'9rem'}} />
-                                                {isPersonal && (
-                                                    <button onClick={()=>onRemoveImage(ex.id)}
-                                                        className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">
-                                                        הסר
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                        {/* כפתור וידאו */}
-                                        {hasVideo && (
-                                            <div className={`flex flex-col justify-stretch ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`}>
-                                                {youtubeId ? (
-                                                    <div className="flex flex-col gap-1 h-full">
-                                                        <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
-                                                            className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95"
-                                                            style={{minHeight:'5rem'}}>
-                                                            <span className="text-2xl">▶</span>
-                                                            <span className="text-[11px]">YouTube</span>
-                                                        </a>
-                                                        <button onClick={()=>onDeleteVideo(ex.id)}
-                                                            className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">
-                                                            הסר
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                                                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
-                                                        style={{minHeight:'5rem'}}>
-                                                        <span className="text-2xl">▶</span>
-                                                        <span className="text-[11px]">סרטון</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {!dispImgSrc && (
-                                        <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mt-2">
-                                            <input type="file" accept="image/*" className="hidden"
-                                                onChange={e => onSaveImage(ex.id, e.target.files[0])} />
-                                            📷 הוסף תמונה שלך
-                                        </label>
-                                    )}
-                                    {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo} />}
-                                </div>
-                            );
-                        })()}
-                        <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-4 shadow-inner overflow-hidden">
-                            <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
-                                className="w-full flex justify-between items-center p-3 active:bg-slate-100">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-4 bg-blue-600 rounded-full" />
-                                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                                        <Icon name="BookOpen" size={14} className="text-blue-500" /> איך לבצע
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="bg-slate-200 px-3 py-1 rounded-full text-[10px] font-black text-slate-600">{group.machine}</span>
-                                    <Icon name={showDetails[ex.id]?'ChevronUp':'ChevronDown'} size={16} className="text-slate-400" />
-                                </div>
-                            </button>
-                            {showDetails[ex.id] && (
-                                <div className="px-4 pb-4">
-                                    <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 mb-3 font-medium">{ex.howTo}</p>
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                        {ex.tips.map((t,i)=>(
-                                            <div key={i} className="bg-white p-2 rounded-xl border border-slate-100 text-[11px] text-slate-600 flex items-start gap-2 shadow-sm">
-                                                <Icon name="CheckCircle2" size={13} className="text-emerald-500 mt-0.5 shrink-0" /><span className="font-bold">{t}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <textarea defaultValue={notes?.[ex.id]||''} onBlur={e=>onSaveNote(ex.id,e.target.value)}
-                                        placeholder="הוסף דגשים והערות אישיות..."
-                                        rows={notes?.[ex.id] ? (notes[ex.id].split('\n').length + 1) : 2}
-                                        className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-                                </div>
-                            )}
-                            {!showDetails[ex.id] && notes?.[ex.id] && (
-                                <div className="px-4 pb-3">
-                                    <textarea defaultValue={notes[ex.id]} onBlur={e=>onSaveNote(ex.id,e.target.value)}
-                                        rows={notes[ex.id].split('\n').length + 1}
-                                        className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-                                </div>
-                            )}
-                        </section>
-                        <section className="flex gap-2 mb-5 overflow-x-auto no-scrollbar py-1">
-                            {exHistory.map((h,i)=>(
-                                <div key={i} className={`p-2.5 rounded-2xl border shrink-0 text-[10px] ${i<2?'bg-indigo-50/80 border-indigo-200 shadow-sm':'bg-slate-50/50 border-slate-100 opacity-70'}`}>
-                                    <span className={`font-bold block mb-1 ${i<2?'text-indigo-500':'text-slate-400'}`}>{getDayNameHe(h.timestamp)} {new Date(h.timestamp).toLocaleDateString('he-IL')}</span>
-                                    <span className={`font-black ${i<2?'text-indigo-900':'text-slate-600'}`}>סט {h.setNum}: {h.weight}kg × {h.reps}</span>
-                                </div>
-                            ))}
-                        </section>
-                        {(()=>{
-                            // טיימר מנוחה מתרגיל קודם (מקבוצה אחרת)
-                            const groupExIds = new Set(group.exercises.map(e=>e.id));
-                            const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
-                            if (!coExId) return null;
-                            const coRt = restTimers[coExId], coTot = restTimerTotals[coExId];
-                            const coDone = coRt===0;
-                            return (
-                                <div className="flex items-center gap-2 px-2 py-2 mb-2 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
-                                    <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1.5 shrink-0 text-white text-sm font-mono font-black shadow ${coDone?'bg-emerald-500':'bg-blue-600'}`}>
-                                        <Icon name="Clock" size={13}/><span>{coDone?'✓':coRt}</span>
-                                    </div>
-                                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className={`h-full rounded-full transition-all duration-1000 ${coDone?'bg-emerald-500':'bg-blue-500'}`}
-                                            style={{width:`${coTot>0?(coDone?0:(coRt/coTot)*100):0}%`}}/>
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                        <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
-                            onSave={onSave} isLast={exIdx===group.exercises.length-1} onFinish={onFinish} isSuperset={group.isSuperset}
-                            restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0} />
-                    </div>
+                    <>
+                        {renderEx(exA, 0, {
+                            isLast: false, isSuperset: true,
+                            forceSet1Disabled: false,
+                            forceSet2Disabled: !doneB1 || rtB > 0,
+                            prevRestTimer: 0, prevRestTimerTotal: 0,
+                            showCrossGroup: true,
+                        })}
+                        {renderEx(exB, 1, {
+                            isLast: true, isSuperset: true,
+                            forceSet1Disabled: !doneA1 || rtA > 0,
+                            forceSet2Disabled: !doneA2 || rtA > 0,
+                            prevRestTimer: rtA, prevRestTimerTotal: totA,
+                            showCrossGroup: false,
+                        })}
+                    </>
                 );
+            })() : group.exercises.map((ex, exIdx) => {
+                const prevEx    = exIdx > 0 ? group.exercises[exIdx-1] : null;
+                const prevRt    = prevEx ? (restTimers[prevEx.id]||0) : 0;
+                const prevTot   = prevEx ? (restTimerTotals[prevEx.id]||0) : 0;
+                const prevDoneS2= prevEx ? logs.some(l=>l.exId===prevEx.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime) : false;
+                return renderEx(ex, exIdx, {
+                    isLast: exIdx===group.exercises.length-1,
+                    isSuperset: false,
+                    forceSet1Disabled: false,
+                    forceSet2Disabled: false,
+                    prevRestTimer:      prevDoneS2 ? prevRt  : 0,
+                    prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
+                    showCrossGroup: exIdx === 0,
+                });
             })}
         </div>
         {lightbox && (
@@ -898,15 +709,15 @@ const playWarningBeep = () => {
 const playRestCompleteSound = () => {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [500, 700, 900].forEach((freq, i) => {
+        [500, 700, 950].forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             osc.frequency.value = freq; osc.type = 'sine';
-            gain.gain.setValueAtTime(0.35, ctx.currentTime + i * 0.18);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.15);
-            osc.start(ctx.currentTime + i * 0.18);
-            osc.stop(ctx.currentTime + i * 0.18 + 0.18);
+            gain.gain.setValueAtTime(0.85, ctx.currentTime + i * 0.22);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.22 + 0.2);
+            osc.start(ctx.currentTime + i * 0.22);
+            osc.stop(ctx.currentTime + i * 0.22 + 0.22);
         });
     } catch(e) {}
 };
