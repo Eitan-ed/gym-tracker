@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '2.9';
+const APP_VERSION = '3.0';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -79,22 +79,22 @@ const Icon = ({ name, size=24, className="" }) => {
 
 // --- מאגר תרגילים ---
 const exerciseGroups = [
-    { id:1,  badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
-    { id:2,  badgeColor:'bg-cyan-100 text-cyan-700',     title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-cyan-500 to-cyan-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
-    { id:3,  badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
-    { id:4,  badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
-    { id:5,  badgeColor:'bg-orange-100 text-orange-700',title:'סופר-סט כתפיים',             category:'כתפיים',   icon:'🏋️', color:'from-orange-500 to-orange-700',  machine:'מכונה',   isSuperset:true, exercises:[
+    { id:1,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
+    { id:2,  hex:'#06b6d4', badgeColor:'bg-cyan-100 text-cyan-700',     title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-cyan-500 to-cyan-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
+    { id:3,  hex:'#8b5cf6', badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
+    { id:4,  hex:'#d946ef', badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
+    { id:5,  hex:'#f97316', badgeColor:'bg-orange-100 text-orange-700',title:'סופר-סט כתפיים',             category:'כתפיים',   icon:'🏋️', color:'from-orange-500 to-orange-700',  machine:'מכונה',   isSuperset:true, exercises:[
         {id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',            tips:['גב צמוד','אחיזה ניטרלית']},
         {id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.',            tips:['כתפיים רחוקות מהאוזניים']}
     ]},
-    { id:6,  badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
-    { id:7,  badgeColor:'bg-sky-100 text-sky-700',       title:'סופר-סט גרביטון',          category:'גב/חזה',   icon:'🧗', color:'from-sky-500 to-sky-700',        machine:'גרביטון', isSuperset:true, exercises:[
+    { id:6,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
+    { id:7,  hex:'#0ea5e9', badgeColor:'bg-sky-100 text-sky-700',       title:'סופר-סט גרביטון',          category:'גב/חזה',   icon:'🧗', color:'from-sky-500 to-sky-700',        machine:'גרביטון', isSuperset:true, exercises:[
         {id:'ex7a', title:'מתח גרביטון',    howTo:'רד עד למטה ליישור מלא ומשוך מעלה.',                         tips:['סנטר מעל המוט']},
         {id:'ex7b', title:'מקבילים גרביטון',howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                    tips:['הישענות קדימה']}
     ]},
-    { id:8,  badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
-    { id:9,  badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
-    { id:10, badgeColor:'bg-amber-100 text-amber-700',   title:'קומפלט בטן',                category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',    machine:'חופשי',   isSuperset:true, exercises:[
+    { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
+    { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
+    { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'קומפלט בטן',                category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',    machine:'חופשי',   isSuperset:true, exercises:[
         {id:'ex10b',title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',                         tips:['תנועה איטית']},
         {id:'ex10a',title:'כפיפות בטן',    howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',                    tips:['לא למשוך צוואר']}
     ]}
@@ -207,7 +207,7 @@ function VideoInput({ exId, onSave }) {
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
-    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0 }) {
+    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6' }) {
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
     const [isSaving, setIsSaving] = useState(false);
@@ -256,11 +256,11 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
 
     const conicStyle = (rt, tot) => {
         if (!tot) return null;
-        if (rt === 0) return { border:'4px solid #0f172a', borderRadius:'1.6rem', boxShadow:'0 2px 12px rgba(15,23,42,0.18)' };
+        if (rt === 0) return { border:`4px solid ${accentColor}`, borderRadius:'1.6rem', boxShadow:`0 2px 12px ${accentColor}40` };
         const deg = (rt / tot) * 360;
         return {
             border:'4px solid transparent', borderRadius:'1.6rem',
-            background:`linear-gradient(white,white) padding-box, conic-gradient(from -90deg, #3b82f6 0deg, #3b82f6 ${deg}deg, #e2e8f0 ${deg}deg, #e2e8f0 360deg) border-box`
+            background:`linear-gradient(white,white) padding-box, conic-gradient(from -90deg, ${accentColor} 0deg, ${accentColor} ${deg}deg, #e2e8f0 ${deg}deg, #e2e8f0 360deg) border-box`
         };
     };
 
@@ -271,12 +271,16 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
                 const canAct   = !isDone && !isSaving && (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled));
+                // סופרסט: Set2 ממתין לטיימר של התרגיל האחר — מציג ספירה לאחור
+                const isCrossTimerSet2 = num===2 && !isDone && done.s1 && forceSet2Disabled && prevRestTimerTotal > 0 && prevRestTimer > 0;
                 const hasConic1 = num===1 && !done.s1 && prevRestTimerTotal > 0;
-                const hasConic2 = num===2 && betweenTimer;
+                const hasConic2 = num===2 && (betweenTimer || isCrossTimerSet2);
+                const conicRt   = hasConic2 ? (betweenTimer ? restTimer        : prevRestTimer)        : 0;
+                const conicTot  = hasConic2 ? (betweenTimer ? restTimerTotal   : prevRestTimerTotal)   : 0;
                 const conic     = hasConic1 ? conicStyle(prevRestTimer, prevRestTimerTotal)
-                                : hasConic2 ? conicStyle(restTimer, restTimerTotal)
+                                : hasConic2 ? conicStyle(conicRt, conicTot)
                                 : null;
-                const countdown  = hasConic1 ? prevRestTimer : hasConic2 ? restTimer : 0;
+                const countdown  = hasConic1 ? prevRestTimer : hasConic2 ? conicRt : 0;
                 const showCDown  = !isDone && countdown > 0;
                 const timerDone  = !isDone && !conic && (
                     (hasConic1 && prevRestTimer===0 && prevRestTimerTotal>0) ||
@@ -286,15 +290,15 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const canActFinal = canAct || showCDown;
                 return (
                     <React.Fragment key={num}>
-                        <div style={conic||undefined}
+                        <div style={conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : undefined)}
                             className={`bg-white p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all
                                 ${conic    ? ''
-                                : isActive ? 'border-2 border-slate-900 shadow-md'
+                                : isActive ? ''
                                 : isDone   ? 'border border-slate-100'
                                 : timerDone? 'border border-slate-700 shadow-md'
                                 :            'border border-slate-100 shadow-sm'}`}>
-                            <div className={`w-10 h-10 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg
-                                ${timerDone ? 'bg-blue-600' : 'bg-slate-900'}`}>
+                            <div className="w-10 h-10 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
+                                style={{background: (isActive || timerDone) ? accentColor : '#0f172a'}}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
@@ -392,6 +396,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     const renderEx = (ex, exIdx, { isLast=false, isSuperset:exIsSuperset=false,
         forceSet1Disabled=false, forceSet2Disabled=false,
         prevRestTimer=0, prevRestTimerTotal=0 } = {}) => {
+        const accentHex  = group.hex || '#3b82f6';
         const exHistory  = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
         const imgSrc     = images?.[ex.id];
         const staticImg  = EXERCISE_IMAGES[ex.id];
@@ -553,7 +558,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
-                    prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot} />
+                    prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
+                    accentColor={accentHex} />
             </div>
         );
     };
@@ -587,7 +593,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             isLast: false, isSuperset: true,
                             forceSet1Disabled: false,
                             forceSet2Disabled: !doneB1 || rtB > 0,
-                            prevRestTimer: 0, prevRestTimerTotal: 0,
+                            prevRestTimer: rtB, prevRestTimerTotal: totB,
                         })}
                         {renderEx(exB, 1, {
                             isLast: true, isSuperset: true,
@@ -643,6 +649,9 @@ const HistoryView = ({ logs, sessionDurations, onBack, onDeleteDate, onDeleteOne
             <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
                 <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
                 <h2 className="text-xl font-black text-white text-center">היסטוריה</h2>
+                <p className="text-[10px] font-mono text-white/30 text-center mt-1 tracking-tight" dir="ltr">
+                    {(window.location.pathname.split('/').pop() || window.location.href.split('/').pop() || '').replace(/\?.*$/,'')}
+                </p>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32">
                 {grouped.length===0 ? (
@@ -1511,6 +1520,11 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 </script>
 </body>
 </html>
