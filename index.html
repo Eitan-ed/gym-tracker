@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -42,6 +42,30 @@ const LS = {
     get: (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
     set: (k, v)   => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+
+// ─── IndexedDB helper (למוזיקה) ────────────────────────────
+const IDB = (() => {
+    let dbP = null;
+    const open = () => {
+        if (dbP) return dbP;
+        dbP = new Promise((res, rej) => {
+            const req = indexedDB.open('gym-tracker-db', 1);
+            req.onupgradeneeded = e => e.target.result.createObjectStore('files');
+            req.onsuccess = e => res(e.target.result);
+            req.onerror   = () => { dbP = null; rej(); };
+        });
+        return dbP;
+    };
+    const tx = async (mode, fn) => {
+        try { const db = await open(); return new Promise(res => { const t = db.transaction('files', mode); fn(t.objectStore('files'), res); t.onerror = () => res(null); }); }
+        catch { return null; }
+    };
+    return {
+        get: (key)      => tx('readonly',  (s,res) => { const r = s.get(key);    r.onsuccess = () => res(r.result ?? null); }),
+        set: (key, val) => tx('readwrite', (s,res) => { s.put(val, key);         }),
+        del: (key)      => tx('readwrite', (s,res) => { s.delete(key);           }),
+    };
+})();
 
 // Icons — SVG inline (ללא תלות בספרייה חיצונית)
 const ICONS = {
@@ -64,6 +88,10 @@ const ICONS = {
     AlertCircle:  [['circle',{cx:"12",cy:"12",r:"10"}],['line',{x1:"12",x2:"12",y1:"8",y2:"12"}],['line',{x1:"12",x2:"12.01",y1:"16",y2:"16"}]],
     Dumbbell:     [['path',{d:"M14.4 14.4 9.6 9.6"}],['path',{d:"M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"}],['path',{d:"m21.5 21.5-1.4-1.4"}],['path',{d:"M3.9 3.9 2.5 2.5"}],['path',{d:"M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"}]],
     Clock:        [['circle',{cx:"12",cy:"12",r:"10"}],['polyline',{points:"12 6 12 12 16 14"}]],
+    Music:        [['path',{d:"M9 18V5l12-2v13"}],['circle',{cx:"6",cy:"18",r:"3"}],['circle',{cx:"18",cy:"16",r:"3"}]],
+    Play:         [['polygon',{points:"5 3 19 12 5 21 5 3"}]],
+    Pause:        [['rect',{x:"6",y:"4",width:"4",height:"16"}],['rect',{x:"14",y:"4",width:"4",height:"16"}]],
+    X:            [['path',{d:"M18 6 6 18"}],['path',{d:"m6 6 12 12"}]],
 };
 const Icon = ({ name, size=24, className="" }) => {
     const paths = ICONS[name];
@@ -94,19 +122,24 @@ const exerciseGroups = [
     ]},
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
-    { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'קומפלט בטן',                category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',    machine:'חופשי',   isSuperset:true, exercises:[
-        {id:'ex10b',title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',                         tips:['תנועה איטית']},
-        {id:'ex10a',title:'כפיפות בטן',    howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',                    tips:['לא למשוך צוואר']}
-    ]}
+    { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',    machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
+    { id:11, hex:'#eab308', badgeColor:'bg-yellow-100 text-yellow-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-yellow-500 to-yellow-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
 ];
 
-// ─── Roller ────────────────────────────────────────────────
-const DRUM_H    = 20;
-const DRUM_VIS  = 7;
-const DRUM_HALF = 3;
+// ─── Roller (Hybrid Picker) ─────────────────────────────────
+const DRUM_H    = 48;
+const DRUM_VIS  = 5;
+const DRUM_HALF = 2;
 
-const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) => {
-    const [open, setOpen] = useState(false);
+const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, presets=[], jumpSteps=[] }) => {
+    const [open,     setOpen]     = useState(false);
+    const [localVal, setLocalVal] = useState(value);
+
+    const listRef    = React.useRef(null);
+    const settling   = React.useRef(false);
+    const timerRef   = React.useRef(null);
+    const fromBtn    = React.useRef(false);
+
     const options = useMemo(() => {
         const o = [];
         for (let v = min; v <= max; v = parseFloat((v + step).toFixed(10)))
@@ -114,20 +147,26 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) =>
         return o;
     }, [min, max, step]);
 
-    const listRef  = React.useRef(null);
-    const settling = React.useRef(false);
-    const timerRef = React.useRef(null);
-
     const scrollTo = useCallback((idx, smooth=false) => {
         if (!listRef.current) return;
         listRef.current.scrollTo({ top: idx * DRUM_H, behavior: smooth ? 'smooth' : 'instant' });
     }, []);
 
+    // כשנפתח — אתחל localVal לערך הנוכחי
+    useEffect(() => { if (open) setLocalVal(value); }, [open]);
+
+    // כשlocalVal משתנה מכפתור — גלול לשם
     useEffect(() => {
         if (!open) return;
-        const idx = options.indexOf(value);
-        if (idx >= 0) requestAnimationFrame(() => scrollTo(idx));
-    }, [open, value, options, scrollTo]);
+        const idx = options.indexOf(localVal);
+        if (idx < 0) return;
+        settling.current = true;
+        requestAnimationFrame(() => {
+            scrollTo(idx, fromBtn.current);
+            fromBtn.current = false;
+            setTimeout(() => { settling.current = false; }, 400);
+        });
+    }, [localVal, open, options, scrollTo]);
 
     const handleScroll = useCallback(() => {
         if (settling.current) return;
@@ -138,10 +177,22 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) =>
             const c   = Math.min(Math.max(idx, 0), options.length - 1);
             settling.current = true;
             scrollTo(c, true);
-            onChange(options[c]);
+            setLocalVal(options[c]);
             setTimeout(() => { settling.current = false; }, 250);
         }, 80);
-    }, [options, onChange, scrollTo]);
+    }, [options, scrollTo]);
+
+    const adjust = useCallback((delta) => {
+        setLocalVal(prev => {
+            let idx = options.indexOf(prev);
+            if (idx < 0) idx = options.reduce((b,o,i) => Math.abs(o-prev)<Math.abs(options[b]-prev)?i:b, 0);
+            const ni = Math.min(Math.max(idx + Math.round(delta/step), 0), options.length-1);
+            fromBtn.current = true;
+            return options[ni];
+        });
+    }, [options, step]);
+
+    const confirm = useCallback(() => { onChange(localVal); setOpen(false); }, [localVal, onChange]);
 
     return (
         <div className="flex flex-col items-center flex-1">
@@ -152,17 +203,47 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) =>
                 {value}
             </button>
             {open && (
-                <div className="fixed inset-0 z-[800] flex items-end" onClick={() => setOpen(false)}>
+                <div className="fixed inset-0 z-[800] flex items-end" onClick={confirm}>
                     <div className="absolute inset-0 bg-slate-900/50" />
                     <div className="relative w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center px-5 pt-5 pb-3">
+                        {/* כותרת */}
+                        <div className="flex justify-between items-center px-5 pt-5 pb-2" dir="rtl">
                             <span className="text-base font-black text-slate-700">{label}</span>
-                            <button onClick={() => setOpen(false)}
-                                className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">
-                                אישור
-                            </button>
+                            <button onClick={confirm} className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">אישור</button>
                         </div>
-                        <div className="relative mx-6 mb-8" style={{height: DRUM_VIS * DRUM_H + 'px'}}>
+                        {/* Presets מהלוגים */}
+                        {presets.length > 0 && (
+                            <div className="px-5 pb-2 flex flex-wrap gap-2 justify-end" dir="rtl">
+                                <span className="text-[9px] font-black text-slate-400 w-full text-right mb-0.5">אחרונים:</span>
+                                {presets.map(p => (
+                                    <button key={p} onClick={() => { fromBtn.current=true; setLocalVal(p); }}
+                                        className={`px-3 py-1.5 rounded-xl text-sm font-black active:scale-95 transition-all
+                                            ${p===localVal ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700'}`}>
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {/* כפתורי קפיצה */}
+                        <div className="px-4 pb-3 flex items-center gap-1.5 justify-center" dir="ltr">
+                            {[...jumpSteps].reverse().map(s => (
+                                <button key={`-${s}`} onClick={() => adjust(-s)}
+                                    className="flex-1 py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-sm active:scale-95 active:bg-rose-100">
+                                    -{s}
+                                </button>
+                            ))}
+                            <div className="px-3 py-2 bg-slate-900 text-white rounded-xl font-black text-xl min-w-[4.5rem] text-center">
+                                {localVal}
+                            </div>
+                            {jumpSteps.map(s => (
+                                <button key={`+${s}`} onClick={() => adjust(s)}
+                                    className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl font-black text-sm active:scale-95 active:bg-emerald-100">
+                                    +{s}
+                                </button>
+                            ))}
+                        </div>
+                        {/* גלגלת לכוונון עדין */}
+                        <div className="relative mx-6 mb-6" style={{height: DRUM_VIS * DRUM_H + 'px'}}>
                             <div className="absolute inset-x-0 pointer-events-none z-10"
                                 style={{top: DRUM_HALF * DRUM_H + 'px', height: DRUM_H + 'px',
                                     background:'rgba(59,130,246,0.07)',
@@ -173,9 +254,10 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged }) =>
                                 style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
                                 <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
                                 {options.map(o => (
-                                    <div key={o} style={{height: DRUM_H + 'px', scrollSnapAlign:'center'}}
-                                        className={`flex items-center justify-center select-none
-                                            ${o === value ? 'font-black text-[18px] text-slate-900' : 'font-medium text-[13px] text-slate-400'}`}>
+                                    <div key={o} onClick={() => { fromBtn.current=true; setLocalVal(o); }}
+                                        style={{height: DRUM_H + 'px', scrollSnapAlign:'center'}}
+                                        className={`flex items-center justify-center select-none cursor-pointer transition-all
+                                            ${o===localVal ? 'font-black text-[22px] text-slate-900' : 'font-medium text-[15px] text-slate-400'}`}>
                                         {o}
                                     </div>
                                 ))}
@@ -210,6 +292,16 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6' }) {
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
+
+    const weightPresets = useMemo(() => [...new Set(
+        [...logs].filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
+            .slice(0,30).map(l=>l.weight).filter(w=>w>0)
+    )].slice(0,5), [logs, ex.id]);
+
+    const repsPresets = useMemo(() => [...new Set(
+        [...logs].filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
+            .slice(0,30).map(l=>l.reps).filter(r=>r>0)
+    )].slice(0,5), [logs, ex.id]);
     const [isSaving, setIsSaving] = useState(false);
 
     const initialized = React.useRef(false);
@@ -303,8 +395,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
                             <div className="flex flex-1 gap-2">
-                                <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} />
-                                <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} />
+                                <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} presets={weightPresets} jumpSteps={[0.5,2.5,5]} />
+                                <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,5]} />
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
                                 className={`px-4 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95 shrink-0
@@ -365,7 +457,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -374,6 +466,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         if (saved) return saved;
         return group.exercises.reduce((acc,ex)=>({...acc,[ex.id]:!group.isSuperset}),{});
     });
+    const [historyOpen, setHistoryOpen] = useState(()=>LS.get('gym-hist-open', {}));
+    useEffect(()=>{ LS.set('gym-hist-open', historyOpen); },[historyOpen]);
     const scrollRef = React.useRef(null);
     useEffect(()=>{ LS.set('gym-show-details', showDetails); },[showDetails]);
 
@@ -385,7 +479,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             if (el && scrollRef.current) {
                 const offset = el.offsetTop - scrollRef.current.getBoundingClientRect().top +
                                scrollRef.current.scrollTop;
-                scrollRef.current.scrollTo({ top: Math.max(0, offset - 8), behavior:'smooth' });
+                scrollRef.current.scrollTo({ top: Math.max(0, offset - 80), behavior:'smooth' });
             }
         };
         setTimeout(doScroll, 60);
@@ -397,7 +491,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         forceSet1Disabled=false, forceSet2Disabled=false,
         prevRestTimer=0, prevRestTimerTotal=0 } = {}) => {
         const accentHex  = group.hex || '#3b82f6';
-        const exHistory  = logs.filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4);
+        // exHistory מנוהל inline בבלוק ההיסטוריה הcollapsible
         const imgSrc     = images?.[ex.id];
         const staticImg  = EXERCISE_IMAGES[ex.id];
         const dispImgSrc = imgSrc || (staticImg ? `images/${staticImg}` : null);
@@ -545,15 +639,53 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         </div>
                     )}
                 </section>
-                {/* היסטוריה */}
-                <section className="flex gap-2 mb-5 overflow-x-auto no-scrollbar py-1">
-                    {exHistory.map((h,i)=>(
-                        <div key={i} className={`p-2.5 rounded-2xl border shrink-0 text-[10px] ${i<2?'bg-indigo-50/80 border-indigo-200 shadow-sm':'bg-slate-50/50 border-slate-100 opacity-70'}`}>
-                            <span className={`font-bold block mb-1 ${i<2?'text-indigo-500':'text-slate-400'}`}>{getDayNameHe(h.timestamp)} {new Date(h.timestamp).toLocaleDateString('he-IL')}</span>
-                            <span className={`font-black ${i<2?'text-indigo-900':'text-slate-600'}`}>סט {h.setNum}: {h.weight}kg × {h.reps}</span>
-                        </div>
-                    ))}
-                </section>
+                {/* היסטוריה — collapsible */}
+                {(()=>{
+                    const hist10 = [...logs].filter(l=>l.exId===ex.id)
+                        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,10);
+                    if (hist10.length===0) return null;
+                    const dateKeys = [...new Set(hist10.map(h=>new Date(h.timestamp).toLocaleDateString('he-IL')))];
+                    const palettes = [
+                        'bg-indigo-50 border-indigo-200 text-indigo-700',
+                        'bg-violet-50 border-violet-200 text-violet-700',
+                        'bg-sky-50 border-sky-200 text-sky-700',
+                        'bg-teal-50 border-teal-200 text-teal-700',
+                    ];
+                    const isOpen = !!historyOpen[ex.id];
+                    return (
+                        <section className="mb-4 bg-slate-50 rounded-3xl border border-slate-100 overflow-hidden">
+                            <button className="w-full flex items-center justify-between px-3 py-2.5 active:opacity-70"
+                                onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}>
+                                <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
+                                    <Icon name="History" size={13} className="text-indigo-400" /> היסטוריה ({hist10.length} סטים)
+                                </span>
+                                <Icon name={isOpen?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400" />
+                            </button>
+                            {isOpen && (
+                                <div className="px-3 pb-3 space-y-1.5">
+                                    {hist10.map((h,i)=>{
+                                        const dateStr = new Date(h.timestamp).toLocaleDateString('he-IL');
+                                        const pal = palettes[dateKeys.indexOf(dateStr) % palettes.length];
+                                        return (
+                                            <div key={h.id||i} className={`flex items-center justify-between px-3 py-2 rounded-2xl border text-[11px] ${pal}`}>
+                                                <div className="flex items-center gap-2">
+                                                    {onDeleteLog && requestConfirm && (
+                                                        <button onClick={()=>requestConfirm('למחוק סט זה?',()=>onDeleteLog(h.id))}
+                                                            className="text-red-300 active:text-red-500 shrink-0">
+                                                            <Icon name="Trash2" size={12} />
+                                                        </button>
+                                                    )}
+                                                    <span className="font-bold opacity-70">{getDayNameHe(h.timestamp)} {dateStr}</span>
+                                                </div>
+                                                <span className="font-black">סט {h.setNum}: {h.weight}kg × {h.reps}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
+                    );
+                })()}
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
@@ -683,6 +815,12 @@ const HistoryView = ({ logs, sessionDurations, onBack, onDeleteDate, onDeleteOne
                         </div>
                         {expandedDate===date && (
                             <div className="p-4 bg-white border-t border-slate-100 space-y-3">
+                                {dur > 0 && (
+                                    <div className="flex items-center gap-2 bg-blue-50 rounded-2xl px-3 py-2 mb-1">
+                                        <Icon name="Clock" size={14} className="text-blue-400" />
+                                        <span className="text-xs font-black text-blue-600">זמן אימון: {fmtDur(dur)}</span>
+                                    </div>
+                                )}
                                 {[...items].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).map(it => {
                                     const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===it.exId);
                                     return (
@@ -762,7 +900,8 @@ const playRestCompleteSound = () => {
 };
 
 // ─── ManageView ────────────────────────────────────────────
-const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder }) => {
+const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
+    musicFileName, musicYtUrl, musicObjectUrl, onMusicUpload, onMusicRemove, onMusicYtChange }) => {
     const handleBackup = () => {
         triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
@@ -821,6 +960,33 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
                             <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
                         </label>
+                    </div>
+                </section>
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה</h3>
+                    <div className="space-y-3">
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <div className="text-[11px] font-black text-slate-500 mb-1">קובץ נוכחי</div>
+                            <div className="font-bold text-sm text-slate-800 truncate">{musicFileName || '—'}</div>
+                        </div>
+                        <label className="w-full flex items-center gap-3 bg-purple-50 p-4 rounded-2xl border border-purple-100 text-purple-700 cursor-pointer active:scale-[0.98]">
+                            <div className="bg-purple-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
+                            <div><div className="font-black text-sm">העלה קובץ שמע</div><div className="text-[10px] font-bold opacity-70">MP3, AAC, MP4 — נשמר לצמיתות</div></div>
+                            <input type="file" accept="audio/*,video/mp4" className="hidden" onChange={e=>onMusicUpload(e.target.files[0])} />
+                        </label>
+                        <div className="flex gap-2 items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <Icon name="Music" size={16} className="text-red-500 shrink-0"/>
+                            <input type="url" placeholder="קישור YouTube..." defaultValue={musicYtUrl||''}
+                                onBlur={e=>onMusicYtChange(e.target.value.trim()||null)}
+                                className="flex-1 bg-transparent text-[13px] font-bold text-slate-700 outline-none placeholder:text-slate-400" dir="ltr" />
+                        </div>
+                        {(musicFileName||musicYtUrl) && (
+                            <button onClick={()=>requestConfirm('להסיר את המוזיקה?',onMusicRemove)}
+                                className="w-full flex items-center gap-3 bg-rose-50 p-4 rounded-2xl border border-rose-100 text-rose-600 active:scale-[0.98]">
+                                <div className="bg-rose-100 p-2 rounded-xl"><Icon name="Trash" size={20} /></div>
+                                <div className="font-black text-sm">הסר מוזיקה</div>
+                            </button>
+                        )}
                     </div>
                 </section>
                 <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
@@ -888,6 +1054,42 @@ function App() {
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
     const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
+
+    // מוזיקה
+    const [musicFileName,   setMusicFileName]   = useState(()=>LS.get('gym-music-name', null));
+    const [musicYtUrl,      setMusicYtUrl]      = useState(()=>LS.get('gym-music-yt',   null));
+    const [musicObjectUrl,  setMusicObjectUrl]  = useState(null);
+    const [musicPanelOpen,  setMusicPanelOpen]  = useState(false);
+    const [musicPlaying,    setMusicPlaying]    = useState(false);
+    const audioRef = React.useRef(null);
+
+    useEffect(()=>{ LS.set('gym-music-name', musicFileName); },[musicFileName]);
+    useEffect(()=>{ LS.set('gym-music-yt',   musicYtUrl);   },[musicYtUrl]);
+
+    // טעינת קובץ מ-IndexedDB בעת אתחול
+    useEffect(()=>{
+        IDB.get('music-file').then(blob=>{
+            if (blob) { setMusicObjectUrl(URL.createObjectURL(blob)); }
+        });
+        return ()=>{ if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl); };
+    },[]);
+
+    const handleMusicUpload = (file) => {
+        if (!file) return;
+        IDB.set('music-file', file).then(()=>{
+            if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl);
+            setMusicObjectUrl(URL.createObjectURL(file));
+            setMusicFileName(file.name);
+            showToast('הקובץ נשמר');
+        });
+    };
+    const handleMusicRemove = () => {
+        IDB.del('music-file').then(()=>{
+            if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl);
+            setMusicObjectUrl(null); setMusicFileName(null);
+            setMusicPlaying(false); setMusicYtUrl(null);
+        });
+    };
 
     const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
     const showToast      = useCallback((msg,isError=false)=>{ setToast({msg,isError}); setTimeout(()=>setToast(null),2500); },[]);
@@ -1243,7 +1445,6 @@ function App() {
             {showSummary && (()=>{
                 const sessionLogs = logs.filter(l=>new Date(l.timestamp).getTime()>workoutStartTime);
                 const totalSets   = sessionLogs.length;
-                const totalVolume = Math.round(sessionLogs.reduce((s,l)=>s+l.weight*l.reps,0));
                 const doneCount   = sortedGroups.filter(g=>!skippedGroups.includes(g.id)&&isGroupDone(g)).length;
                 const skipCount   = skippedGroups.length;
                 return (
@@ -1262,13 +1463,9 @@ function App() {
                                     <div className="text-lg font-black text-emerald-600">{doneCount}/{sortedGroups.length}</div>
                                     <div className="text-[10px] font-bold text-emerald-400">תרגילים</div>
                                 </div>
-                                <div className="bg-indigo-50 rounded-2xl p-3 text-center">
+                                <div className="col-span-2 bg-indigo-50 rounded-2xl p-3 text-center">
                                     <div className="text-lg font-black text-indigo-600">{totalSets}</div>
                                     <div className="text-[10px] font-bold text-indigo-400">סטים</div>
-                                </div>
-                                <div className="bg-amber-50 rounded-2xl p-3 text-center">
-                                    <div className="text-lg font-black text-amber-600">{totalVolume.toLocaleString()} kg</div>
-                                    <div className="text-[10px] font-bold text-amber-400">נפח כולל</div>
                                 </div>
                                 {skipCount > 0 && (
                                     <div className="col-span-2 bg-orange-50 rounded-2xl p-3 text-center">
@@ -1277,6 +1474,15 @@ function App() {
                                     </div>
                                 )}
                             </div>
+                            <button onClick={()=>{
+                                triggerBackupDownload({logs, notes, images, videos, settings, groupOrder,
+                                    sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
+                                    lastWorkoutSec:workoutSec, showDetails:LS.get('gym-show-details',{}),
+                                    sessionDurations:{...sessionDurations,...(workoutSec>0?{[workoutStartTime]:workoutSec}:{})}});
+                                showToast('הגיבוי הורד');
+                            }} className="w-full p-3 rounded-xl font-bold text-blue-700 bg-blue-50 border border-blue-200 active:scale-95 flex items-center justify-center gap-2">
+                                <Icon name="Download" size={16}/> גיבוי אימון
+                            </button>
                             <button onClick={()=>setShowSummary(false)} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">סגור</button>
                         </div>
                     </div>
@@ -1357,9 +1563,9 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} /></>;
+    if (view==='detail'&&activeGroup) return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicFileName={musicFileName} musicYtUrl={musicYtUrl} musicObjectUrl={musicObjectUrl} onMusicUpload={handleMusicUpload} onMusicRemove={handleMusicRemove} onMusicYtChange={setMusicYtUrl} /></>;
 
     // List view
     return (
@@ -1367,7 +1573,7 @@ function App() {
         {overlays}
         <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
             <header className="bg-white pb-6 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
-                <div className="w-full mb-6 relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
+                <div className="w-full relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
                     <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
                     <div className="relative py-5 px-4 flex flex-col items-center gap-1">
                         <div className="flex items-center gap-2">
@@ -1377,8 +1583,63 @@ function App() {
                         </div>
                         <div className="h-[2px] w-24 rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"/>
                     </div>
+                    {/* כפתור מוזיקה */}
+                    <button onClick={()=>setMusicPanelOpen(o=>!o)}
+                        className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90
+                            ${(musicObjectUrl||musicYtUrl) ? 'bg-purple-500 text-white shadow-lg' : 'bg-white/15 text-white/60'}`}>
+                        <Icon name="Music" size={17} />
+                    </button>
                     <span className="absolute bottom-2 left-3 text-[13px] text-white/40 font-bold" dir="ltr">v.{APP_VERSION}</span>
                 </div>
+                {/* audio — מחוץ לפאנל כדי שיישאר פעיל גם כשסגור */}
+                {musicObjectUrl && <audio ref={audioRef} src={musicObjectUrl} loop
+                    onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)} style={{display:'none'}} />}
+                {/* פאנל מוזיקה */}
+                {musicPanelOpen && (
+                    <div className="bg-slate-900 px-4 py-3 space-y-2" dir="rtl">
+                        <div className="flex items-center gap-2">
+                            <Icon name="Music" size={15} className="text-purple-400 shrink-0" />
+                            <span className="text-[12px] font-black text-white flex-1 truncate">
+                                {musicFileName || (musicYtUrl ? 'YouTube' : 'אין קובץ')}
+                            </span>
+                            {musicObjectUrl && (
+                                <button onClick={()=>{
+                                    if (!audioRef.current) return;
+                                    musicPlaying ? audioRef.current.pause() : audioRef.current.play();
+                                }} className={`px-3 py-1 rounded-xl text-[11px] font-black active:scale-95
+                                    ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
+                                    {musicPlaying ? '⏸ עצור' : '▶ נגן'}
+                                </button>
+                            )}
+                            {musicYtUrl && (
+                                <a href={musicYtUrl} target="_blank" rel="noopener noreferrer"
+                                    className="px-3 py-1 rounded-xl text-[11px] font-black bg-red-600 text-white active:scale-95">
+                                    ▶ YouTube
+                                </a>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-2 text-[11px] font-black cursor-pointer active:scale-95">
+                                <Icon name="Upload" size={13}/> העלה קובץ
+                                <input type="file" accept="audio/*,video/mp4" className="hidden"
+                                    onChange={e=>handleMusicUpload(e.target.files[0])} />
+                            </label>
+                            <div className="flex-1 flex gap-1">
+                                <input type="url" placeholder="קישור YouTube..."
+                                    defaultValue={musicYtUrl||''}
+                                    onBlur={e=>setMusicYtUrl(e.target.value.trim()||null)}
+                                    className="flex-1 min-w-0 bg-slate-800 text-white text-[11px] rounded-xl px-2 py-2 outline-none placeholder:text-slate-500 font-bold" dir="ltr" />
+                            </div>
+                            {(musicObjectUrl||musicYtUrl) && (
+                                <button onClick={()=>{ handleMusicRemove(); setMusicYtUrl(null); }}
+                                    className="px-2 py-2 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
+                                    <Icon name="Trash2" size={14}/>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+                <div className="mb-2"/>
                 {(() => {
                     const start = new Date(sessionStartTime);
                     const end = sessionEndTime ? new Date(sessionEndTime) : null;
@@ -1479,21 +1740,23 @@ function App() {
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>{group.title}</div>
                                             <div className="flex items-center gap-2 mt-1.5">
                                                 <div className={`px-2.5 py-1 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':group.badgeColor}`}>{group.category}</div>
-                                                {!isDoneReal && (
-                                                    <button onClick={e=>{e.stopPropagation();handleSkipGroup(group.id)}}
-                                                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md active:scale-95 transition-all
-                                                            ${isSkipped?'bg-orange-100 text-orange-500':'text-slate-300 active:text-slate-500'}`}>
-                                                        {isSkipped ? '↩ בטל' : 'דלג'}
-                                                    </button>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                    {isDoneReal
-                                        ? <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><Icon name="CheckCircle2" size={20} /></div>
-                                        : isSkipped
-                                        ? <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-400 font-black text-lg">–</div>
-                                        : <div className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-slate-300"><Icon name="ChevronLeft" size={20} /></div>}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {!isDoneReal && (
+                                            <button onClick={e=>{e.stopPropagation();handleSkipGroup(group.id)}}
+                                                className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl active:scale-95 transition-all
+                                                    ${isSkipped?'bg-orange-100 text-orange-500':'bg-slate-100 text-slate-400 active:text-slate-600'}`}>
+                                                {isSkipped ? '↩ בטל' : 'דלג'}
+                                            </button>
+                                        )}
+                                        {isDoneReal
+                                            ? <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><Icon name="CheckCircle2" size={20} /></div>
+                                            : isSkipped
+                                            ? <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-400 font-black text-lg">–</div>
+                                            : <div className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-slate-300"><Icon name="ChevronLeft" size={20} /></div>}
+                                    </div>
                                 </div>
                             </div>
                         </div>
