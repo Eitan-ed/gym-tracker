@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -56,14 +56,39 @@ const IDB = (() => {
         });
         return dbP;
     };
-    const tx = async (mode, fn) => {
-        try { const db = await open(); return new Promise(res => { const t = db.transaction('files', mode); fn(t.objectStore('files'), res); t.onerror = () => res(null); }); }
-        catch { return null; }
-    };
     return {
-        get: (key)      => tx('readonly',  (s,res) => { const r = s.get(key);    r.onsuccess = () => res(r.result ?? null); }),
-        set: (key, val) => tx('readwrite', (s,res) => { s.put(val, key);         }),
-        del: (key)      => tx('readwrite', (s,res) => { s.delete(key);           }),
+        get: async (key) => {
+            try {
+                const db = await open();
+                return new Promise(res => {
+                    const req = db.transaction('files','readonly').objectStore('files').get(key);
+                    req.onsuccess = () => res(req.result ?? null);
+                    req.onerror   = () => res(null);
+                });
+            } catch { return null; }
+        },
+        set: async (key, val) => {
+            try {
+                const db = await open();
+                return new Promise(res => {
+                    const tx = db.transaction('files','readwrite');
+                    const req = tx.objectStore('files').put(val, key);
+                    req.onsuccess = () => res(true);
+                    req.onerror   = () => res(false);
+                });
+            } catch { return false; }
+        },
+        del: async (key) => {
+            try {
+                const db = await open();
+                return new Promise(res => {
+                    const tx = db.transaction('files','readwrite');
+                    const req = tx.objectStore('files').delete(key);
+                    req.onsuccess = () => res(true);
+                    req.onerror   = () => res(false);
+                });
+            } catch { return false; }
+        },
     };
 })();
 
@@ -395,7 +420,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
                             <div className="flex flex-1 gap-2">
-                                <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} presets={weightPresets} jumpSteps={[0.5,2.5,5]} />
+                                <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} presets={weightPresets} jumpSteps={[0.5,1,5]} />
                                 <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,5]} />
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
@@ -457,7 +482,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1 }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -749,6 +774,24 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
                 });
             })}
+            {/* תרגיל הבא */}
+            {nextGroup && (()=>{
+                const nxEx = nextGroup.exercises[0];
+                const nxImg = images?.[nxEx?.id] || (EXERCISE_IMAGES[nxEx?.id] ? `images/${EXERCISE_IMAGES[nxEx.id]}` : null);
+                return (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                        <div className="text-[10px] font-black text-slate-400 mb-2 text-center uppercase tracking-wide">הבא ▸</div>
+                        <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                            <div className={`w-11 h-11 bg-gradient-to-br ${nextGroup.color} text-white rounded-xl flex items-center justify-center text-xl shrink-0`}>{nextGroup.icon}</div>
+                            {nxImg && <img src={nxImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" />}
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
+                                <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
         {lightbox && (
             <div className="fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
@@ -856,45 +899,40 @@ const triggerBackupDownload = data => {
 };
 
 // ─── Sound helpers ─────────────────────────────────────────
-const playCountdownBeep = () => {
+const playCountdownBeep = (vol=1) => {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
         osc.frequency.value = 880; osc.type = 'sine';
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.setValueAtTime(0.3 * vol, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
         osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
     } catch(e) {}
 };
-const playWarningBeep = () => {
+const playWarningBeep = (vol=1) => {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         [0, 0.28].forEach(offset => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             osc.frequency.value = 440; osc.type = 'sine';
-            gain.gain.setValueAtTime(0.22, ctx.currentTime + offset);
+            gain.gain.setValueAtTime(0.22 * vol, ctx.currentTime + offset);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
-            osc.start(ctx.currentTime + offset);
-            osc.stop(ctx.currentTime + offset + 0.18);
+            osc.start(ctx.currentTime + offset); osc.stop(ctx.currentTime + offset + 0.18);
         });
     } catch(e) {}
 };
-const playRestCompleteSound = () => {
+const playRestCompleteSound = (vol=1) => {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         [500, 700, 950].forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             osc.frequency.value = freq; osc.type = 'sine';
-            gain.gain.setValueAtTime(0.85, ctx.currentTime + i * 0.22);
+            gain.gain.setValueAtTime(0.85 * vol, ctx.currentTime + i * 0.22);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.22 + 0.2);
-            osc.start(ctx.currentTime + i * 0.22);
-            osc.stop(ctx.currentTime + i * 0.22 + 0.22);
+            osc.start(ctx.currentTime + i * 0.22); osc.stop(ctx.currentTime + i * 0.22 + 0.22);
         });
     } catch(e) {}
 };
@@ -1062,6 +1100,8 @@ function App() {
     const [musicPanelOpen,  setMusicPanelOpen]  = useState(false);
     const [musicPlaying,    setMusicPlaying]    = useState(false);
     const audioRef = React.useRef(null);
+    const musicPlayingRef = React.useRef(false);
+    useEffect(()=>{ musicPlayingRef.current = musicPlaying; },[musicPlaying]);
 
     useEffect(()=>{ LS.set('gym-music-name', musicFileName); },[musicFileName]);
     useEffect(()=>{ LS.set('gym-music-yt',   musicYtUrl);   },[musicYtUrl]);
@@ -1176,10 +1216,11 @@ function App() {
                     completedExId = k;
                 }
             });
-            if (doCountdown)   playCountdownBeep();
-            if (doWarning)     playWarningBeep();
+            const beepVol = musicPlayingRef.current ? 0.25 : 1;
+            if (doCountdown)   playCountdownBeep(beepVol);
+            if (doWarning)     playWarningBeep(beepVol);
             if (completedExId) {
-                playRestCompleteSound();
+                playRestCompleteSound(musicPlayingRef.current ? 0.5 : 1);
                 const curLogs = logsRef.current;
                 const curSst  = sstRef.current;
                 const curSkip = skippedRef.current;
@@ -1568,7 +1609,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); const _next=sortedGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} nextGroup={_next} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicFileName={musicFileName} musicYtUrl={musicYtUrl} musicObjectUrl={musicObjectUrl} onMusicUpload={handleMusicUpload} onMusicRemove={handleMusicRemove} onMusicYtChange={setMusicYtUrl} /></>;
 
