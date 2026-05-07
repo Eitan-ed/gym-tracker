@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1715,19 +1715,8 @@ function App() {
         <>
         {overlays}
         <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
-            <header className="bg-white pb-2 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
-                <div className="w-full relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
-                    <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
-                    <div className="relative py-5 px-4 flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-2">
-                            <Icon name="Dumbbell" size={20} className="text-blue-400" />
-                            <h1 className="text-2xl font-black text-white tracking-widest" style={{letterSpacing:'0.15em'}}>אימון פול-באדי</h1>
-                            <Icon name="Dumbbell" size={20} className="text-blue-400" />
-                        </div>
-                        <div className="h-[2px] w-24 rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"/>
-                    </div>
-                    <span className="absolute bottom-2 left-3 text-[13px] text-white/40 font-bold" dir="ltr">v.{APP_VERSION}</span>
-                </div>
+            <header className="rounded-b-[2rem] shadow-xl sticky top-0 z-10 shrink-0 overflow-hidden"
+                style={{background:'linear-gradient(160deg,#0f172a 0%,#1a2e4a 100%)'}}>
                 {(() => {
                     const start = new Date(sessionStartTime);
                     const end = sessionEndTime ? new Date(sessionEndTime) : null;
@@ -1737,61 +1726,66 @@ function App() {
                     const daysRemaining = Math.max(0, daysTotal - daysPassed);
                     const progress = daysTotal > 0 ? Math.min(100, (daysPassed / daysTotal) * 100) : 0;
                     const timerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
-
-                    return (
-                        <div className="px-4 mb-2 mt-2 flex items-stretch gap-3">
-                            {/* שעון */}
-                            {/* שעון — רקע זהה לתאריכים */}
-                            <div className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-4 py-3 border shrink-0 transition-all
-                                ${isWorkoutComplete
-                                    ? 'bg-emerald-500 border-emerald-400 text-white'
-                                    : isWorkoutActive
-                                        ? 'bg-blue-600 border-blue-500 text-white'
-                                        : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 text-slate-700'}`}>
-                                <button onClick={()=>setIsWorkoutActive(v=>!v)} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                                    <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
-                                    <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{timerStr}</span>
+                    return (<>
+                        {/* כותרת */}
+                        <div className="flex justify-between items-center pt-5 pb-2 px-5">
+                            <div className="flex items-center gap-2">
+                                <Icon name="Dumbbell" size={17} className="text-blue-400" />
+                                <h1 className="text-lg font-black text-white tracking-widest" style={{letterSpacing:'0.12em'}}>אימון פול-באדי</h1>
+                            </div>
+                            <span className="text-[11px] text-white/25 font-bold" dir="ltr">v.{APP_VERSION}</span>
+                        </div>
+                        {/* שעון גדול + כפתורים */}
+                        <div className="flex justify-between items-center px-5 pb-3">
+                            <div>
+                                <div className="text-[8px] font-black text-white/30 uppercase tracking-[.12em] mb-1">זמן אימון</div>
+                                <span className="font-mono text-[42px] font-black text-white leading-none" dir="ltr"
+                                    style={{textShadow: isWorkoutActive ? '0 0 24px rgba(96,165,250,.5)' : 'none'}}>
+                                    {timerStr}
+                                </span>
+                            </div>
+                            <div className="flex flex-col gap-2 items-center">
+                                <button onClick={()=>setIsWorkoutActive(v=>!v)}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center active:scale-90 transition-all shadow-lg
+                                        ${isWorkoutComplete ? 'bg-emerald-500 shadow-emerald-500/30'
+                                        : isWorkoutActive  ? 'bg-blue-500 shadow-blue-500/40'
+                                        : 'bg-white/15 border border-white/20'}`}>
+                                    <Icon name={isWorkoutActive?'Pause':'Play'} size={20} className="text-white" />
                                 </button>
                                 <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
-                                    className={`text-[13px] font-bold flex items-center gap-1 px-2 py-1 rounded-full transition-colors
-                                        ${isWorkoutActive ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-500'}`}>
-                                    <Icon name="RotateCcw" size={11} /> אפס
+                                    className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center active:scale-90">
+                                    <Icon name="RotateCcw" size={13} className="text-white/35" />
                                 </button>
                             </div>
-
-                            {/* תאריכים + מד */}
-                            <div onClick={()=>{
-                                        setEditingDates({start:sessionStartTime, end:sessionEndTime});
-                            }}
-                                className="flex-1 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none"
-                                style={{WebkitUserSelect:'none'}}>
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wide mb-0.5">התחלה</div>
-                                        <div className="text-[15px] font-black text-slate-800 leading-none">{start.toLocaleDateString('he-IL')}</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wide mb-0.5">סוף</div>
-                                        <div className="text-[15px] font-black text-slate-800 leading-none">{end?.toLocaleDateString('he-IL') || '—'}</div>
-                                    </div>
+                        </div>
+                        {/* פס נתונים */}
+                        <div onClick={()=>setEditingDates({start:sessionStartTime,end:sessionEndTime})}
+                            className="mx-4 mb-3 rounded-xl px-4 py-2.5 flex items-center gap-3 cursor-pointer active:opacity-80 transition-all"
+                            style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.1)'}}>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[9px] font-bold text-white/35 mb-1.5 truncate">
+                                    {start.toLocaleDateString('he-IL')} → {end?.toLocaleDateString('he-IL') || '—'}
                                 </div>
-                                <div className="h-2 bg-white/70 rounded-full overflow-hidden mb-2 shadow-inner">
-                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-500"
-                                        style={{width:`${progress}%`}} />
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[14px] font-black text-indigo-600">
-                                        {daysRemaining > 0 ? `${daysRemaining} ימים נשארו (${Math.round(progress)}%)` : end ? `✓ הסתיים (${Math.round(progress)}%)` : 'לחץ לעריכה'}
-                                    </span>
-                                    <button onClick={e=>{e.stopPropagation();setMusicPanelOpen(o=>!o)}}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${musicList.length > 0 ? 'bg-purple-500 text-white shadow-md' : 'bg-blue-100 text-blue-400'}`}>
-                                        <Icon name="Music" size={15} />
-                                    </button>
+                                <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,.1)'}}>
+                                    <div className="h-full rounded-full transition-all duration-500"
+                                        style={{width:`${progress}%`, background:'linear-gradient(90deg,#38bdf8,#818cf8)'}} />
                                 </div>
                             </div>
+                            <div className="flex flex-col items-end shrink-0">
+                                <span className="text-[18px] font-black text-white leading-none">
+                                    {daysRemaining > 0 ? daysRemaining : '✓'}
+                                </span>
+                                <span className="text-[8px] font-bold text-white/40">
+                                    {daysRemaining > 0 ? `ימים · ${Math.round(progress)}%` : 'הסתיים'}
+                                </span>
+                            </div>
+                            <button onClick={e=>{e.stopPropagation();setMusicPanelOpen(o=>!o)}}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-90 shrink-0 transition-all
+                                    ${musicList.length>0 ? 'bg-purple-500 shadow-md shadow-purple-500/40' : 'bg-white/10 border border-white/15'}`}>
+                                <Icon name="Music" size={14} className="text-white" />
+                            </button>
                         </div>
-                    );
+                    </>);
                 })()}
                 {/* נגן מוזיקה */}
                 {musicPanelOpen && (
