@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1069,9 +1069,14 @@ function App() {
     // טעינת קובץ מ-IndexedDB בעת אתחול
     useEffect(()=>{
         IDB.get('music-file').then(blob=>{
-            if (blob) { setMusicObjectUrl(URL.createObjectURL(blob)); }
+            if (blob) {
+                setMusicObjectUrl(URL.createObjectURL(blob));
+                setMusicFileName(prev => prev || 'קובץ שמע');
+            } else {
+                // אין קובץ ב-IDB — נקה state עקבי
+                setMusicObjectUrl(null);
+            }
         });
-        return ()=>{ if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl); };
     },[]);
 
     const handleMusicUpload = (file) => {
@@ -1585,55 +1590,9 @@ function App() {
                     </div>
                     <span className="absolute bottom-2 left-3 text-[13px] text-white/40 font-bold" dir="ltr">v.{APP_VERSION}</span>
                 </div>
-                {/* audio — מחוץ לפאנל כדי שיישאר פעיל גם כשסגור */}
+                {/* audio — תמיד מחוץ לפאנל */}
                 {musicObjectUrl && <audio ref={audioRef} src={musicObjectUrl} loop
                     onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)} style={{display:'none'}} />}
-                {/* פאנל מוזיקה */}
-                {musicPanelOpen && (
-                    <div className="bg-slate-900 px-4 py-3 space-y-2" dir="rtl">
-                        <div className="flex items-center gap-2">
-                            <Icon name="Music" size={15} className="text-purple-400 shrink-0" />
-                            <span className="text-[12px] font-black text-white flex-1 truncate">
-                                {musicFileName || (musicYtUrl ? 'YouTube' : 'אין קובץ')}
-                            </span>
-                            {musicObjectUrl && (
-                                <button onClick={()=>{
-                                    if (!audioRef.current) return;
-                                    musicPlaying ? audioRef.current.pause() : audioRef.current.play();
-                                }} className={`px-3 py-1 rounded-xl text-[11px] font-black active:scale-95
-                                    ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
-                                    {musicPlaying ? '⏸ עצור' : '▶ נגן'}
-                                </button>
-                            )}
-                            {musicYtUrl && (
-                                <a href={musicYtUrl} target="_blank" rel="noopener noreferrer"
-                                    className="px-3 py-1 rounded-xl text-[11px] font-black bg-red-600 text-white active:scale-95">
-                                    ▶ YouTube
-                                </a>
-                            )}
-                        </div>
-                        <div className="flex gap-2">
-                            <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-2 text-[11px] font-black cursor-pointer active:scale-95">
-                                <Icon name="Upload" size={13}/> העלה קובץ
-                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" className="hidden"
-                                    onChange={e=>handleMusicUpload(e.target.files[0])} />
-                            </label>
-                            <div className="flex-1 flex gap-1">
-                                <input type="url" placeholder="קישור YouTube..."
-                                    defaultValue={musicYtUrl||''}
-                                    onBlur={e=>setMusicYtUrl(e.target.value.trim()||null)}
-                                    className="flex-1 min-w-0 bg-slate-800 text-white text-[11px] rounded-xl px-2 py-2 outline-none placeholder:text-slate-500 font-bold" dir="ltr" />
-                            </div>
-                            {(musicObjectUrl||musicYtUrl) && (
-                                <button onClick={()=>{ handleMusicRemove(); setMusicYtUrl(null); }}
-                                    className="px-2 py-2 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
-                                    <Icon name="Trash2" size={14}/>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-                <div className="mb-2"/>
                 {(() => {
                     const start = new Date(sessionStartTime);
                     const end = sessionEndTime ? new Date(sessionEndTime) : null;
@@ -1699,6 +1658,42 @@ function App() {
                         </div>
                     );
                 })()}
+                {/* נגן מוזיקה — במקום סרגל ההתקדמות */}
+                {musicPanelOpen && (
+                    <div className="mx-4 mb-3 bg-slate-900 rounded-2xl px-4 py-3 space-y-2" dir="rtl">
+                        <div className="flex items-center gap-2">
+                            <Icon name="Music" size={15} className="text-purple-400 shrink-0" />
+                            <span className="text-[12px] font-black text-white flex-1 truncate">
+                                {musicFileName || (musicYtUrl ? 'YouTube' : 'אין קובץ')}
+                            </span>
+                            {musicObjectUrl && (
+                                <button onClick={()=>{ if (!audioRef.current) return; musicPlaying ? audioRef.current.pause() : audioRef.current.play(); }}
+                                    className={`px-3 py-1 rounded-xl text-[11px] font-black active:scale-95 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
+                                    {musicPlaying ? '⏸ עצור' : '▶ נגן'}
+                                </button>
+                            )}
+                            {musicYtUrl && (
+                                <a href={musicYtUrl} target="_blank" rel="noopener noreferrer"
+                                    className="px-3 py-1 rounded-xl text-[11px] font-black bg-red-600 text-white active:scale-95">▶ YouTube</a>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-2 text-[11px] font-black cursor-pointer active:scale-95">
+                                <Icon name="Upload" size={13}/> העלה קובץ
+                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" className="hidden" onChange={e=>handleMusicUpload(e.target.files[0])} />
+                            </label>
+                            <input type="url" placeholder="YouTube / Playlist..." defaultValue={musicYtUrl||''}
+                                onBlur={e=>setMusicYtUrl(e.target.value.trim()||null)}
+                                className="flex-1 bg-slate-800 text-white text-[11px] rounded-xl px-2 py-2 outline-none placeholder:text-slate-500 font-bold" dir="ltr" />
+                            {(musicObjectUrl||musicYtUrl) && (
+                                <button onClick={()=>{ handleMusicRemove(); }}
+                                    className="px-2 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
+                                    <Icon name="Trash2" size={14}/>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </header>
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
@@ -1724,10 +1719,13 @@ function App() {
                                     ${isDoneReal?'bg-emerald-50 shadow-sm opacity-80':isSkipped?'bg-orange-50 shadow-sm opacity-70':isNext?'bg-slate-900 shadow-lg scale-[1.02]':'bg-white border border-slate-100 shadow-sm'}`}>
                                 <div className={`flex items-center justify-between p-4 rounded-[1.4rem] ${isDoneReal?'bg-slate-50':isSkipped?'bg-orange-50/40':'bg-white'}`}>
                                     <div className="flex items-start gap-4">
-                                        <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner shrink-0 ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
+                                        <div className="flex flex-col items-center gap-0.5 shrink-0">
+                                            <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
+                                            <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{sortedGroups.length}</span>
+                                        </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
-                                            <span className={`text-[11px] font-black ml-1 ${isNext?'text-blue-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{sortedGroups.length}</span> {group.title}
+                                            {group.title}
                                         </div>
                                             <div className="flex items-center gap-2 mt-1.5">
                                                 <div className={`px-2.5 py-1 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':group.badgeColor}`}>{group.category}</div>
