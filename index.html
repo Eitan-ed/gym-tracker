@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -148,7 +148,8 @@ const exerciseGroups = [
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
     { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',    machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
-    { id:11, hex:'#eab308', badgeColor:'bg-yellow-100 text-yellow-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-yellow-500 to-yellow-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
+    { id:11, hex:'#eab308', badgeColor:'bg-yellow-100 text-yellow-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-yellow-500 to-yellow-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] },
+    { id:12, hex:'#84cc16', badgeColor:'bg-lime-100 text-lime-700',     title:'פלאנק',                        category:'בטן/גב',    icon:'🧘', color:'from-lime-500 to-lime-700',      machine:'חופשי',   hasPlankTimer:true, exercises:[{id:'ex11', title:'פלאנק', howTo:'שכב עם תמיכה על מרפקים. גב ישר, בטן כווצת. החזק את הפוזיציה לכל משך הזמן.', tips:['גב שטוח','ישבן לא מורם','נשימה סדירה','מרפקים מתחת לכתפיים']}] }
 ];
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -295,6 +296,74 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
         </div>
     );
 });
+
+// ─── PlankTimer ────────────────────────────────────────────
+const PLANK_PRESETS = [20,30,45,60,90,120];
+function PlankTimer() {
+    const [seconds,   setSeconds]   = useState(60);
+    const [remaining, setRemaining] = useState(null);
+    const [running,   setRunning]   = useState(false);
+    const itvRef = React.useRef(null);
+
+    const start = () => { setRemaining(seconds); setRunning(true); };
+    const stop  = () => { clearInterval(itvRef.current); setRunning(false); setRemaining(null); };
+
+    useEffect(() => {
+        if (!running) return;
+        itvRef.current = setInterval(() => {
+            setRemaining(r => {
+                if (r <= 1) {
+                    clearInterval(itvRef.current);
+                    setRunning(false);
+                    playRestCompleteSound();
+                    return 0;
+                }
+                if (r <= 4) playCountdownBeep();
+                return r - 1;
+            });
+        }, 1000);
+        return () => clearInterval(itvRef.current);
+    }, [running]);
+
+    const pct = remaining !== null ? (remaining / seconds) * 100 : 100;
+    const color = remaining <= 5 ? '#ef4444' : remaining <= 20 ? '#f59e0b' : '#84cc16';
+
+    return (
+        <div className="bg-lime-50 rounded-2xl border border-lime-200 p-4 mt-3">
+            {remaining === null ? (<>
+                <div className="text-[11px] font-black text-lime-600 mb-2">⏱ זמן פלאנק</div>
+                <div className="flex gap-1.5 flex-wrap mb-3">
+                    {PLANK_PRESETS.map(p => (
+                        <button key={p} onClick={()=>setSeconds(p)}
+                            className={`px-2.5 py-1 rounded-xl text-[12px] font-black active:scale-95 transition-all
+                                ${p===seconds?'bg-lime-500 text-white':'bg-white border border-lime-200 text-lime-700'}`}>
+                            {p}″
+                        </button>
+                    ))}
+                </div>
+                <div className="flex gap-2 items-center mb-3">
+                    <button onClick={()=>setSeconds(s=>Math.max(10,s-5))} className="px-3 py-2 bg-rose-50 text-rose-500 rounded-xl font-black text-sm active:scale-95">-5</button>
+                    <div className="flex-1 text-center text-3xl font-black text-slate-800">{seconds}″</div>
+                    <button onClick={()=>setSeconds(s=>s+5)} className="px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-sm active:scale-95">+5</button>
+                </div>
+                <button onClick={start} className="w-full py-3 bg-lime-500 text-white rounded-2xl font-black text-base active:scale-95 shadow-lg shadow-lime-200">
+                    ▶ התחל פלאנק
+                </button>
+            </>) : (<>
+                <div className="text-center mb-3">
+                    <div className="text-6xl font-black tabular-nums" style={{color}}>{remaining}</div>
+                    <div className="text-[11px] font-bold text-slate-400 mt-1">שניות</div>
+                </div>
+                <div className="h-4 bg-slate-200 rounded-full overflow-hidden mb-3 shadow-inner">
+                    <div className="h-full rounded-full transition-all duration-1000" style={{width:`${pct}%`, background:color}} />
+                </div>
+                <button onClick={stop} className="w-full py-3 bg-slate-700 text-white rounded-2xl font-black text-base active:scale-95">
+                    ⏹ עצור
+                </button>
+            </>)}
+        </div>
+    );
+}
 
 // ─── VideoInput ────────────────────────────────────────────
 function VideoInput({ exId, onSave }) {
@@ -454,7 +523,7 @@ const EXERCISE_IMAGES = {
     ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
     ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
     ex7a:'ex7a.png', ex7b:'ex7b.png', ex8:'ex8.png',
-    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png'
+    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png', ex11:'ex11.png'
 };
 
 // ─── VideoModal ─────────────────────────────────────────────
@@ -482,7 +551,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, onNavigateTo }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -722,6 +791,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
                     accentColor={accentHex} />
+                {ex.id === 'ex11' && <PlankTimer />}
             </div>
         );
     };
@@ -785,13 +855,15 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const nxImg = images?.[nxEx?.id] || (EXERCISE_IMAGES[nxEx?.id] ? `images/${EXERCISE_IMAGES[nxEx.id]}` : null);
                 return (
                     <div className="mt-4 pt-4 border-t border-slate-100">
-                        <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                        <div onClick={()=>onNavigateTo?.(nextGroup)}
+                            className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all">
                             <span className="text-[10px] font-black text-slate-400 shrink-0">הבא ▸</span>
                             {nxImg && <img src={nxImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" />}
                             <div className="flex-1 min-w-0">
                                 <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
                                 <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
                             </div>
+                            <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
                         </div>
                     </div>
                 );
@@ -944,7 +1016,7 @@ const playRestCompleteSound = () => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicFileName, musicYtUrl, musicObjectUrl, onMusicUpload, onMusicRemove, onMusicYtChange }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll }) => {
     const handleBackup = () => {
         triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
@@ -1006,28 +1078,29 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>
                 </section>
                 <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה</h3>
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
                     <div className="space-y-3">
-                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                            <div className="text-[11px] font-black text-slate-500 mb-1">קובץ נוכחי</div>
-                            <div className="font-bold text-sm text-slate-800 truncate">{musicFileName || '—'}</div>
-                        </div>
+                        {musicList.length > 0 && (
+                            <div className="space-y-1.5">
+                                {musicList.map(t => (
+                                    <div key={t.id} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
+                                        <span className="flex-1 text-[12px] font-bold text-slate-700 truncate">{t.name}</span>
+                                        <button onClick={()=>requestConfirm('למחוק שיר זה?',()=>onMusicRemoveOne(t.id))}
+                                            className="text-slate-300 active:text-red-500"><Icon name="Trash2" size={14}/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         <label className="w-full flex items-center gap-3 bg-purple-50 p-4 rounded-2xl border border-purple-100 text-purple-700 cursor-pointer active:scale-[0.98]">
                             <div className="bg-purple-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                            <div><div className="font-black text-sm">העלה קובץ שמע</div><div className="text-[10px] font-bold opacity-70">MP3, AAC, MP4 — נשמר לצמיתות</div></div>
-                            <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" className="hidden" onChange={e=>onMusicUpload(e.target.files[0])} />
+                            <div><div className="font-black text-sm">הוסף קבצי שמע</div><div className="text-[10px] font-bold opacity-70">MP3, M4A, AAC, OGG, WAV — ניתן לבחור כמה</div></div>
+                            <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden" onChange={e=>onMusicUpload(e.target.files)} />
                         </label>
-                        <div className="flex gap-2 items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                            <Icon name="Music" size={16} className="text-red-500 shrink-0"/>
-                            <input type="url" placeholder="קישור YouTube..." defaultValue={musicYtUrl||''}
-                                onBlur={e=>onMusicYtChange(e.target.value.trim()||null)}
-                                className="flex-1 bg-transparent text-[13px] font-bold text-slate-700 outline-none placeholder:text-slate-400" dir="ltr" />
-                        </div>
-                        {(musicFileName||musicYtUrl) && (
-                            <button onClick={()=>requestConfirm('להסיר את המוזיקה?',onMusicRemove)}
+                        {musicList.length > 0 && (
+                            <button onClick={()=>requestConfirm('למחוק את כל המוזיקה?',onMusicRemoveAll)}
                                 className="w-full flex items-center gap-3 bg-rose-50 p-4 rounded-2xl border border-rose-100 text-rose-600 active:scale-[0.98]">
                                 <div className="bg-rose-100 p-2 rounded-xl"><Icon name="Trash" size={20} /></div>
-                                <div className="font-black text-sm">הסר מוזיקה</div>
+                                <div className="font-black text-sm">מחק הכל</div>
                             </button>
                         )}
                     </div>
@@ -1098,47 +1171,58 @@ function App() {
     const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
 
-    // מוזיקה
-    const [musicFileName,   setMusicFileName]   = useState(()=>LS.get('gym-music-name', null));
-    const [musicYtUrl,      setMusicYtUrl]      = useState(()=>LS.get('gym-music-yt',   null));
-    const [musicObjectUrl,  setMusicObjectUrl]  = useState(null);
-    const [musicPanelOpen,  setMusicPanelOpen]  = useState(false);
-    const [musicPlaying,    setMusicPlaying]    = useState(false);
-    const audioRef = React.useRef(null);
+    // מוזיקה — playlist מרובה
+    const [musicList,      setMusicList]      = useState([]); // [{id,name,url}] runtime
+    const [musicIndex,     setMusicIndex]     = useState(0);
+    const [musicPanelOpen, setMusicPanelOpen] = useState(false);
+    const [musicPlaying,   setMusicPlaying]   = useState(false);
+    const audioRef       = React.useRef(null);
     const musicPlayingRef = React.useRef(false);
     useEffect(()=>{ musicPlayingRef.current = musicPlaying; },[musicPlaying]);
 
-    useEffect(()=>{ LS.set('gym-music-name', musicFileName); },[musicFileName]);
-    useEffect(()=>{ LS.set('gym-music-yt',   musicYtUrl);   },[musicYtUrl]);
-
-    // טעינת קובץ מ-IndexedDB בעת אתחול
+    // טעינת playlist מ-IDB בעת אתחול
     useEffect(()=>{
-        IDB.get('music-file').then(blob=>{
-            if (blob) {
-                setMusicObjectUrl(URL.createObjectURL(blob));
-                setMusicFileName(prev => prev || 'קובץ שמע');
-            } else {
-                // אין קובץ ב-IDB — נקה state עקבי
-                setMusicObjectUrl(null);
-            }
+        const meta = LS.get('gym-music-list', []);
+        if (!meta.length) return;
+        Promise.all(meta.map(({id,name}) =>
+            IDB.get(`music-${id}`).then(blob => blob ? {id, name, url:URL.createObjectURL(blob)} : null)
+        )).then(results => {
+            const valid = results.filter(Boolean);
+            setMusicList(valid);
+            if (valid.length !== meta.length)
+                LS.set('gym-music-list', valid.map(({id,name})=>({id,name})));
         });
     },[]);
 
-    const handleMusicUpload = (file) => {
-        if (!file) return;
-        IDB.set('music-file', file).then(()=>{
-            if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl);
-            setMusicObjectUrl(URL.createObjectURL(file));
-            setMusicFileName(file.name);
-            showToast('הקובץ נשמר');
+    const handleMusicUpload = async (files) => {
+        if (!files?.length) return;
+        const newItems = [];
+        for (const file of Array.from(files)) {
+            const id = `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+            await IDB.set(`music-${id}`, file);
+            newItems.push({id, name:file.name, url:URL.createObjectURL(file)});
+        }
+        setMusicList(prev => {
+            const next = [...prev, ...newItems];
+            LS.set('gym-music-list', next.map(({id,name})=>({id,name})));
+            return next;
         });
+        showToast(`${newItems.length} קבצים נשמרו`);
     };
-    const handleMusicRemove = () => {
-        IDB.del('music-file').then(()=>{
-            if (musicObjectUrl) URL.revokeObjectURL(musicObjectUrl);
-            setMusicObjectUrl(null); setMusicFileName(null);
-            setMusicPlaying(false); setMusicYtUrl(null);
+    const handleMusicRemoveOne = async (id) => {
+        await IDB.del(`music-${id}`);
+        setMusicList(prev => {
+            const next = prev.filter(t=>t.id!==id);
+            LS.set('gym-music-list', next.map(({id,name})=>({id,name})));
+            return next;
         });
+        setMusicIndex(i => 0);
+    };
+    const handleMusicRemoveAll = async () => {
+        const meta = LS.get('gym-music-list', []);
+        await Promise.all(meta.map(({id})=>IDB.del(`music-${id}`)));
+        LS.set('gym-music-list', []);
+        setMusicList([]); setMusicIndex(0); setMusicPlaying(false);
     };
 
     const requestConfirm = useCallback((text,onConfirm,onCancel)=>setConfirmAction({text,onConfirm,onCancel}),[]);
@@ -1478,8 +1562,11 @@ function App() {
     // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
     const overlays = (
         <>
-            {musicObjectUrl && <audio ref={audioRef} src={musicObjectUrl} loop
-                onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)} style={{display:'none'}} />}
+            {musicList.length > 0 && (
+                <audio ref={audioRef} src={musicList[musicIndex]?.url} loop={musicList.length===1}
+                    onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)}
+                    onEnded={()=>setMusicIndex(i=>(i+1)%musicList.length)} style={{display:'none'}} />
+            )}
             {confirmAction && (
                 <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                     <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
@@ -1621,9 +1708,9 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); const _next=sortedGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} nextGroup={_next} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); const _next=sortedGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicFileName={musicFileName} musicYtUrl={musicYtUrl} musicObjectUrl={musicObjectUrl} onMusicUpload={handleMusicUpload} onMusicRemove={handleMusicRemove} onMusicYtChange={setMusicYtUrl} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} /></>;
 
     // List view
     return (
@@ -1700,7 +1787,7 @@ function App() {
                                     </span>
                                     <button onClick={e=>{e.stopPropagation();setMusicPanelOpen(o=>!o)}}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${(musicObjectUrl||musicYtUrl) ? 'bg-purple-500 text-white shadow-md' : 'bg-blue-100 text-blue-400'}`}>
+                                            ${musicList.length > 0 ? 'bg-purple-500 text-white shadow-md' : 'bg-blue-100 text-blue-400'}`}>
                                         <Icon name="Music" size={15} />
                                     </button>
                                 </div>
@@ -1708,38 +1795,49 @@ function App() {
                         </div>
                     );
                 })()}
-                {/* נגן מוזיקה — במקום סרגל ההתקדמות */}
+                {/* נגן מוזיקה */}
                 {musicPanelOpen && (
                     <div className="mx-4 mb-3 bg-slate-900 rounded-2xl px-4 py-3 space-y-2" dir="rtl">
-                        <div className="flex items-center gap-2">
-                            <Icon name="Music" size={15} className="text-purple-400 shrink-0" />
-                            <span className="text-[12px] font-black text-white flex-1 truncate">
-                                {musicFileName || (musicYtUrl ? 'YouTube' : 'אין קובץ')}
-                            </span>
-                            {musicObjectUrl && (
-                                <button onClick={()=>{ if (!audioRef.current) return; musicPlaying ? audioRef.current.pause() : audioRef.current.play(); }}
-                                    className={`px-3 py-1 rounded-xl text-[11px] font-black active:scale-95 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
-                                    {musicPlaying ? '⏸ עצור' : '▶ נגן'}
+                        {/* רשימת שירים */}
+                        {musicList.length > 0 && (
+                            <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
+                                {musicList.map((t,i) => (
+                                    <div key={t.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-xl ${i===musicIndex?'bg-purple-800/60':'bg-slate-800/50'}`}>
+                                        <button onClick={()=>{ setMusicIndex(i); setTimeout(()=>audioRef.current?.play(),50); }}
+                                            className={`text-[11px] shrink-0 ${i===musicIndex&&musicPlaying?'text-green-400':'text-slate-400'}`}>
+                                            {i===musicIndex&&musicPlaying?'▶':'○'}
+                                        </button>
+                                        <span className="text-[11px] font-bold text-white flex-1 truncate">{t.name}</span>
+                                        <button onClick={()=>handleMusicRemoveOne(t.id)} className="text-slate-500 active:text-red-400 shrink-0">
+                                            <Icon name="Trash2" size={11}/>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {/* פקדים */}
+                        <div className="flex gap-2 items-center">
+                            {musicList.length > 0 && (
+                                <button onClick={()=>{ if(!audioRef.current)return; musicPlaying?audioRef.current.pause():audioRef.current.play(); }}
+                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 shrink-0 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
+                                    {musicPlaying?'⏸':'▶'}
                                 </button>
                             )}
-                            {musicYtUrl && (
-                                <a href={musicYtUrl} target="_blank" rel="noopener noreferrer"
-                                    className="px-3 py-1 rounded-xl text-[11px] font-black bg-red-600 text-white active:scale-95">▶ YouTube</a>
+                            {musicList.length > 1 && (
+                                <button onClick={()=>setMusicIndex(i=>(i+1)%musicList.length)}
+                                    className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏭</button>
                             )}
-                        </div>
-                        <div className="flex gap-2">
-                            <label className="shrink-0 flex items-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl px-3 py-1.5 text-[11px] font-black cursor-pointer active:scale-95">
-                                <Icon name="Upload" size={12}/> קובץ
-                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" className="hidden" onChange={e=>handleMusicUpload(e.target.files[0])} />
+                            <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-1.5 text-[11px] font-black cursor-pointer active:scale-95">
+                                <Icon name="Upload" size={12}/> הוסף
+                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden"
+                                    onChange={e=>handleMusicUpload(e.target.files)} />
                             </label>
                             <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer"
-                                className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black bg-green-700 text-white active:scale-95">
-                                🎵 Spotify
-                            </a>
-                            {(musicObjectUrl||musicYtUrl) && (
-                                <button onClick={()=>{ handleMusicRemove(); }}
-                                    className="px-2 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
-                                    <Icon name="Trash2" size={14}/>
+                                className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black bg-green-700 text-white active:scale-95">🎵</a>
+                            {musicList.length > 0 && (
+                                <button onClick={handleMusicRemoveAll}
+                                    className="shrink-0 px-2 py-1.5 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
+                                    <Icon name="Trash2" size={13}/>
                                 </button>
                             )}
                         </div>
