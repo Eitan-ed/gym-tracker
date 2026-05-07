@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1715,7 +1715,7 @@ function App() {
         <>
         {overlays}
         <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
-            <header className="bg-white pb-6 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
+            <header className="bg-white pb-2 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
                 <div className="w-full relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
                     <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
                     <div className="relative py-5 px-4 flex flex-col items-center gap-1">
@@ -1739,7 +1739,7 @@ function App() {
                     const timerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
 
                     return (
-                        <div className="px-4 mb-4 mt-2 flex items-stretch gap-3">
+                        <div className="px-4 mb-2 mt-2 flex items-stretch gap-3">
                             {/* שעון */}
                             {/* שעון — רקע זהה לתאריכים */}
                             <div className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-4 py-3 border shrink-0 transition-all
