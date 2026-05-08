@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -139,10 +139,8 @@ const exerciseGroups = [
     { id:5,  hex:'#f97316', badgeColor:'bg-orange-100 text-orange-700', title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-orange-500 to-orange-700',  machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
     { id:13, hex:'#fb923c', badgeColor:'bg-orange-100 text-orange-600', title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-orange-400 to-orange-600',  machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
     { id:6,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
-    { id:7,  hex:'#0ea5e9', badgeColor:'bg-sky-100 text-sky-700',       title:'סופר-סט גרביטון',          category:'גב/חזה',   icon:'🧗', color:'from-sky-500 to-sky-700',        machine:'גרביטון', isSuperset:true, exercises:[
-        {id:'ex7a', title:'מתח גרביטון',    howTo:'רד עד למטה ליישור מלא ומשוך מעלה.',                         tips:['סנטר מעל המוט']},
-        {id:'ex7b', title:'מקבילים גרביטון',howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                    tips:['הישענות קדימה']}
-    ]},
+    { id:7,  hex:'#0ea5e9', badgeColor:'bg-sky-100 text-sky-700',       title:'פולי עליון',               category:'גב',        icon:'⬇️', color:'from-sky-500 to-sky-700',        machine:'כבלים',   exercises:[{id:'ex7c', title:'פולי עליון',         howTo:'שב מול המכונה. משוך את המוט למטה לחזה תוך כיווץ שרירי הגב. חזור לאחור באיטיות.',          tips:['גב ישר','שכמות למטה ולאחורה','מרפקים מפנים כלפי מטה']}] },
+    { id:14, hex:'#6366f1', badgeColor:'bg-indigo-100 text-indigo-700', title:'מקבילים גרביטון',           category:'חזה/יד אחורית', icon:'🧗', color:'from-indigo-500 to-indigo-700', machine:'גרביטון', exercises:[{id:'ex7b', title:'מקבילים גרביטון',    howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                                                   tips:['הישענות קדימה']}] },
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
     { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',    machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
@@ -512,7 +510,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
 const EXERCISE_VIDEOS = {
     ex1:'ex1.mp4', ex2:'ex2.mp4', ex3:'ex3.mp4', ex4:'ex4.mp4',
     ex5a:'ex5a.mp4', ex5b:'ex5b.mp4', ex6:'ex6.mp4',
-    ex7a:'ex7a.mp4', ex7b:'ex7b.mp4', ex8:'ex8.mp4',
+    ex7b:'ex7b.mp4', ex7c:'ex7c.mp4', ex8:'ex8.mp4',
     ex9:'ex9.mp4', ex10a:'ex10a.mp4', ex10b:'ex10b.mp4'
 };
 
@@ -520,7 +518,7 @@ const EXERCISE_VIDEOS = {
 const EXERCISE_IMAGES = {
     ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
     ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
-    ex7a:'ex7a.png', ex7b:'ex7b.png', ex8:'ex8.png',
+    ex7b:'ex7b.png', ex7c:'ex7c.png', ex8:'ex8.png',
     ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png', ex11:'ex11.png'
 };
 
