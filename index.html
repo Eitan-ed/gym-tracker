@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1187,9 +1187,11 @@ function App() {
     const [musicIndex,     setMusicIndex]     = useState(0);
     const [musicPanelOpen, setMusicPanelOpen] = useState(false);
     const [musicPlaying,   setMusicPlaying]   = useState(false);
-    const audioRef       = React.useRef(null);
+    const audioRef        = React.useRef(null);
     const musicPlayingRef = React.useRef(false);
+    const musicListRef    = React.useRef([]);
     useEffect(()=>{ musicPlayingRef.current = musicPlaying; },[musicPlaying]);
+    useEffect(()=>{ musicListRef.current = musicList; },[musicList]);
 
     // טעינת playlist מ-IDB בעת אתחול
     useEffect(()=>{
@@ -1573,11 +1575,18 @@ function App() {
     // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
     const overlays = (
         <>
-            {musicList.length > 0 && (
-                <audio ref={audioRef} src={musicList[musicIndex]?.url} loop={musicList.length===1}
-                    onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)}
-                    onEnded={()=>setMusicIndex(i=>(i+1)%musicList.length)} style={{display:'none'}} />
-            )}
+            <audio ref={audioRef}
+                onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)}
+                onEnded={()=>{
+                    const list = musicListRef.current;
+                    if (!list.length || !audioRef.current) return;
+                    if (list.length === 1) { audioRef.current.currentTime=0; audioRef.current.play().catch(()=>{}); return; }
+                    const next = (musicIndex + 1) % list.length;
+                    setMusicIndex(next);
+                    audioRef.current.src = list[next].url;
+                    audioRef.current.play().catch(()=>{});
+                }}
+                style={{display:'none'}} />
             {confirmAction && (
                 <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                     <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
@@ -1829,7 +1838,7 @@ function App() {
                         {/* פקדים */}
                         <div className="flex gap-2 items-center">
                             {musicList.length > 0 && (
-                                <button onClick={()=>{ if(!audioRef.current)return; musicPlaying?audioRef.current.pause():audioRef.current.play(); }}
+                                <button onClick={()=>{ const a=audioRef.current; if(!a)return; if(musicPlaying){a.pause();}else{ if(!a.src&&musicList[musicIndex]?.url){a.src=musicList[musicIndex].url;} a.play().catch(()=>{}); } }}
                                     className={`px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 shrink-0 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
                                     {musicPlaying?'⏸':'▶'}
                                 </button>
