@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -144,8 +144,7 @@ const exerciseGroups = [
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
     { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',    machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
-    { id:11, hex:'#eab308', badgeColor:'bg-yellow-100 text-yellow-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-yellow-500 to-yellow-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] },
-    { id:12, hex:'#84cc16', badgeColor:'bg-lime-100 text-lime-700',     title:'פלאנק',                        category:'בטן/גב',    icon:'🧘', color:'from-lime-500 to-lime-700',      machine:'חופשי',   hasPlankTimer:true, exercises:[{id:'ex11', title:'פלאנק', howTo:'שכב עם תמיכה על מרפקים. גב ישר, בטן כווצת. החזק את הפוזיציה לכל משך הזמן.', tips:['גב שטוח','ישבן לא מורם','נשימה סדירה','מרפקים מתחת לכתפיים']}] }
+    { id:11, hex:'#eab308', badgeColor:'bg-yellow-100 text-yellow-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-yellow-500 to-yellow-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
 ];
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -250,7 +249,7 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
                         <div className="px-4 pb-3 flex items-center gap-1.5 justify-center" dir="ltr">
                             {[...jumpSteps].reverse().map(s => (
                                 <button key={`-${s}`} onClick={() => adjust(-s)}
-                                    className="flex-1 py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-sm active:scale-95 active:bg-rose-100">
+                                    className="flex-1 py-4 bg-rose-50 text-rose-600 rounded-xl font-black text-base active:scale-95 active:bg-rose-100">
                                     -{s}
                                 </button>
                             ))}
@@ -259,7 +258,7 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
                             </div>
                             {jumpSteps.map(s => (
                                 <button key={`+${s}`} onClick={() => adjust(s)}
-                                    className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl font-black text-sm active:scale-95 active:bg-emerald-100">
+                                    className="flex-1 py-4 bg-emerald-50 text-emerald-600 rounded-xl font-black text-base active:scale-95 active:bg-emerald-100">
                                     +{s}
                                 </button>
                             ))}
@@ -486,7 +485,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             </div>
                             <div className="flex flex-1 gap-2">
                                 <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} presets={weightPresets} jumpSteps={[0.5,1,5]} />
-                                <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,5]} />
+                                <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,2,3,5]} />
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
                                 className={`px-4 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95 shrink-0
@@ -519,7 +518,7 @@ const EXERCISE_IMAGES = {
     ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
     ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
     ex7b:'ex7b.png', ex7c:'ex7c.png', ex8:'ex8.png',
-    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png', ex11:'ex11.png'
+    ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png'
 };
 
 // ─── VideoModal ─────────────────────────────────────────────
@@ -787,7 +786,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
                     accentColor={accentHex} />
-                {ex.id === 'ex11' && <PlankTimer />}
             </div>
         );
     };
@@ -800,7 +798,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             </button>
             <div className="flex items-center gap-3 px-9">
                 <h2 className="text-base font-black text-white leading-none tracking-tight">
-                    <span className="opacity-70 font-bold text-sm ml-1">{groupIdx+1}/{totalGroups}</span>
+                    <span className="font-black text-xl ml-1.5">{groupIdx+1}/{totalGroups}</span>
                     <span className="opacity-60 font-bold text-xs mx-1">({group.category})</span>
                     {group.title}
                 </h2>
@@ -1816,7 +1814,7 @@ function App() {
                             <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
                                 {musicList.map((t,i) => (
                                     <div key={t.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-xl ${i===musicIndex?'bg-purple-800/60':'bg-slate-800/50'}`}>
-                                        <button onClick={()=>{ setMusicIndex(i); setTimeout(()=>audioRef.current?.play(),50); }}
+                                        <button onClick={()=>{ setMusicIndex(i); setTimeout(()=>{ if(audioRef.current){ audioRef.current.src=musicList[i].url; audioRef.current.play().catch(()=>{}); } },50); }}
                                             className={`text-[11px] shrink-0 ${i===musicIndex&&musicPlaying?'text-green-400':'text-slate-400'}`}>
                                             {i===musicIndex&&musicPlaying?'▶':'○'}
                                         </button>
@@ -1846,7 +1844,13 @@ function App() {
                                     onChange={e=>handleMusicUpload(e.target.files)} />
                             </label>
                             <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer"
-                                className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black bg-green-700 text-white active:scale-95">🎵</a>
+                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full active:scale-90" style={{background:'#1DB954'}}>
+                                <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path fill="white" d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.3.1-.65-.15-.75-.45-.1-.3.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z"/></svg>
+                            </a>
+                            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
+                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl active:scale-90" style={{background:'#FF0000'}}>
+                                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="white" d="M19.6 7.2a2.5 2.5 0 0 0-1.76-1.77C16.25 5 12 5 12 5s-4.25 0-5.84.43A2.5 2.5 0 0 0 4.4 7.2 26 26 0 0 0 4 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C7.75 19 12 19 12 19s4.25 0 5.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 20 12a26 26 0 0 0-.4-4.8z"/><path fill="#FF0000" d="M10 15l5.2-3L10 9v6z"/></svg>
+                            </a>
                             {musicList.length > 0 && (
                                 <button onClick={handleMusicRemoveAll}
                                     className="shrink-0 px-2 py-1.5 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
