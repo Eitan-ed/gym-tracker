@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -249,16 +249,16 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
                         <div className="px-4 pb-3 flex items-center gap-1.5 justify-center" dir="ltr">
                             {[...jumpSteps].reverse().map(s => (
                                 <button key={`-${s}`} onClick={() => adjust(-s)}
-                                    className="flex-1 py-4 bg-rose-50 text-rose-600 rounded-xl font-black text-base active:scale-95 active:bg-rose-100">
+                                    className="flex-1 py-5 bg-rose-50 text-rose-600 rounded-xl font-black text-lg active:scale-95 active:bg-rose-100">
                                     -{s}
                                 </button>
                             ))}
-                            <div className="px-3 py-2 bg-slate-900 text-white rounded-xl font-black text-xl min-w-[4.5rem] text-center">
+                            <button onClick={confirm} className="px-3 py-2 bg-slate-900 text-white rounded-xl font-black text-xl min-w-[4.5rem] text-center active:scale-95 active:bg-slate-700">
                                 {localVal}
-                            </div>
+                            </button>
                             {jumpSteps.map(s => (
                                 <button key={`+${s}`} onClick={() => adjust(s)}
-                                    className="flex-1 py-4 bg-emerald-50 text-emerald-600 rounded-xl font-black text-base active:scale-95 active:bg-emerald-100">
+                                    className="flex-1 py-5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-lg active:scale-95 active:bg-emerald-100">
                                     +{s}
                                 </button>
                             ))}
