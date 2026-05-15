@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '5.2';
+const APP_VERSION = '5.3';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -217,11 +217,11 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
 
     return (
         <div className="flex flex-col items-center flex-1">
-            <span className="text-[8px] font-black text-slate-400 mb-0.5 uppercase tracking-tighter">{label}</span>
             <button onClick={() => setOpen(true)}
-                className={`w-full h-10 rounded-xl font-black text-[15px] flex items-center justify-center active:scale-95 transition-all
+                className={`w-full h-14 rounded-xl font-black text-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all
                     ${isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800'}`}>
-                {value}
+                <span>{value}</span>
+                <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{label}</span>
             </button>
             {open && (
                 <div className="fixed inset-0 z-[800] flex items-end" onClick={confirm}>
@@ -477,13 +477,13 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 return (
                     <React.Fragment key={num}>
                         <div style={conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : undefined)}
-                            className={`bg-white p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all
+                            className={`bg-white p-3 rounded-[1.6rem] flex items-center gap-2 transition-all
                                 ${conic    ? ''
                                 : isActive ? ''
                                 : isDone   ? 'border border-slate-100'
                                 : timerDone? 'border border-slate-700 shadow-md'
                                 :            'border border-slate-100 shadow-sm'}`}>
-                            <div className="w-10 h-10 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
+                            <div className="w-10 h-14 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
                                 style={{background: (isActive || timerDone) ? accentColor : '#0f172a'}}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
@@ -493,7 +493,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,2,3,5]} />
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
-                                className={`px-4 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95 shrink-0
+                                className={`px-4 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95 shrink-0
                                     ${isDone    ? 'bg-slate-100 text-slate-300 shadow-none'
                                     : showCDown ? 'bg-blue-600 text-white shadow-blue-200 active:bg-blue-700'
                                     : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
