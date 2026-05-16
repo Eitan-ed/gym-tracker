@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '5.4';
+const APP_VERSION = '5.5';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -430,7 +430,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
             try {
                 await onSave(ex.id, num, state.w, state.r, isSuperset);
                 if (!isDoneSet) {
-                    if (num === 1) setS2({w:state.w, r:state.r, wC:false, rC:false});
                     if (num===2 && isLast) setTimeout(onFinish, 800);
                 }
                 if (num===1) setS1(p=>({...p,wC:false,rC:false}));
@@ -1048,7 +1047,7 @@ const playPhoneRingSound = () => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise }) => {
     const handleBackup = () => {
         triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
@@ -1095,6 +1094,42 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
+                {/* ── סקציית תרגילים ── */}
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
+                    <div className="space-y-3">
+                        {exerciseGroups.map(g => (
+                            <div key={g.id}>
+                                {g.exercises.map(ex => {
+                                    const isHidden = hiddenExercises.has(ex.id);
+                                    return (
+                                        <div key={ex.id} className="flex items-center gap-3 py-1.5">
+                                            <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all
+                                                ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
+                                                <span className={`text-[11px] font-black flex-1 ${isHidden ? 'text-indigo-700' : 'text-slate-400'}`}>{ex.title}</span>
+                                                {g.exercises.length === 2 && (
+                                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight">סופרסט</span>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (isHidden) {
+                                                        onToggleExercise(ex.id);
+                                                    } else {
+                                                        requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id));
+                                                    }
+                                                }}
+                                                className={`shrink-0 px-3 py-2 rounded-2xl text-[11px] font-black active:scale-95 transition-all
+                                                    ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                {isHidden ? 'הפעל' : 'הסתר'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                </section>
                 <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
                     <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
                     <div className="space-y-4">
@@ -1173,6 +1208,7 @@ function App() {
     const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
     const [restTimers,       setRestTimers]       = useState({});
     const [restTimerTotals, setRestTimerTotals]   = useState({});
+    const [hiddenExercises,  setHiddenExercises]  = useState(()=>new Set(LS.get('gym-hidden-exercises',[])));
     const [groupOrder,       setGroupOrder]       = useState(()=>{
         const saved = LS.get('gym-group-order', null);
         if (saved && saved.length === exerciseGroups.length) return saved;
@@ -1280,6 +1316,7 @@ function App() {
     useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
     useEffect(()=>{ LS.set('gym-settings',       settings);         },[settings]);
     useEffect(()=>{ LS.set('gym-group-order',    groupOrder);       },[groupOrder]);
+    useEffect(()=>{ LS.set('gym-hidden-exercises',[...hiddenExercises]); },[hiddenExercises]);
     useEffect(()=>{ LS.set('gym-session-start',   sessionStartTime);  },[sessionStartTime]);
     useEffect(()=>{ LS.set('gym-workout-start',   workoutStartTime);  },[workoutStartTime]);
     useEffect(()=>{ LS.set('gym-session-end',       sessionEndTime);    },[sessionEndTime]);
@@ -1528,6 +1565,22 @@ function App() {
         groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean)
     ,[groupOrder]);
 
+    const handleToggleExercise = useCallback((exId) => {
+        setHiddenExercises(prev => {
+            const next = new Set(prev);
+            if (next.has(exId)) next.delete(exId); else next.add(exId);
+            return next;
+        });
+    }, []);
+
+    const visibleGroups = useMemo(()=>
+        sortedGroups.map(g => {
+            const visExs = g.exercises.filter(e => !hiddenExercises.has(e.id));
+            if (!visExs.length) return null;
+            return {...g, exercises: visExs};
+        }).filter(Boolean)
+    ,[sortedGroups, hiddenExercises]);
+
     const handleMoveGroup = (idx, dir) => {
         setGroupOrder(prev=>{
             const next = [...prev];
@@ -1546,8 +1599,8 @@ function App() {
         })
     ,[logs,workoutStartTime,skippedGroups]);
 
-    const completedCount    = useMemo(()=>sortedGroups.filter(isGroupDone).length,          [sortedGroups,isGroupDone]);
-    const nextIncompleteIndex = useMemo(()=>sortedGroups.findIndex(g=>!isGroupDone(g)),     [sortedGroups,isGroupDone]);
+    const completedCount    = useMemo(()=>visibleGroups.filter(isGroupDone).length,          [visibleGroups,isGroupDone]);
+    const nextIncompleteIndex = useMemo(()=>visibleGroups.findIndex(g=>!isGroupDone(g)),     [visibleGroups,isGroupDone]);
 
     useEffect(()=>{
         if (view!=='list') return;
@@ -1560,7 +1613,7 @@ function App() {
     const handleSkipGroup = useCallback((groupId)=>{
         setSkippedGroups(prev=>{
             const newSkipped = prev.includes(groupId) ? prev.filter(id=>id!==groupId) : [...prev, groupId];
-            const allDone = sortedGroups.every(g=>{
+            const allDone = visibleGroups.every(g=>{
                 if (newSkipped.includes(g.id)) return true;
                 return g.exercises.every(ex=>{
                     const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>workoutStartTime);
@@ -1576,7 +1629,7 @@ function App() {
             }
             return newSkipped;
         });
-    },[sortedGroups,logs,workoutStartTime,workoutSec]);
+    },[visibleGroups,logs,workoutStartTime,workoutSec]);
 
     const handleExerciseComplete = useCallback(()=>{
         // קריאה ישירה מ-refs כדי להימנע מ-stale closure אחרי setLogs
@@ -1587,7 +1640,7 @@ function App() {
             const sl = curLogs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>curWst);
             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
         });
-        const nextGroup = sortedGroups.find(g=>!isDone(g));
+        const nextGroup = visibleGroups.find(g=>!isDone(g));
         if (nextGroup) {
             setActiveGroup(nextGroup); setView('detail');
             setScrollToExId(nextGroup.exercises[0].id);
@@ -1768,7 +1821,7 @@ function App() {
 
     if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); const _next=sortedGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} /></>;
 
     // List view
     return (
@@ -1914,7 +1967,7 @@ function App() {
             </header>
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
-                {sortedGroups.map((group,idx)=>{
+                {visibleGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
                     const isDoneReal = isDone && !isSkipped;
@@ -1926,7 +1979,7 @@ function App() {
                                     className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:bg-slate-200 disabled:opacity-20">
                                     <Icon name="ChevronUp" size={14} />
                                 </button>
-                                <button onClick={()=>handleMoveGroup(idx,1)} disabled={idx===sortedGroups.length-1}
+                                <button onClick={()=>handleMoveGroup(idx,1)} disabled={idx===visibleGroups.length-1}
                                     className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:bg-slate-200 disabled:opacity-20">
                                     <Icon name="ChevronDown" size={14} />
                                 </button>
