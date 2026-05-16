@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '5.3';
+const APP_VERSION = '5.4';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -383,7 +383,7 @@ function VideoInput({ exId, onSave }) {
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
-    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6' }) {
+    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null }) {
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
 
@@ -398,7 +398,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     )].slice(0,5), [logs, ex.id]);
     const [isSaving, setIsSaving] = useState(false);
 
+    const cameBack    = React.useRef(false);
     const initialized = React.useRef(false);
+    // זיהוי "חזרה" לתרגיל שכבר הסתיים לפני כן
+    useEffect(() => { if (done.s1 && done.s2) cameBack.current = true; }, []); // eslint-disable-line
     useEffect(() => {
         if (initialized.current || logs.length === 0) return;
         const last = [...logs].filter(l=>l.exId===ex.id)
@@ -421,12 +424,24 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     }), [logs, ex.id, sessionStartTime]);
 
     const handleSetSave = async (num, state) => {
-        setIsSaving(true);
-        try {
-            await onSave(ex.id, num, state.w, state.r, isSuperset);
-            if (num === 1) setS2({w:state.w, r:state.r, wC:false, rC:false});
-            if (num===2 && isLast) setTimeout(onFinish, 800);
-        } finally { setIsSaving(false); }
+        const isDoneSet = num===1 ? done.s1 : done.s2;
+        const doSave = async () => {
+            setIsSaving(true);
+            try {
+                await onSave(ex.id, num, state.w, state.r, isSuperset);
+                if (!isDoneSet) {
+                    if (num === 1) setS2({w:state.w, r:state.r, wC:false, rC:false});
+                    if (num===2 && isLast) setTimeout(onFinish, 800);
+                }
+                if (num===1) setS1(p=>({...p,wC:false,rC:false}));
+                else setS2(p=>({...p,wC:false,rC:false}));
+            } finally { setIsSaving(false); }
+        };
+        if (cameBack.current && requestConfirm) {
+            requestConfirm('לשנות את נתוני הסט?', doSave);
+        } else {
+            await doSave();
+        }
     };
 
     const handleSkipSet = async (num) => {
@@ -456,7 +471,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
-                const canAct   = !isDone && !isSaving && (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled));
+                const canAct   = !isSaving && (isDone ? true : (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled)));
                 // סופרסט: Set2 ממתין לטיימר של התרגיל האחר — מציג ספירה לאחור
                 const isCrossTimerSet2 = num===2 && !isDone && done.s1 && forceSet2Disabled && prevRestTimerTotal > 0 && prevRestTimer > 0;
                 const hasConic1 = num===1 && !done.s1 && prevRestTimerTotal > 0;
@@ -493,12 +508,13 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,2,3,5]} />
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
-                                className={`px-4 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95 shrink-0
-                                    ${isDone    ? 'bg-slate-100 text-slate-300 shadow-none'
-                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 active:bg-blue-700'
+                                className={`px-4 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-95 shrink-0
+                                    ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
+                                    : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
+                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700'
                                     : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
-                                    : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
-                                {isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
+                                    : 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg'}`}>
+                                {isDone && (state.wC||state.rC) ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
                             </button>
                         </div>
                         {num===1 && <div className="h-1.5" />}
@@ -790,7 +806,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
-                    accentColor={accentHex} />
+                    accentColor={accentHex} requestConfirm={requestConfirm} />
             </div>
         );
     };
@@ -1418,6 +1434,12 @@ function App() {
 
     const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
         const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
+        const wst = sstRef.current;
+        const isReplace = logsRef.current.some(l=>l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst);
+        if (isReplace) {
+            setLogs(prev=>[...prev.filter(l=>!(l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst)), newLog]);
+            return;
+        }
         setLogs(prev=>[...prev, newLog]);
         const dur = isSuperset ? settings.supersetRest : settings.normalRest;
         setRestTimers({[exId]: dur});
