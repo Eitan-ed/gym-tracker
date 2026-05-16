@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '5.5';
+const APP_VERSION = '5.6';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1047,7 +1047,9 @@ const playPhoneRingSound = () => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup }) => {
+    const [open, setOpen] = useState({exercises:true, backup:false, music:false, settings:false});
+    const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
     const handleBackup = () => {
         triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
@@ -1094,31 +1096,34 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
-                {/* ── סקציית תרגילים ── */}
-                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
-                    <div className="space-y-3">
+                {/* ── תרגילים ── */}
+                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
+                        <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.exercises && <div className="px-5 pb-5 space-y-2">
                         {exerciseGroups.map(g => (
-                            <div key={g.id}>
+                            <div key={g.id} className="space-y-1.5">
                                 {g.exercises.map(ex => {
                                     const isHidden = hiddenExercises.has(ex.id);
+                                    const img = images[ex.id];
                                     return (
-                                        <div key={ex.id} className="flex items-center gap-3 py-1.5">
-                                            <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all
-                                                ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
-                                                <span className={`text-[11px] font-black flex-1 ${isHidden ? 'text-indigo-700' : 'text-slate-400'}`}>{ex.title}</span>
+                                        <div key={ex.id} className="flex items-center gap-2">
+                                            <button onClick={()=>onNavigateToGroup && onNavigateToGroup(g)}
+                                                className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all active:scale-[0.98]
+                                                    ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
+                                                {img
+                                                    ? <img src={img} className="w-8 h-8 rounded-xl object-cover shrink-0" />
+                                                    : <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg bg-gradient-to-br ${g.color} shrink-0`}>{g.icon}</div>
+                                                }
+                                                <span className={`text-[11px] font-black flex-1 text-right truncate ${isHidden ? 'text-indigo-700' : 'text-slate-400'}`}>{ex.title}</span>
                                                 {g.exercises.length === 2 && (
-                                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight">סופרסט</span>
+                                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight shrink-0">סופרסט</span>
                                                 )}
-                                            </div>
+                                            </button>
                                             <button
-                                                onClick={() => {
-                                                    if (isHidden) {
-                                                        onToggleExercise(ex.id);
-                                                    } else {
-                                                        requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id));
-                                                    }
-                                                }}
+                                                onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
                                                 className={`shrink-0 px-3 py-2 rounded-2xl text-[11px] font-black active:scale-95 transition-all
                                                     ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                                 {isHidden ? 'הפעל' : 'הסתר'}
@@ -1128,11 +1133,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 })}
                             </div>
                         ))}
-                    </div>
+                    </div>}
                 </section>
-                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
-                    <div className="space-y-4">
+                {/* ── גיבוי ושחזור ── */}
+                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
+                        <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.backup && <div className="px-5 pb-5 space-y-4">
                         <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
                             <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">הורדת קובץ למכשיר</div></div>
@@ -1142,11 +1151,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
                             <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
                         </label>
-                    </div>
+                    </div>}
                 </section>
-                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
-                    <div className="space-y-3">
+                {/* ── מוזיקה ── */}
+                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <button onClick={()=>toggleSection('music')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
+                        <Icon name={open.music?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.music && <div className="px-5 pb-5 space-y-3">
                         {musicList.length > 0 && (
                             <div className="space-y-1.5">
                                 {musicList.map(t => (
@@ -1160,7 +1173,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         )}
                         <label className="w-full flex items-center gap-3 bg-purple-50 p-4 rounded-2xl border border-purple-100 text-purple-700 cursor-pointer active:scale-[0.98]">
                             <div className="bg-purple-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                            <div><div className="font-black text-sm">הוסף קבצי שמע</div><div className="text-[10px] font-bold opacity-70">MP3, M4A, AAC, OGG, WAV — ניתן לבחור כמה</div></div>
+                            <div><div className="font-black text-sm">הוסף קבצי שמע</div><div className="text-[10px] font-bold opacity-70">MP3, M4A, AAC, OGG, WAV</div></div>
                             <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden" onChange={e=>onMusicUpload(e.target.files)} />
                         </label>
                         {musicList.length > 0 && (
@@ -1170,11 +1183,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <div className="font-black text-sm">מחק הכל</div>
                             </button>
                         )}
-                    </div>
+                    </div>}
                 </section>
-                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Settings" size={20} className="text-blue-500" /> הגדרות אימון</h3>
-                    <div className="space-y-4">
+                {/* ── הגדרות אימון ── */}
+                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <button onClick={()=>toggleSection('settings')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-blue-500" /> הגדרות אימון</h3>
+                        <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.settings && <div className="px-5 pb-5 space-y-4">
                         {[
                             {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120,150,180]},
                             {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60,90,120]}
@@ -1191,7 +1208,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 </select>
                             </div>
                         ))}
-                    </div>
+                    </div>}
                 </section>
             </div>
         </div>
@@ -1819,9 +1836,9 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); const _next=sortedGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);setView('detail');setScrollToExId(g.exercises[0].id);}} /></>;
 
     // List view
     return (
@@ -1991,7 +2008,7 @@ function App() {
                                     <div className="flex items-start gap-4">
                                         <div className="flex flex-col items-center gap-0.5 shrink-0">
                                             <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
-                                            <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{sortedGroups.length}</span>
+                                            <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{visibleGroups.length}</span>
                                         </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
