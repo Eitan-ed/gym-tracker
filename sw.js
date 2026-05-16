@@ -1,11 +1,24 @@
-const CACHE_NAME = 'gym-tracker-v5.7';
+const CACHE_NAME = 'gym-tracker-v5.8';
 
 const ASSETS = [
   './gym-tracker.html',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './images/ex1.png',
+  './images/ex2.png',
+  './images/ex3.png',
+  './images/ex4.png',
+  './images/ex5a.png',
+  './images/ex5b.png',
+  './images/ex6.png',
+  './images/ex7b.png',
+  './images/ex7c.png',
+  './images/ex8.png',
+  './images/ex9.png',
+  './images/ex10a.png',
+  './images/ex10b.png'
 ];
 
 // התקנה — מאחסן assets בסיסיים
