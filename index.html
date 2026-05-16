@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '5.8';
+const APP_VERSION = '5.9';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -2007,7 +2007,7 @@ function App() {
                                 <div className={`flex items-center justify-between p-4 rounded-[1.4rem] ${isDoneReal?'bg-slate-50':isSkipped?'bg-orange-50/40':'bg-white'}`}>
                                     <div className="flex items-start gap-4">
                                         <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                            <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
+                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); return src ? <img src={src} className={`w-12 h-12 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
                                             <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{visibleGroups.length}</span>
                                         </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
