@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.0';
+const APP_VERSION = '6.1';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -173,14 +173,20 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
         listRef.current.scrollTo({ top: idx * DRUM_H, behavior: smooth ? 'smooth' : 'instant' });
     }, []);
 
-    // כשנפתח — אתחל localVal לערך הנוכחי
-    useEffect(() => { if (open) setLocalVal(value); }, [open]);
+    // כשנפתח — אתחל localVal לערך הנוכחי (מעוגל לאפשרות הקרובה אם לא קיים בדיוק)
+    useEffect(() => {
+        if (!open) return;
+        const exact = options.indexOf(value);
+        if (exact >= 0) { setLocalVal(value); return; }
+        const ni = options.reduce((b, o, i) => Math.abs(o - value) < Math.abs(options[b] - value) ? i : b, 0);
+        setLocalVal(options[ni]);
+    }, [open]);
 
     // כשlocalVal משתנה מכפתור — גלול לשם
     useEffect(() => {
         if (!open) return;
-        const idx = options.indexOf(localVal);
-        if (idx < 0) return;
+        let idx = options.indexOf(localVal);
+        if (idx < 0) idx = options.reduce((b,o,i) => Math.abs(o-localVal)<Math.abs(options[b]-localVal)?i:b, 0);
         settling.current = true;
         requestAnimationFrame(() => {
             scrollTo(idx, fromBtn.current);
@@ -822,15 +828,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     return (
     <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0`}>
-            <button onClick={onBack} className="absolute top-3 left-4 p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
-                <Icon name="Home" size={18} />
-            </button>
-            {onMusicToggle && (
-                <button onClick={onMusicToggle} className={`absolute top-3 right-4 p-2 backdrop-blur-xl rounded-full text-white active:scale-90 shadow transition-all
-                    ${musicList.length > 0 ? (musicPlaying ? 'bg-purple-500/80' : 'bg-white/20') : 'bg-white/10'}`}>
-                    <Icon name="Music" size={18} />
+            <div className="absolute top-3 left-4 flex items-center gap-1.5">
+                <button onClick={onBack} className="p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
+                    <Icon name="Home" size={18} />
                 </button>
-            )}
+                {onMusicToggle && (
+                    <button onClick={onMusicToggle} className={`p-2 backdrop-blur-xl rounded-full text-white active:scale-90 shadow transition-all
+                        ${musicList.length > 0 ? (musicPlaying ? 'bg-purple-500/80' : 'bg-white/20') : 'bg-white/10'}`}>
+                        <Icon name="Music" size={18} />
+                    </button>
+                )}
+            </div>
             <div className="flex items-center gap-3 px-9">
                 <h2 className="text-base font-black text-white leading-none tracking-tight">
                     <span className="font-black text-xl ml-1.5">{groupIdx+1}</span><span className="opacity-60 font-bold text-sm">/{totalGroups}</span>
