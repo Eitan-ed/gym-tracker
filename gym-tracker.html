@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.1';
+const APP_VERSION = '6.2';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -504,18 +504,30 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 : isDone   ? 'border border-slate-100'
                                 : timerDone? 'border border-slate-700 shadow-md'
                                 :            'border border-slate-100 shadow-sm'}`}>
-                            <div className="w-10 h-14 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
+                            <div className="w-8 h-14 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
                                 style={{background: (isActive || timerDone) ? accentColor : '#0f172a'}}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
-                            <div className="flex flex-1 gap-2">
-                                <Roller label="ק״ג"   min={0} max={250} step={weightStep} value={state.w} isChanged={state.wC}
-                                    onChange={v=>{ setState(p=>({...p,w:v,wC:true})); if(num===1&&!done.s2) setS2(p=>({...p,w:v})); }}
-                                    presets={weightPresets} jumpSteps={weightJumpSteps} />
-                                <Roller label="חזרות" min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
-                                    onChange={v=>setState(p=>({...p,r:v,rC:true}))}
-                                    presets={repsPresets} jumpSteps={repsJumpSteps} />
+                            <div className="flex flex-1 gap-1.5">
+                                <div className="flex items-stretch flex-1 gap-0.5">
+                                    <button onClick={()=>{const nw=parseFloat(Math.max(0,state.w-weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:nw}));}}
+                                        className="px-1.5 bg-rose-50 text-rose-500 rounded-xl font-black text-base active:bg-rose-100 shrink-0 flex items-center">−</button>
+                                    <Roller label="ק״ג" min={0} max={250} step={weightStep} value={state.w} isChanged={state.wC}
+                                        onChange={v=>{setState(p=>({...p,w:v,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:v}));}}
+                                        presets={weightPresets} jumpSteps={weightJumpSteps} />
+                                    <button onClick={()=>{const nw=parseFloat(Math.min(250,state.w+weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:nw}));}}
+                                        className="px-1.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-base active:bg-emerald-100 shrink-0 flex items-center">+</button>
+                                </div>
+                                <div className="flex items-stretch flex-1 gap-0.5">
+                                    <button onClick={()=>setState(p=>({...p,r:Math.max(1,p.r-repsStep),rC:true}))}
+                                        className="px-1.5 bg-rose-50 text-rose-500 rounded-xl font-black text-base active:bg-rose-100 shrink-0 flex items-center">−</button>
+                                    <Roller label="חזרות" min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
+                                        onChange={v=>setState(p=>({...p,r:v,rC:true}))}
+                                        presets={repsPresets} jumpSteps={repsJumpSteps} />
+                                    <button onClick={()=>setState(p=>({...p,r:Math.min(120,p.r+repsStep),rC:true}))}
+                                        className="px-1.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-base active:bg-emerald-100 shrink-0 flex items-center">+</button>
+                                </div>
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
                                 className={`px-4 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-95 shrink-0
@@ -685,9 +697,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         {hasVideo && (
                             <div className="flex-1 flex flex-col">{videoBtn(false)}</div>
                         )}
-                        {!hasVideo && !youtubeId && (
-                            <div className="flex-1"><VideoInput exId={ex.id} onSave={onSaveVideo} /></div>
-                        )}
+                        {!hasVideo && !youtubeId && <div className="flex-1" />}
                     </div>
                 ) : (
                     /* תרגיל רגיל */
@@ -715,7 +725,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 📷 הוסף תמונה שלך
                             </label>
                         )}
-                        {!youtubeId && <VideoInput exId={ex.id} onSave={onSaveVideo} />}
                     </>
                 )}
                 {/* how-to */}
@@ -784,7 +793,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
                                     <Icon name="History" size={13} className="text-indigo-400" /> היסטוריה ({hist10.length} סטים)
                                 </span>
-                                <Icon name={isOpen?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400" />
+                                <div className="flex items-center gap-2">
+                                    {hist10[0]?.weight > 0 && (
+                                        <span className="text-xs font-black text-red-500">{hist10[0].weight} kg</span>
+                                    )}
+                                    <Icon name={isOpen?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400" />
+                                </div>
                             </button>
                             {isOpen && (
                                 <div className="px-3 pb-3 space-y-1.5">
@@ -828,17 +842,19 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     return (
     <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0`}>
-            <div className="absolute top-3 left-4 flex items-center gap-1.5">
+            <div className="absolute top-3 left-4">
                 <button onClick={onBack} className="p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
                     <Icon name="Home" size={18} />
                 </button>
-                {onMusicToggle && (
+            </div>
+            {onMusicToggle && (
+                <div className="absolute top-3 right-4">
                     <button onClick={onMusicToggle} className={`p-2 backdrop-blur-xl rounded-full text-white active:scale-90 shadow transition-all
                         ${musicList.length > 0 ? (musicPlaying ? 'bg-purple-500/80' : 'bg-white/20') : 'bg-white/10'}`}>
                         <Icon name="Music" size={18} />
                     </button>
-                )}
-            </div>
+                </div>
+            )}
             <div className="flex items-center gap-3 px-9">
                 <h2 className="text-base font-black text-white leading-none tracking-tight">
                     <span className="font-black text-xl ml-1.5">{groupIdx+1}</span><span className="opacity-60 font-bold text-sm">/{totalGroups}</span>
@@ -1068,10 +1084,63 @@ const playPhoneRingSound = () => {
     } catch(e) {}
 };
 
+// ─── WorkoutProgressCalendar ───────────────────────────────
+const WorkoutProgressCalendar = ({ logs }) => {
+    const [cur, setCur] = useState(() => { const d=new Date(); return {y:d.getFullYear(),m:d.getMonth()}; });
+    const workoutDays = useMemo(() => {
+        const s = new Set();
+        logs.forEach(l => { const d=new Date(l.timestamp); if(d.getFullYear()===cur.y&&d.getMonth()===cur.m) s.add(d.getDate()); });
+        return s;
+    }, [logs, cur]);
+    const daysInMonth = new Date(cur.y, cur.m+1, 0).getDate();
+    const firstDay    = new Date(cur.y, cur.m, 1).getDay();
+    const monthName   = new Date(cur.y, cur.m, 1).toLocaleDateString('he-IL',{month:'long',year:'numeric'});
+    const today       = new Date();
+    const isCurMonth  = today.getFullYear()===cur.y && today.getMonth()===cur.m;
+    const prev = () => setCur(p=>{ const d=new Date(p.y,p.m-1); return {y:d.getFullYear(),m:d.getMonth()}; });
+    const next = () => setCur(p=>{ const d=new Date(p.y,p.m+1); return {y:d.getFullYear(),m:d.getMonth()}; });
+    return (
+        <div className="px-5 pb-5">
+            <div className="flex items-center justify-between mb-3" dir="ltr">
+                <button onClick={prev} className="p-2 bg-slate-100 rounded-xl active:scale-95 active:bg-slate-200">
+                    <Icon name="ChevronLeft" size={16} className="text-slate-600" />
+                </button>
+                <div className="text-center">
+                    <div className="font-black text-slate-800 text-sm">{monthName}</div>
+                    <div className="text-[11px] font-bold text-emerald-600">{workoutDays.size} אימונים</div>
+                </div>
+                <button onClick={next} disabled={isCurMonth}
+                    className={`p-2 rounded-xl active:scale-95 active:bg-slate-200 ${isCurMonth?'opacity-25':'bg-slate-100'}`}>
+                    <Icon name="ChevronLeft" size={16} className="text-slate-600 rotate-180" />
+                </button>
+            </div>
+            <div className="grid grid-cols-7 mb-1" dir="ltr">
+                {['א','ב','ג','ד','ה','ו','ש'].map(d=>(
+                    <div key={d} className="text-center text-[10px] font-black text-slate-400">{d}</div>
+                ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1" dir="ltr">
+                {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`}/>)}
+                {Array.from({length:daysInMonth}).map((_,i)=>{
+                    const day=i+1;
+                    const isTrain=workoutDays.has(day);
+                    const isToday=isCurMonth&&today.getDate()===day;
+                    return (
+                        <div key={day} className={`aspect-square rounded-xl flex items-center justify-center text-[12px] font-black
+                            ${isTrain?'bg-emerald-500 text-white shadow-sm':isToday?'bg-blue-100 text-blue-700':'bg-slate-50 text-slate-400'}`}>
+                            {day}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup }) => {
-    const [open, setOpen] = useState({exercises:true, backup:false, music:false, settings:false});
+    const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false});
     const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
     const handleBackup = () => {
         triggerBackupDownload({
@@ -1232,6 +1301,14 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             </div>
                         ))}
                     </div>}
+                </section>
+                {/* ── התקדמות אימון ── */}
+                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> התקדמות אימון</h3>
+                        <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.progress && <WorkoutProgressCalendar logs={logs} />}
                 </section>
             </div>
         </div>
