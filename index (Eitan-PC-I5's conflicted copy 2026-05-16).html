@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.0';
+const APP_VERSION = '5.3';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -238,7 +238,7 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
                                 .map(d => parseFloat((localVal + d).toFixed(4)))
                                 .filter(v => v >= min && v <= max);
                             return (
-                                <div className="px-5 pb-2 flex gap-2 overflow-x-auto no-scrollbar justify-center" dir="ltr">
+                                <div className="px-5 pb-2 flex gap-2 overflow-x-auto no-scrollbar justify-center">
                                     {nearby.map(p => (
                                         <button key={p}
                                             onClick={() => { if (p === localVal) { confirm(); return; } fromBtn.current=true; setLocalVal(p); }}
@@ -383,8 +383,7 @@ function VideoInput({ exId, onSave }) {
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
-    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
-    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5] }) {
+    forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6' }) {
     const [s1, setS1] = useState({ w:10, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:10, r:10, wC:false, rC:false });
 
@@ -399,10 +398,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     )].slice(0,5), [logs, ex.id]);
     const [isSaving, setIsSaving] = useState(false);
 
-    const cameBack    = React.useRef(false);
     const initialized = React.useRef(false);
-    // זיהוי "חזרה" לתרגיל שכבר הסתיים לפני כן
-    useEffect(() => { if (done.s1 && done.s2) cameBack.current = true; }, []); // eslint-disable-line
     useEffect(() => {
         if (initialized.current || logs.length === 0) return;
         const last = [...logs].filter(l=>l.exId===ex.id)
@@ -425,23 +421,12 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     }), [logs, ex.id, sessionStartTime]);
 
     const handleSetSave = async (num, state) => {
-        const isDoneSet = num===1 ? done.s1 : done.s2;
-        const doSave = async () => {
-            setIsSaving(true);
-            try {
-                await onSave(ex.id, num, state.w, state.r, isSuperset);
-                if (!isDoneSet) {
-                    if (num===2 && isLast) setTimeout(onFinish, 800);
-                }
-                if (num===1) setS1(p=>({...p,wC:false,rC:false}));
-                else setS2(p=>({...p,wC:false,rC:false}));
-            } finally { setIsSaving(false); }
-        };
-        if (cameBack.current && requestConfirm) {
-            requestConfirm('לשנות את נתוני הסט?', doSave);
-        } else {
-            await doSave();
-        }
+        setIsSaving(true);
+        try {
+            await onSave(ex.id, num, state.w, state.r, isSuperset);
+            if (num === 1) setS2({w:state.w, r:state.r, wC:false, rC:false});
+            if (num===2 && isLast) setTimeout(onFinish, 800);
+        } finally { setIsSaving(false); }
     };
 
     const handleSkipSet = async (num) => {
@@ -471,7 +456,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
-                const canAct   = !isSaving && (isDone ? true : (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled)));
+                const canAct   = !isDone && !isSaving && (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled));
                 // סופרסט: Set2 ממתין לטיימר של התרגיל האחר — מציג ספירה לאחור
                 const isCrossTimerSet2 = num===2 && !isDone && done.s1 && forceSet2Disabled && prevRestTimerTotal > 0 && prevRestTimer > 0;
                 const hasConic1 = num===1 && !done.s1 && prevRestTimerTotal > 0;
@@ -504,21 +489,16 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
                             <div className="flex flex-1 gap-2">
-                                <Roller label="ק״ג"   min={0} max={250} step={weightStep} value={state.w} isChanged={state.wC}
-                                    onChange={v=>{ setState(p=>({...p,w:v,wC:true})); if(num===1&&!done.s2) setS2(p=>({...p,w:v})); }}
-                                    presets={weightPresets} jumpSteps={weightJumpSteps} />
-                                <Roller label="חזרות" min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
-                                    onChange={v=>setState(p=>({...p,r:v,rC:true}))}
-                                    presets={repsPresets} jumpSteps={repsJumpSteps} />
+                                <Roller label="ק״ג"   min={0} max={250} step={0.5} value={state.w} isChanged={state.wC} onChange={v=>setState(p=>({...p,w:v,wC:true}))} presets={weightPresets} jumpSteps={[0.5,1,5]} />
+                                <Roller label="חזרות" min={1} max={120}            value={state.r} isChanged={state.rC} onChange={v=>setState(p=>({...p,r:v,rC:true}))} presets={repsPresets}   jumpSteps={[1,2,3,5]} />
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
-                                className={`px-4 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all active:scale-95 shrink-0
-                                    ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
-                                    : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
-                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700'
+                                className={`px-4 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg active:scale-95 shrink-0
+                                    ${isDone    ? 'bg-slate-100 text-slate-300 shadow-none'
+                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 active:bg-blue-700'
                                     : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
-                                    : 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg'}`}>
-                                {isDone && (state.wC||state.rC) ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
+                                    : 'bg-emerald-500 text-white shadow-emerald-200'}`}>
+                                {isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
                             </button>
                         </div>
                         {num===1 && <div className="h-1.5" />}
@@ -571,7 +551,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, onNavigateTo }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -810,11 +790,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
-                    accentColor={accentHex} requestConfirm={requestConfirm}
-                    weightStep={ex.id==='ex7b' ? 4 : 0.5}
-                    weightJumpSteps={ex.id==='ex7b' ? [2,4,8] : [0.5,1,5]}
-                    repsStep={['ex10a','ex10b'].includes(ex.id) ? 5 : 1}
-                    repsJumpSteps={['ex10a','ex10b'].includes(ex.id) ? [5,10,15] : [1,2,3,5]} />
+                    accentColor={accentHex} />
             </div>
         );
     };
@@ -825,12 +801,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             <button onClick={onBack} className="absolute top-3 left-4 p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
                 <Icon name="Home" size={18} />
             </button>
-            {onMusicToggle && (
-                <button onClick={onMusicToggle} className={`absolute top-3 right-4 p-2 backdrop-blur-xl rounded-full text-white active:scale-90 shadow transition-all
-                    ${musicList.length > 0 ? (musicPlaying ? 'bg-purple-500/80' : 'bg-white/20') : 'bg-white/10'}`}>
-                    <Icon name="Music" size={18} />
-                </button>
-            )}
             <div className="flex items-center gap-3 px-9">
                 <h2 className="text-base font-black text-white leading-none tracking-tight">
                     <span className="font-black text-xl ml-1.5">{groupIdx+1}</span><span className="opacity-60 font-bold text-sm">/{totalGroups}</span>
@@ -1062,9 +1032,7 @@ const playPhoneRingSound = () => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup }) => {
-    const [open, setOpen] = useState({exercises:true, backup:false, music:false, settings:false});
-    const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll }) => {
     const handleBackup = () => {
         triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
@@ -1111,52 +1079,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
-                {/* ── תרגילים ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
-                        <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
-                    </button>
-                    {open.exercises && <div className="px-5 pb-5 space-y-2">
-                        {exerciseGroups.map(g => (
-                            <div key={g.id} className="space-y-1.5">
-                                {g.exercises.map(ex => {
-                                    const isHidden = hiddenExercises.has(ex.id);
-                                    const img = images?.[ex.id] || (EXERCISE_IMAGES[ex.id] ? `images/${EXERCISE_IMAGES[ex.id]}` : null);
-                                    return (
-                                        <div key={ex.id} className="flex items-center gap-2">
-                                            <button onClick={()=>onNavigateToGroup && onNavigateToGroup(g)}
-                                                className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all active:scale-[0.98]
-                                                    ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
-                                                {img
-                                                    ? <img src={img} className="w-8 h-8 rounded-xl object-cover shrink-0" />
-                                                    : <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg bg-gradient-to-br ${g.color} shrink-0`}>{g.icon}</div>
-                                                }
-                                                <span className={`text-[11px] font-black flex-1 text-right truncate ${isHidden ? 'text-indigo-700' : 'text-slate-400'}`}>{ex.title}</span>
-                                                {g.exercises.length === 2 && (
-                                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight shrink-0">סופרסט</span>
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
-                                                className={`shrink-0 px-3 py-2 rounded-2xl text-[11px] font-black active:scale-95 transition-all
-                                                    ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                {isHidden ? 'הפעל' : 'הסתר'}
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </div>}
-                </section>
-                {/* ── גיבוי ושחזור ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
-                        <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
-                    </button>
-                    {open.backup && <div className="px-5 pb-5 space-y-4">
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
+                    <div className="space-y-4">
                         <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
                             <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">הורדת קובץ למכשיר</div></div>
@@ -1166,15 +1091,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
                             <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
                         </label>
-                    </div>}
+                    </div>
                 </section>
-                {/* ── מוזיקה ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <button onClick={()=>toggleSection('music')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
-                        <Icon name={open.music?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
-                    </button>
-                    {open.music && <div className="px-5 pb-5 space-y-3">
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
+                    <div className="space-y-3">
                         {musicList.length > 0 && (
                             <div className="space-y-1.5">
                                 {musicList.map(t => (
@@ -1188,7 +1109,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         )}
                         <label className="w-full flex items-center gap-3 bg-purple-50 p-4 rounded-2xl border border-purple-100 text-purple-700 cursor-pointer active:scale-[0.98]">
                             <div className="bg-purple-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                            <div><div className="font-black text-sm">הוסף קבצי שמע</div><div className="text-[10px] font-bold opacity-70">MP3, M4A, AAC, OGG, WAV</div></div>
+                            <div><div className="font-black text-sm">הוסף קבצי שמע</div><div className="text-[10px] font-bold opacity-70">MP3, M4A, AAC, OGG, WAV — ניתן לבחור כמה</div></div>
                             <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden" onChange={e=>onMusicUpload(e.target.files)} />
                         </label>
                         {musicList.length > 0 && (
@@ -1198,15 +1119,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <div className="font-black text-sm">מחק הכל</div>
                             </button>
                         )}
-                    </div>}
+                    </div>
                 </section>
-                {/* ── הגדרות אימון ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <button onClick={()=>toggleSection('settings')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-blue-500" /> הגדרות אימון</h3>
-                        <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
-                    </button>
-                    {open.settings && <div className="px-5 pb-5 space-y-4">
+                <section className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2"><Icon name="Settings" size={20} className="text-blue-500" /> הגדרות אימון</h3>
+                    <div className="space-y-4">
                         {[
                             {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120,150,180]},
                             {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60,90,120]}
@@ -1223,7 +1140,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 </select>
                             </div>
                         ))}
-                    </div>}
+                    </div>
                 </section>
             </div>
         </div>
@@ -1240,7 +1157,6 @@ function App() {
     const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
     const [restTimers,       setRestTimers]       = useState({});
     const [restTimerTotals, setRestTimerTotals]   = useState({});
-    const [hiddenExercises,  setHiddenExercises]  = useState(()=>new Set(LS.get('gym-hidden-exercises',[])));
     const [groupOrder,       setGroupOrder]       = useState(()=>{
         const saved = LS.get('gym-group-order', null);
         if (saved && saved.length === exerciseGroups.length) return saved;
@@ -1265,10 +1181,6 @@ function App() {
     const [showSummary,      setShowSummary]      = useState(false);
     const [isWorkoutComplete,setIsWorkoutComplete]= useState(false);
     const [toast,            setToast]            = useState(null);
-    const [workoutDecisionMade, setWorkoutDecisionMade] = useState(false);
-    const [summaryNote,      setSummaryNote]      = useState('');
-    const [audioCurrentTime, setAudioCurrentTime] = useState(0);
-    const [audioDuration,    setAudioDuration]    = useState(0);
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
@@ -1352,7 +1264,6 @@ function App() {
     useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
     useEffect(()=>{ LS.set('gym-settings',       settings);         },[settings]);
     useEffect(()=>{ LS.set('gym-group-order',    groupOrder);       },[groupOrder]);
-    useEffect(()=>{ LS.set('gym-hidden-exercises',[...hiddenExercises]); },[hiddenExercises]);
     useEffect(()=>{ LS.set('gym-session-start',   sessionStartTime);  },[sessionStartTime]);
     useEffect(()=>{ LS.set('gym-workout-start',   workoutStartTime);  },[workoutStartTime]);
     useEffect(()=>{ LS.set('gym-session-end',       sessionEndTime);    },[sessionEndTime]);
@@ -1407,8 +1318,6 @@ function App() {
     useEffect(()=>{ sstRef.current = workoutStartTime; },[workoutStartTime]);
     const skippedRef = React.useRef(skippedGroups);
     useEffect(()=>{ skippedRef.current = skippedGroups; },[skippedGroups]);
-    const visibleGroupsRef = React.useRef([]);
-    useEffect(()=>{ visibleGroupsRef.current = visibleGroups; },[visibleGroups]);
 
     useEffect(()=>{
         const t = setInterval(()=>{
@@ -1438,8 +1347,7 @@ function App() {
                 const curLogs = logsRef.current;
                 const curSst  = sstRef.current;
                 const curSkip = skippedRef.current;
-                const curVis  = visibleGroupsRef.current;
-                const targetGroup = curVis.find(g => g.exercises.some(e => e.id === completedExId));
+                const targetGroup = exerciseGroups.find(g => g.exercises.some(e => e.id === completedExId));
                 if (targetGroup) {
                     const isDoneEx = ex => {
                         const sl = curLogs.filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > curSst);
@@ -1447,7 +1355,7 @@ function App() {
                     };
                     const groupDone = targetGroup.exercises.every(isDoneEx);
                     if (groupDone) {
-                        const nextGroup = curVis.find(g => {
+                        const nextGroup = exerciseGroups.find(g => {
                             if (curSkip.includes(g.id)) return false;
                             return !g.exercises.every(isDoneEx);
                         });
@@ -1510,12 +1418,6 @@ function App() {
 
     const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
         const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
-        const wst = sstRef.current;
-        const isReplace = logsRef.current.some(l=>l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst);
-        if (isReplace) {
-            setLogs(prev=>[...prev.filter(l=>!(l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst)), newLog]);
-            return;
-        }
         setLogs(prev=>[...prev, newLog]);
         const dur = isSuperset ? settings.supersetRest : settings.normalRest;
         setRestTimers({[exId]: dur});
@@ -1587,7 +1489,6 @@ function App() {
         const wst = Date.now();
         setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
         setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
-        setWorkoutDecisionMade(false); setSummaryNote('');
         setWorkoutStartTime(wst); setView('list'); setActiveGroup(null);
     };
 
@@ -1604,22 +1505,6 @@ function App() {
     const sortedGroups = useMemo(()=>
         groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean)
     ,[groupOrder]);
-
-    const handleToggleExercise = useCallback((exId) => {
-        setHiddenExercises(prev => {
-            const next = new Set(prev);
-            if (next.has(exId)) next.delete(exId); else next.add(exId);
-            return next;
-        });
-    }, []);
-
-    const visibleGroups = useMemo(()=>
-        sortedGroups.map(g => {
-            const visExs = g.exercises.filter(e => !hiddenExercises.has(e.id));
-            if (!visExs.length) return null;
-            return {...g, exercises: visExs};
-        }).filter(Boolean)
-    ,[sortedGroups, hiddenExercises]);
 
     const handleMoveGroup = (idx, dir) => {
         setGroupOrder(prev=>{
@@ -1639,8 +1524,8 @@ function App() {
         })
     ,[logs,workoutStartTime,skippedGroups]);
 
-    const completedCount    = useMemo(()=>visibleGroups.filter(isGroupDone).length,          [visibleGroups,isGroupDone]);
-    const nextIncompleteIndex = useMemo(()=>visibleGroups.findIndex(g=>!isGroupDone(g)),     [visibleGroups,isGroupDone]);
+    const completedCount    = useMemo(()=>sortedGroups.filter(isGroupDone).length,          [sortedGroups,isGroupDone]);
+    const nextIncompleteIndex = useMemo(()=>sortedGroups.findIndex(g=>!isGroupDone(g)),     [sortedGroups,isGroupDone]);
 
     useEffect(()=>{
         if (view!=='list') return;
@@ -1653,7 +1538,7 @@ function App() {
     const handleSkipGroup = useCallback((groupId)=>{
         setSkippedGroups(prev=>{
             const newSkipped = prev.includes(groupId) ? prev.filter(id=>id!==groupId) : [...prev, groupId];
-            const allDone = visibleGroups.every(g=>{
+            const allDone = sortedGroups.every(g=>{
                 if (newSkipped.includes(g.id)) return true;
                 return g.exercises.every(ex=>{
                     const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>workoutStartTime);
@@ -1663,14 +1548,13 @@ function App() {
             if (allDone && newSkipped.length > 0) {
                 setTimeout(()=>{
                     setIsWorkoutActive(false); setIsWorkoutComplete(true);
-                    setRestTimers({}); setRestTimerTotals({});
                     if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[workoutStartTime]:workoutSec})); }
                     setShowSummary(true);
                 }, 300);
             }
             return newSkipped;
         });
-    },[visibleGroups,logs,workoutStartTime,workoutSec]);
+    },[sortedGroups,logs,workoutStartTime,workoutSec]);
 
     const handleExerciseComplete = useCallback(()=>{
         // קריאה ישירה מ-refs כדי להימנע מ-stale closure אחרי setLogs
@@ -1681,13 +1565,12 @@ function App() {
             const sl = curLogs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>curWst);
             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
         });
-        const nextGroup = visibleGroups.find(g=>!isDone(g));
+        const nextGroup = sortedGroups.find(g=>!isDone(g));
         if (nextGroup) {
             setActiveGroup(nextGroup); setView('detail');
             setScrollToExId(nextGroup.exercises[0].id);
         } else {
             setIsWorkoutActive(false); setIsWorkoutComplete(true);
-            setRestTimers({}); setRestTimerTotals({});
             LS.set('gym-last-workout-sec', workoutSec);
             if (workoutSec > 0) setSessionDurations(prev=>({...prev, [workoutStartTime]: workoutSec}));
             setShowSummary(true);
@@ -1697,10 +1580,10 @@ function App() {
     },[sortedGroups,workoutSec,workoutStartTime]);
 
     const handleOpenExercise = group=>{
-        if (!workoutDecisionMade && workoutSec===0 && !isWorkoutActive) {
+        if (workoutSec===0&&!isWorkoutActive) {
             requestConfirm('להפעיל טיימר?',
-                ()=>{ const wst=Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); },
-                ()=>{ setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); }
+                ()=>{ const wst=Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setActiveGroup(group); setView('detail'); },
+                ()=>{                                                                            setActiveGroup(group); setView('detail'); }
             );
         } else { setActiveGroup(group); setView('detail'); }
     };
@@ -1710,8 +1593,6 @@ function App() {
         <>
             <audio ref={audioRef}
                 onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)}
-                onTimeUpdate={()=>{ if(audioRef.current) setAudioCurrentTime(audioRef.current.currentTime); }}
-                onLoadedMetadata={()=>{ if(audioRef.current) setAudioDuration(audioRef.current.duration||0); }}
                 onEnded={()=>{
                     const list = musicListRef.current;
                     if (!list.length || !audioRef.current) return;
@@ -1722,68 +1603,6 @@ function App() {
                     audioRef.current.play().catch(()=>{});
                 }}
                 style={{display:'none'}} />
-            {/* פאנל מוזיקה — מוצג בכל view */}
-            {musicPanelOpen && (
-                <div className="fixed inset-x-0 bottom-20 z-[700] px-3" dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
-                    <div className="bg-slate-900 rounded-2xl px-4 py-3 space-y-2 shadow-2xl border border-slate-700">
-                        {musicList.length > 0 && (
-                            <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
-                                {musicList.map((t,i) => (
-                                    <div key={t.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-xl ${i===musicIndex?'bg-purple-800/60':'bg-slate-800/50'}`}>
-                                        <button onClick={()=>{ const a=audioRef.current; if(a){ a.src=t.url; a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } setMusicIndex(i); }}
-                                            className={`text-[11px] shrink-0 ${i===musicIndex&&musicPlaying?'text-green-400':'text-slate-400'}`}>
-                                            {i===musicIndex&&musicPlaying?'▶':'○'}
-                                        </button>
-                                        <span className="text-[11px] font-bold text-white flex-1 truncate">{t.name}</span>
-                                        <button onClick={()=>handleMusicRemoveOne(t.id)} className="text-slate-500 active:text-red-400 shrink-0">
-                                            <Icon name="Trash2" size={11}/>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {/* seek bar */}
-                        {musicList.length > 0 && audioDuration > 0 && (
-                            <input type="range" min="0" max={audioDuration} step="1"
-                                value={audioCurrentTime}
-                                onChange={e=>{ const t=Number(e.target.value); if(audioRef.current) audioRef.current.currentTime=t; setAudioCurrentTime(t); }}
-                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                                style={{accentColor:'#a855f7'}} />
-                        )}
-                        <div className="flex gap-2 items-center">
-                            {musicList.length > 0 && (
-                                <button onClick={()=>{ const a=audioRef.current; if(!a)return; if(musicPlaying){a.pause();}else{ if(!a.src&&musicList[musicIndex]?.url){a.src=musicList[musicIndex].url;} a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } }}
-                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 shrink-0 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
-                                    {musicPlaying?'⏸':'▶'}
-                                </button>
-                            )}
-                            {musicList.length > 1 && (
-                                <button onClick={()=>{ const next=(musicIndex+1)%musicList.length; setMusicIndex(next); const a=audioRef.current; if(a&&musicList[next]){a.src=musicList[next].url;a.play().catch(()=>{});} }}
-                                    className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏭</button>
-                            )}
-                            <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-1.5 text-[11px] font-black cursor-pointer active:scale-95">
-                                <Icon name="Upload" size={12}/> הוסף
-                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden"
-                                    onChange={e=>handleMusicUpload(e.target.files)} />
-                            </label>
-                            <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer"
-                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full active:scale-90" style={{background:'#1DB954'}}>
-                                <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path fill="white" d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.3.1-.65-.15-.75-.45-.1-.3.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z"/></svg>
-                            </a>
-                            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
-                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl active:scale-90" style={{background:'#FF0000'}}>
-                                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="white" d="M19.6 7.2a2.5 2.5 0 0 0-1.76-1.77C16.25 5 12 5 12 5s-4.25 0-5.84.43A2.5 2.5 0 0 0 4.4 7.2 26 26 0 0 0 4 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C7.75 19 12 19 12 19s4.25 0 5.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 20 12a26 26 0 0 0-.4-4.8z"/><path fill="#FF0000" d="M10 15l5.2-3L10 9v6z"/></svg>
-                            </a>
-                            {musicList.length > 0 && (
-                                <button onClick={handleMusicRemoveAll}
-                                    className="shrink-0 px-2 py-1.5 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
-                                    <Icon name="Trash2" size={13}/>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
             {confirmAction && (
                 <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                     <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
@@ -1836,18 +1655,11 @@ function App() {
                                     </div>
                                 )}
                             </div>
-                            <textarea
-                                value={summaryNote}
-                                onChange={e=>setSummaryNote(e.target.value)}
-                                placeholder="הערות לאימון זה..."
-                                rows={3}
-                                className="w-full bg-amber-50/70 border border-amber-200 rounded-2xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
                             <button onClick={()=>{
                                 triggerBackupDownload({logs, notes, images, videos, settings, groupOrder,
                                     sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
                                     lastWorkoutSec:workoutSec, showDetails:LS.get('gym-show-details',{}),
-                                    sessionDurations:{...sessionDurations,...(workoutSec>0?{[workoutStartTime]:workoutSec}:{})},
-                                    workoutNote:summaryNote});
+                                    sessionDurations:{...sessionDurations,...(workoutSec>0?{[workoutStartTime]:workoutSec}:{})}});
                                 showToast('הגיבוי הורד');
                             }} className="w-full p-3 rounded-xl font-bold text-blue-700 bg-blue-50 border border-blue-200 active:scale-95 flex items-center justify-center gap-2">
                                 <Icon name="Download" size={16}/> גיבוי אימון
@@ -1932,9 +1744,9 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=sortedGroups.findIndex(g=>g.id===activeGroup.id); const _next=sortedGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={sortedGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);setView('detail');setScrollToExId(g.exercises[0].id);}} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} /></>;
 
     // List view
     return (
@@ -2019,10 +1831,68 @@ function App() {
                         </div>
                     );
                 })()}
+                {/* נגן מוזיקה */}
+                {musicPanelOpen && (
+                    <div className="mx-4 mb-3 bg-slate-900 rounded-2xl px-4 py-3 space-y-2" dir="rtl">
+                        {/* רשימת שירים */}
+                        {musicList.length > 0 && (
+                            <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
+                                {musicList.map((t,i) => (
+                                    <div key={t.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-xl ${i===musicIndex?'bg-purple-800/60':'bg-slate-800/50'}`}>
+                                        <button onClick={()=>{ const a=audioRef.current; if(a){ a.src=t.url; a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } setMusicIndex(i); }}
+                                            className={`text-[11px] shrink-0 ${i===musicIndex&&musicPlaying?'text-green-400':'text-slate-400'}`}>
+                                            {i===musicIndex&&musicPlaying?'▶':'○'}
+                                        </button>
+                                        <span className="text-[11px] font-bold text-white flex-1 truncate">{t.name}</span>
+                                        <button onClick={()=>handleMusicRemoveOne(t.id)} className="text-slate-500 active:text-red-400 shrink-0">
+                                            <Icon name="Trash2" size={11}/>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {/* פקדים */}
+                        <div className="flex gap-2 items-center">
+                            {musicList.length > 0 && (
+                                <button onClick={()=>{ const a=audioRef.current; if(!a)return; if(musicPlaying){a.pause();}else{ if(!a.src&&musicList[musicIndex]?.url){a.src=musicList[musicIndex].url;} a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } }}
+                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 shrink-0 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
+                                    {musicPlaying?'⏸':'▶'}
+                                </button>
+                            )}
+                            {musicList.length > 1 && (
+                                <button onClick={()=>setMusicIndex(i=>(i+1)%musicList.length)}
+                                    className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏭</button>
+                            )}
+                            <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-1.5 text-[11px] font-black cursor-pointer active:scale-95">
+                                <Icon name="Upload" size={12}/> הוסף
+                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden"
+                                    onChange={e=>handleMusicUpload(e.target.files)} />
+                            </label>
+                            <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer"
+                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full active:scale-90" style={{background:'#1DB954'}}>
+                                <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path fill="white" d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.3.1-.65-.15-.75-.45-.1-.3.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z"/></svg>
+                            </a>
+                            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
+                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl active:scale-90" style={{background:'#FF0000'}}>
+                                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="white" d="M19.6 7.2a2.5 2.5 0 0 0-1.76-1.77C16.25 5 12 5 12 5s-4.25 0-5.84.43A2.5 2.5 0 0 0 4.4 7.2 26 26 0 0 0 4 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C7.75 19 12 19 12 19s4.25 0 5.84-.43a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 20 12a26 26 0 0 0-.4-4.8z"/><path fill="#FF0000" d="M10 15l5.2-3L10 9v6z"/></svg>
+                            </a>
+                            <button onClick={()=>{ window.open('https://music.youtube.com','_blank'); }}
+                                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl active:scale-90" style={{background:'#1a1a2e'}}>
+                                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="white" d="M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3zm0 2a7 7 0 1 1 0 14A7 7 0 0 1 12 5zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 12 7zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-3.5-1.5l1.8 4.2-4.2 1.8 1-4.8 1.4-1.2z"/></svg>
+                            </button>
+                            {musicList.length > 0 && (
+                                <button onClick={handleMusicRemoveAll}
+                                    className="shrink-0 px-2 py-1.5 bg-slate-700 text-slate-400 rounded-xl active:text-red-400 active:scale-95">
+                                    <Icon name="Trash2" size={13}/>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </header>
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
-                {visibleGroups.map((group,idx)=>{
+                {sortedGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
                     const isDoneReal = isDone && !isSkipped;
@@ -2034,7 +1904,7 @@ function App() {
                                     className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:bg-slate-200 disabled:opacity-20">
                                     <Icon name="ChevronUp" size={14} />
                                 </button>
-                                <button onClick={()=>handleMoveGroup(idx,1)} disabled={idx===visibleGroups.length-1}
+                                <button onClick={()=>handleMoveGroup(idx,1)} disabled={idx===sortedGroups.length-1}
                                     className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 active:bg-slate-200 disabled:opacity-20">
                                     <Icon name="ChevronDown" size={14} />
                                 </button>
@@ -2045,8 +1915,8 @@ function App() {
                                 <div className={`flex items-center justify-between p-4 rounded-[1.4rem] ${isDoneReal?'bg-slate-50':isSkipped?'bg-orange-50/40':'bg-white'}`}>
                                     <div className="flex items-start gap-4">
                                         <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); return src ? <img src={src} className={`w-12 h-12 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
-                                            <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{visibleGroups.length}</span>
+                                            <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>
+                                            <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{sortedGroups.length}</span>
                                         </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
