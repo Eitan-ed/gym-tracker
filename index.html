@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.4';
+const APP_VERSION = '6.5';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -512,25 +512,25 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             <div className="flex flex-1 gap-1.5">
                                 <div className="flex items-stretch flex-1 gap-0.5">
                                     <button onClick={()=>{const nw=parseFloat(Math.min(250,state.w+weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:nw}));}}
-                                        className="w-9 bg-emerald-50 text-emerald-600 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
+                                        className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
                                     <Roller label="ק״ג" min={0} max={250} step={weightStep} value={state.w} isChanged={state.wC}
                                         onChange={v=>{setState(p=>({...p,w:v,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:v}));}}
                                         presets={weightPresets} jumpSteps={weightJumpSteps} />
                                     <button onClick={()=>{const nw=parseFloat(Math.max(0,state.w-weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:nw}));}}
-                                        className="w-9 bg-rose-50 text-rose-500 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
+                                        className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
                                 </div>
                                 <div className="flex items-stretch flex-1 gap-0.5">
                                     <button onClick={()=>setState(p=>({...p,r:Math.min(120,p.r+repsStep),rC:true}))}
-                                        className="w-9 bg-emerald-50 text-emerald-600 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
+                                        className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
                                     <Roller label="חזרות" min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
                                         onChange={v=>setState(p=>({...p,r:v,rC:true}))}
                                         presets={repsPresets} jumpSteps={repsJumpSteps} />
                                     <button onClick={()=>setState(p=>({...p,r:Math.max(1,p.r-repsStep),rC:true}))}
-                                        className="w-9 bg-rose-50 text-rose-500 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
+                                        className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
                                 </div>
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
-                                className={`w-8 h-14 rounded-2xl flex items-center justify-center font-black text-[11px] transition-all active:scale-95 shrink-0
+                                className={`w-8 h-14 rounded-xl flex items-center justify-center font-black text-[11px] transition-all active:scale-95 shrink-0
                                     ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
                                     : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
                                     : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700'
@@ -728,12 +728,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </>
                 )}
                 {/* how-to */}
-                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-4 shadow-inner overflow-hidden mt-2">
+                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden mt-2">
                     <div className="w-full flex items-center px-3 py-2.5 gap-2">
                         <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                             className="flex items-center gap-2 flex-1 active:opacity-70">
-                            <div className="w-1.5 h-4 bg-blue-600 rounded-full shrink-0" />
-                            <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                            <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
                                 <Icon name="BookOpen" size={14} className="text-blue-500" /> איך לבצע
                             </span>
                         </button>
@@ -791,11 +790,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             <button className="w-full flex items-center justify-between px-3 py-2.5 active:opacity-70"
                                 onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}>
                                 <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
-                                    <Icon name="History" size={13} className="text-indigo-400" /> היסטוריה ({hist10.length} סטים)
+                                    <Icon name="History" size={14} className="text-indigo-400" /> היסטוריה ({hist10.length} סטים)
                                 </span>
                                 <div className="flex items-center gap-2">
                                     {hist10[0]?.weight > 0 && (
-                                        <span className="text-xs font-black text-red-500">{hist10[0].weight} kg</span>
+                                        <span className="text-xs font-black text-orange-500">{hist10[0].weight} kg</span>
                                     )}
                                     <Icon name={isOpen?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400" />
                                 </div>
@@ -1090,6 +1089,13 @@ const WorkoutProgressCalendar = ({ logs }) => {
         logs.forEach(l => { const d=new Date(l.timestamp); if(d.getFullYear()===cur.y&&d.getMonth()===cur.m) s.add(d.getDate()); });
         return s;
     }, [logs, cur]);
+    const avgPerWeek = useMemo(() => {
+        const allDays = new Set(logs.map(l => { const d=new Date(l.timestamp); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }));
+        if (allDays.size === 0) return '0';
+        const ts = logs.map(l=>new Date(l.timestamp).getTime());
+        const weeks = Math.max(1, (Date.now() - Math.min(...ts)) / (7*24*3600*1000));
+        return (allDays.size / weeks).toFixed(1);
+    }, [logs]);
     const daysInMonth = new Date(cur.y, cur.m+1, 0).getDate();
     const firstDay    = new Date(cur.y, cur.m, 1).getDay();
     const monthName   = new Date(cur.y, cur.m, 1).toLocaleDateString('he-IL',{month:'long',year:'numeric'});
@@ -1105,7 +1111,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
                 </button>
                 <div className="text-center">
                     <div className="font-black text-slate-800 text-sm">{monthName}</div>
-                    <div className="text-[11px] font-bold text-emerald-600">{workoutDays.size} אימונים</div>
+                    <div className="text-[11px] font-bold text-emerald-600">{workoutDays.size} אימונים · ממוצע {avgPerWeek}/שבוע</div>
                 </div>
                 <button onClick={next} disabled={isCurMonth}
                     className={`p-2 rounded-xl active:scale-95 active:bg-slate-200 ${isCurMonth?'opacity-25':'bg-slate-100'}`}>
@@ -1303,7 +1309,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 {/* ── התקדמות אימון ── */}
                 <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> התקדמות אימון</h3>
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> תדירות אימון</h3>
                         <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.progress && <WorkoutProgressCalendar logs={logs} />}
