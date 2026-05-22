@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.5';
+const APP_VERSION = '6.6';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1379,25 +1379,34 @@ function App() {
     useEffect(()=>{
         const meta = LS.get('gym-music-list', []);
         if (!meta.length) return;
-        Promise.all(meta.map(({id,name}) =>
-            IDB.get(`music-${id}`).then(blob => blob ? {id, name, url:URL.createObjectURL(blob)} : null)
+        Promise.all(meta.map(({id,name,type}) =>
+            IDB.get(`music-${id}`).then(blob => {
+                if (!blob) return null;
+                const mimeType = type || blob.type || 'audio/mpeg';
+                const typed = blob.type ? blob : new Blob([blob], {type: mimeType});
+                return {id, name, url: URL.createObjectURL(typed)};
+            })
         )).then(results => {
             const valid = results.filter(Boolean);
             setMusicList(valid);
             if (valid.length !== meta.length)
-                LS.set('gym-music-list', valid.map(({id,name})=>({id,name})));
+                LS.set('gym-music-list', valid.map(({id,name,type})=>({id,name,type})));
         });
     },[]);
 
     const handleMusicUpload = (files) => {
         if (!files?.length) return;
         // יצירת blob URLs סינכרונית — בתוך ה-user gesture
-        const newItems = Array.from(files).map(file => ({
-            id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
-            name: file.name,
-            url: URL.createObjectURL(file),
-            _file: file
-        }));
+        const newItems = Array.from(files).map(file => {
+            const mimeType = file.type || (file.name.endsWith('.m4a') ? 'audio/mp4' : file.name.endsWith('.aac') ? 'audio/aac' : file.name.endsWith('.ogg') ? 'audio/ogg' : file.name.endsWith('.wav') ? 'audio/wav' : file.name.endsWith('.flac') ? 'audio/flac' : 'audio/mpeg');
+            return {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+                name: file.name,
+                type: mimeType,
+                url: URL.createObjectURL(new Blob([file], {type: mimeType})),
+                _file: new Blob([file], {type: mimeType})
+            };
+        });
         // התחל לנגן מיד — עדיין בתוך ה-user gesture
         const a = audioRef.current;
         const startIdx = musicListRef.current.length;
@@ -1407,8 +1416,8 @@ function App() {
         }
         setMusicIndex(startIdx);
         setMusicList(prev => {
-            const next = [...prev, ...newItems.map(({id,name,url})=>({id,name,url}))];
-            LS.set('gym-music-list', next.map(({id,name})=>({id,name})));
+            const next = [...prev, ...newItems.map(({id,name,type,url})=>({id,name,type,url}))];
+            LS.set('gym-music-list', next.map(({id,name,type})=>({id,name,type})));
             return next;
         });
         // שמירה ל-IDB ברקע (לא חוסם gesture)
@@ -1419,7 +1428,7 @@ function App() {
         await IDB.del(`music-${id}`);
         setMusicList(prev => {
             const next = prev.filter(t=>t.id!==id);
-            LS.set('gym-music-list', next.map(({id,name})=>({id,name})));
+            LS.set('gym-music-list', next.map(({id,name,type})=>({id,name,type})));
             return next;
         });
         setMusicIndex(i => 0);
