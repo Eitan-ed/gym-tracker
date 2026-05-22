@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.7';
+const APP_VERSION = '6.8';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1270,7 +1270,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <label className="w-full flex items-center gap-3 bg-purple-50 p-4 rounded-2xl border border-purple-100 text-purple-700 cursor-pointer active:scale-[0.98]">
                             <div className="bg-purple-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
                             <div><div className="font-black text-sm">הוסף קבצי שמע</div><div className="text-[10px] font-bold opacity-70">MP3, M4A, AAC, OGG, WAV</div></div>
-                            <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden" onChange={e=>onMusicUpload(e.target.files)} />
+                            <input type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac,.m4b,.mp4" multiple className="hidden" onChange={e=>onMusicUpload(e.target.files)} />
                         </label>
                         {musicList.length > 0 && (
                             <button onClick={()=>requestConfirm('למחוק את כל המוזיקה?',onMusicRemoveAll)}
@@ -1861,7 +1861,7 @@ function App() {
                             )}
                             <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-1.5 text-[11px] font-black cursor-pointer active:scale-95">
                                 <Icon name="Upload" size={12}/> הוסף
-                                <input type="file" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac" multiple className="hidden"
+                                <input type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac,.m4b,.mp4" multiple className="hidden"
                                     onChange={e=>handleMusicUpload(e.target.files)} />
                             </label>
                             <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer"
