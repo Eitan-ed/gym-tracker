@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '6.8';
+const APP_VERSION = '6.9';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1397,14 +1397,25 @@ function App() {
     const handleMusicUpload = (files) => {
         if (!files?.length) return;
         // יצירת blob URLs סינכרונית — בתוך ה-user gesture
+        const getAudioMime = f => {
+            const n = f.name.toLowerCase();
+            if (n.endsWith('.m4a')||n.endsWith('.m4b')||n.endsWith('.aac')) return 'audio/mp4';
+            if (n.endsWith('.mp3')) return 'audio/mpeg';
+            if (n.endsWith('.ogg')) return 'audio/ogg';
+            if (n.endsWith('.wav')) return 'audio/wav';
+            if (n.endsWith('.flac')) return 'audio/flac';
+            if (n.endsWith('.webm')) return 'audio/webm';
+            return f.type || 'audio/mpeg';
+        };
         const newItems = Array.from(files).map(file => {
-            const mimeType = file.type || (file.name.endsWith('.m4a') ? 'audio/mp4' : file.name.endsWith('.aac') ? 'audio/aac' : file.name.endsWith('.ogg') ? 'audio/ogg' : file.name.endsWith('.wav') ? 'audio/wav' : file.name.endsWith('.flac') ? 'audio/flac' : 'audio/mpeg');
+            const mimeType = getAudioMime(file);
+            const blob = (mimeType !== file.type) ? new Blob([file], {type: mimeType}) : file;
             return {
                 id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
                 name: file.name,
                 type: mimeType,
-                url: URL.createObjectURL(file),
-                _file: file
+                url: URL.createObjectURL(blob),
+                _file: blob
             };
         });
         // התחל לנגן מיד — עדיין בתוך ה-user gesture
