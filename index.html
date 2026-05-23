@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.1';
+const APP_VERSION = '7.0';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -128,15 +128,6 @@ const Icon = ({ name, size=24, className="" }) => {
             {paths.map(([tag,attrs],i) => React.createElement(tag,{key:i,...attrs}))}
         </svg>
     );
-};
-
-// ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
-const DEFAULT_WEIGHT_STEPS = {
-    'ex1': 4,    // לחיצת חזה במכונה
-    'ex3': 4,    // פשיטת מרפקים עם חבל
-    'ex5a': 4,   // לחיצת כתפיים
-    'ex7c': 5,   // פולי עליון
-    'ex7b': 4    // מקבילים גרביטון
 };
 
 // --- מאגר תרגילים ---
@@ -839,8 +830,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
                     accentColor={accentHex} requestConfirm={requestConfirm}
-                    weightStep={getWeightStep(ex.id)}
-                    weightJumpSteps={getWeightJumps(ex.id)}
+                    weightStep={ex.id==='ex7b' ? 4 : 0.5}
+                    weightJumpSteps={ex.id==='ex7b' ? [2,4,8] : [0.5,1,5]}
                     repsStep={['ex10a','ex10b'].includes(ex.id) ? 5 : 1}
                     repsJumpSteps={['ex10a','ex10b'].includes(ex.id) ? [5,10,15] : [1,2,3,5]} />
             </div>
@@ -1227,19 +1218,6 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight shrink-0">סופרסט</span>
                                                 )}
                                             </button>
-                                            <select
-                                                value={settings.weightSteps?.[ex.id] ?? DEFAULT_WEIGHT_STEPS[ex.id] ?? 0.5}
-                                                onChange={e => onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: parseFloat(e.target.value)})}
-                                                className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-2xl px-2 py-2 text-[10px] font-black outline-none active:scale-95">
-                                                <option value="0.25">0.25</option>
-                                                <option value="0.5">0.5</option>
-                                                <option value="1">1</option>
-                                                <option value="2">2</option>
-                                                <option value="2.5">2.5</option>
-                                                <option value="4">4</option>
-                                                <option value="5">5</option>
-                                                <option value="10">10</option>
-                                            </select>
                                             <button
                                                 onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
                                                 className={`shrink-0 px-3 py-2 rounded-2xl text-[11px] font-black active:scale-95 transition-all
@@ -1383,20 +1361,8 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
-    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60,weightSteps:{}}));
+    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
-
-    // ─── עזר: מרווח משקל ✓ ─────────────────────────────────────
-    const getWeightStep = useCallback((exId) => {
-        const override = settings.weightSteps?.[exId];
-        if (override !== undefined) return override;
-        return DEFAULT_WEIGHT_STEPS[exId] ?? 0.5;
-    }, [settings.weightSteps]);
-
-    const getWeightJumps = useCallback((exId) => {
-        const step = getWeightStep(exId);
-        return [step, step * 2, step * 4];
-    }, [getWeightStep]);
 
     // מוזיקה — playlist מרובה
     const [musicList,      setMusicList]      = useState([]); // [{id,name,url}] runtime
