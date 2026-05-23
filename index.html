@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.0';
+const APP_VERSION = '7.1';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -130,6 +130,15 @@ const Icon = ({ name, size=24, className="" }) => {
     );
 };
 
+// ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
+const DEFAULT_WEIGHT_STEPS = {
+    'ex1': 4,    // לחיצת חזה במכונה
+    'ex3': 4,    // פשיטת מרפקים עם חבל
+    'ex5a': 4,   // לחיצת כתפיים
+    'ex7c': 5,   // פולי עליון
+    'ex7b': 4    // מקבילים גרביטון
+};
+
 // --- מאגר תרגילים ---
 const exerciseGroups = [
     { id:1,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
@@ -152,7 +161,7 @@ const DRUM_H    = 48;
 const DRUM_VIS  = 7;
 const DRUM_HALF = 3;
 
-const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, presets=[], jumpSteps=[] }) => {
+const Roller = memo(({ value, onChange, min, max, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[] }) => {
     const [open,     setOpen]     = useState(false);
     const [localVal, setLocalVal] = useState(value);
 
@@ -161,12 +170,13 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
     const timerRef   = React.useRef(null);
     const fromBtn    = React.useRef(false);
 
+    const effDrumStep = drumStep !== null ? drumStep : step;
     const options = useMemo(() => {
         const o = [];
-        for (let v = min; v <= max; v = parseFloat((v + step).toFixed(10)))
+        for (let v = min; v <= max; v = parseFloat((v + effDrumStep).toFixed(10)))
             o.push(parseFloat(v.toFixed(4)));
         return o;
-    }, [min, max, step]);
+    }, [min, max, effDrumStep]);
 
     const scrollTo = useCallback((idx, smooth=false) => {
         if (!listRef.current) return;
@@ -240,8 +250,8 @@ const Roller = memo(({ value, onChange, min, max, step=1, label, isChanged, pres
                         </div>
                         {/* מספרים קרובים */}
                         {(() => {
-                            const nearby = [-5,-3,-2,0,2,3,5]
-                                .map(d => parseFloat((localVal + d).toFixed(4)))
+                            const nearby = [-3,-2,-1,0,1,2,3]
+                                .map(d => parseFloat((localVal + d*step).toFixed(4)))
                                 .filter(v => v >= min && v <= max);
                             return (
                                 <div className="px-5 pb-2 flex gap-2 overflow-x-auto no-scrollbar justify-center" dir="ltr">
@@ -513,7 +523,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <div className="flex items-stretch flex-1 gap-0.5">
                                     <button onClick={()=>{const nw=parseFloat(Math.min(250,state.w+weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:nw}));}}
                                         className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
-                                    <Roller label="ק״ג" min={0} max={250} step={weightStep} value={state.w} isChanged={state.wC}
+                                    <Roller label="ק״ג" min={0} max={250} step={weightStep} drumStep={1} value={state.w} isChanged={state.wC}
                                         onChange={v=>{setState(p=>({...p,w:v,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:v}));}}
                                         presets={weightPresets} jumpSteps={weightJumpSteps} />
                                     <button onClick={()=>{const nw=parseFloat(Math.max(0,state.w-weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));if(num===1&&!done.s2)setS2(p=>({...p,w:nw}));}}
@@ -589,7 +599,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={} }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -824,16 +834,23 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         </section>
                     );
                 })()}
+                {(() => {
+                    const _ws = (weightStepsOverrides && weightStepsOverrides[ex.id] !== undefined)
+                        ? weightStepsOverrides[ex.id]
+                        : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 0.5);
+                    return (
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
                     accentColor={accentHex} requestConfirm={requestConfirm}
-                    weightStep={ex.id==='ex7b' ? 4 : 0.5}
-                    weightJumpSteps={ex.id==='ex7b' ? [2,4,8] : [0.5,1,5]}
+                    weightStep={_ws}
+                    weightJumpSteps={[_ws, _ws*2, _ws*4]}
                     repsStep={['ex10a','ex10b'].includes(ex.id) ? 5 : 1}
                     repsJumpSteps={['ex10a','ex10b'].includes(ex.id) ? [5,10,15] : [1,2,3,5]} />
+                    );
+                })()}
             </div>
         );
     };
@@ -1218,6 +1235,21 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight shrink-0">סופרסט</span>
                                                 )}
                                             </button>
+                                            <select
+                                                value={String(settings.weightSteps?.[ex.id] !== undefined ? settings.weightSteps[ex.id] : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 0.5))}
+                                                onChange={e => onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: parseFloat(e.target.value)})}
+                                                onClick={e => e.stopPropagation()}
+                                                title="מרווח משקל"
+                                                className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-2xl px-2 py-2 text-[10px] font-black outline-none">
+                                                <option value="0.25">0.25</option>
+                                                <option value="0.5">0.5</option>
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="2.5">2.5</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="10">10</option>
+                                            </select>
                                             <button
                                                 onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
                                                 className={`shrink-0 px-3 py-2 rounded-2xl text-[11px] font-black active:scale-95 transition-all
@@ -1361,7 +1393,7 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
-    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60}));
+    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60,weightSteps:{}}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
 
     // מוזיקה — playlist מרובה
@@ -2035,7 +2067,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);setView('detail');setScrollToExId(g.exercises[0].id);}} /></>;
 
