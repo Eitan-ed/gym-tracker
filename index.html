@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.2';
+const APP_VERSION = '7.3';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -870,36 +870,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     <Icon name="Home" size={18} />
                 </button>
             </div>
-            <div className="flex items-center gap-3 px-9">
+            <div className="flex items-center gap-3 pr-14 pl-9">
                 <h2 className="text-base font-black text-white leading-none tracking-tight">
                     <span className="font-black text-xl ml-1.5">{groupIdx+1}</span><span className="opacity-60 font-bold text-sm">/{totalGroups}</span>
                     <span className="opacity-60 font-bold text-xs mx-1">({group.category})</span>
                     {group.title}
                 </h2>
             </div>
-            {(() => {
-                const _activeRt = group.exercises.reduce((acc, ex) => {
-                    const rt = restTimers[ex.id] || 0;
-                    const tot = restTimerTotals[ex.id] || 0;
-                    if (rt > 0 && tot > 0 && rt > acc.rt) return {rt, tot};
-                    return acc;
-                }, {rt: 0, tot: 0});
-                if (_activeRt.rt === 0) return null;
-                const pct = (_activeRt.rt / _activeRt.tot) * 100;
-                const mm = Math.floor(_activeRt.rt / 60);
-                const ss = String(_activeRt.rt % 60).padStart(2,'0');
-                return (
-                    <div className="mt-2 px-1">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] font-black text-white/80">מנוחה</span>
-                            <span className="text-xs font-black text-white tabular-nums">{mm}:{ss}</span>
-                        </div>
-                        <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div className="h-full bg-orange-400 rounded-full transition-all duration-1000" style={{width: pct + '%'}} />
-                        </div>
-                    </div>
-                );
-            })()}
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-40">
@@ -1183,7 +1160,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 };
 
 // ─── ManageView ────────────────────────────────────────────
-const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
+const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup }) => {
     const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false});
     const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
@@ -1230,6 +1207,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         <div className="flex flex-col h-screen bg-slate-50 overflow-hidden fade-in" dir="rtl">
             <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
                 <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
+                {canBackToPrev && onBackToPrev && (
+                    <button onClick={onBackToPrev} className="absolute top-4 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg" style={{left:'5rem'}} title="חזור למסך הקודם">
+                        <Icon name="ChevronLeft" size={22} />
+                    </button>
+                )}
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
@@ -1376,20 +1358,53 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
 };
 
 
+// ─── FloatingRestTimer ─────────────────────────────────────
+const FloatingRestTimer = memo(({ restTimers, restTimerTotals }) => {
+    const active = useMemo(() => {
+        let best = null;
+        for (const id in restTimers) {
+            const rt = restTimers[id] || 0;
+            const tot = restTimerTotals[id] || 0;
+            if (rt > 0 && tot > 0 && (!best || rt < best.rt)) best = { id, rt, tot };
+        }
+        return best;
+    }, [restTimers, restTimerTotals]);
+    if (!active) return null;
+    const elapsed = active.tot - active.rt;
+    const pct = (elapsed / active.tot) * 100;
+    const mm = Math.floor(active.rt / 60);
+    const ss = String(active.rt % 60).padStart(2,'0');
+    return (
+        <div className="fixed top-0 left-0 right-0 z-[700] bg-slate-900/95 backdrop-blur-md shadow-xl"
+             style={{paddingTop:'env(safe-area-inset-top)'}}>
+            <div className="max-w-md mx-auto px-4 py-2">
+                <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[10px] font-black text-orange-300 tracking-wider">⏱ מנוחה</span>
+                    <span className="text-sm font-black text-white tabular-nums">{mm}:{ss}</span>
+                </div>
+                <div className="h-2 bg-slate-700/60 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange-500 rounded-full transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
+                </div>
+            </div>
+        </div>
+    );
+});
+
 // ─── HamburgerMenu ─────────────────────────────────────────
-const HamburgerMenu = memo(({ onNavigate, currentView }) => {
+const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) => {
     const [open, setOpen] = useState(false);
     const items = [
         { key:'list',    label:'בית',      icon:'Home' },
         { key:'history', label:'היסטוריה', icon:'History' },
         { key:'manage',  label:'ניהול',    icon:'Settings' }
     ];
+    const topOffset = hasActiveRest ? 'calc(env(safe-area-inset-top) + 3.75rem)' : 'calc(env(safe-area-inset-top) + 0.5rem)';
     return (
         <>
             <button onClick={()=>setOpen(true)}
-                className="fixed top-3 right-3 z-[600] p-2.5 bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
-                style={{top:'calc(env(safe-area-inset-top) + 0.75rem)'}}>
-                <Icon name="Menu" size={22} />
+                className="fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
+                style={{top: topOffset, transition:'top 0.3s'}}>
+                <Icon name="Menu" size={20} />
             </button>
             {open && (
                 <div className="fixed inset-0 z-[900] flex" onClick={()=>setOpen(false)}>
@@ -1424,7 +1439,18 @@ const HamburgerMenu = memo(({ onNavigate, currentView }) => {
 // ─── App ───────────────────────────────────────────────────
 function App() {
     const [view,             setView]             = useState('list');
+    const [prevView,         setPrevView]         = useState('list');
     const [activeGroup,      setActiveGroup]      = useState(null);
+    const navigateTo = useCallback((newView) => {
+        setView(currentView => {
+            if (currentView !== newView) setPrevView(currentView);
+            return newView;
+        });
+    }, []);
+    const backToPrev = useCallback(() => {
+        if (prevView === 'detail' && !activeGroup) { setView('list'); return; }
+        setView(prevView);
+    }, [prevView, activeGroup]);
     const [logs,             setLogs]             = useState(()=>LS.get('gym-logs',[]));
     const [workoutSec,       setWorkoutSec]       = useState(0);
     const [isWorkoutActive,  setIsWorkoutActive]  = useState(false);
@@ -1910,11 +1936,13 @@ function App() {
     };
 
     // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
+    const hasActiveRest = Object.keys(restTimers).some(id => (restTimers[id]||0) > 0 && (restTimerTotals[id]||0) > 0);
     const overlays = (
         <>
-            <HamburgerMenu currentView={view} onNavigate={(v)=>{
-                if (v==='list') { setView('list'); setActiveGroup(null); }
-                else setView(v);
+            <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} />
+            <HamburgerMenu currentView={view} hasActiveRest={hasActiveRest} onNavigate={(v)=>{
+                if (v==='list') { navigateTo('list'); setActiveGroup(null); }
+                else navigateTo(v);
             }} />
             <audio ref={audioRef}
                 onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)}
@@ -2142,7 +2170,7 @@ function App() {
 
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);setView('detail');setScrollToExId(g.exercises[0].id);}} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
 
     // List view
     return (
@@ -2287,7 +2315,7 @@ function App() {
             </main>
 
             <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-100 px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl shadow-xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))'}}>
-                <button onClick={()=>setView('history')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
+                <button onClick={()=>navigateTo('history')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
                     <Icon name="History" size={24} /><span className="text-[11px] font-black">היסטוריה</span>
                 </button>
                 <button onClick={()=>setShowNewWorkoutModal(true)}
@@ -2295,7 +2323,7 @@ function App() {
                     <div className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl"><Icon name="Plus" size={36} /></div>
                     <span className="text-[11px] font-black mt-1">אימון חדש</span>
                 </button>
-                <button onClick={()=>setView('manage')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
+                <button onClick={()=>navigateTo('manage')} className="flex flex-col items-center gap-1 text-slate-400 active:text-blue-600">
                     <Icon name="Settings" size={24} /><span className="text-[11px] font-black">ניהול</span>
                 </button>
             </nav>
