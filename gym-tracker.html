@@ -1228,7 +1228,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                 )}
                                             </button>
                                             <select
-                                                value={settings.weightSteps?.[ex.id] ?? DEFAULT_WEIGHT_STEPS[ex.id] ?? 0.5}
+                                                value={String(settings.weightSteps?.[ex.id] ?? DEFAULT_WEIGHT_STEPS[ex.id] ?? 0.5)}
                                                 onChange={e => onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: parseFloat(e.target.value)})}
                                                 className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-2xl px-2 py-2 text-[10px] font-black outline-none active:scale-95">
                                                 <option value="0.25">0.25</option>
