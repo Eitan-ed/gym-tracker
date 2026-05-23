@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.3';
+const APP_VERSION = '7.4';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -648,13 +648,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const localVid   = EXERCISE_VIDEOS[ex.id];
         const hasVideo   = youtubeId || localVid;
 
-        // auto-detect cross-group timer → feed as prevRestTimer for set 1
+        // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
         let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
-        if (!fPrevTot) {
-            const groupExIds = new Set(group.exercises.map(e=>e.id));
-            const coExId = Object.keys(restTimers).find(id=>!groupExIds.has(id) && restTimerTotals[id]>0);
-            if (coExId) { fPrevRt = restTimers[coExId]||0; fPrevTot = restTimerTotals[coExId]||0; }
-        }
 
         // skip active set
         const doneS1Ex = logs.some(l=>l.exId===ex.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
@@ -1370,21 +1365,12 @@ const FloatingRestTimer = memo(({ restTimers, restTimerTotals }) => {
         return best;
     }, [restTimers, restTimerTotals]);
     if (!active) return null;
-    const elapsed = active.tot - active.rt;
-    const pct = (elapsed / active.tot) * 100;
-    const mm = Math.floor(active.rt / 60);
-    const ss = String(active.rt % 60).padStart(2,'0');
+    const pct = (active.rt / active.tot) * 100; // מלא ויתרוקן
     return (
-        <div className="fixed top-0 left-0 right-0 z-[700] bg-slate-900/95 backdrop-blur-md shadow-xl"
-             style={{paddingTop:'env(safe-area-inset-top)'}}>
-            <div className="max-w-md mx-auto px-4 py-2">
-                <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[10px] font-black text-orange-300 tracking-wider">⏱ מנוחה</span>
-                    <span className="text-sm font-black text-white tabular-nums">{mm}:{ss}</span>
-                </div>
-                <div className="h-2 bg-slate-700/60 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-500 rounded-full transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
-                </div>
+        <div className="fixed left-0 right-0 z-[700] pointer-events-none"
+             style={{top:'env(safe-area-inset-top)'}}>
+            <div className="h-1.5 bg-slate-200/50 overflow-hidden">
+                <div className="h-full bg-orange-500 transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
             </div>
         </div>
     );
@@ -1398,12 +1384,12 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
         { key:'history', label:'היסטוריה', icon:'History' },
         { key:'manage',  label:'ניהול',    icon:'Settings' }
     ];
-    const topOffset = hasActiveRest ? 'calc(env(safe-area-inset-top) + 3.75rem)' : 'calc(env(safe-area-inset-top) + 0.5rem)';
+    const topOffset = 'calc(env(safe-area-inset-top) + 0.75rem)';
     return (
         <>
             <button onClick={()=>setOpen(true)}
                 className="fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
-                style={{top: topOffset, transition:'top 0.3s'}}>
+                style={{top: topOffset}}>
                 <Icon name="Menu" size={20} />
             </button>
             {open && (
