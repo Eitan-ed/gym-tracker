@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.7';
+const APP_VERSION = '7.8';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -2038,7 +2038,7 @@ function App() {
                 style={{display:'none'}} />
             {/* פאנל מוזיקה — מוצג בכל view */}
             {musicPanelOpen && (
-                <div className="fixed inset-x-0 top-20 z-[700] px-3" dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
+                <div className={`fixed inset-x-0 z-[700] px-3 ${view==='detail' ? 'top-20' : 'top-1/2 -translate-y-1/2'}`} dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
                     <div className="bg-slate-900 rounded-2xl px-4 py-3 space-y-2 shadow-2xl border border-slate-700">
                         {musicList.length > 0 && (
                             <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
@@ -2418,7 +2418,25 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    let _reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_reloaded) return; _reloaded = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+      // בדיקה כל 30 שניות לעדכון
+      setInterval(() => reg.update().catch(()=>{}), 30000);
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            // יש גרסה חדשה ממתינה — להפעיל ולרענן
+            sw.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+    }).catch(() => {});
   }
 </script>
 </body>
