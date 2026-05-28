@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.5';
+const APP_VERSION = '7.6';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -602,10 +602,11 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={} }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={} }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
+    const [neighborSide,  setNeighborSide] = useState('next'); // 'next' או 'prev' — לפי גלילה
     const [showDetails,   setShowDetails]  = useState(()=>{
         const saved = LS.get('gym-show-details', null);
         if (saved) return saved;
@@ -619,6 +620,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     // כניסה לתרגיל: תמיד מתחילים מראש הדף (כותרת + תמונה גלויים)
     useEffect(()=>{
         setTimeout(()=>{ scrollRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }, 30);
+        setNeighborSide('next');
     }, [group.id]);
 
     useEffect(()=>{
@@ -920,26 +922,56 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 });
             })}
             {/* תרגיל הבא */}
-            {nextGroup && (()=>{
-                const nxEx = nextGroup.exercises[0];
-                const nxImg = images?.[nxEx?.id] || (EXERCISE_IMAGES[nxEx?.id] ? `images/${EXERCISE_IMAGES[nxEx.id]}` : null);
-                const nxLastW = nxEx ? ([...logs].filter(l=>l.exId===nxEx.id)
+            {(nextGroup || prevGroup) && (()=>{
+                // איזה שכן להציג? אם אין שכן בצד שנבחר, נופלים לצד השני
+                const showSide = (neighborSide === 'prev' && prevGroup) ? 'prev'
+                               : (neighborSide === 'next' && nextGroup) ? 'next'
+                               : (prevGroup ? 'prev' : 'next');
+                const shown   = showSide === 'prev' ? prevGroup : nextGroup;
+                const shEx    = shown.exercises[0];
+                const shImg   = images?.[shEx?.id] || (EXERCISE_IMAGES[shEx?.id] ? `images/${EXERCISE_IMAGES[shEx.id]}` : null);
+                const shLastW = shEx ? ([...logs].filter(l=>l.exId===shEx.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight) : 0;
+                const label   = showSide === 'prev' ? '◂ קודם' : 'הבא ▸';
+                // Swipe handlers
+                let tStartX = 0, tStartY = 0;
+                const onTouchStart = (e)=>{ tStartX = e.touches[0].clientX; tStartY = e.touches[0].clientY; };
+                const onTouchEnd = (e)=>{
+                    const dx = e.changedTouches[0].clientX - tStartX;
+                    const dy = e.changedTouches[0].clientY - tStartY;
+                    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+                    // RTL: swipe ימינה (dx>0) = מציג קודם, swipe שמאלה (dx<0) = מציג הבא
+                    if (dx > 0 && prevGroup) setNeighborSide('prev');
+                    else if (dx < 0 && nextGroup) setNeighborSide('next');
+                    e.preventDefault?.();
+                };
                 return (
                     <div className="mt-4 pt-4 border-t border-slate-100">
-                        <div onClick={()=>onNavigateTo?.(nextGroup)}
-                            className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all">
-                            <span className="text-[10px] font-black text-slate-400 shrink-0">הבא ▸</span>
-                            {nxImg && <img src={nxImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" />}
+                        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+                            onClick={()=>onNavigateTo?.(shown)}
+                            className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none"
+                            style={{touchAction:'pan-y'}}>
+                            {showSide === 'prev'
+                                ? <Icon name="ChevronRight" size={16} className="text-slate-300 shrink-0" />
+                                : <span className="text-[10px] font-black text-slate-400 shrink-0">{label}</span>}
+                            {shImg && <img src={shImg} alt={shown.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" />}
                             <div className="flex-1 min-w-0">
-                                <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
-                                <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
+                                <div className="text-[13px] font-black text-slate-700 truncate">{shown.title}</div>
+                                <div className="text-[10px] font-bold text-slate-400">{shown.category} · {shown.machine}</div>
                             </div>
-                            {nxLastW > 0 && (
-                                <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nxLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
+                            {shLastW > 0 && (
+                                <span className="text-xl font-black text-orange-500 shrink-0 px-1">{shLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
                             )}
-                            <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
+                            {showSide === 'prev'
+                                ? <span className="text-[10px] font-black text-slate-400 shrink-0">{label}</span>
+                                : <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />}
                         </div>
+                        {(prevGroup && nextGroup) && (
+                            <div className="flex justify-center gap-1.5 mt-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${showSide==='prev'?'bg-slate-400':'bg-slate-200'}`}/>
+                                <span className={`w-1.5 h-1.5 rounded-full ${showSide==='next'?'bg-slate-400':'bg-slate-200'}`}/>
+                            </div>
+                        )}
                     </div>
                 );
             })()}
@@ -1168,8 +1200,8 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup }) => {
-    const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false});
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={} }) => {
+    const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false});
     const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
     const handleBackup = () => {
         triggerBackupDownload({
@@ -1222,6 +1254,57 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
+                {/* ── ה: היסטוריית אימונים ── */}
+                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <button onClick={()=>toggleSection('history')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-blue-500" /> היסטוריית אימונים</h3>
+                        <Icon name={open.history?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.history && <div className="px-5 pb-5 space-y-3">
+                        {(()=>{
+                            const grouped = {};
+                            logs.forEach(l => {
+                                const d = new Date(l.timestamp).toLocaleDateString('he-IL');
+                                if (!grouped[d]) grouped[d] = [];
+                                grouped[d].push(l);
+                            });
+                            const entries = Object.entries(grouped).sort((a,b)=>new Date(b[1][0].timestamp)-new Date(a[1][0].timestamp));
+                            if (!entries.length) return (
+                                <div className="text-center text-slate-400 font-bold py-4">אין היסטוריה עדיין</div>
+                            );
+                            return (
+                                <>
+                                    <div className="space-y-1.5 max-h-80 overflow-y-auto no-scrollbar">
+                                        {entries.slice(0,10).map(([date, items])=>{
+                                            const dur = Object.entries(sessionDurations||{}).find(([ts])=>
+                                                new Date(Number(ts)).toLocaleDateString('he-IL')===date
+                                            )?.[1];
+                                            const m = dur ? Math.floor(dur/60) : 0, s = dur ? dur%60 : 0;
+                                            return (
+                                                <div key={date} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[11px] font-black text-slate-500 w-12">{getDayNameHe(items[0].timestamp)}</span>
+                                                        <span className="text-[12px] font-black text-slate-800">{date}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {dur > 0 && <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={10}/>{m}:{String(s).padStart(2,'0')}</span>}
+                                                        <span className="text-[10px] font-bold text-blue-500">{items.length} סטים</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {onNavigateToHistory && (
+                                        <button onClick={onNavigateToHistory}
+                                            className="w-full flex items-center justify-center gap-2 bg-blue-50 p-3 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98] font-black text-sm">
+                                            <Icon name="History" size={16}/> פתח היסטוריה מלאה
+                                        </button>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>}
+                </section>
                 {/* ── ג: גיבוי ושחזור ── */}
                 <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
@@ -1585,6 +1668,14 @@ function App() {
     useEffect(()=>{ LS.set('gym-workout-start',   workoutStartTime);  },[workoutStartTime]);
     useEffect(()=>{ LS.set('gym-session-end',       sessionEndTime);    },[sessionEndTime]);
     useEffect(()=>{ LS.set('gym-session-durations', sessionDurations);  },[sessionDurations]);
+    // שמירה רציפה של זמן האימון — מבטיח שגם בכניסה/יציאה לא תיאבד מדידה
+    useEffect(()=>{
+        if (workoutSec <= 0) return;
+        LS.set('gym-last-workout-sec', workoutSec);
+        if (workoutStartTime) {
+            setSessionDurations(prev => ({...prev, [workoutStartTime]: workoutSec}));
+        }
+    },[workoutSec, workoutStartTime]);
 
     // גיבוי יומי אוטומטי
     useEffect(()=>{
@@ -1947,7 +2038,7 @@ function App() {
                 style={{display:'none'}} />
             {/* פאנל מוזיקה — מוצג בכל view */}
             {musicPanelOpen && (
-                <div className="fixed inset-x-0 bottom-20 z-[700] px-3" dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
+                <div className="fixed inset-x-0 top-3 z-[700] px-3" dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
                     <div className="bg-slate-900 rounded-2xl px-4 py-3 space-y-2 shadow-2xl border border-slate-700">
                         {musicList.length > 0 && (
                             <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
@@ -1979,6 +2070,10 @@ function App() {
                                     className={`px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 shrink-0 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
                                     {musicPlaying?'⏸':'▶'}
                                 </button>
+                            )}
+                            {musicList.length > 1 && (
+                                <button onClick={()=>{ const prev=(musicIndex - 1 + musicList.length)%musicList.length; setMusicIndex(prev); const a=audioRef.current; if(a&&musicList[prev]){a.src=musicList[prev].url;a.play().catch(()=>{});} }}
+                                    className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏮</button>
                             )}
                             {musicList.length > 1 && (
                                 <button onClick={()=>{ const next=(musicIndex+1)%musicList.length; setMusicIndex(next); const a=audioRef.current; if(a&&musicList[next]){a.src=musicList[next].url;a.play().catch(()=>{});} }}
@@ -2155,9 +2250,9 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} /></>;
 
     // List view
     return (
