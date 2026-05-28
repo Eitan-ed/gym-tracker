@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.6';
+const APP_VERSION = '7.7';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -509,16 +509,16 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const canActFinal = canAct || showCDown;
                 return (
                     <React.Fragment key={num}>
-                        <div style={conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : undefined)}
+                        <div style={conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : isDone ? {border:'2px solid #94a3b8', borderRadius:'1.6rem'} : undefined)}
                             className={`p-3 rounded-[1.6rem] flex items-center gap-2 transition-all
-                                ${isDone   ? 'bg-slate-200' : 'bg-white'}
+                                ${isDone   ? 'bg-slate-300' : 'bg-white'}
                                 ${conic    ? ''
                                 : isActive ? ''
-                                : isDone   ? 'border border-slate-300'
+                                : isDone   ? ''
                                 : timerDone? 'border border-slate-700 shadow-md'
                                 :            'border border-slate-100 shadow-sm'}`}>
                             <div className="w-8 h-14 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
-                                style={{background: (isActive || timerDone) ? accentColor : isDone ? '#94a3b8' : '#0f172a'}}>
+                                style={{background: (isActive || timerDone) ? accentColor : isDone ? '#64748b' : '#0f172a'}}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
                             </div>
@@ -1253,11 +1253,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 )}
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 no-scrollbar pb-32">
                 {/* ── ה: היסטוריית אימונים ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section style={{order:3}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('history')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-blue-500" /> היסטוריית אימונים</h3>
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-teal-500" /> היסטוריית אימונים</h3>
                         <Icon name={open.history?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.history && <div className="px-5 pb-5 space-y-3">
@@ -1306,9 +1306,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ג: גיבוי ושחזור ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section style={{order:1}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-blue-500" /> גיבוי ושחזור</h3>
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-sky-500" /> גיבוי ושחזור</h3>
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.backup && <div className="px-5 pb-5 space-y-4">
@@ -1324,9 +1324,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ה: הגדרות אימון ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section style={{order:2}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('settings')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-blue-500" /> הגדרות אימון</h3>
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-orange-500" /> הגדרות אימון</h3>
                         <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.settings && <div className="px-5 pb-5 space-y-4">
@@ -1349,7 +1349,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── מ: מוזיקה ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section style={{order:4}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('music')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
                         <Icon name={open.music?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1381,7 +1381,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ת: תדירות אימון ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section style={{order:5}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> תדירות אימון</h3>
                         <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1389,7 +1389,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     {open.progress && <WorkoutProgressCalendar logs={logs} />}
                 </section>
                 {/* ── ת: תרגילים ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section style={{order:6}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -2038,7 +2038,7 @@ function App() {
                 style={{display:'none'}} />
             {/* פאנל מוזיקה — מוצג בכל view */}
             {musicPanelOpen && (
-                <div className="fixed inset-x-0 top-3 z-[700] px-3" dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
+                <div className="fixed inset-x-0 top-20 z-[700] px-3" dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
                     <div className="bg-slate-900 rounded-2xl px-4 py-3 space-y-2 shadow-2xl border border-slate-700">
                         {musicList.length > 0 && (
                             <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
