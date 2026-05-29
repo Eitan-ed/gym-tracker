@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '7.8';
+const APP_VERSION = '7.9';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -543,10 +543,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 </div>
                             </div>
                             <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
-                                className={`w-8 h-14 rounded-xl flex items-center justify-center font-black text-[11px] transition-all active:scale-95 shrink-0
+                                className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
                                     ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
                                     : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
-                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700'
+                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700 text-[16px]'
                                     : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
                                     : 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg'}`}>
                                 {isDone && (state.wC||state.rC) ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
@@ -922,7 +922,24 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 });
             })}
             {/* תרגיל הבא */}
-            {(nextGroup || prevGroup) && (()=>{
+            {(nextGroup || prevGroup || !nextGroup) && (()=>{
+                // אם אין תרגיל הבא — מציגים כפתור "סוף אימון" (פריט 4)
+                if (!nextGroup && neighborSide !== 'prev') {
+                    return (
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                            <button onClick={()=>onFinish?.()}
+                                className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base">
+                                <Icon name="CheckCircle2" size={22}/> סוף אימון
+                            </button>
+                            {prevGroup && (
+                                <button onClick={()=>setNeighborSide('prev')}
+                                    className="w-full mt-2 text-[11px] font-bold text-slate-400 active:text-slate-600">
+                                    ◂ הצג תרגיל קודם
+                                </button>
+                            )}
+                        </div>
+                    );
+                }
                 // איזה שכן להציג? אם אין שכן בצד שנבחר, נופלים לצד השני
                 const showSide = (neighborSide === 'prev' && prevGroup) ? 'prev'
                                : (neighborSide === 'next' && nextGroup) ? 'next'
@@ -932,6 +949,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const shImg   = images?.[shEx?.id] || (EXERCISE_IMAGES[shEx?.id] ? `images/${EXERCISE_IMAGES[shEx.id]}` : null);
                 const shLastW = shEx ? ([...logs].filter(l=>l.exId===shEx.id)
                     .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight) : 0;
+                // האם התרגיל הזה כבר בוצע במלואו באימון הנוכחי? (פריט 1)
+                const shDone = shown.exercises.every(ex=>{
+                    const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+                    return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+                });
                 const label   = showSide === 'prev' ? '◂ קודם' : 'הבא ▸';
                 // Swipe handlers
                 let tStartX = 0, tStartY = 0;
@@ -954,7 +976,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             {showSide === 'prev'
                                 ? <Icon name="ChevronRight" size={16} className="text-slate-300 shrink-0" />
                                 : <span className="text-[10px] font-black text-slate-400 shrink-0">{label}</span>}
-                            {shImg && <img src={shImg} alt={shown.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" />}
+                            {shImg && <img src={shImg} alt={shown.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={shDone ? {filter:'grayscale(100%)', opacity:0.55} : undefined} />}
                             <div className="flex-1 min-w-0">
                                 <div className="text-[13px] font-black text-slate-700 truncate">{shown.title}</div>
                                 <div className="text-[10px] font-bold text-slate-400">{shown.category} · {shown.machine}</div>
@@ -990,7 +1012,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 // תיקון 3: [...items].sort — לא מוטייט מערך מקורי
 const fmtDur = sec => { const m=Math.floor(sec/60), s=sec%60; return `${m}:${String(s).padStart(2,'0')}`; };
 
-const HistoryView = ({ logs, sessionDurations, onBack, onDeleteDate, onDeleteOne, requestConfirm }) => {
+const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], onBack, onDeleteDate, onDeleteOne, requestConfirm }) => {
     const [expandedDate, setExpandedDate] = useState(null);
     const grouped = useMemo(() => {
         const g = {};
@@ -1031,6 +1053,10 @@ const HistoryView = ({ logs, sessionDurations, onBack, onDeleteDate, onDeleteOne
                                         <span className="font-black text-slate-500 w-14 shrink-0">{getDayNameHe(items[0].timestamp)}</span>
                                         <span className="font-black text-slate-800">{date}</span>
                                         {dur > 0 && <span className="text-[11px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={11}/>{fmtDur(dur)}</span>}
+                                        {(()=>{
+                                            const bw = bodyweightLog.find(b => new Date(b.timestamp).toLocaleDateString('he-IL') === date);
+                                            return bw ? <span className="text-[11px] font-black text-sky-600 flex items-center gap-0.5"><Icon name="User" size={11}/>{bw.weight}kg</span> : null;
+                                        })()}
                                     </div>
                                 </div>
                                 <Icon name="ChevronDown" size={20} className={`text-slate-400 transition-transform duration-300 ${expandedDate===date?'rotate-180':''}`} />
@@ -1564,6 +1590,9 @@ function App() {
     const [toast,            setToast]            = useState(null);
     const [workoutDecisionMade, setWorkoutDecisionMade] = useState(false);
     const [summaryNote,      setSummaryNote]      = useState('');
+    const [summaryBW,        setSummaryBW]        = useState('');
+    const [bodyweightLog,    setBodyweightLog]    = useState(()=>LS.get('gym-bodyweight-log', []));
+    useEffect(()=>{ LS.set('gym-bodyweight-log', bodyweightLog); },[bodyweightLog]);
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
     const [audioDuration,    setAudioDuration]    = useState(0);
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
@@ -1895,7 +1924,7 @@ function App() {
         const wst = Date.now();
         setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
         setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
-        setWorkoutDecisionMade(false); setSummaryNote('');
+        setWorkoutDecisionMade(false); setSummaryNote(''); setSummaryBW('');
         setWorkoutStartTime(wst); setView('list'); setActiveGroup(null);
     };
 
@@ -2160,6 +2189,16 @@ function App() {
                                 placeholder="הערות לאימון זה..."
                                 rows={3}
                                 className="w-full bg-amber-50/70 border border-amber-200 rounded-2xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                            <div className="flex items-center gap-2 bg-sky-50/70 border border-sky-200 rounded-2xl p-3">
+                                <Icon name="User" size={18} className="text-sky-500 shrink-0"/>
+                                <label className="text-[12px] font-black text-slate-700 shrink-0">משקל גוף:</label>
+                                <input type="number" step="0.1" min="0" max="300" inputMode="decimal"
+                                    value={summaryBW}
+                                    onChange={e=>setSummaryBW(e.target.value)}
+                                    placeholder="0.0"
+                                    className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-[14px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-sky-400 text-center" />
+                                <span className="text-[11px] font-bold text-slate-400 shrink-0">ק״ג</span>
+                            </div>
                             <button onClick={()=>{
                                 triggerBackupDownload({logs, notes, images, videos, settings, groupOrder,
                                     sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
@@ -2170,7 +2209,19 @@ function App() {
                             }} className="w-full p-3 rounded-xl font-bold text-blue-700 bg-blue-50 border border-blue-200 active:scale-95 flex items-center justify-center gap-2">
                                 <Icon name="Download" size={16}/> גיבוי אימון
                             </button>
-                            <button onClick={()=>setShowSummary(false)} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">סגור</button>
+                            <button onClick={()=>{
+                                const bw = parseFloat(summaryBW);
+                                if (!isNaN(bw) && bw > 0) {
+                                    setBodyweightLog(prev=>[...prev, {
+                                        id: crypto.randomUUID(),
+                                        weight: bw,
+                                        timestamp: new Date().toISOString(),
+                                        workoutStart: workoutStartTime
+                                    }]);
+                                    showToast(`משקל גוף ${bw} ק״ג נשמר`);
+                                }
+                                setShowSummary(false);
+                            }} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">סגור</button>
                         </div>
                     </div>
                 );
@@ -2251,7 +2302,7 @@ function App() {
     );
 
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
-    if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
+    if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} /></>;
 
     // List view
