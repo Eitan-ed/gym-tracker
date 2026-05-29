@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.0';
+const APP_VERSION = '8.1';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -422,11 +422,14 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     useEffect(() => { if (done.s1 && done.s2) cameBack.current = true; }, []); // eslint-disable-line
     useEffect(() => {
         if (initialized.current || logs.length === 0) return;
-        const last = [...logs].filter(l=>l.exId===ex.id)
-            .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
-        if (!last) return;
-        setS1(p=>({...p, w:last.weight, r:last.reps}));
-        setS2(p=>({...p, w:last.weight, r:last.reps}));
+        const exLogs = [...logs].filter(l=>l.exId===ex.id)
+            .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+        const lastS1 = exLogs.find(l=>l.setNum===1);
+        const lastS2 = exLogs.find(l=>l.setNum===2);
+        if (!lastS1 && !lastS2) return;
+        if (lastS1) setS1(p=>({...p, w:lastS1.weight, r:lastS1.reps}));
+        if (lastS2) setS2(p=>({...p, w:lastS2.weight, r:lastS2.reps}));
+        else if (lastS1) setS2(p=>({...p, w:lastS1.weight, r:lastS1.reps}));
         initialized.current = true;
     }, [logs, ex.id]);
 
