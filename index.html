@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.2';
+const APP_VERSION = '8.3';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -152,8 +152,8 @@ const exerciseGroups = [
     { id:2,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',     title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
     { id:3,  hex:'#8b5cf6', badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
     { id:4,  hex:'#d946ef', badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
-    { id:5,  hex:'#f97316', badgeColor:'bg-amber-100 text-amber-700', title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-orange-500 to-orange-700',  machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
-    { id:13, hex:'#f97316', badgeColor:'bg-amber-100 text-amber-700', title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-orange-500 to-orange-700',  machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
+    { id:5,  hex:'#0284c7', badgeColor:'bg-orange-100 text-orange-700', title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-sky-500 to-sky-700',       machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
+    { id:13, hex:'#0284c7', badgeColor:'bg-orange-100 text-orange-700', title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-sky-500 to-sky-700',       machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
     { id:6,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
     { id:7,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700', title:'פולי עליון',              category:'גב',        icon:'⬇️', color:'from-emerald-500 to-emerald-700', machine:'כבלים',   exercises:[{id:'ex7c', title:'פולי עליון',         howTo:'שב מול המכונה. משוך את המוט למטה לחזה תוך כיווץ שרירי הגב. חזור לאחור באיטיות.',          tips:['גב ישר','שכמות למטה ולאחורה','מרפקים מפנים כלפי מטה']}] },
     { id:14, hex:'#6366f1', badgeColor:'bg-indigo-100 text-indigo-700', title:'מקבילים גרביטון',           category:'חזה/יד אחורית', icon:'🧗', color:'from-indigo-500 to-indigo-700', machine:'גרביטון', exercises:[{id:'ex7b', title:'מקבילים גרביטון',    howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                                                   tips:['הישענות קדימה']}] },
@@ -821,7 +821,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 </span>
                                 <div className="flex items-center gap-2">
                                     {hist10[0]?.weight > 0 && (
-                                        <span className="text-xs font-black text-blue-500">{hist10[0].weight} kg</span>
+                                        <span className="text-xs font-black text-orange-500">{hist10[0].weight} kg</span>
                                     )}
                                     <Icon name={isOpen?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400" />
                                 </div>
@@ -994,7 +994,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 <div className="text-[10px] font-bold text-slate-400">{shown.category} · {shown.machine}</div>
                             </div>
                             {shLastW > 0 && (
-                                <span className="text-xl font-black text-blue-600 shrink-0 px-1">{shLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
+                                <span className="text-xl font-black text-orange-500 shrink-0 px-1">{shLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
                             )}
                             {showSide === 'prev'
                                 ? <span className="text-[10px] font-black text-slate-400 shrink-0">{label}</span>
@@ -1594,7 +1594,7 @@ const ExercisesListView = ({ logs, images, onBack, onNavigateToGroup }) => {
                                             <div className="text-[11px] font-bold text-slate-400 mt-0.5">{g.machine}{g.isSuperset ? ' · סופרסט' : ''}</div>
                                         </div>
                                         {lastLog && lastLog.weight > 0 && (
-                                            <span className="text-xl font-black text-blue-600 shrink-0 px-1">{lastLog.weight}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
+                                            <span className="text-xl font-black text-orange-500 shrink-0 px-1">{lastLog.weight}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
                                         )}
                                         <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
                                     </div>
@@ -1735,6 +1735,15 @@ function App() {
         // שמירה ל-IDB ברקע (לא חוסם gesture)
         newItems.forEach(({id, _file}) => IDB.set(`music-${id}`, _file));
         showToast(`${newItems.length} קבצים נשמרו`);
+        // בדיקת תמיכה: ניסיון פענוח לאחר שמירה — רק אזהרה, לא מבטל
+        newItems.forEach(({name, url, type}) => {
+            if (!type.includes('mp4') && !type.includes('mpeg') && !type.includes('ogg') && !type.includes('wav')) return;
+            const tst = document.createElement('audio');
+            const can = tst.canPlayType(type);
+            if (can === '') {
+                setTimeout(()=>showToast(`⚠️ ${name.slice(0,20)}... ייתכן שלא יופעל`, true), 1500);
+            }
+        });
     };
     const handleMusicRemoveOne = async (id) => {
         await IDB.del(`music-${id}`);
