@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.5';
+const APP_VERSION = '8.6';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -2135,6 +2135,11 @@ function App() {
                 onPlay={()=>setMusicPlaying(true)} onPause={()=>setMusicPlaying(false)}
                 onTimeUpdate={()=>{ if(audioRef.current) setAudioCurrentTime(audioRef.current.currentTime); }}
                 onLoadedMetadata={()=>{ if(audioRef.current) setAudioDuration(audioRef.current.duration||0); }}
+                onError={(e)=>{
+                    const code = e.target?.error?.code;
+                    const msgs = {1:'הופסק',2:'שגיאת רשת',3:'פענוח נכשל — המר ל-M4A',4:'פורמט לא נתמך — המר ל-M4A'};
+                    showToast(`❌ ${msgs[code]||'שגיאת שמע'} (${code||'?'})`, true);
+                }}
                 onEnded={()=>{
                     const list = musicListRef.current;
                     if (!list.length || !audioRef.current) return;
