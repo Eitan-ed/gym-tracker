@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.6';
+const APP_VERSION = '8.7';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -158,10 +158,10 @@ const exerciseGroups = [
     { id:7,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700', title:'פולי עליון',              category:'גב',        icon:'⬇️', color:'from-emerald-500 to-emerald-700', machine:'כבלים',   exercises:[{id:'ex7c', title:'פולי עליון',         howTo:'שב מול המכונה. משוך את המוט למטה לחזה תוך כיווץ שרירי הגב. חזור לאחור באיטיות.',          tips:['גב ישר','שכמות למטה ולאחורה','מרפקים מפנים כלפי מטה']}] },
     { id:14, hex:'#6366f1', badgeColor:'bg-indigo-100 text-indigo-700', title:'מקבילים גרביטון',           category:'חזה/יד אחורית', icon:'🧗', color:'from-indigo-500 to-indigo-700', machine:'גרביטון', exercises:[{id:'ex7b', title:'מקבילים גרביטון',    howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                                                   tips:['הישענות קדימה']}] },
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
-    { id:15, hex:'#dc2626', badgeColor:'bg-red-100 text-red-700',        title:'כפיפת ברכיים',               category:'רגליים',   icon:'🦿', color:'from-red-600 to-red-800',         machine:'מכונה',   exercises:[{id:'ex11', title:'כפיפת ברכיים',      howTo:'שב במכונה עם רגליים מתחת לרולר. כוף את הברכיים לאחור עד שיא הטווח וחזור באיטיות.', tips:['גב צמוד למושב','תנועה מבוקרת','לא לנעול ברכיים']}] },
-    { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
+    { id:15, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'כפיפת ברכיים',               category:'רגליים',   icon:'🦿', color:'from-red-500 to-red-700',         machine:'מכונה',   exercises:[{id:'ex11', title:'כפיפת ברכיים',      howTo:'שב במכונה עם רגליים מתחת לרולר. כוף את הברכיים לאחור עד שיא הטווח וחזור באיטיות.', tips:['גב צמוד למושב','תנועה מבוקרת','לא לנעול ברכיים']}] },
+    { id:9,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-red-500 to-red-700',          machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
     { id:10, hex:'#0d9488', badgeColor:'bg-teal-100 text-teal-700',     title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-teal-500 to-teal-700',      machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
-    { id:11, hex:'#7c3aed', badgeColor:'bg-purple-100 text-purple-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-purple-500 to-purple-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
+    { id:11, hex:'#0d9488', badgeColor:'bg-teal-100 text-teal-700',    title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-teal-500 to-teal-700',      machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
 ];
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -2428,45 +2428,51 @@ function App() {
                                     ? 'bg-emerald-500 border-emerald-400 text-white'
                                     : isWorkoutActive
                                         ? 'bg-blue-600 border-blue-500 text-white'
-                                        : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 text-slate-700'}`}>
+                                        : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
                                 <button onClick={()=>setIsWorkoutActive(v=>!v)} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                                     <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
                                     <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{timerStr}</span>
                                 </button>
                                 <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
                                     className={`text-[13px] font-bold flex items-center gap-1 px-2 py-1 rounded-full transition-colors
-                                        ${isWorkoutActive ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-500'}`}>
+                                        ${isWorkoutActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'}`}>
                                     <Icon name="RotateCcw" size={11} /> אפס
                                 </button>
                             </div>
 
                             {/* תאריכים + מד */}
-                            <div onClick={()=>{
-                                        setEditingDates({start:sessionStartTime, end:sessionEndTime});
-                            }}
-                                className="flex-1 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none"
+                            <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime})}
+                                className="flex-1 rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none"
                                 style={{WebkitUserSelect:'none'}}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wide mb-0.5">התחלה</div>
+                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">התחלה</div>
                                         <div className="text-[15px] font-black text-slate-800 leading-none">{start.toLocaleDateString('he-IL')}</div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wide mb-0.5">סוף</div>
+                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">סוף</div>
                                         <div className="text-[15px] font-black text-slate-800 leading-none">{end?.toLocaleDateString('he-IL') || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="h-2 bg-white/70 rounded-full overflow-hidden mb-2 shadow-inner">
-                                    <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-500"
+                                <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden mb-2 shadow-inner">
+                                    <div className="h-full bg-slate-400 rounded-full transition-all duration-500"
                                         style={{width:`${progress}%`}} />
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[14px] font-black text-indigo-600">
-                                        {daysRemaining > 0 ? `${daysRemaining} ימים נשארו (${Math.round(progress)}%)` : end ? `✓ הסתיים (${Math.round(progress)}%)` : 'לחץ לעריכה'}
-                                    </span>
+                                    {end ? (
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-[15px] font-black text-slate-500">{daysPassed}</span>
+                                            <span className="text-[11px] font-bold text-slate-400">ימים עברו</span>
+                                            <span className="text-slate-300 font-bold">·</span>
+                                            <span className="text-[15px] font-black text-blue-600">{Math.max(0,daysRemaining)}</span>
+                                            <span className="text-[11px] font-bold text-blue-400">ימים נותרו</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
+                                    )}
                                     <button onClick={e=>{e.stopPropagation();setMusicPanelOpen(o=>!o)}}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${musicList.length > 0 ? 'bg-purple-500 text-white shadow-md' : 'bg-blue-100 text-blue-400'}`}>
+                                            ${musicList.length > 0 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-200 text-slate-400'}`}>
                                         <Icon name="Music" size={15} />
                                     </button>
                                 </div>
