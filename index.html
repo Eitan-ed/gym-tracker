@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.4';
+const APP_VERSION = '8.5';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -152,16 +152,16 @@ const exerciseGroups = [
     { id:2,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',     title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
     { id:3,  hex:'#8b5cf6', badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
     { id:4,  hex:'#d946ef', badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
-    { id:5,  hex:'#0284c7', badgeColor:'bg-orange-100 text-orange-700', title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-sky-500 to-sky-700',       machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
-    { id:13, hex:'#0284c7', badgeColor:'bg-orange-100 text-orange-700', title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-sky-500 to-sky-700',       machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
+    { id:5,  hex:'#0284c7', badgeColor:'bg-sky-100 text-sky-700',    title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-sky-500 to-sky-700',       machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
+    { id:13, hex:'#0284c7', badgeColor:'bg-sky-100 text-sky-700',    title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-sky-500 to-sky-700',       machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
     { id:6,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
     { id:7,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700', title:'פולי עליון',              category:'גב',        icon:'⬇️', color:'from-emerald-500 to-emerald-700', machine:'כבלים',   exercises:[{id:'ex7c', title:'פולי עליון',         howTo:'שב מול המכונה. משוך את המוט למטה לחזה תוך כיווץ שרירי הגב. חזור לאחור באיטיות.',          tips:['גב ישר','שכמות למטה ולאחורה','מרפקים מפנים כלפי מטה']}] },
     { id:14, hex:'#6366f1', badgeColor:'bg-indigo-100 text-indigo-700', title:'מקבילים גרביטון',           category:'חזה/יד אחורית', icon:'🧗', color:'from-indigo-500 to-indigo-700', machine:'גרביטון', exercises:[{id:'ex7b', title:'מקבילים גרביטון',    howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                                                   tips:['הישענות קדימה']}] },
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:15, hex:'#dc2626', badgeColor:'bg-red-100 text-red-700',        title:'כפיפת ברכיים',               category:'רגליים',   icon:'🦿', color:'from-red-600 to-red-800',         machine:'מכונה',   exercises:[{id:'ex11', title:'כפיפת ברכיים',      howTo:'שב במכונה עם רגליים מתחת לרולר. כוף את הברכיים לאחור עד שיא הטווח וחזור באיטיות.', tips:['גב צמוד למושב','תנועה מבוקרת','לא לנעול ברכיים']}] },
     { id:9,  hex:'#f43f5e', badgeColor:'bg-rose-100 text-rose-700',      title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-rose-500 to-rose-700',        machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
-    { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',   title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',    machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
-    { id:11, hex:'#eab308', badgeColor:'bg-yellow-100 text-yellow-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-yellow-500 to-yellow-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
+    { id:10, hex:'#0d9488', badgeColor:'bg-teal-100 text-teal-700',     title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-teal-500 to-teal-700',      machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
+    { id:11, hex:'#7c3aed', badgeColor:'bg-purple-100 text-purple-700', title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-purple-500 to-purple-700',  machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
 ];
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -2181,12 +2181,12 @@ function App() {
                                 </button>
                             )}
                             {musicList.length > 1 && (
-                                <button onClick={()=>{ const prev=(musicIndex - 1 + musicList.length)%musicList.length; setMusicIndex(prev); const a=audioRef.current; if(a&&musicList[prev]){a.src=musicList[prev].url;a.play().catch(()=>{});} }}
-                                    className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏮</button>
-                            )}
-                            {musicList.length > 1 && (
                                 <button onClick={()=>{ const next=(musicIndex+1)%musicList.length; setMusicIndex(next); const a=audioRef.current; if(a&&musicList[next]){a.src=musicList[next].url;a.play().catch(()=>{});} }}
                                     className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏭</button>
+                            )}
+                            {musicList.length > 1 && (
+                                <button onClick={()=>{ const prev=(musicIndex - 1 + musicList.length)%musicList.length; setMusicIndex(prev); const a=audioRef.current; if(a&&musicList[prev]){a.src=musicList[prev].url;a.play().catch(()=>{});} }}
+                                    className="px-2 py-1.5 rounded-xl text-[11px] font-black bg-slate-700 text-slate-300 active:scale-95 shrink-0">⏮</button>
                             )}
                             <label className="flex-1 flex items-center justify-center gap-1 bg-purple-800/60 text-purple-200 rounded-xl py-1.5 text-[11px] font-black cursor-pointer active:scale-95">
                                 <Icon name="Upload" size={12}/> הוסף
