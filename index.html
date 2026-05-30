@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.7';
+const APP_VERSION = '8.8';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1238,7 +1238,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={} }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={} }) => {
     const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false});
     const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
     const handleBackup = () => {
@@ -1395,13 +1395,23 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     {open.music && <div className="px-5 pb-5 space-y-3">
                         {musicList.length > 0 && (
                             <div className="space-y-1.5">
-                                {musicList.map(t => (
-                                    <div key={t.id} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
-                                        <span className="flex-1 text-[12px] font-bold text-slate-700 truncate">{t.name}</span>
-                                        <button onClick={()=>requestConfirm('למחוק שיר זה?',()=>onMusicRemoveOne(t.id))}
-                                            className="text-slate-300 active:text-red-500"><Icon name="Trash2" size={14}/></button>
-                                    </div>
-                                ))}
+                                {musicList.map(t => {
+                                    const isPlaying = musicPlayingId === t.id;
+                                    return (
+                                        <div key={t.id} className={`flex items-center gap-2 px-3 py-2 rounded-2xl border ${isPlaying ? 'bg-purple-50 border-purple-200' : 'bg-slate-50 border-slate-100'}`}>
+                                            {onMusicPlay && (
+                                                <button onClick={()=>onMusicPlay(t)}
+                                                    className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all
+                                                        ${isPlaying ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-500 active:bg-purple-100'}`}>
+                                                    <Icon name={isPlaying ? 'Pause' : 'Play'} size={13} />
+                                                </button>
+                                            )}
+                                            <span className="flex-1 text-[12px] font-bold text-slate-700 truncate">{t.name}</span>
+                                            <button onClick={()=>requestConfirm('למחוק שיר זה?',()=>onMusicRemoveOne(t.id))}
+                                                className="text-slate-300 active:text-red-500 shrink-0"><Icon name="Trash2" size={14}/></button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                         <label className="w-full flex items-center gap-3 bg-purple-50 p-4 rounded-2xl border border-purple-100 text-purple-700 cursor-pointer active:scale-[0.98]">
@@ -2389,7 +2399,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
     if (view==='exercises') return <>{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} /></>;
 
     // List view
     return (
@@ -2428,7 +2438,7 @@ function App() {
                                     ? 'bg-emerald-500 border-emerald-400 text-white'
                                     : isWorkoutActive
                                         ? 'bg-blue-600 border-blue-500 text-white'
-                                        : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+                                        : 'bg-slate-300 border-slate-400 text-slate-700'}`}>
                                 <button onClick={()=>setIsWorkoutActive(v=>!v)} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                                     <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
                                     <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{timerStr}</span>
@@ -2442,7 +2452,7 @@ function App() {
 
                             {/* תאריכים + מד */}
                             <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime})}
-                                className="flex-1 rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none"
+                                className="flex-1 rounded-2xl bg-slate-200 border border-slate-300 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none"
                                 style={{WebkitUserSelect:'none'}}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
@@ -2461,11 +2471,11 @@ function App() {
                                 <div className="flex items-center justify-between">
                                     {end ? (
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[15px] font-black text-slate-500">{daysPassed}</span>
-                                            <span className="text-[11px] font-bold text-slate-400">ימים עברו</span>
-                                            <span className="text-slate-300 font-bold">·</span>
-                                            <span className="text-[15px] font-black text-blue-600">{Math.max(0,daysRemaining)}</span>
-                                            <span className="text-[11px] font-bold text-blue-400">ימים נותרו</span>
+                                            <span className="text-[15px] font-black text-blue-700">{daysPassed}</span>
+                                            <span className="text-[11px] font-bold text-blue-500">ימים עברו</span>
+                                            <span className="text-slate-400 font-bold">·</span>
+                                            <span className="text-[15px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
+                                            <span className="text-[11px] font-bold text-orange-400">ימים נותרו</span>
                                         </div>
                                     ) : (
                                         <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
