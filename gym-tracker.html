@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.1';
+const APP_VERSION = '9.2';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1308,12 +1308,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
                 {/* ── ג: גיבוי ושחזור ── */}
-                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 ${open.backup?'':'overflow-hidden'}`}>
-                    <button onClick={()=>toggleSection('backup')} className={`w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 ${open.backup?'sticky top-0 z-10 bg-white rounded-t-[2rem] border-b border-slate-100 shadow-sm':''}`}>
+                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.backup?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-sky-500" /> גיבוי ושחזור</h3>
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.backup && <div className="px-5 pb-5 space-y-4">
+                    {open.backup && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
                         <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
                             <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">הורדת קובץ למכשיר</div></div>
@@ -1326,12 +1326,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ה: הגדרות אימון ── */}
-                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 ${open.settings?'':'overflow-hidden'}`}>
-                    <button onClick={()=>toggleSection('settings')} className={`w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 ${open.settings?'sticky top-0 z-10 bg-white rounded-t-[2rem] border-b border-slate-100 shadow-sm':''}`}>
+                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.settings?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('settings')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-orange-500" /> הגדרות אימון</h3>
                         <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.settings && <div className="px-5 pb-5 space-y-4">
+                    {open.settings && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
                         {[
                             {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120,150,180]},
                             {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60,90,120]}
@@ -1351,12 +1351,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ה: היסטוריית אימונים ── */}
-                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 ${open.history?'':'overflow-hidden'}`}>
-                    <button onClick={()=>toggleSection('history')} className={`w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 ${open.history?'sticky top-0 z-10 bg-white rounded-t-[2rem] border-b border-slate-100 shadow-sm':''}`}>
+                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.history?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('history')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-teal-500" /> היסטוריית אימונים</h3>
                         <Icon name={open.history?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.history && <div className="px-5 pb-5 space-y-3">
+                    {open.history && <div className="px-5 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
                         {(()=>{
                             const grouped = {};
                             logs.forEach(l => {
@@ -1402,12 +1402,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── מ: מוזיקה ── */}
-                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 ${open.music?'':'overflow-hidden'}`}>
-                    <button onClick={()=>toggleSection('music')} className={`w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 ${open.music?'sticky top-0 z-10 bg-white rounded-t-[2rem] border-b border-slate-100 shadow-sm':''}`}>
+                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.music?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('music')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
                         <Icon name={open.music?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.music && <div className="px-5 pb-5 space-y-3">
+                    {open.music && <div className="px-5 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
                         {musicList.length > 0 && (
                             <div className="space-y-1.5">
                                 {musicList.map(t => {
@@ -1444,20 +1444,20 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ת: תדירות אימון ── */}
-                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 ${open.progress?'':'overflow-hidden'}`}>
-                    <button onClick={()=>toggleSection('progress')} className={`w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 ${open.progress?'sticky top-0 z-10 bg-white rounded-t-[2rem] border-b border-slate-100 shadow-sm':''}`}>
+                <section className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.progress?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> תדירות אימון</h3>
                         <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.progress && <WorkoutProgressCalendar logs={logs} />}
+                    {open.progress && <div className="overflow-y-auto no-scrollbar flex-1"><WorkoutProgressCalendar logs={logs} /></div>}
                 </section>
                 {/* ── ת: תרגילים ── */}
-                <section ref={exerciseSectionRef} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 ${open.exercises?'':'overflow-hidden'}`}>
-                    <button onClick={()=>toggleSection('exercises')} className={`w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 ${open.exercises?'sticky top-0 z-10 bg-white rounded-t-[2rem] border-b border-slate-100 shadow-sm':''}`}>
+                <section ref={exerciseSectionRef} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.exercises?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.exercises && <div className="px-4 pb-5 space-y-3">
+                    {open.exercises && <div className="px-4 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
                         {exerciseGroups.map(g => (
                             <div key={g.id} className="space-y-2">
                                 {g.exercises.map(ex => {
