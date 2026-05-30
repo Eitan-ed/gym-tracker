@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '8.9';
+const APP_VERSION = '9.0';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -1240,7 +1240,18 @@ const WorkoutProgressCalendar = ({ logs }) => {
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={} }) => {
     const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false});
+    const scrollRef = React.useRef(null);
+    const exerciseSectionRef = React.useRef(null);
     const toggleSection = key => setOpen(p=>({...p,[key]:!p[key]}));
+
+    // כשפותחים תרגילים — גלול לראש הסקשן
+    useEffect(()=>{
+        if (!open.exercises || !exerciseSectionRef.current || !scrollRef.current) return;
+        setTimeout(()=>{
+            const top = exerciseSectionRef.current.offsetTop - 16;
+            scrollRef.current.scrollTo({ top, behavior:'smooth' });
+        }, 60);
+    },[open.exercises]);
     const handleBackup = () => {
         triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
@@ -1291,7 +1302,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 )}
                 <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
                 {/* ── ג: גיבוי ושחזור ── */}
                 <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
@@ -1437,52 +1448,57 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     {open.progress && <WorkoutProgressCalendar logs={logs} />}
                 </section>
                 {/* ── ת: תרגילים ── */}
-                <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <section ref={exerciseSectionRef} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.exercises && <div className="px-5 pb-5 space-y-2">
+                    {open.exercises && <div className="px-4 pb-5 space-y-3">
                         {exerciseGroups.map(g => (
-                            <div key={g.id} className="space-y-1.5">
+                            <div key={g.id} className="space-y-2">
                                 {g.exercises.map(ex => {
                                     const isHidden = hiddenExercises.has(ex.id);
                                     const img = images?.[ex.id] || (EXERCISE_IMAGES[ex.id] ? `images/${EXERCISE_IMAGES[ex.id]}` : null);
                                     return (
                                         <div key={ex.id} className="flex items-center gap-2">
                                             <button onClick={()=>onNavigateToGroup && onNavigateToGroup(g)}
-                                                className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all active:scale-[0.98]
+                                                className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-2xl border transition-all active:scale-[0.98]
                                                     ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
                                                 {img
-                                                    ? <img src={img} className="w-8 h-8 rounded-xl object-cover shrink-0" />
-                                                    : <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg bg-gradient-to-br ${g.color} shrink-0`}>{g.icon}</div>
+                                                    ? <img src={img} className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm" />
+                                                    : <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ${g.color} shrink-0 shadow-sm`}>{g.icon}</div>
                                                 }
-                                                <span className={`text-[11px] font-black flex-1 text-right truncate ${isHidden ? 'text-indigo-700' : 'text-slate-400'}`}>{ex.title}</span>
-                                                {g.exercises.length === 2 && (
-                                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-tight shrink-0">סופרסט</span>
-                                                )}
+                                                <div className="flex-1 min-w-0 text-right">
+                                                    <div className={`text-[13px] font-black truncate ${isHidden ? 'text-indigo-700' : 'text-slate-700'}`}>{ex.title}</div>
+                                                    <div className="text-[10px] font-bold text-slate-400 mt-0.5">{g.category} · {g.machine}</div>
+                                                    {g.exercises.length === 2 && (
+                                                        <span className="text-[9px] font-black text-indigo-300 uppercase tracking-tight">סופרסט</span>
+                                                    )}
+                                                </div>
                                             </button>
-                                            <select
-                                                value={String(settings.weightSteps?.[ex.id] !== undefined ? settings.weightSteps[ex.id] : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1))}
-                                                onChange={e => onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: parseFloat(e.target.value)})}
-                                                onClick={e => e.stopPropagation()}
-                                                title="מרווח משקל"
-                                                className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-2xl px-2 py-2 text-[10px] font-black outline-none">
-                                                <option value="0.25">0.25</option>
-                                                <option value="0.5">0.5</option>
-                                                <option value="1">1</option>
-                                                <option value="2">2</option>
-                                                <option value="2.5">2.5</option>
-                                                <option value="4">4</option>
-                                                <option value="5">5</option>
-                                                <option value="10">10</option>
-                                            </select>
-                                            <button
-                                                onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
-                                                className={`shrink-0 px-3 py-2 rounded-2xl text-[11px] font-black active:scale-95 transition-all
-                                                    ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                {isHidden ? 'הפעל' : 'הסתר'}
-                                            </button>
+                                            <div className="flex flex-col gap-1.5 shrink-0">
+                                                <select
+                                                    value={String(settings.weightSteps?.[ex.id] !== undefined ? settings.weightSteps[ex.id] : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1))}
+                                                    onChange={e => onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: parseFloat(e.target.value)})}
+                                                    onClick={e => e.stopPropagation()}
+                                                    title="מרווח משקל"
+                                                    className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-2 py-1.5 text-[10px] font-black outline-none w-14 text-center">
+                                                    <option value="0.25">0.25</option>
+                                                    <option value="0.5">0.5</option>
+                                                    <option value="1">1</option>
+                                                    <option value="2">2</option>
+                                                    <option value="2.5">2.5</option>
+                                                    <option value="4">4</option>
+                                                    <option value="5">5</option>
+                                                    <option value="10">10</option>
+                                                </select>
+                                                <button
+                                                    onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
+                                                    className={`shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center
+                                                        ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                    {isHidden ? 'הפעל' : 'הסתר'}
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
