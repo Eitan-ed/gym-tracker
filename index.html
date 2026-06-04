@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.6';
+const APP_VERSION = '9.7';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1317,8 +1317,9 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[] }) => {
     const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false});
+    const [histExpandedDate, setHistExpandedDate] = useState(null);
     const scrollRef = React.useRef(null);
     const exerciseSectionRef = React.useRef(null);
     const backupRef    = React.useRef(null);
@@ -1439,7 +1440,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-teal-500" /> היסטוריית אימונים</h3>
                         <Icon name={open.history?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.history && <div className="px-5 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
+                    {open.history && <div className="pb-3 space-y-2 overflow-y-auto no-scrollbar flex-1">
                         {(()=>{
                             const grouped = {};
                             logs.forEach(l => {
@@ -1448,34 +1449,61 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 grouped[d].push(l);
                             });
                             const entries = Object.entries(grouped).sort((a,b)=>new Date(b[1][0].timestamp)-new Date(a[1][0].timestamp));
-                            if (!entries.length) return (
-                                <div className="text-center text-slate-400 font-bold py-4">אין היסטוריה עדיין</div>
-                            );
+                            if (!entries.length) return <div className="text-center text-slate-400 font-bold py-4 px-5">אין היסטוריה עדיין</div>;
+                            const delDate = items => { const ids=new Set(items.map(i=>i.id)); setLogs(prev=>prev.filter(l=>!ids.has(l.id))); };
+                            const delOne  = id => setLogs(prev=>prev.filter(l=>l.id!==id));
                             return (
                                 <>
-                                    <div className="space-y-1.5 max-h-80 overflow-y-auto no-scrollbar">
-                                        {entries.slice(0,10).map(([date, items])=>{
-                                            const dur = Object.entries(sessionDurations||{}).find(([ts])=>
-                                                new Date(Number(ts)).toLocaleDateString('he-IL')===date
-                                            )?.[1];
-                                            const m = dur ? Math.floor(dur/60) : 0, s = dur ? dur%60 : 0;
-                                            return (
-                                                <div key={date} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[11px] font-black text-slate-500">{getDayLetterHe(items[0].timestamp)}</span>
-                                                        <span className="text-[12px] font-black text-slate-800">{fmtDateShort(items[0].timestamp)}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        {dur > 0 && <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={10}/>{m}:{String(s).padStart(2,'0')}</span>}
-                                                        <span className="text-[10px] font-bold text-blue-500">{items.length} סטים</span>
-                                                    </div>
+                                    {entries.map(([date, items])=>{
+                                        const dur = Object.entries(sessionDurations||{}).find(([ts])=>new Date(Number(ts)).toLocaleDateString('he-IL')===date)?.[1];
+                                        const wst = Object.keys(sessionDurations||{}).find(ts=>new Date(Number(ts)).toLocaleDateString('he-IL')===date);
+                                        const wn  = wst ? workoutNotes[wst] : null;
+                                        const bwEnt = bodyweightLog.find(b=>new Date(b.timestamp).toLocaleDateString('he-IL')===date);
+                                        const bwVal = wn?.bw || bwEnt?.weight;
+                                        const isExp = histExpandedDate===date;
+                                        const uniqEx = [...new Set(items.map(i=>i.exId))].length;
+                                        return (
+                                            <div key={date} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden mx-3">
+                                                <div className="flex items-center">
+                                                    <button onClick={()=>setHistExpandedDate(isExp?null:date)}
+                                                        className="flex-1 flex items-center justify-between px-3 py-2.5 active:bg-slate-50">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0"/>
+                                                            <span className="font-black text-slate-600 text-sm">{getDayLetterHe(items[0].timestamp)}</span>
+                                                            <span className="font-black text-slate-800 text-sm">{fmtDateShort(items[0].timestamp)}</span>
+                                                            {dur>0 && <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={10}/>{fmtDur(dur)}</span>}
+                                                            {bwVal>0 && <span className="text-[10px] font-black text-sky-600">⚖️{bwVal}</span>}
+                                                            <span className="text-[10px] font-bold text-blue-500">{items.length} סטים · {uniqEx} ת׳</span>
+                                                        </div>
+                                                        <Icon name={isExp?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400 shrink-0"/>
+                                                    </button>
+                                                    <button onClick={()=>requestConfirm('למחוק את כל יום האימון?',()=>delDate(items))} className="px-3 py-2.5 text-red-300 active:text-red-500 shrink-0">
+                                                        <Icon name="Trash" size={15}/>
+                                                    </button>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
+                                                {isExp && (
+                                                    <div className="px-3 pb-3 pt-1 border-t border-slate-100 space-y-1.5">
+                                                        {(wn?.note) && <div className="bg-amber-50 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-600 border border-amber-100 whitespace-pre-wrap">{wn.note}</div>}
+                                                        {[...items].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).map(it=>{
+                                                            const ex=exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===it.exId);
+                                                            return (
+                                                                <div key={it.id} className="flex justify-between items-center border-b border-slate-50 last:border-0 pb-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button onClick={()=>requestConfirm('למחוק סט זה?',()=>delOne(it.id))} className="text-red-200 active:text-red-500"><Icon name="Trash2" size={11}/></button>
+                                                                        <span className="font-black text-slate-700 text-[11px]">{ex?.title||'תרגיל'}</span>
+                                                                    </div>
+                                                                    <span className="text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-xl text-[10px]">סט {it.setNum}: {it.weight}kg×{it.reps}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                     {onNavigateToHistory && (
                                         <button onClick={onNavigateToHistory}
-                                            className="w-full flex items-center justify-center gap-2 bg-blue-50 p-3 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98] font-black text-sm">
+                                            className="flex items-center justify-center gap-2 bg-blue-50 p-3 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98] font-black text-sm mx-3" style={{width:'calc(100% - 1.5rem)'}}>
                                             <Icon name="History" size={16}/> פתח היסטוריה מלאה
                                         </button>
                                     )}
@@ -2122,6 +2150,7 @@ function App() {
         setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
         setWorkoutDecisionMade(false); setSummaryNote(''); setSummaryBW('');
         setWorkoutStartTime(wst); setView('list'); setActiveGroup(null);
+        LS.set('gym-last-workout-sec', 0); // איפוס טיימר כללי
     };
 
     const handleDeleteLog  = id=>{
@@ -2509,7 +2538,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
     if (view==='exercises') return <>{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} /></>;
 
     // List view
     return (
