@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.4';
+const APP_VERSION = '9.5';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -467,7 +467,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     // refs עדכניים לשימוש בסגירת הטיימר
     useEffect(()=>{ s1Ref.current = s1; },[s1]);
     useEffect(()=>{ s2Ref.current = s2; },[s2]);
-    // interval של טיימר בטן
+    // interval של טיימר בטן — ויזואלי בלבד, ללא שמירה אוטומטית
     useEffect(()=>{
         if (!timerState) { clearInterval(timerIntervalRef.current); return; }
         clearInterval(timerIntervalRef.current);
@@ -477,12 +477,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 if (prev.remaining <= 1) {
                     clearInterval(timerIntervalRef.current);
                     playRestCompleteSound();
-                    const n=prev.num, tot=prev.total;
-                    setTimeout(()=>{
-                        const st = n===1 ? s1Ref.current : s2Ref.current;
-                        if (st) handleSetSave(n, {...st, r:tot}, true);
-                    }, 80);
-                    return null;
+                    return null; // חוזר לברירת המחדל (bellyTimerSecs)
                 }
                 if (prev.remaining <= 4) playCountdownBeep();
                 return {...prev, remaining: prev.remaining-1};
@@ -599,27 +594,35 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 <div className="flex flex-col flex-1 gap-1">
                                     {(!timerState||timerState.num!==num) && !isDone && (
                                         <div className="flex gap-1">
-                                            {[30,45,60,90].map(t=>(
-                                                <button key={t} onClick={()=>{setBellyTimerSecs(t);LS.set('gym-belly-timer',t);}}
-                                                    className={`flex-1 py-0.5 rounded-lg text-[10px] font-black active:scale-95 ${bellyTimerSecs===t?'bg-teal-500 text-white':'bg-slate-100 text-slate-600'}`}>
+                                            {[10,20,30,40].map(d=>{const t=bellyTimerSecs+d; return (
+                                                <button key={d} onClick={()=>{setBellyTimerSecs(t);LS.set('gym-belly-timer',t);}}
+                                                    className="flex-1 py-0.5 rounded-lg text-[10px] font-black active:scale-95 bg-slate-100 text-slate-600 active:bg-teal-100">
                                                     {t}″</button>
-                                            ))}
+                                            );})}
                                         </div>
                                     )}
                                     <div className="flex items-stretch gap-0.5">
                                         {(!timerState||timerState.num!==num) && !isDone && (
-                                            <button onClick={()=>{const v=Math.max(15,bellyTimerSecs-15);setBellyTimerSecs(v);LS.set('gym-belly-timer',v);}}
-                                                className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-sm active:bg-rose-100 shrink-0 flex items-center justify-center">-15</button>
+                                            <button onClick={()=>{const v=Math.max(10,bellyTimerSecs-10);setBellyTimerSecs(v);LS.set('gym-belly-timer',v);}}
+                                                className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-sm active:bg-rose-100 shrink-0 flex items-center justify-center">-10</button>
                                         )}
-                                        <div className={`flex-1 h-14 rounded-xl flex flex-col items-center justify-center ${timerState?.num===num?'bg-teal-50 ring-2 ring-teal-300':'bg-slate-100'}`}>
+                                        <div onClick={()=>{
+                                            if (isDone) return;
+                                            if (timerState?.num===num) {
+                                                clearInterval(timerIntervalRef.current); setTimerState(null);
+                                            } else if (!timerState) {
+                                                setTimerState({num, remaining:bellyTimerSecs, total:bellyTimerSecs});
+                                            }
+                                        }} className={`flex-1 h-14 rounded-xl flex flex-col items-center justify-center cursor-pointer active:scale-95
+                                            ${timerState?.num===num?'bg-teal-50 ring-2 ring-teal-300':'bg-slate-100 active:bg-teal-50'}`}>
                                             <span className={`font-black text-[22px] ${timerState?.num===num?'text-teal-700':'text-slate-800'}`}>
                                                 {timerState?.num===num ? timerState.remaining : (isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs)}
                                             </span>
-                                            <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">שנ׳</span>
+                                            <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{timerState?.num===num?'▐▐ עצור':'▶ שנ׳'}</span>
                                         </div>
                                         {(!timerState||timerState.num!==num) && !isDone && (
-                                            <button onClick={()=>{const v=Math.min(300,bellyTimerSecs+15);setBellyTimerSecs(v);LS.set('gym-belly-timer',v);}}
-                                                className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-sm active:bg-emerald-100 shrink-0 flex items-center justify-center">+15</button>
+                                            <button onClick={()=>{const v=Math.min(300,bellyTimerSecs+10);setBellyTimerSecs(v);LS.set('gym-belly-timer',v);}}
+                                                className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-sm active:bg-emerald-100 shrink-0 flex items-center justify-center">+10</button>
                                         )}
                                     </div>
                                 </div>
@@ -636,32 +639,23 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 )}
                             </div>
                             <button onClick={() => {
-                                if (!canActFinal && !(isTimerEx && !isDone && !timerState && canAct)) return;
-                                if (isTimerEx && !isDone && !timerState && canAct) {
-                                    setTimerState({num, remaining:bellyTimerSecs, total:bellyTimerSecs}); return;
+                                if (!canActFinal) return;
+                                if (isTimerEx) {
+                                    if (timerState?.num===num) { clearInterval(timerIntervalRef.current); setTimerState(null); }
+                                    handleSetSave(num, {...state, r:bellyTimerSecs}); return;
                                 }
-                                if (isTimerEx && timerState?.num===num) {
-                                    clearInterval(timerIntervalRef.current);
-                                    const used = timerState.total - timerState.remaining;
-                                    setTimerState(null);
-                                    handleSetSave(num, {...state, r:Math.max(1,used)}, true); return;
-                                }
-                                if (canActFinal) handleSetSave(num, state);
+                                handleSetSave(num, state);
                             }}
-                                disabled={!canActFinal && !(isTimerEx && !isDone && !timerState && canAct)}
+                                disabled={!canActFinal}
                                 className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
                                     ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
                                     : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
-                                    : isTimerEx && timerState?.num===num ? 'bg-teal-500 text-white shadow-teal-200 shadow-lg text-[18px]'
-                                    : isTimerEx && !timerState && canAct ? 'bg-teal-500 text-white shadow-teal-200 shadow-lg'
                                     : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700 text-[16px]'
                                     : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
                                     : 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg'}`}>
                                 {isDone && (state.wC||state.rC) ? 'עדכן'
                                 : isDone ? 'בוצע'
                                 : isSaving ? '...'
-                                : isTimerEx && timerState?.num===num ? String(timerState.remaining)
-                                : isTimerEx && !timerState ? '▶'
                                 : showCDown ? countdown : 'סיום'}
                             </button>
                         </div>
@@ -1044,31 +1038,33 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const nLastW=nEx?([...logs].filter(l=>l.exId===nEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
                 const nDone=nextGroup?.exercises.every(ex=>{const sl=logs.filter(l=>l.exId===ex.id&&new Date(l.timestamp).getTime()>sessionStartTime);return sl.some(l=>l.setNum===1)&&sl.some(l=>l.setNum===2);});
                 return (
-                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
-                        {prevGroup && (
-                            <button onClick={()=>onNavigateTo?.(prevGroup)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-xl text-[12px] font-black text-slate-600 active:scale-95 active:bg-slate-200 transition-all">
-                                <Icon name="ChevronRight" size={13} className="text-slate-400" /> קודם
-                            </button>
-                        )}
-                        {nextGroup ? (
-                            <div onClick={()=>onNavigateTo?.(nextGroup)}
-                                className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
-                                {nImg && <img src={nImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={nDone?{filter:'grayscale(100%)',opacity:0.55}:undefined} />}
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
-                                    <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                        <div className="flex items-stretch gap-2">
+                            {prevGroup && (
+                                <button onClick={()=>onNavigateTo?.(prevGroup)}
+                                    className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 bg-slate-100 rounded-2xl text-slate-500 active:scale-95 active:bg-slate-200 transition-all shrink-0 min-w-[3rem]">
+                                    <Icon name="ChevronRight" size={20} className="text-slate-400" />
+                                    <span className="text-[10px] font-black">קודם</span>
+                                </button>
+                            )}
+                            {nextGroup ? (
+                                <div onClick={()=>onNavigateTo?.(nextGroup)}
+                                    className="flex-1 flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
+                                    {nImg && <img src={nImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={nDone?{filter:'grayscale(100%)',opacity:0.55}:undefined} />}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
+                                        <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
+                                    </div>
+                                    {nLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
+                                    <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
                                 </div>
-                                {nLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
-                                <span className="text-[10px] font-black text-slate-400 shrink-0">הבא ▸</span>
-                                <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
-                            </div>
-                        ) : (
-                            <button onClick={()=>onFinish?.()}
-                                className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base">
-                                <Icon name="CheckCircle2" size={22}/> סוף אימון
-                            </button>
-                        )}
+                            ) : (
+                                <button onClick={()=>onFinish?.()}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base">
+                                    <Icon name="CheckCircle2" size={22}/> סוף אימון
+                                </button>
+                            )}
+                        </div>
                     </div>
                 );
             })()}
