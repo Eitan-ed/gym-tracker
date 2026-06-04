@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.3';
+const APP_VERSION = '9.4';
 
 const getDayNameHe = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 
@@ -146,6 +146,15 @@ const DEFAULT_STARTING_WEIGHTS = {
     'ex11': 5    // כפיפת ברכיים (Leg Curl)
 };
 
+// ─── רשימות משקל מותאמות (מכשירים עם קפיצות 4/5) ───────────
+const CUSTOM_WEIGHT_VALUES = {
+    'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
+    'ex7c': [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95,100],
+};
+
+// ─── תרגילי טיימר (בטן) ─────────────────────────────────────
+const TIMER_EXERCISES = new Set(['ex10a','ex10b']);
+
 // --- מאגר תרגילים ---
 const exerciseGroups = [
     { id:1,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
@@ -169,7 +178,7 @@ const DRUM_H    = 48;
 const DRUM_VIS  = 7;
 const DRUM_HALF = 3;
 
-const Roller = memo(({ value, onChange, min, max, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[] }) => {
+const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[], values=null }) => {
     const [open,     setOpen]     = useState(false);
     const [localVal, setLocalVal] = useState(value);
 
@@ -180,11 +189,12 @@ const Roller = memo(({ value, onChange, min, max, step=1, drumStep=null, label, 
 
     const effDrumStep = drumStep !== null ? drumStep : step;
     const options = useMemo(() => {
+        if (values) return values;
         const o = [];
         for (let v = min; v <= max; v = parseFloat((v + effDrumStep).toFixed(10)))
             o.push(parseFloat(v.toFixed(4)));
         return o;
-    }, [min, max, effDrumStep]);
+    }, [min, max, effDrumStep, values]);
 
     const scrollTo = useCallback((idx, smooth=false) => {
         if (!listRef.current) return;
@@ -231,11 +241,11 @@ const Roller = memo(({ value, onChange, min, max, step=1, drumStep=null, label, 
         setLocalVal(prev => {
             let idx = options.indexOf(prev);
             if (idx < 0) idx = options.reduce((b,o,i) => Math.abs(o-prev)<Math.abs(options[b]-prev)?i:b, 0);
-            const ni = Math.min(Math.max(idx + Math.round(delta/step), 0), options.length-1);
+            const ni = Math.min(Math.max(idx + (values ? delta : Math.round(delta/step)), 0), options.length-1);
             fromBtn.current = true;
             return options[ni];
         });
-    }, [options, step]);
+    }, [options, step, values]);
 
     const confirm = useCallback(() => { onChange(localVal); setOpen(false); }, [localVal, onChange]);
 
@@ -258,9 +268,11 @@ const Roller = memo(({ value, onChange, min, max, step=1, drumStep=null, label, 
                         </div>
                         {/* מספרים קרובים */}
                         {(() => {
-                            const nearby = [-3,-2,-1,0,1,2,3]
-                                .map(d => parseFloat((localVal + d*step).toFixed(4)))
-                                .filter(v => v >= min && v <= max);
+                            const nearby = values ? (()=>{
+                                const ci=options.findIndex(v=>Math.abs(v-localVal)<0.01);
+                                const si=ci>=0?ci:options.reduce((b,v,i)=>Math.abs(v-localVal)<Math.abs(options[b]-localVal)?i:b,0);
+                                return [-3,-2,-1,0,1,2,3].map(d=>options[si+d]).filter(v=>v!=null);
+                            })() : [-3,-2,-1,0,1,2,3].map(d => parseFloat((localVal + d*step).toFixed(4))).filter(v => v >= min && v <= max);
                             return (
                                 <div className="px-5 pb-2 flex gap-2 overflow-x-auto no-scrollbar justify-center" dir="ltr">
                                     {nearby.map(p => (
@@ -408,8 +420,9 @@ function VideoInput({ exId, onSave }) {
 // ─── ExerciseEntryRow ──────────────────────────────────────
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
-    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5] }) {
-    const defW = DEFAULT_STARTING_WEIGHTS[ex.id] ?? 10;
+    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null }) {
+    const isTimerEx = TIMER_EXERCISES.has(ex.id);
+    const defW = weightValues ? weightValues[0] : (DEFAULT_STARTING_WEIGHTS[ex.id] ?? 10);
     const [s1, setS1] = useState({ w:defW, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:defW, r:10, wC:false, rC:false });
 
@@ -423,6 +436,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
             .slice(0,30).map(l=>l.reps).filter(r=>r>0)
     )].slice(0,5), [logs, ex.id]);
     const [isSaving, setIsSaving] = useState(false);
+    const [bellyTimerSecs, setBellyTimerSecs] = useState(()=>LS.get('gym-belly-timer',60));
+    const [timerState, setTimerState] = useState(null); // {num,remaining,total}
+    const timerIntervalRef = React.useRef(null);
+    const s1Ref = React.useRef(null); const s2Ref = React.useRef(null);
 
     const cameBack    = React.useRef(false);
     const initialized = React.useRef(false);
@@ -447,12 +464,46 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         setS2(p=>({...p,wC:false,rC:false}));
     }, [sessionStartTime]);
 
+    // refs עדכניים לשימוש בסגירת הטיימר
+    useEffect(()=>{ s1Ref.current = s1; },[s1]);
+    useEffect(()=>{ s2Ref.current = s2; },[s2]);
+    // interval של טיימר בטן
+    useEffect(()=>{
+        if (!timerState) { clearInterval(timerIntervalRef.current); return; }
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = setInterval(()=>{
+            setTimerState(prev=>{
+                if (!prev) { clearInterval(timerIntervalRef.current); return null; }
+                if (prev.remaining <= 1) {
+                    clearInterval(timerIntervalRef.current);
+                    playRestCompleteSound();
+                    const n=prev.num, tot=prev.total;
+                    setTimeout(()=>{
+                        const st = n===1 ? s1Ref.current : s2Ref.current;
+                        if (st) handleSetSave(n, {...st, r:tot}, true);
+                    }, 80);
+                    return null;
+                }
+                if (prev.remaining <= 4) playCountdownBeep();
+                return {...prev, remaining: prev.remaining-1};
+            });
+        },1000);
+        return ()=>clearInterval(timerIntervalRef.current);
+    },[timerState?.num, !!timerState]);
+
     const done = useMemo(() => ({
         s1: logs.some(l => l.exId===ex.id && l.setNum===1 && new Date(l.timestamp).getTime()>sessionStartTime),
         s2: logs.some(l => l.exId===ex.id && l.setNum===2 && new Date(l.timestamp).getTime()>sessionStartTime)
     }), [logs, ex.id, sessionStartTime]);
 
-    const handleSetSave = async (num, state) => {
+    const stepW = useCallback((w, dir) => {
+        if (!weightValues) return parseFloat((dir>0?Math.min(250,w+weightStep):Math.max(0,w-weightStep)).toFixed(4));
+        const idx = weightValues.findIndex(v=>Math.abs(v-w)<0.01);
+        const si  = idx>=0?idx:weightValues.reduce((b,v,i)=>Math.abs(v-w)<Math.abs(weightValues[b]-w)?i:b,0);
+        return weightValues[Math.max(0,Math.min(weightValues.length-1,si+dir))];
+    },[weightValues,weightStep]);
+
+    const handleSetSave = async (num, state, skipConfirm=false) => {
         const isDoneSet = num===1 ? done.s1 : done.s2;
         const doSave = async () => {
             setIsSaving(true);
@@ -466,7 +517,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 else setS2(p=>({...p,wC:false,rC:false}));
             } finally { setIsSaving(false); }
         };
-        if (cameBack.current && requestConfirm) {
+        if (!skipConfirm && cameBack.current && requestConfirm) {
             requestConfirm('לשנות את נתוני הסט?', doSave);
         } else {
             await doSave();
@@ -535,14 +586,44 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             </div>
                             <div className="flex flex-1 gap-1.5">
                                 <div className="flex items-stretch flex-1 gap-0.5">
-                                    <button onClick={()=>{const nw=parseFloat(Math.min(250,state.w+weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));}}
+                                    <button onClick={()=>setState(p=>({...p,w:stepW(p.w,1),wC:true}))}
                                         className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
-                                    <Roller label="ק״ג" min={0} max={250} step={weightStep} drumStep={1} value={state.w} isChanged={state.wC}
+                                    <Roller label="ק״ג" min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
                                         onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
-                                        presets={weightPresets} jumpSteps={weightJumpSteps} />
-                                    <button onClick={()=>{const nw=parseFloat(Math.max(0,state.w-weightStep).toFixed(4));setState(p=>({...p,w:nw,wC:true}));}}
+                                        presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} />
+                                    <button onClick={()=>setState(p=>({...p,w:stepW(p.w,-1),wC:true}))}
                                         className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
                                 </div>
+                                {/* אזור חזרות / טיימר בטן */}
+                                {isTimerEx ? (
+                                <div className="flex flex-col flex-1 gap-1">
+                                    {(!timerState||timerState.num!==num) && !isDone && (
+                                        <div className="flex gap-1">
+                                            {[30,45,60,90].map(t=>(
+                                                <button key={t} onClick={()=>{setBellyTimerSecs(t);LS.set('gym-belly-timer',t);}}
+                                                    className={`flex-1 py-0.5 rounded-lg text-[10px] font-black active:scale-95 ${bellyTimerSecs===t?'bg-teal-500 text-white':'bg-slate-100 text-slate-600'}`}>
+                                                    {t}″</button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className="flex items-stretch gap-0.5">
+                                        {(!timerState||timerState.num!==num) && !isDone && (
+                                            <button onClick={()=>{const v=Math.max(15,bellyTimerSecs-15);setBellyTimerSecs(v);LS.set('gym-belly-timer',v);}}
+                                                className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-sm active:bg-rose-100 shrink-0 flex items-center justify-center">-15</button>
+                                        )}
+                                        <div className={`flex-1 h-14 rounded-xl flex flex-col items-center justify-center ${timerState?.num===num?'bg-teal-50 ring-2 ring-teal-300':'bg-slate-100'}`}>
+                                            <span className={`font-black text-[22px] ${timerState?.num===num?'text-teal-700':'text-slate-800'}`}>
+                                                {timerState?.num===num ? timerState.remaining : (isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs)}
+                                            </span>
+                                            <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">שנ׳</span>
+                                        </div>
+                                        {(!timerState||timerState.num!==num) && !isDone && (
+                                            <button onClick={()=>{const v=Math.min(300,bellyTimerSecs+15);setBellyTimerSecs(v);LS.set('gym-belly-timer',v);}}
+                                                className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-sm active:bg-emerald-100 shrink-0 flex items-center justify-center">+15</button>
+                                        )}
+                                    </div>
+                                </div>
+                                ) : (
                                 <div className="flex items-stretch flex-1 gap-0.5">
                                     <button onClick={()=>setState(p=>({...p,r:Math.min(120,p.r+repsStep),rC:true}))}
                                         className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
@@ -552,15 +633,36 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     <button onClick={()=>setState(p=>({...p,r:Math.max(1,p.r-repsStep),rC:true}))}
                                         className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
                                 </div>
+                                )}
                             </div>
-                            <button onClick={() => canActFinal && handleSetSave(num, state)} disabled={!canActFinal}
+                            <button onClick={() => {
+                                if (!canActFinal && !(isTimerEx && !isDone && !timerState && canAct)) return;
+                                if (isTimerEx && !isDone && !timerState && canAct) {
+                                    setTimerState({num, remaining:bellyTimerSecs, total:bellyTimerSecs}); return;
+                                }
+                                if (isTimerEx && timerState?.num===num) {
+                                    clearInterval(timerIntervalRef.current);
+                                    const used = timerState.total - timerState.remaining;
+                                    setTimerState(null);
+                                    handleSetSave(num, {...state, r:Math.max(1,used)}, true); return;
+                                }
+                                if (canActFinal) handleSetSave(num, state);
+                            }}
+                                disabled={!canActFinal && !(isTimerEx && !isDone && !timerState && canAct)}
                                 className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
                                     ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
                                     : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
+                                    : isTimerEx && timerState?.num===num ? 'bg-teal-500 text-white shadow-teal-200 shadow-lg text-[18px]'
+                                    : isTimerEx && !timerState && canAct ? 'bg-teal-500 text-white shadow-teal-200 shadow-lg'
                                     : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700 text-[16px]'
                                     : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
                                     : 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg'}`}>
-                                {isDone && (state.wC||state.rC) ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? countdown : 'סיום'}
+                                {isDone && (state.wC||state.rC) ? 'עדכן'
+                                : isDone ? 'בוצע'
+                                : isSaving ? '...'
+                                : isTimerEx && timerState?.num===num ? String(timerState.remaining)
+                                : isTimerEx && !timerState ? '▶'
+                                : showCDown ? countdown : 'סיום'}
                             </button>
                         </div>
                         {num===1 && <div className="h-1.5" />}
@@ -618,7 +720,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
-    const [neighborSide,  setNeighborSide] = useState('next'); // 'next' או 'prev' — לפי גלילה
     const [showDetails,   setShowDetails]  = useState(()=>{
         const saved = LS.get('gym-show-details', null);
         if (saved) return saved;
@@ -632,7 +733,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     // כניסה לתרגיל: תמיד מתחילים מראש הדף (כותרת + תמונה גלויים)
     useEffect(()=>{
         setTimeout(()=>{ scrollRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }, 30);
-        setNeighborSide('next');
     }, [group.id]);
 
     useEffect(()=>{
@@ -856,9 +956,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     );
                 })()}
                 {(() => {
-                    const _ws = (weightStepsOverrides && weightStepsOverrides[ex.id] !== undefined)
+                    const _wv = CUSTOM_WEIGHT_VALUES[ex.id] || null;
+                    const _ws = _wv ? 1 : ((weightStepsOverrides && weightStepsOverrides[ex.id] !== undefined)
                         ? weightStepsOverrides[ex.id]
-                        : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1);
+                        : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1));
                     return (
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
@@ -866,10 +967,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
                     accentColor={accentHex} requestConfirm={requestConfirm}
-                    weightStep={_ws}
-                    weightJumpSteps={[_ws, _ws*2, _ws*4]}
-                    repsStep={['ex10a','ex10b'].includes(ex.id) ? 5 : 1}
-                    repsJumpSteps={['ex10a','ex10b'].includes(ex.id) ? [5,10,15] : [1,2,3,5]} />
+                    weightStep={_ws} weightValues={_wv}
+                    weightJumpSteps={_wv ? [1,2,3] : [_ws, _ws*2, _ws*4]}
+                    repsStep={1} repsJumpSteps={[1,2,3,5]} />
                     );
                 })()}
             </div>
@@ -937,82 +1037,49 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
                 });
             })}
-            {/* תרגיל הבא */}
-            {(nextGroup || prevGroup || !nextGroup) && (()=>{
-                // אם אין תרגיל הבא — מציגים כפתור "סוף אימון" (פריט 4)
-                if (!nextGroup && neighborSide !== 'prev') {
-                    return (
-                        <div className="mt-4 pt-4 border-t border-slate-100">
+            {/* תרגיל הבא / קודם */}
+            {(nextGroup || prevGroup) && (()=>{
+                const nEx=nextGroup?.exercises[0];
+                const nImg=nEx?(images?.[nEx.id]||(EXERCISE_IMAGES[nEx.id]?`images/${EXERCISE_IMAGES[nEx.id]}`:null)):null;
+                const nLastW=nEx?([...logs].filter(l=>l.exId===nEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
+                const nDone=nextGroup?.exercises.every(ex=>{const sl=logs.filter(l=>l.exId===ex.id&&new Date(l.timestamp).getTime()>sessionStartTime);return sl.some(l=>l.setNum===1)&&sl.some(l=>l.setNum===2);});
+                return (
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                        {prevGroup && (
+                            <button onClick={()=>onNavigateTo?.(prevGroup)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-xl text-[12px] font-black text-slate-600 active:scale-95 active:bg-slate-200 transition-all">
+                                <Icon name="ChevronRight" size={13} className="text-slate-400" /> קודם
+                            </button>
+                        )}
+                        {nextGroup ? (
+                            <div onClick={()=>onNavigateTo?.(nextGroup)}
+                                className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
+                                {nImg && <img src={nImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={nDone?{filter:'grayscale(100%)',opacity:0.55}:undefined} />}
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
+                                    <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
+                                </div>
+                                {nLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
+                                <span className="text-[10px] font-black text-slate-400 shrink-0">הבא ▸</span>
+                                <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
+                            </div>
+                        ) : (
                             <button onClick={()=>onFinish?.()}
                                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base">
                                 <Icon name="CheckCircle2" size={22}/> סוף אימון
                             </button>
-                            {prevGroup && (
-                                <button onClick={()=>setNeighborSide('prev')}
-                                    className="w-full mt-2 text-[11px] font-bold text-slate-400 active:text-slate-600">
-                                    ◂ הצג תרגיל קודם
-                                </button>
-                            )}
-                        </div>
-                    );
-                }
-                // איזה שכן להציג? אם אין שכן בצד שנבחר, נופלים לצד השני
-                const showSide = (neighborSide === 'prev' && prevGroup) ? 'prev'
-                               : (neighborSide === 'next' && nextGroup) ? 'next'
-                               : (prevGroup ? 'prev' : 'next');
-                const shown   = showSide === 'prev' ? prevGroup : nextGroup;
-                const shEx    = shown.exercises[0];
-                const shImg   = images?.[shEx?.id] || (EXERCISE_IMAGES[shEx?.id] ? `images/${EXERCISE_IMAGES[shEx.id]}` : null);
-                const shLastW = shEx ? ([...logs].filter(l=>l.exId===shEx.id)
-                    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight) : 0;
-                // האם התרגיל הזה כבר בוצע במלואו באימון הנוכחי? (פריט 1)
-                const shDone = shown.exercises.every(ex=>{
-                    const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
-                    return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
-                });
-                const label   = showSide === 'prev' ? '◂ קודם' : 'הבא ▸';
-                // Swipe handlers
-                let tStartX = 0, tStartY = 0;
-                const onTouchStart = (e)=>{ tStartX = e.touches[0].clientX; tStartY = e.touches[0].clientY; };
-                const onTouchEnd = (e)=>{
-                    const dx = e.changedTouches[0].clientX - tStartX;
-                    const dy = e.changedTouches[0].clientY - tStartY;
-                    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
-                    // RTL: swipe ימינה (dx>0) = מציג קודם, swipe שמאלה (dx<0) = מציג הבא
-                    if (dx > 0 && prevGroup) setNeighborSide('prev');
-                    else if (dx < 0 && nextGroup) setNeighborSide('next');
-                    e.preventDefault?.();
-                };
-                return (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                        <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-                            onClick={()=>onNavigateTo?.(shown)}
-                            className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none"
-                            style={{touchAction:'pan-y'}}>
-                            {showSide === 'prev'
-                                ? <Icon name="ChevronRight" size={16} className="text-slate-300 shrink-0" />
-                                : <span className="text-[10px] font-black text-slate-400 shrink-0">{label}</span>}
-                            {shImg && <img src={shImg} alt={shown.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={shDone ? {filter:'grayscale(100%)', opacity:0.55} : undefined} />}
-                            <div className="flex-1 min-w-0">
-                                <div className="text-[13px] font-black text-slate-700 truncate">{shown.title}</div>
-                                <div className="text-[10px] font-bold text-slate-400">{shown.category} · {shown.machine}</div>
-                            </div>
-                            {shLastW > 0 && (
-                                <span className="text-xl font-black text-orange-500 shrink-0 px-1">{shLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>
-                            )}
-                            {showSide === 'prev'
-                                ? <span className="text-[10px] font-black text-slate-400 shrink-0">{label}</span>
-                                : <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />}
-                        </div>
-                        {(prevGroup && nextGroup) && (
-                            <div className="flex justify-center gap-1.5 mt-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${showSide==='prev'?'bg-slate-400':'bg-slate-200'}`}/>
-                                <span className={`w-1.5 h-1.5 rounded-full ${showSide==='next'?'bg-slate-400':'bg-slate-200'}`}/>
-                            </div>
                         )}
                     </div>
                 );
             })()}
+            {!nextGroup && !prevGroup && (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                    <button onClick={()=>onFinish?.()}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base">
+                        <Icon name="CheckCircle2" size={22}/> סוף אימון
+                    </button>
+                </div>
+            )}
         </div>
         {lightbox && (
             <div className="fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
@@ -1538,7 +1605,7 @@ const FloatingRestTimer = memo(({ restTimers, restTimerTotals }) => {
     return (
         <div className="fixed left-0 right-0 z-[700] pointer-events-none"
              style={{top:'env(safe-area-inset-top)'}}>
-            <div className="h-1.5 bg-slate-200/50 overflow-hidden">
+            <div className="h-3 bg-slate-200/50 overflow-hidden">
                 <div className="h-full bg-orange-500 transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
             </div>
         </div>
