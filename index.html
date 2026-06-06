@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.10';
+const APP_VERSION = '9.11';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1450,7 +1450,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 no-scrollbar pb-32">
                 {/* ── ג: גיבוי ושחזור ── */}
-                <section ref={backupRef} style={{order:ord('backup')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.backup?'':''}`}>
+                <section ref={backupRef} style={{order:ord('backup')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.backup?'':''}`}>
                     <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-sky-500" /> גיבוי ושחזור</h3>
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1468,7 +1468,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ה: הגדרות אימון ── */}
-                <section ref={settingsRef} style={{order:ord('settings')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.settings?'':''}`}>
+                <section ref={settingsRef} style={{order:ord('settings')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.settings?'':''}`}>
                     <button onClick={()=>toggleSection('settings')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-orange-500" /> הגדרות אימון</h3>
                         <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1493,7 +1493,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── מ: מדריכים ── */}
-                <section ref={instructorsRef} style={{order:ord('instructors')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.instructors?'':''}`}>
+                <section ref={instructorsRef} style={{order:ord('instructors')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.instructors?'':''}`}>
                     <button onClick={()=>toggleSection('instructors')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="BookOpen" size={20} className="text-rose-500" /> מדריכים ({instructors.length})</h3>
                         <Icon name={open.instructors?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1537,7 +1537,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ה: היסטוריית אימונים ── */}
-                <section ref={historyRef} style={{order:ord('history')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.history?'':''}`}>
+                <section ref={historyRef} style={{order:ord('history')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.history?'':''}`}>
                     <button onClick={()=>toggleSection('history')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-teal-500" /> היסטוריית אימונים</h3>
                         <Icon name={open.history?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1615,7 +1615,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── מ: מוזיקה ── */}
-                <section ref={musicRef} style={{order:ord('music')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.music?'':''}`}>
+                <section ref={musicRef} style={{order:ord('music')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.music?'':''}`}>
                     <button onClick={()=>toggleSection('music')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
                         <Icon name={open.music?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1657,7 +1657,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ת: תדירות אימון ── */}
-                <section ref={progressRef} style={{order:ord('progress')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.progress?'':''}`}>
+                <section ref={progressRef} style={{order:ord('progress')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.progress?'':''}`}>
                     <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> תדירות אימון</h3>
                         <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1665,7 +1665,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     {open.progress && <div className="overflow-y-auto no-scrollbar flex-1"><WorkoutProgressCalendar logs={logs} /></div>}
                 </section>
                 {/* ── ת: תרגילים ── */}
-                <section ref={exerciseSectionRef} style={{order:ord('exercises')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.exercises?'':''}`}>
+                <section ref={exerciseSectionRef} style={{order:ord('exercises')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.exercises?'':''}`}>
                     <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -2843,16 +2843,17 @@ function App() {
                 })}
                 {summaryData && (
                     <div onClick={()=>openSummary(summaryData)}
-                        className="flex items-center gap-3 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-[1.6rem] p-4 shadow-lg active:scale-[0.98] cursor-pointer">
-                        <div className="text-3xl shrink-0">🏆</div>
+                        className={`flex items-center gap-3 rounded-[1.6rem] p-4 shadow-lg active:scale-[0.98] cursor-pointer
+                            ${allGroupsDone ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white' : 'bg-slate-300 border border-slate-400 text-slate-700'}`}>
+                        <div className="text-3xl shrink-0">{allGroupsDone ? '🏆' : '⏳'}</div>
                         <div className="flex-1 min-w-0">
                             <div className="font-black text-sm leading-tight">סיכום האימון האחרון</div>
-                            <div className="text-[11px] font-bold text-white/80 mt-0.5">
+                            <div className={`text-[11px] font-bold mt-0.5 ${allGroupsDone ? 'text-white/80' : 'text-slate-500'}`}>
                                 {fmtDur(summaryData.durationSec)} · {summaryData.doneCount}/{summaryData.totalGroups} תרגילים · {summaryData.totalSets} סטים
                                 {summaryData.skipCount>0 ? ` · ${summaryData.skipCount} דולגו` : ''}
                             </div>
                         </div>
-                        <span className="text-[11px] font-black bg-white/20 px-3 py-1.5 rounded-full shrink-0">עדכן</span>
+                        <span className={`text-[11px] font-black px-3 py-1.5 rounded-full shrink-0 ${allGroupsDone ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>עדכן</span>
                     </div>
                 )}
             </main>
