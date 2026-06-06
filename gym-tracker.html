@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.7';
+const APP_VERSION = '9.8';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -140,22 +140,31 @@ const DEFAULT_WEIGHT_STEPS = {
     'ex5a': 4,   // לחיצת כתפיים
     'ex7c': 5,   // פולי עליון
     'ex7b': 5,   // מקבילים גרביטון
-    'ex11': 2.5  // כפיפת ברכיים (Leg Curl)
+    'ex11': 2.5, // כפיפת ברכיים (Leg Curl)
+    'ex12': 2.5  // הרמת עקבים במכשיר (שוקיים)
 };
 
 // ─── משקל התחלתי ברירת מחדל (כשאין היסטוריה) ───────────────
 const DEFAULT_STARTING_WEIGHTS = {
-    'ex11': 5    // כפיפת ברכיים (Leg Curl)
+    'ex11': 5,   // כפיפת ברכיים (Leg Curl)
+    'ex12': 5,   // הרמת עקבים במכשיר
+    'ex13': 23,  // מכשיר ירך חיצוני
+    'ex14': 9    // מכשיר ירך פנימי
 };
 
 // ─── רשימות משקל מותאמות (מכשירים עם קפיצות 4/5) ───────────
+const THIGH_VALUES = [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95,100];
 const CUSTOM_WEIGHT_VALUES = {
     'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
-    'ex7c': [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95,100],
+    'ex7c': THIGH_VALUES,
+    'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
+    'ex3':  THIGH_VALUES,   // פולי יד אחורית
+    'ex13': THIGH_VALUES,   // מכשיר ירך חיצוני
+    'ex14': THIGH_VALUES,   // מכשיר ירך פנימי
 };
 
 // ─── תרגילי טיימר (בטן) ─────────────────────────────────────
-const TIMER_EXERCISES = new Set(['ex10a','ex10b']);
+const TIMER_EXERCISES = new Set(['ex10a']);
 
 // --- מאגר תרגילים ---
 const exerciseGroups = [
@@ -163,16 +172,19 @@ const exerciseGroups = [
     { id:2,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',     title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
     { id:3,  hex:'#8b5cf6', badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים עם חבל',       category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
     { id:4,  hex:'#d946ef', badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
-    { id:5,  hex:'#0284c7', badgeColor:'bg-sky-100 text-sky-700',    title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-sky-500 to-sky-700',       machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
-    { id:13, hex:'#0284c7', badgeColor:'bg-sky-100 text-sky-700',    title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-sky-500 to-sky-700',       machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
+    { id:5,  hex:'#0891b2', badgeColor:'bg-cyan-100 text-cyan-700',    title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-cyan-500 to-cyan-700',       machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
+    { id:13, hex:'#0891b2', badgeColor:'bg-cyan-100 text-cyan-700',    title:'הרמות לצדדים',               category:'כתפיים',   icon:'🦅', color:'from-cyan-500 to-cyan-700',       machine:'חופשי',   exercises:[{id:'ex5b', title:'הרמות לצדדים', howTo:'הרם ידיים לצדדים עד גובה הכתפיים והורד באיטיות.', tips:['כתפיים רחוקות מהאוזניים']}] },
     { id:6,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
     { id:7,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700', title:'פולי עליון',              category:'גב',        icon:'⬇️', color:'from-emerald-500 to-emerald-700', machine:'כבלים',   exercises:[{id:'ex7c', title:'פולי עליון',         howTo:'שב מול המכונה. משוך את המוט למטה לחזה תוך כיווץ שרירי הגב. חזור לאחור באיטיות.',          tips:['גב ישר','שכמות למטה ולאחורה','מרפקים מפנים כלפי מטה']}] },
     { id:14, hex:'#6366f1', badgeColor:'bg-indigo-100 text-indigo-700', title:'מקבילים גרביטון',           category:'חזה/יד אחורית', icon:'🧗', color:'from-indigo-500 to-indigo-700', machine:'גרביטון', exercises:[{id:'ex7b', title:'מקבילים גרביטון',    howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                                                   tips:['הישענות קדימה']}] },
     { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
     { id:15, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'כפיפת ברכיים',               category:'רגליים',   icon:'🦿', color:'from-red-500 to-red-700',         machine:'מכונה',   exercises:[{id:'ex11', title:'כפיפת ברכיים',      howTo:'שב במכונה עם רגליים מתחת לרולר. כוף את הברכיים לאחור עד שיא הטווח וחזור באיטיות.', tips:['גב צמוד למושב','תנועה מבוקרת','לא לנעול ברכיים']}] },
     { id:9,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-red-500 to-red-700',          machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
-    { id:10, hex:'#0d9488', badgeColor:'bg-teal-100 text-teal-700',     title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-teal-500 to-teal-700',      machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
-    { id:11, hex:'#0d9488', badgeColor:'bg-teal-100 text-teal-700',    title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-teal-500 to-teal-700',      machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
+    { id:16, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'הרמת עקבים במכשיר',          category:'רגליים',   icon:'🦶', color:'from-red-500 to-red-700',          machine:'מכונה',   exercises:[{id:'ex12', title:'הרמת עקבים במכשיר', howTo:'הצב כפות רגליים על המדרך עם עקבים חופשיים. דחף מעלה על קצות האצבעות לטווח מלא וחזור באיטיות.', tips:['טווח מלא','עצירה למעלה','תנועה מבוקרת']}] },
+    { id:17, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'מכשיר ירך חיצוני',           category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',          machine:'מכונה',   exercises:[{id:'ex13', title:'מכשיר ירך חיצוני', howTo:'שב במכונה והרחק את הרגליים החוצה כנגד הכריות, וחזור באיטיות.', tips:['גב צמוד','תנועה מבוקרת']}] },
+    { id:18, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'מכשיר ירך פנימי',            category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',          machine:'מכונה',   exercises:[{id:'ex14', title:'מכשיר ירך פנימי',  howTo:'שב במכונה וקרב את הרגליים פנימה כנגד הכריות, וחזור באיטיות.', tips:['גב צמוד','תנועה מבוקרת']}] },
+    { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',     title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',      machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
+    { id:11, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',    title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',      machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
 ];
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -424,7 +436,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
     weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
-    const defW = weightValues ? weightValues[0] : (DEFAULT_STARTING_WEIGHTS[ex.id] ?? 10);
+    const defW = DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
     const [s1, setS1] = useState({ w:defW, r:10, wC:false, rC:false });
     const [s2, setS2] = useState({ w:defW, r:10, wC:false, rC:false });
 
@@ -684,7 +696,7 @@ const EXERCISE_IMAGES = {
     ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
     ex7b:'ex7b.png', ex7c:'ex7c.png', ex8:'ex8.png',
     ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png',
-    ex11:'ex11.jpg'
+    ex11:'ex11.jpg', ex12:'ex12.png', ex13:'ex13.jpg', ex14:'ex14.jpg'
 };
 
 // ─── VideoModal ─────────────────────────────────────────────
@@ -764,6 +776,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const youtubeId  = videos?.[ex.id];
         const localVid   = EXERCISE_VIDEOS[ex.id];
         const hasVideo   = youtubeId || localVid;
+        // משקל אחרון של התרגיל (סט 1 העדכני ביותר) — מוצג בכתום ליד התמונה
+        const exHistSorted = [...logs].filter(l=>l.exId===ex.id)
+            .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+        const lastW = (exHistSorted.find(l=>l.setNum===1)?.weight) ?? exHistSorted[0]?.weight ?? 0;
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
         let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
@@ -825,7 +841,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 ) : (
                     /* תרגיל רגיל */
                     <>
-                        {(dispImgSrc || hasVideo) && (
+                        {(dispImgSrc || hasVideo || lastW>0) && (
                             <div className="flex gap-2 mb-0">
                                 {dispImgSrc && (
                                     <div className="relative flex-1 min-w-0">
@@ -835,9 +851,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
                                     </div>
                                 )}
-                                {hasVideo && (
-                                    <div className={`flex flex-col justify-stretch ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`}>
-                                        {videoBtn(true)}
+                                {(hasVideo || lastW>0) && (
+                                    <div className={`flex flex-col gap-2 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'9rem'}}>
+                                        {hasVideo && (
+                                            <div className="flex-1 min-h-0 flex flex-col">{videoBtn(false)}</div>
+                                        )}
+                                        {lastW>0 && (
+                                            <div className="flex-1 min-h-0 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
+                                                <span className="text-4xl font-black text-orange-500 leading-none">{lastW}</span>
+                                                <span className="text-[10px] font-black text-orange-400 mt-1">ק״ג אחרון</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1317,8 +1341,8 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[] }) => {
-    const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false});
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], instructors=[], setInstructors=null }) => {
+    const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false});
     const [histExpandedDate, setHistExpandedDate] = useState(null);
     const scrollRef = React.useRef(null);
     const exerciseSectionRef = React.useRef(null);
@@ -1327,7 +1351,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const historyRef   = React.useRef(null);
     const musicRef     = React.useRef(null);
     const progressRef  = React.useRef(null);
-    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef };
+    const instructorsRef = React.useRef(null);
+    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef };
     const toggleSection = key => {
         setOpen(p => {
             const next = {...p, [key]: !p[key]};
@@ -1346,7 +1371,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             lastWorkoutSec:   LS.get('gym-last-workout-sec',   0),
             showDetails:      LS.get('gym-show-details',       {}),
             sessionDurations: LS.get('gym-session-durations',  {}),
-            workoutNotes:     LS.get('gym-workout-notes',      {})
+            workoutNotes:     LS.get('gym-workout-notes',      {}),
+            instructors:      LS.get('gym-instructors',        [])
         });
         showToast('הגיבוי הורד בהצלחה');
     };
@@ -1372,6 +1398,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     if (data.showDetails)       LS.set('gym-show-details',       data.showDetails);
                     if (data.sessionDurations) { LS.set('gym-session-durations', data.sessionDurations); setSessionDurations?.(data.sessionDurations); }
                     if (data.workoutNotes)     { LS.set('gym-workout-notes',     data.workoutNotes);     setWorkoutNotes?.(data.workoutNotes); }
+                    if (data.instructors)      { LS.set('gym-instructors',       data.instructors);      setInstructors?.(data.instructors); }
                     showToast('הנתונים שוחזרו בהצלחה');
                 } catch { showToast('שגיאה בשחזור', true); }
             };
@@ -1432,6 +1459,36 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 </select>
                             </div>
                         ))}
+                    </div>}
+                </section>
+                {/* ── מ: מדריכים ── */}
+                <section ref={instructorsRef} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.instructors?'flex flex-col max-h-[70vh]':''}`}>
+                    <button onClick={()=>toggleSection('instructors')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="BookOpen" size={20} className="text-rose-500" /> מדריכים ({instructors.length})</h3>
+                        <Icon name={open.instructors?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.instructors && <div className="px-5 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
+                        {instructors.map(ins => (
+                            <div key={ins.id} className="bg-slate-50 rounded-2xl border border-slate-100 p-3 space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <input value={ins.name} placeholder="שם המדריך"
+                                        onChange={e=>setInstructors(prev=>prev.map(x=>x.id===ins.id?{...x,name:e.target.value}:x))}
+                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-rose-300" />
+                                    <button onClick={()=>requestConfirm('למחוק מדריך זה?',()=>setInstructors(prev=>prev.filter(x=>x.id!==ins.id)))}
+                                        className="shrink-0 text-slate-300 active:text-red-500 p-1"><Icon name="Trash2" size={16}/></button>
+                                </div>
+                                <textarea value={ins.note||''} placeholder="הערות..."
+                                    rows={1}
+                                    onChange={e=>setInstructors(prev=>prev.map(x=>x.id===ins.id?{...x,note:e.target.value}:x))}
+                                    onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
+                                    ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
+                                    className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden" />
+                            </div>
+                        ))}
+                        <button onClick={()=>setInstructors(prev=>[...prev,{id:crypto.randomUUID(),name:'',note:''}])}
+                            className="w-full flex items-center justify-center gap-2 bg-rose-50 p-3 rounded-2xl border border-rose-100 text-rose-600 active:scale-[0.98] font-black text-sm">
+                            <Icon name="Plus" size={16}/> הוסף מדריך
+                        </button>
                     </div>}
                 </section>
                 {/* ── ה: היסטוריית אימונים ── */}
@@ -1797,6 +1854,8 @@ function App() {
     const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
     const [skippedGroups,    setSkippedGroups]    = useState([]);
     const [showSummary,      setShowSummary]      = useState(false);
+    const [summaryData,      setSummaryData]      = useState(()=>LS.get('gym-last-summary', null));
+    useEffect(()=>{ LS.set('gym-last-summary', summaryData); },[summaryData]);
     const [isWorkoutComplete,setIsWorkoutComplete]= useState(false);
     const [toast,            setToast]            = useState(null);
     const [workoutDecisionMade, setWorkoutDecisionMade] = useState(false);
@@ -1813,6 +1872,8 @@ function App() {
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
     const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60,weightSteps:{}}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
+    const [instructors,      setInstructors]      = useState(()=>LS.get('gym-instructors', []));
+    useEffect(()=>{ LS.set('gym-instructors', instructors); },[instructors]);
 
     // מוזיקה — playlist מרובה
     const [musicList,      setMusicList]      = useState([]); // [{id,name,url}] runtime
@@ -2204,6 +2265,25 @@ function App() {
     const completedCount    = useMemo(()=>visibleGroups.filter(isGroupDone).length,          [visibleGroups,isGroupDone]);
     const nextIncompleteIndex = useMemo(()=>visibleGroups.findIndex(g=>!isGroupDone(g)),     [visibleGroups,isGroupDone]);
 
+    // ─── סיכום אימון — בניית snapshot ופתיחה (כולל פתיחה חוזרת מהבית) ───
+    const computeSummarySnapshot = (logsArr, wst, durSec, skipped) => {
+        const sessionLogs = logsArr.filter(l=>new Date(l.timestamp).getTime()>wst);
+        const isDone = g => skipped.includes(g.id) || g.exercises.every(ex=>{
+            const sl = logsArr.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>wst);
+            return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+        });
+        const doneCount = sortedGroups.filter(g=>!skipped.includes(g.id)&&isDone(g)).length;
+        return { workoutStart:wst, durationSec:durSec, doneCount, totalGroups:sortedGroups.length, totalSets:sessionLogs.length, skipCount:skipped.length, ts:Date.now() };
+    };
+    const openSummary = (snap) => {
+        if (!snap) return;
+        setSummaryData(snap);
+        const wn = workoutNotes[snap.workoutStart] || {};
+        setSummaryNote(wn.note || '');
+        setSummaryBW(wn.bw ? String(wn.bw) : '');
+        setShowSummary(true);
+    };
+
     useEffect(()=>{
         if (view!=='list') return;
         setTimeout(()=>{
@@ -2227,7 +2307,7 @@ function App() {
                     setIsWorkoutActive(false); setIsWorkoutComplete(true);
                     setRestTimers({}); setRestTimerTotals({});
                     if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[workoutStartTime]:workoutSec})); }
-                    setShowSummary(true);
+                    openSummary(computeSummarySnapshot(logsRef.current, workoutStartTime, workoutSec, newSkipped));
                 }, 300);
             }
             return newSkipped;
@@ -2252,7 +2332,7 @@ function App() {
             setRestTimers({}); setRestTimerTotals({});
             LS.set('gym-last-workout-sec', workoutSec);
             if (workoutSec > 0) setSessionDurations(prev=>({...prev, [workoutStartTime]: workoutSec}));
-            setShowSummary(true);
+            openSummary(computeSummarySnapshot(curLogs, curWst, workoutSec, curSkip));
             setView('list');
             setActiveGroup(null);
         }
@@ -2382,10 +2462,12 @@ function App() {
             )}
             {/* סיכום אימון */}
             {showSummary && (()=>{
-                const sessionLogs = logs.filter(l=>new Date(l.timestamp).getTime()>workoutStartTime);
-                const totalSets   = sessionLogs.length;
-                const doneCount   = sortedGroups.filter(g=>!skippedGroups.includes(g.id)&&isGroupDone(g)).length;
-                const skipCount   = skippedGroups.length;
+                const sd = summaryData || computeSummarySnapshot(logs, workoutStartTime, workoutSec, skippedGroups);
+                const totalSets   = sd.totalSets;
+                const doneCount   = sd.doneCount;
+                const skipCount   = sd.skipCount;
+                const durSec      = sd.durationSec;
+                const sumWst      = sd.workoutStart;
                 return (
                     <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                         <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl space-y-4">
@@ -2395,11 +2477,11 @@ function App() {
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="bg-blue-50 rounded-2xl p-3 text-center">
-                                    <div className="text-lg font-black text-blue-600">{fmtDur(workoutSec)}</div>
+                                    <div className="text-lg font-black text-blue-600">{fmtDur(durSec)}</div>
                                     <div className="text-[10px] font-bold text-blue-400">זמן אימון</div>
                                 </div>
                                 <div className="bg-emerald-50 rounded-2xl p-3 text-center">
-                                    <div className="text-lg font-black text-emerald-600">{doneCount}/{sortedGroups.length}</div>
+                                    <div className="text-lg font-black text-emerald-600">{doneCount}/{sd.totalGroups}</div>
                                     <div className="text-[10px] font-bold text-emerald-400">תרגילים</div>
                                 </div>
                                 <div className="col-span-2 bg-indigo-50 rounded-2xl p-3 text-center">
@@ -2432,8 +2514,8 @@ function App() {
                             <button onClick={()=>{
                                 triggerBackupDownload({logs, notes, images, videos, settings, groupOrder,
                                     sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
-                                    lastWorkoutSec:workoutSec, showDetails:LS.get('gym-show-details',{}),
-                                    sessionDurations:{...sessionDurations,...(workoutSec>0?{[workoutStartTime]:workoutSec}:{})},
+                                    lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
+                                    sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
                                     workoutNote:summaryNote});
                                 showToast('הגיבוי הורד');
                             }} className="w-full p-3 rounded-xl font-bold text-blue-700 bg-blue-50 border border-blue-200 active:scale-95 flex items-center justify-center gap-2">
@@ -2442,17 +2524,15 @@ function App() {
                             <button onClick={()=>{
                                 const bw = parseFloat(summaryBW);
                                 if (!isNaN(bw) && bw > 0) {
-                                    setBodyweightLog(prev=>[...prev, {
-                                        id: crypto.randomUUID(),
-                                        weight: bw,
-                                        timestamp: new Date().toISOString(),
-                                        workoutStart: workoutStartTime
-                                    }]);
+                                    setBodyweightLog(prev=>[
+                                        ...prev.filter(b=>b.workoutStart!==sumWst),
+                                        { id: crypto.randomUUID(), weight: bw, timestamp: new Date().toISOString(), workoutStart: sumWst }
+                                    ]);
                                     showToast(`משקל גוף ${bw} ק״ג נשמר`);
                                 }
                                 // שמירת סיכום אימון
                                 if (summaryNote || (!isNaN(bw) && bw > 0)) {
-                                    setWorkoutNotes(prev=>({...prev, [workoutStartTime]:{note:summaryNote, bw:(!isNaN(bw)&&bw>0)?bw:null}}));
+                                    setWorkoutNotes(prev=>({...prev, [sumWst]:{note:summaryNote, bw:(!isNaN(bw)&&bw>0)?bw:null}}));
                                 }
                                 setShowSummary(false);
                             }} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">סגור</button>
@@ -2538,7 +2618,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} /></>; }
     if (view==='exercises') return <>{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} /></>;
+    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} instructors={instructors} setInstructors={setInstructors} /></>;
 
     // List view
     return (
@@ -2632,6 +2712,20 @@ function App() {
             </header>
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
+                {summaryData && (
+                    <div onClick={()=>openSummary(summaryData)}
+                        className="flex items-center gap-3 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-[1.6rem] p-4 shadow-lg active:scale-[0.98] cursor-pointer">
+                        <div className="text-3xl shrink-0">🏆</div>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-black text-sm leading-tight">סיכום האימון האחרון</div>
+                            <div className="text-[11px] font-bold text-white/80 mt-0.5">
+                                {fmtDur(summaryData.durationSec)} · {summaryData.doneCount}/{summaryData.totalGroups} תרגילים · {summaryData.totalSets} סטים
+                                {summaryData.skipCount>0 ? ` · ${summaryData.skipCount} דולגו` : ''}
+                            </div>
+                        </div>
+                        <span className="text-[11px] font-black bg-white/20 px-3 py-1.5 rounded-full shrink-0">עדכן</span>
+                    </div>
+                )}
                 {visibleGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
