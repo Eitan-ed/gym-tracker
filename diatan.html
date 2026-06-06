@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+<meta name="theme-color" content="#003535">
+<title>דיאטן - מעקב תזונה</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Hanken Grotesk', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+  .hx { display:none !important; }
+</style>
+</head>
+<body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-28">
+
+<!-- כותרת -->
+<header class="relative bg-[#003535] overflow-hidden shadow-xl">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#003535] via-[#0d4d4d] to-[#0061a4] opacity-90"></div>
+  <div class="relative flex flex-row-reverse justify-between items-center px-4 h-20 max-w-2xl mx-auto z-10">
+    <div class="flex items-center gap-3">
+      <div class="p-2 bg-white/10 rounded-xl border border-white/20">
+        <span class="material-symbols-outlined text-white text-[28px]">restaurant</span>
+      </div>
+      <span class="text-2xl font-extrabold text-white">דיאטן</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="today-date" class="text-sm font-bold text-white bg-black/20 px-3 py-2 rounded-xl border border-white/10">--</span>
+      <button id="btn-settings" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10">settings</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+
+  <!-- 1. הוספת ארוחה -->
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
+    <h2 class="text-xl font-bold text-[#003535]">הוספת ארוחה</h2>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" class="hx">
+    <button id="btn-photo" class="w-full h-28 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#003535] bg-[#eff4ff]/50">
+      <span class="material-symbols-outlined text-[#003535] text-[30px]">add_a_photo</span>
+      <span class="text-sm text-[#404848]">צלם או העלה תמונה</span>
+    </button>
+    <img id="photo-preview" class="hx w-full max-h-48 object-cover rounded-xl border border-[#bfc8c8]" alt="">
+    <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ללא עור ואורז מלא..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535] resize-none"></textarea>
+    <div class="flex flex-wrap gap-2" id="chips">
+      <span data-c="חזה עוף" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ חזה עוף</span>
+      <span data-c="אורז מלא" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ אורז מלא</span>
+      <span data-c="סלט" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ סלט</span>
+      <span data-c="יוגורט פרו" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ יוגורט פרו</span>
+    </div>
+    <button id="btn-calc" class="w-full bg-[#633d00] text-white text-xl font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
+      <span class="material-symbols-outlined" id="calc-icon">calculate</span>
+      <span id="calc-text">חשב נתונים</span>
+    </button>
+
+    <div id="results" class="hx space-y-3 pt-1">
+      <table class="w-full text-right border-collapse">
+        <thead><tr class="border-b-2 border-[#bfc8c8] text-[#404848] text-sm">
+          <th class="py-2 pr-1 text-right">מזון</th><th class="py-2 text-left">קל</th><th class="py-2 text-left pl-1">חלבון</th>
+        </tr></thead>
+        <tbody id="results-body"></tbody>
+        <tfoot><tr class="border-t-2 border-[#003535] font-bold text-[#003535]">
+          <td class="py-2 pr-1">סה"כ</td><td class="py-2 text-left" id="sum-cal">0</td><td class="py-2 text-left pl-1" id="sum-prot">0</td>
+        </tr></tfoot>
+      </table>
+      <button id="btn-save" class="w-full bg-[#006c49] text-white text-lg font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined">check_circle</span> שמור ארוחה
+      </button>
+    </div>
+  </section>
+
+  <!-- 2. סיכום יומי -->
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
+    <div class="flex justify-between items-start">
+      <h2 class="text-xl font-bold text-[#003535]">סיכום יומי</h2>
+      <div id="alerts" class="flex flex-col gap-1 items-end"></div>
+    </div>
+    <div class="space-y-5">
+      <div class="space-y-2">
+        <div class="flex justify-between items-end">
+          <span class="text-lg font-medium">קלוריות</span>
+          <div class="text-left"><span id="cal-now" class="text-4xl font-bold text-[#0d4d4d]">0</span>
+            <span class="text-sm text-[#404848]"> / <span id="cal-target">0</span> קק"ל</span></div>
+        </div>
+        <div class="h-5 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="cal-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
+        <div class="flex justify-between text-sm"><span class="text-[#404848]">גרעון יומי:</span><span id="cal-def" class="font-bold text-[#006c49]">0</span></div>
+      </div>
+      <div class="space-y-2">
+        <div class="flex justify-between items-end">
+          <span class="text-lg font-medium">חלבון</span>
+          <div class="text-left"><span id="prot-now" class="text-4xl font-bold text-[#0d4d4d]">0</span>
+            <span class="text-sm text-[#404848]">/ <span id="prot-target">0</span> גרם</span></div>
+        </div>
+        <div class="h-4 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="prot-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. משקל -->
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
+    <div class="flex justify-between items-center text-[#003535]">
+      <div class="flex items-center gap-2"><span class="material-symbols-outlined">monitor_weight</span><h2 class="text-xl font-bold">מעקב משקל</h2></div>
+      <button id="btn-weight" class="material-symbols-outlined p-2 hover:bg-[#003535]/10 rounded-full">edit</button>
+    </div>
+    <div class="bg-[#eff4ff] p-6 rounded-2xl border border-[#bfc8c8]/50 flex flex-col items-center">
+      <span class="text-sm text-[#404848] mb-1">משקל נוכחי</span>
+      <div class="flex items-baseline gap-2"><span id="weight-now" class="text-5xl font-bold text-[#003535]">--</span><span class="text-lg text-[#003535]/70">ק"ג</span></div>
+    </div>
+  </section>
+
+  <!-- 4. פעילות -->
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
+    <h2 class="text-xl font-bold text-[#003535]">פעילות גופנית</h2>
+    <div class="bg-[#eff4ff] p-5 rounded-xl border border-[#bfc8c8]/30 flex justify-between items-center">
+      <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-[#003535]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#003535]">steps</span></div><span class="text-lg font-medium">צעדים</span></div>
+      <div class="text-left flex items-center gap-2"><span id="steps-now" class="text-3xl font-bold text-[#003535]">0</span><span class="text-sm text-[#404848]">/ 10,000</span><button id="btn-steps" class="material-symbols-outlined text-[#003535] text-[20px] p-1 hover:bg-[#003535]/10 rounded-full">edit</button></div>
+    </div>
+    <div class="bg-[#eff4ff] p-5 rounded-xl border border-[#bfc8c8]/30 flex justify-between items-center">
+      <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-[#006c49]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#006c49]">fitness_center</span></div><span class="text-lg font-medium">אימון כוח</span></div>
+      <label class="relative inline-flex items-center cursor-pointer"><input id="strength" type="checkbox" class="sr-only peer">
+        <div class="w-11 h-6 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
+    </div>
+  </section>
+</main>
+
+<!-- מודאל הגדרות -->
+<div id="settings-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl p-5 w-full max-w-md space-y-4 shadow-2xl">
+    <h2 class="text-xl font-bold text-[#003535] border-b-2 border-[#a0a0a0] pb-2">הגדרות</h2>
+    <div class="space-y-2">
+      <label class="text-sm font-bold text-[#404848]">מפתח Gemini API</label>
+      <input id="api-key" type="password" placeholder="מדביק כאן את המפתח" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535] text-left" dir="ltr">
+      <p class="text-xs text-[#404848] leading-relaxed">המפתח נשמר רק במכשיר הזה (לא נשלח לשום מקום מלבד Google). השג מפתח חינמי ב-aistudio.google.com תחת "Get API key".</p>
+    </div>
+    <div class="space-y-2">
+      <label class="text-sm font-bold text-[#404848]">משקל נוכחי (ק"ג)</label>
+      <input id="set-weight" type="number" step="0.1" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535]">
+    </div>
+    <div class="flex gap-2 pt-1">
+      <button id="btn-save-settings" class="flex-1 bg-[#006c49] text-white font-bold py-3 rounded-xl">שמור</button>
+      <button id="btn-close-settings" class="flex-1 bg-[#e5eeff] text-[#003535] font-bold py-3 rounded-xl">ביטול (ESC)</button>
+    </div>
+  </div>
+</div>
+
+<!-- טוסט -->
+<div id="toast" class="hx fixed top-24 left-1/2 -translate-x-1/2 z-[80] bg-[#003535] text-white px-5 py-3 rounded-xl shadow-2xl font-medium max-w-[90%] text-center"></div>
+
+<script>
+/***********************************************
+ * דיאטן - אפליקציה בקובץ יחיד. נתונים ב-localStorage.
+ * מפתח Gemini בהגדרות (לא בקוד). קריאה ישירה ל-Gemini.
+ ***********************************************/
+(() => {
+"use strict";
+
+// ===== מנוע חישוב (לפי הסוכן) =====
+const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300;
+const REF_FOODS = [
+  { m:["יוגורט פרו בטעמים"], cal:130, prot:null, label:"יוגורט פרו בטעמים" },
+  { m:["יוגורט פרו רגיל"],   cal:171, prot:null, label:"יוגורט פרו רגיל" },
+  { m:["גו תות"],            cal:108, prot:null, label:"גו תות" },
+  { m:["גלידונית"],          cal:32,  prot:null, label:"גלידונית" },
+  { m:["קריספית"],           cal:18,  prot:null, label:"קריספית" },
+  { m:["שייטל"],             cal:140, prot:22,  label:"שייטל/בקר רזה", per100g:true }
+];
+const BEEF_KW  = ["בקר","שייטל","סטייק","אנטריקוט","המבורגר","אסאדו","צלי בקר"];
+const SUGAR_KW = ["סוכר","ממתק","שוקולד","עוגה","עוגיה","עוגיות","גלידה","קולה","מיץ","דבש","ריבה","וופל","סופגניה","קרואסון"];
+
+const norm = s => String(s||"").replace(/\s+/g," ").trim().toLowerCase();
+const hasAll = (t,p) => { const x=norm(t), w=norm(p).split(" ").filter(Boolean); return w.length>0 && w.every(k=>x.includes(k)); };
+const hasAny = (t,arr) => { const x=norm(t); return arr.some(k=>x.includes(norm(k))); };
+const calTarget  = w => Math.round(CAL_PER_KG*(+w||0));
+const protTarget = w => Math.round(PROT_PER_KG*(+w||0));
+function lookupRef(name){ for(const f of REF_FOODS){ if(f.m.some(m=>hasAll(name,m))) return f; } return null; }
+function applyRef(item){
+  const r = lookupRef(item.name); if(!r) return item;
+  const o = Object.assign({}, item);
+  if(!r.per100g){ o.calories=r.cal; if(r.prot!=null) o.protein=r.prot; }
+  o._ref = r.label; return o;
+}
+
+// ===== מצב + שמירה מקומית =====
+const KEY = "diatan_state_v1";
+let S = load();
+function load(){
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ return {}; }
+}
+function persist(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function todayId(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function ensure(){
+  if(!S.profile) S.profile = { weight: 0 };
+  if(!S.days)    S.days = {};
+  if(!S.days[todayId()]) S.days[todayId()] = { meals:[], steps:0, strength:false };
+  return S.days[todayId()];
+}
+function beefWeek(){
+  let t=0; const today=new Date();
+  for(let i=0;i<7;i++){ const d=new Date(today); d.setDate(today.getDate()-i);
+    const id=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const day=S.days&&S.days[id]; if(day) (day.meals||[]).forEach(m=>t+=(+m.beefGrams||0)); }
+  return t;
+}
+
+// ===== עזרי DOM =====
+const $ = id => document.getElementById(id);
+let pending = [], pendingFile = null;
+function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.style.background=err?"#ba1a1a":"#003535"; t.classList.remove("hx"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add("hx"),3200); }
+const show=e=>e.classList.remove("hx"), hide=e=>e.classList.add("hx");
+
+function setDate(){ const mo=["בינואר","בפברואר","במרץ","באפריל","במאי","ביוני","ביולי","באוגוסט","בספטמבר","באוקטובר","בנובמבר","בדצמבר"]; const d=new Date(); $("today-date").textContent=d.getDate()+" "+mo[d.getMonth()]; }
+
+// ===== זיהוי ארוחה דרך Gemini (ישיר) =====
+function fileToB64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>{const v=r.result; res({b64:v.slice(v.indexOf(",")+1), mime:file.type||"image/jpeg"});}; r.onerror=rej; r.readAsDataURL(file); }); }
+
+const PROMPT = `אתה דיאטן שמנתח ארוחות עבור איתן (גובה 180, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
+מהתמונה ו/או הטקסט זהה כל פריט מזון והערך קלוריות וחלבון.
+כללים: "ללא עור"=עוף רזה; "דג לבן"=לברק/אמנון; הערך כמויות לפי הצלחת/קופסה.
+ערכי ייחוס מחייבים: יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; גלידונית=32 ליח'; קריספית=18; שייטל/בקר רזה=140 ל-100 גרם.
+אם פריט הוא בקר (סטייק/אנטריקוט/שייטל/המבורגר בקר) אמוד משקל בגרמים ב-beefGrams, אחרת 0.
+החזר אך ורק JSON: {"items":[{"name":"שם","calories":מספר,"protein":גרם,"beefGrams":מספר}]}`;
+
+async function analyze(text, file){
+  const key = S.apiKey;
+  if(!key) throw new Error("חסר מפתח Gemini - פתח הגדרות");
+  const parts = [{text:PROMPT}];
+  if(text) parts.push({text:"תיאור מאיתן: "+text});
+  if(file){ const {b64,mime}=await fileToB64(file); parts.push({inline_data:{mime_type:mime,data:b64}}); }
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(key);
+  const resp = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ contents:[{role:"user",parts}], generationConfig:{temperature:0.2, responseMimeType:"application/json"} }) });
+  if(!resp.ok) throw new Error("שגיאת Gemini: "+(await resp.text()).slice(0,140));
+  const j = await resp.json();
+  const raw = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
+  if(!raw) throw new Error("תשובה ריקה מ-Gemini");
+  let p; try { p=JSON.parse(raw); } catch(e){ throw new Error("JSON לא תקין מ-Gemini"); }
+  return (p.items||[]).map(it=>applyRef({ name:String(it.name||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) }));
+}
+
+// ===== רינדור =====
+function render(){
+  const day = ensure(); const w = S.profile.weight||0;
+  const items = day.meals||[];
+  let cal=0, prot=0; items.forEach(m=>{cal+=(+m.calories||0); prot+=(+m.protein||0);});
+  const ct=calTarget(w), pt=protTarget(w), bw=beefWeek();
+
+  const over = cal>ct && ct>0;
+  $("cal-now").textContent=cal.toLocaleString(); $("cal-target").textContent=ct.toLocaleString();
+  $("cal-bar").style.width=Math.min(100, ct?Math.round(cal/ct*100):0)+"%";
+  $("cal-bar").style.background = over?"#ba1a1a":"#0d4d4d"; $("cal-now").style.color = over?"#ba1a1a":"#0d4d4d";
+  const def=$("cal-def"); const d=ct-cal;
+  if(d>=0){ def.textContent=d.toLocaleString()+" קק\"ל"; def.style.color="#006c49"; }
+  else { def.textContent="חריגה "+Math.abs(d).toLocaleString()+" קק\"ל"; def.style.color="#ba1a1a"; }
+
+  $("prot-now").textContent=prot.toLocaleString(); $("prot-target").textContent=pt.toLocaleString();
+  $("prot-bar").style.width=Math.min(100, pt?Math.round(prot/pt*100):0)+"%";
+  $("prot-bar").style.background = prot>=pt?"#006c49":"#0d4d4d";
+
+  // התראות
+  const ac=$("alerts"); ac.innerHTML="";
+  const add=(msg,err)=>{ const x=document.createElement("div"); x.className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold "+(err?"bg-[#ffdad6] text-[#93000a]":"bg-[#633d00] text-white"); x.innerHTML='<span class="material-symbols-outlined text-[15px]">warning</span><span>'+msg+'</span>'; ac.appendChild(x); };
+  if(over) add("חריגה ב-"+(cal-ct).toLocaleString()+" קק\"ל", true);
+  if(bw>BEEF_LIMIT) add("בקר השבוע "+Math.round(bw)+"/"+BEEF_LIMIT+" גר'", false);
+  if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) add("זוהה סוכר/פחמימה פשוטה", false);
+
+  $("weight-now").textContent = w||"--";
+  $("steps-now").textContent = (day.steps||0).toLocaleString();
+  $("strength").checked = !!day.strength;
+}
+
+function renderResults(){
+  const b=$("results-body"); b.innerHTML=""; let c=0,p=0;
+  pending.forEach(it=>{ c+=it.calories; p+=it.protein;
+    const tr=document.createElement("tr"); tr.className="border-b border-[#bfc8c8]/40";
+    tr.innerHTML='<td class="py-2 pr-1">'+it.name+(it._ref?' <span class="text-[11px] text-[#006c49]">(ייחוס)</span>':'')+(it.beefGrams?' <span class="text-[11px] text-[#FF5252]">'+it.beefGrams+' ג בקר</span>':'')+'</td><td class="py-2 text-left">'+it.calories+'</td><td class="py-2 text-left pl-1">'+it.protein+'</td>';
+    b.appendChild(tr); });
+  $("sum-cal").textContent=c; $("sum-prot").textContent=p; show($("results"));
+}
+
+// ===== פעולות =====
+async function onCalc(){
+  const text=$("meal-desc").value.trim();
+  if(!text && !pendingFile){ toast("הזן תיאור או צרף תמונה", true); return; }
+  $("btn-calc").disabled=true; $("calc-text").textContent="מנתח..."; $("calc-icon").textContent="hourglass_top";
+  try { pending=await analyze(text, pendingFile);
+    if(!pending.length) toast("לא זוהו פריטים", true); else renderResults();
+  } catch(e){ toast(e.message||String(e), true); }
+  finally { $("btn-calc").disabled=false; $("calc-text").textContent="חשב נתונים"; $("calc-icon").textContent="calculate"; }
+}
+function onSave(){
+  if(!pending.length) return; const day=ensure();
+  let c=0,p=0,bg=0; pending.forEach(i=>{c+=i.calories;p+=i.protein;bg+=(+i.beefGrams||0);});
+  day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg });
+  persist(); pending=[]; pendingFile=null; $("meal-desc").value=""; hide($("results")); hide($("photo-preview"));
+  render(); toast("הארוחה נשמרה");
+}
+function onPhoto(e){ const f=e.target.files[0]; if(!f) return; pendingFile=f; const img=$("photo-preview"); img.src=URL.createObjectURL(f); show(img); }
+function onChip(e){ const c=e.target.closest(".chip"); if(!c) return; const ta=$("meal-desc"); ta.value = ta.value ? ta.value.replace(/\s*$/,"")+", "+c.dataset.c : c.dataset.c; }
+function onWeight(){ const v=prompt("משקל נוכחי (ק\"ג):", S.profile.weight||""); if(v===null) return; const w=parseFloat(v); if(isNaN(w)||w<=0){toast("ערך לא תקין",true);return;} S.profile.weight=w; ensure().weight=w; persist(); render(); toast("המשקל עודכן - היעדים חושבו מחדש"); }
+function onSteps(){ const v=prompt("מספר צעדים היום:", ensure().steps||""); if(v===null) return; const n=parseInt(v,10); if(isNaN(n)||n<0){toast("ערך לא תקין",true);return;} ensure().steps=n; persist(); render(); }
+function onStrength(e){ ensure().strength=e.target.checked; persist(); }
+
+// הגדרות
+function openSettings(){ $("api-key").value=S.apiKey||""; $("set-weight").value=S.profile&&S.profile.weight||""; show($("settings-modal")); }
+function closeSettings(){ hide($("settings-modal")); }
+function saveSettings(){ const k=$("api-key").value.trim(); const w=parseFloat($("set-weight").value);
+  S.apiKey=k; if(!isNaN(w)&&w>0){ S.profile.weight=w; ensure().weight=w; } persist(); closeSettings(); render(); toast("ההגדרות נשמרו"); }
+
+// ===== אתחול =====
+function start(){
+  setDate(); ensure(); persist();
+  $("btn-photo").onclick=()=>$("photo-input").click();
+  $("photo-input").onchange=onPhoto;
+  $("btn-calc").onclick=onCalc; $("btn-save").onclick=onSave;
+  $("chips").onclick=onChip;
+  $("btn-weight").onclick=onWeight; $("btn-steps").onclick=onSteps;
+  $("strength").onchange=onStrength;
+  $("btn-settings").onclick=openSettings;
+  $("btn-save-settings").onclick=saveSettings; $("btn-close-settings").onclick=closeSettings;
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeSettings(); });
+  render();
+  if(!S.apiKey || !S.profile.weight){ openSettings(); toast("הזן מפתח Gemini ומשקל כדי להתחיל"); }
+}
+document.addEventListener("DOMContentLoaded", start);
+})();
+</script>
+</body>
+</html>
