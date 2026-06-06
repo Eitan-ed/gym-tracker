@@ -35,7 +35,21 @@
   </div>
 </header>
 
-<main class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+<main id="home-view" class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+
+  <!-- 0. כרטיסי יעד -->
+  <div class="grid grid-cols-2 gap-3">
+    <div class="bg-[#003535] text-white rounded-2xl p-4 text-center shadow-sm">
+      <div class="text-xs font-bold opacity-80">יעד חיטוב</div>
+      <div class="text-3xl font-extrabold leading-tight"><span id="goal-cut">0</span></div>
+      <div class="text-[11px] opacity-80">קק"ל &middot; חלבון <span id="goal-prot">0</span> ג'</div>
+    </div>
+    <div class="bg-[#0d4d4d] text-white rounded-2xl p-4 text-center shadow-sm">
+      <div class="text-xs font-bold opacity-80">יעד איזון</div>
+      <div class="text-3xl font-extrabold leading-tight"><span id="goal-bal">0</span></div>
+      <div class="text-[11px] opacity-80">קק"ל &middot; חלבון <span id="goal-prot2">0</span> ג'</div>
+    </div>
+  </div>
 
   <!-- 1. הוספת ארוחה -->
   <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
@@ -82,23 +96,26 @@
       <h2 class="text-xl font-bold text-[#003535]">סיכום יומי</h2>
       <div id="alerts" class="flex flex-col gap-1 items-end"></div>
     </div>
-    <div class="space-y-5">
-      <div class="space-y-2">
-        <div class="flex justify-between items-end">
-          <span class="text-lg font-medium">קלוריות</span>
-          <div class="text-left"><span id="cal-now" class="text-4xl font-bold text-[#0d4d4d]">0</span>
-            <span class="text-sm text-[#404848]"> / <span id="cal-target">0</span> קק"ל</span></div>
+    <div class="grid grid-cols-2 gap-3">
+      <!-- קלוריות -->
+      <div class="space-y-2 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
+        <span class="text-base font-bold text-[#003535]">קלוריות</span>
+        <div class="flex items-baseline gap-1 flex-wrap">
+          <span id="cal-now" class="text-3xl font-bold text-[#0d4d4d]">0</span>
+          <span class="text-lg font-bold text-[#404848]">/<span id="cal-target">0</span></span>
         </div>
-        <div class="h-5 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="cal-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
-        <div class="flex justify-between text-sm"><span class="text-[#404848]">גרעון יומי:</span><span id="cal-def" class="font-bold text-[#006c49]">0</span></div>
+        <div class="h-4 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="cal-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
+        <div class="text-sm"><span class="text-[#404848]">גרעון: </span><span id="cal-def" class="font-bold text-[#006c49]">0</span></div>
       </div>
-      <div class="space-y-2">
-        <div class="flex justify-between items-end">
-          <span class="text-lg font-medium">חלבון</span>
-          <div class="text-left"><span id="prot-now" class="text-4xl font-bold text-[#0d4d4d]">0</span>
-            <span class="text-sm text-[#404848]">/ <span id="prot-target">0</span> גרם</span></div>
+      <!-- חלבון -->
+      <div class="space-y-2 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
+        <span class="text-base font-bold text-[#003535]">חלבון</span>
+        <div class="flex items-baseline gap-1 flex-wrap">
+          <span id="prot-now" class="text-3xl font-bold text-[#0d4d4d]">0</span>
+          <span class="text-lg font-bold text-[#404848]">/<span id="prot-target">0</span></span>
         </div>
         <div class="h-4 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="prot-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
+        <div class="text-sm text-[#404848]">גרם</div>
       </div>
     </div>
   </section>
@@ -106,14 +123,18 @@
   <!-- 3. פעילות -->
   <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
     <h2 class="text-xl font-bold text-[#003535]">פעילות גופנית</h2>
-    <div class="bg-[#eff4ff] p-5 rounded-xl border border-[#bfc8c8]/30 flex justify-between items-center">
-      <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-[#003535]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#003535]">steps</span></div><span class="text-lg font-medium">צעדים</span></div>
-      <div class="text-left flex items-center gap-2"><span id="steps-now" class="text-3xl font-bold text-[#003535]">0</span><span class="text-sm text-[#404848]">/ 10,000</span><button id="btn-steps" class="material-symbols-outlined text-[#003535] text-[20px] p-1 hover:bg-[#003535]/10 rounded-full">edit</button></div>
-    </div>
-    <div class="bg-[#eff4ff] p-5 rounded-xl border border-[#bfc8c8]/30 flex justify-between items-center">
-      <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-[#006c49]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#006c49]">fitness_center</span></div><span class="text-lg font-medium">אימון כוח</span></div>
-      <label class="relative inline-flex items-center cursor-pointer"><input id="strength" type="checkbox" class="sr-only peer">
-        <div class="w-11 h-6 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
+    <div class="grid grid-cols-2 gap-3">
+      <!-- צעדים -->
+      <div class="bg-[#eff4ff] p-4 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-2 text-center">
+        <div class="flex items-center gap-2"><div class="w-9 h-9 rounded-full bg-[#003535]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#003535] text-[20px]">steps</span></div><span class="text-base font-medium">צעדים</span></div>
+        <div class="flex items-center gap-1"><span id="steps-now" class="text-2xl font-bold text-[#003535]">0</span><span class="text-xs text-[#404848]">/10,000</span><button id="btn-steps" class="material-symbols-outlined text-[#003535] text-[18px] p-1 hover:bg-[#003535]/10 rounded-full">edit</button></div>
+      </div>
+      <!-- אימון כוח -->
+      <div class="bg-[#eff4ff] p-4 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-2 text-center">
+        <div class="flex items-center gap-2"><div class="w-9 h-9 rounded-full bg-[#006c49]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#006c49] text-[20px]">fitness_center</span></div><span class="text-base font-medium">אימון כוח</span></div>
+        <label class="relative inline-flex items-center cursor-pointer"><input id="strength" type="checkbox" class="sr-only peer">
+          <div class="w-11 h-6 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
+      </div>
     </div>
   </section>
 
@@ -130,9 +151,9 @@
   </section>
 </main>
 
-<!-- מודאל הגדרות -->
-<div id="settings-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl p-5 w-full max-w-md space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+<!-- מסך ניהול והגדרות -->
+<main id="manage-view" class="hx max-w-2xl mx-auto px-4 py-6">
+  <div class="bg-white border border-[#bfc8c8] rounded-2xl p-5 space-y-4 shadow-sm">
     <h2 class="text-xl font-bold text-[#003535] border-b-2 border-[#a0a0a0] pb-2">הגדרות וניהול</h2>
     <div class="space-y-2">
       <label class="text-sm font-bold text-[#404848]">מפתח Gemini API</label>
@@ -161,11 +182,21 @@
 
     <div class="flex gap-2 pt-1">
       <button id="btn-save-settings" class="flex-1 bg-[#006c49] text-white font-bold py-3 rounded-xl">שמור</button>
-      <button id="btn-close-settings" class="flex-1 bg-[#e5eeff] text-[#003535] font-bold py-3 rounded-xl">ביטול (ESC)</button>
+      <button id="btn-close-settings" class="flex-1 bg-[#e5eeff] text-[#003535] font-bold py-3 rounded-xl">חזרה לבית (ESC)</button>
     </div>
     <div class="text-center text-[11px] text-[#404848]/70 font-bold" dir="ltr">v.<span id="settings-version">0.0</span></div>
   </div>
-</div>
+</main>
+
+<!-- סרגל ניווט תחתון -->
+<nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white/95 backdrop-blur-md border-t border-[#bfc8c8] px-8 pt-3 flex justify-around items-center z-50 rounded-t-3xl shadow-xl" style="padding-bottom:calc(0.75rem + env(safe-area-inset-bottom))">
+  <button id="nav-home" class="flex flex-col items-center gap-1 text-[#003535]">
+    <span class="material-symbols-outlined">home</span><span class="text-[11px] font-bold">בית</span>
+  </button>
+  <button id="nav-manage" class="flex flex-col items-center gap-1 text-[#404848]/60">
+    <span class="material-symbols-outlined">settings</span><span class="text-[11px] font-bold">ניהול והגדרות</span>
+  </button>
+</nav>
 
 <!-- טוסט -->
 <div id="toast" class="hx fixed top-24 left-1/2 -translate-x-1/2 z-[80] bg-[#003535] text-white px-5 py-3 rounded-xl shadow-2xl font-medium max-w-[90%] text-center"></div>
@@ -298,6 +329,13 @@ function render(){
   const items = day.meals||[];
   let cal=0, prot=0; items.forEach(m=>{cal+=(+m.calories||0); prot+=(+m.protein||0);});
   const ct=calTarget(w), pt=protTarget(w), bw=beefWeek();
+  const balance = ct ? ct+500 : 0;
+
+  // כרטיסי יעד למעלה
+  $("goal-cut").textContent=ct.toLocaleString();
+  $("goal-bal").textContent=balance.toLocaleString();
+  $("goal-prot").textContent=pt.toLocaleString();
+  $("goal-prot2").textContent=pt.toLocaleString();
 
   const over = cal>ct && ct>0;
   $("cal-now").textContent=cal.toLocaleString(); $("cal-target").textContent=ct.toLocaleString();
@@ -386,8 +424,17 @@ function onSteps(){ const v=prompt("מספר צעדים היום:", ensure().ste
 function onStrength(e){ ensure().strength=e.target.checked; persist(); }
 
 // הגדרות
-function openSettings(){ $("api-key").value=S.apiKey||""; $("set-weight").value=S.profile&&S.profile.weight||""; show($("settings-modal")); }
-function closeSettings(){ hide($("settings-modal")); }
+function showView(name){
+  const manage = name==="manage";
+  (manage?show:hide)($("manage-view"));
+  (manage?hide:show)($("home-view"));
+  $("nav-manage").className="flex flex-col items-center gap-1 "+(manage?"text-[#003535]":"text-[#404848]/60");
+  $("nav-home").className  ="flex flex-col items-center gap-1 "+(manage?"text-[#404848]/60":"text-[#003535]");
+  if(manage){ $("api-key").value=S.apiKey||""; $("set-weight").value=S.profile&&S.profile.weight||""; }
+  window.scrollTo(0,0);
+}
+function openSettings(){ showView("manage"); }
+function closeSettings(){ showView("home"); }
 function saveSettings(){ const k=$("api-key").value.trim(); const w=parseFloat($("set-weight").value);
   S.apiKey=k; if(!isNaN(w)&&w>0){ S.profile.weight=w; ensure().weight=w; } persist(); closeSettings(); render(); toast("ההגדרות נשמרו"); }
 
@@ -432,6 +479,8 @@ function start(){
   $("btn-weight").onclick=onWeight; $("btn-steps").onclick=onSteps;
   $("strength").onchange=onStrength;
   $("btn-settings").onclick=openSettings;
+  $("nav-home").onclick=()=>showView("home");
+  $("nav-manage").onclick=()=>showView("manage");
   $("btn-save-settings").onclick=saveSettings; $("btn-close-settings").onclick=closeSettings;
   $("btn-backup").onclick=onBackup;
   $("btn-restore").onclick=()=>$("restore-input").click();
