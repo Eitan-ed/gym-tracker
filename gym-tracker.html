@@ -33,7 +33,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.9';
+const APP_VERSION = '9.10';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -865,14 +865,19 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             <div className="flex-1 min-h-0 flex flex-col">{videoBtn(false)}</div>
                                         )}
                                         {(lastW>0 || lastR>0) && (
-                                            <div className="flex-1 min-h-0 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-                                                {lastW>0 ? (<>
-                                                    <span className="text-4xl font-black text-orange-500 leading-none">{lastW}</span>
-                                                    <span className="text-[11px] font-black text-orange-400 mt-1">ק״ג{lastR>0 ? ` × ${lastR}` : ''}</span>
-                                                </>) : (<>
-                                                    <span className="text-4xl font-black text-orange-500 leading-none">{lastR}</span>
-                                                    <span className="text-[11px] font-black text-orange-400 mt-1">חזרות</span>
-                                                </>)}
+                                            <div className="flex-1 min-h-0 flex gap-1.5">
+                                                {lastW>0 && (
+                                                    <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
+                                                        <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
+                                                        <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
+                                                    </div>
+                                                )}
+                                                {lastR>0 && (
+                                                    <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
+                                                        <span className="text-3xl font-black text-orange-500 leading-none">{lastR}</span>
+                                                        <span className="text-[10px] font-black text-orange-400 mt-0.5">חזרות</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1359,6 +1364,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null }) => {
     const [open, setOpen] = useState({exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false});
     const [histExpandedDate, setHistExpandedDate] = useState(null);
+    const [editInstId, setEditInstId] = useState(null);
     const scrollRef = React.useRef(null);
     const exerciseSectionRef = React.useRef(null);
     const backupRef    = React.useRef(null);
@@ -1444,7 +1450,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 no-scrollbar pb-32">
                 {/* ── ג: גיבוי ושחזור ── */}
-                <section ref={backupRef} style={{order:ord('backup')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.backup?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={backupRef} style={{order:ord('backup')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.backup?'':''}`}>
                     <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-sky-500" /> גיבוי ושחזור</h3>
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1462,7 +1468,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ה: הגדרות אימון ── */}
-                <section ref={settingsRef} style={{order:ord('settings')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.settings?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={settingsRef} style={{order:ord('settings')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.settings?'':''}`}>
                     <button onClick={()=>toggleSection('settings')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-orange-500" /> הגדרות אימון</h3>
                         <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1487,37 +1493,51 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── מ: מדריכים ── */}
-                <section ref={instructorsRef} style={{order:ord('instructors')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.instructors?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={instructorsRef} style={{order:ord('instructors')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.instructors?'':''}`}>
                     <button onClick={()=>toggleSection('instructors')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="BookOpen" size={20} className="text-rose-500" /> מדריכים ({instructors.length})</h3>
                         <Icon name={open.instructors?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.instructors && <div className="px-5 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
+                    {open.instructors && <div className="px-5 pb-5 space-y-2 overflow-y-auto no-scrollbar flex-1">
                         {instructors.map(ins => (
-                            <div key={ins.id} className="bg-slate-50 rounded-2xl border border-slate-100 p-3 space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <input value={ins.name} placeholder="שם המדריך"
+                            editInstId===ins.id ? (
+                                /* מצב עריכה */
+                                <div key={ins.id} className="bg-slate-50 rounded-2xl border border-rose-200 p-3 space-y-2">
+                                    <input value={ins.name} placeholder="שם המדריך" autoFocus
                                         onChange={e=>setInstructors(prev=>prev.map(x=>x.id===ins.id?{...x,name:e.target.value}:x))}
-                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-rose-300" />
-                                    <button onClick={()=>requestConfirm('למחוק מדריך זה?',()=>setInstructors(prev=>prev.filter(x=>x.id!==ins.id)))}
-                                        className="shrink-0 text-slate-300 active:text-red-500 p-1"><Icon name="Trash2" size={16}/></button>
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-rose-300" />
+                                    <textarea value={ins.note||''} placeholder="הערות..."
+                                        rows={1}
+                                        onChange={e=>setInstructors(prev=>prev.map(x=>x.id===ins.id?{...x,note:e.target.value}:x))}
+                                        onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
+                                        ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
+                                        className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden" />
+                                    <button onClick={()=>setEditInstId(null)}
+                                        className="w-full flex items-center justify-center gap-2 bg-rose-500 text-white p-2.5 rounded-xl active:scale-[0.98] font-black text-sm">
+                                        <Icon name="CheckCircle2" size={16}/> שמור
+                                    </button>
                                 </div>
-                                <textarea value={ins.note||''} placeholder="הערות..."
-                                    rows={1}
-                                    onChange={e=>setInstructors(prev=>prev.map(x=>x.id===ins.id?{...x,note:e.target.value}:x))}
-                                    onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
-                                    ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
-                                    className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden" />
-                            </div>
+                            ) : (
+                                /* שורת רשימה — שם בימין, הערה בשמאל, מחיקה */
+                                <div key={ins.id} className="flex items-center bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                                    <button onClick={()=>setEditInstId(ins.id)}
+                                        className="flex-1 flex items-center justify-between gap-3 px-3 py-3 active:bg-slate-100 min-w-0">
+                                        <span className="font-black text-slate-800 text-[13px] shrink-0">{ins.name||'(ללא שם)'}</span>
+                                        <span className="text-[11px] font-bold text-slate-400 truncate text-left flex-1">{ins.note||''}</span>
+                                    </button>
+                                    <button onClick={()=>requestConfirm('למחוק מדריך זה?',()=>{ setInstructors(prev=>prev.filter(x=>x.id!==ins.id)); if(editInstId===ins.id) setEditInstId(null); })}
+                                        className="px-3 py-3 text-red-300 active:text-red-500 shrink-0"><Icon name="Trash2" size={16}/></button>
+                                </div>
+                            )
                         ))}
-                        <button onClick={()=>setInstructors(prev=>[...prev,{id:crypto.randomUUID(),name:'',note:''}])}
+                        <button onClick={()=>{ const id=crypto.randomUUID(); setInstructors(prev=>[...prev,{id,name:'',note:''}]); setEditInstId(id); }}
                             className="w-full flex items-center justify-center gap-2 bg-rose-50 p-3 rounded-2xl border border-rose-100 text-rose-600 active:scale-[0.98] font-black text-sm">
                             <Icon name="Plus" size={16}/> הוסף מדריך
                         </button>
                     </div>}
                 </section>
                 {/* ── ה: היסטוריית אימונים ── */}
-                <section ref={historyRef} style={{order:ord('history')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.history?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={historyRef} style={{order:ord('history')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.history?'':''}`}>
                     <button onClick={()=>toggleSection('history')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="History" size={20} className="text-teal-500" /> היסטוריית אימונים</h3>
                         <Icon name={open.history?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1595,7 +1615,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── מ: מוזיקה ── */}
-                <section ref={musicRef} style={{order:ord('music')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.music?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={musicRef} style={{order:ord('music')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.music?'':''}`}>
                     <button onClick={()=>toggleSection('music')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Music" size={20} className="text-purple-500" /> מוזיקה ({musicList.length} קבצים)</h3>
                         <Icon name={open.music?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1637,7 +1657,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </div>}
                 </section>
                 {/* ── ת: תדירות אימון ── */}
-                <section ref={progressRef} style={{order:ord('progress')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.progress?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={progressRef} style={{order:ord('progress')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.progress?'':''}`}>
                     <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> תדירות אימון</h3>
                         <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -1645,7 +1665,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     {open.progress && <div className="overflow-y-auto no-scrollbar flex-1"><WorkoutProgressCalendar logs={logs} /></div>}
                 </section>
                 {/* ── ת: תרגילים ── */}
-                <section ref={exerciseSectionRef} style={{order:ord('exercises')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.exercises?'flex flex-col max-h-[70vh]':''}`}>
+                <section ref={exerciseSectionRef} style={{order:ord('exercises')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden ${open.exercises?'':''}`}>
                     <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
                         <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
@@ -2520,16 +2540,19 @@ function App() {
                 const skipCount   = sd.skipCount;
                 const durSec      = sd.durationSec;
                 const sumWst      = sd.workoutStart;
+                const remaining   = visibleGroups.filter(g=>!isGroupDone(g)).length;
+                const allDone     = remaining === 0;
+                const showDur     = allDone ? durSec : workoutSec;
                 return (
                     <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                         <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl space-y-4">
                             <div className="text-center">
-                                <div className="text-4xl mb-1">🏆</div>
-                                <h3 className="text-xl font-black text-slate-800">כל הכבוד!</h3>
+                                <div className="text-4xl mb-1">{allDone ? '🏆' : '⏳'}</div>
+                                <h3 className="text-xl font-black text-slate-800">{allDone ? 'כל הכבוד!' : `נשאר עוד ${remaining}`}</h3>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="bg-blue-50 rounded-2xl p-3 text-center">
-                                    <div className="text-lg font-black text-blue-600">{fmtDur(durSec)}</div>
+                                    <div className="text-lg font-black text-blue-600">{fmtDur(showDur)}</div>
                                     <div className="text-[10px] font-bold text-blue-400">זמן אימון</div>
                                 </div>
                                 <div className="bg-emerald-50 rounded-2xl p-3 text-center">
