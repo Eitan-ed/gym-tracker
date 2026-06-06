@@ -23,10 +23,13 @@
       <div class="p-2 bg-white/10 rounded-xl border border-white/20">
         <span class="material-symbols-outlined text-white text-[28px]">restaurant</span>
       </div>
-      <span class="text-2xl font-extrabold text-white">דיאטן</span>
+      <div class="flex flex-col leading-none">
+        <span class="text-2xl font-extrabold text-white">דיאטן</span>
+        <span id="app-version" class="text-[11px] font-bold text-white/50" dir="ltr">v.0.0</span>
+      </div>
     </div>
     <div class="flex items-center gap-2">
-      <span id="today-date" class="text-sm font-bold text-white bg-black/20 px-3 py-2 rounded-xl border border-white/10">--</span>
+      <span id="today-date" class="text-sm font-bold text-white bg-black/20 px-3 py-2 rounded-xl border border-white/10" dir="ltr">--</span>
       <button id="btn-settings" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10">settings</button>
     </div>
   </div>
@@ -37,19 +40,21 @@
   <!-- 1. הוספת ארוחה -->
   <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
     <h2 class="text-xl font-bold text-[#003535]">הוספת ארוחה</h2>
-    <input type="file" id="photo-input" accept="image/*" capture="environment" class="hx">
-    <button id="btn-photo" class="w-full h-28 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#003535] bg-[#eff4ff]/50">
-      <span class="material-symbols-outlined text-[#003535] text-[30px]">add_a_photo</span>
-      <span class="text-sm text-[#404848]">צלם או העלה תמונה</span>
-    </button>
+    <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
+    <input type="file" id="gallery-input" accept="image/*" class="hx">
+    <div class="flex gap-3">
+      <button id="btn-cam" class="flex-1 h-24 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-1.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
+        <span class="material-symbols-outlined text-[#003535] text-[28px]">photo_camera</span>
+        <span class="text-sm text-[#404848]">צלם</span>
+      </button>
+      <button id="btn-gallery" class="flex-1 h-24 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-1.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
+        <span class="material-symbols-outlined text-[#003535] text-[28px]">image</span>
+        <span class="text-sm text-[#404848]">העלה תמונה</span>
+      </button>
+    </div>
     <img id="photo-preview" class="hx w-full max-h-48 object-cover rounded-xl border border-[#bfc8c8]" alt="">
     <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ללא עור ואורז מלא..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535] resize-none"></textarea>
-    <div class="flex flex-wrap gap-2" id="chips">
-      <span data-c="חזה עוף" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ חזה עוף</span>
-      <span data-c="אורז מלא" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ אורז מלא</span>
-      <span data-c="סלט" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ סלט</span>
-      <span data-c="יוגורט פרו" class="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer">+ יוגורט פרו</span>
-    </div>
+    <div class="flex flex-wrap gap-2" id="chips"></div>
     <button id="btn-calc" class="w-full bg-[#633d00] text-white text-xl font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
       <span class="material-symbols-outlined" id="calc-icon">calculate</span>
       <span id="calc-text">חשב נתונים</span>
@@ -98,19 +103,7 @@
     </div>
   </section>
 
-  <!-- 3. משקל -->
-  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
-    <div class="flex justify-between items-center text-[#003535]">
-      <div class="flex items-center gap-2"><span class="material-symbols-outlined">monitor_weight</span><h2 class="text-xl font-bold">מעקב משקל</h2></div>
-      <button id="btn-weight" class="material-symbols-outlined p-2 hover:bg-[#003535]/10 rounded-full">edit</button>
-    </div>
-    <div class="bg-[#eff4ff] p-6 rounded-2xl border border-[#bfc8c8]/50 flex flex-col items-center">
-      <span class="text-sm text-[#404848] mb-1">משקל נוכחי</span>
-      <div class="flex items-baseline gap-2"><span id="weight-now" class="text-5xl font-bold text-[#003535]">--</span><span class="text-lg text-[#003535]/70">ק"ג</span></div>
-    </div>
-  </section>
-
-  <!-- 4. פעילות -->
+  <!-- 3. פעילות -->
   <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
     <h2 class="text-xl font-bold text-[#003535]">פעילות גופנית</h2>
     <div class="bg-[#eff4ff] p-5 rounded-xl border border-[#bfc8c8]/30 flex justify-between items-center">
@@ -123,12 +116,24 @@
         <div class="w-11 h-6 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
     </div>
   </section>
+
+  <!-- 4. משקל -->
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
+    <div class="flex justify-between items-center text-[#003535]">
+      <div class="flex items-center gap-2"><span class="material-symbols-outlined">monitor_weight</span><h2 class="text-xl font-bold">מעקב משקל</h2></div>
+      <button id="btn-weight" class="material-symbols-outlined p-2 hover:bg-[#003535]/10 rounded-full">edit</button>
+    </div>
+    <div class="bg-[#eff4ff] p-6 rounded-2xl border border-[#bfc8c8]/50 flex flex-col items-center">
+      <span class="text-sm text-[#404848] mb-1">משקל נוכחי</span>
+      <div class="flex items-baseline gap-2"><span id="weight-now" class="text-5xl font-bold text-[#003535]">--</span><span class="text-lg text-[#003535]/70">ק"ג</span></div>
+    </div>
+  </section>
 </main>
 
 <!-- מודאל הגדרות -->
 <div id="settings-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl p-5 w-full max-w-md space-y-4 shadow-2xl">
-    <h2 class="text-xl font-bold text-[#003535] border-b-2 border-[#a0a0a0] pb-2">הגדרות</h2>
+  <div class="bg-white rounded-2xl p-5 w-full max-w-md space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <h2 class="text-xl font-bold text-[#003535] border-b-2 border-[#a0a0a0] pb-2">הגדרות וניהול</h2>
     <div class="space-y-2">
       <label class="text-sm font-bold text-[#404848]">מפתח Gemini API</label>
       <input id="api-key" type="password" placeholder="מדביק כאן את המפתח" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535] text-left" dir="ltr">
@@ -138,10 +143,27 @@
       <label class="text-sm font-bold text-[#404848]">משקל נוכחי (ק"ג)</label>
       <input id="set-weight" type="number" step="0.1" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535]">
     </div>
+
+    <!-- ניהול נתונים -->
+    <div class="space-y-2 border-t border-[#bfc8c8] pt-3">
+      <label class="text-sm font-bold text-[#404848]">ניהול נתונים</label>
+      <input type="file" id="restore-input" accept="application/json,.json" class="hx">
+      <div class="flex gap-2">
+        <button id="btn-backup" class="flex-1 flex items-center justify-center gap-2 bg-[#dce9ff] text-[#003535] font-bold py-2.5 rounded-xl active:scale-[0.98]">
+          <span class="material-symbols-outlined text-[20px]">download</span> גיבוי
+        </button>
+        <button id="btn-restore" class="flex-1 flex items-center justify-center gap-2 bg-[#dce9ff] text-[#003535] font-bold py-2.5 rounded-xl active:scale-[0.98]">
+          <span class="material-symbols-outlined text-[20px]">upload</span> שחזור
+        </button>
+      </div>
+      <p class="text-xs text-[#404848] leading-relaxed">גיבוי מוריד קובץ JSON עם כל הנתונים. שחזור מייבא קובץ כזה ומחליף את הנתונים הקיימים.</p>
+    </div>
+
     <div class="flex gap-2 pt-1">
       <button id="btn-save-settings" class="flex-1 bg-[#006c49] text-white font-bold py-3 rounded-xl">שמור</button>
       <button id="btn-close-settings" class="flex-1 bg-[#e5eeff] text-[#003535] font-bold py-3 rounded-xl">ביטול (ESC)</button>
     </div>
+    <div class="text-center text-[11px] text-[#404848]/70 font-bold" dir="ltr">v.<span id="settings-version">0.0</span></div>
   </div>
 </div>
 
@@ -156,6 +178,9 @@
 (() => {
 "use strict";
 
+// ===== גרסה =====
+const APP_VERSION = "1.1";
+
 // ===== מנוע חישוב (לפי הסוכן) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300;
 const REF_FOODS = [
@@ -164,8 +189,13 @@ const REF_FOODS = [
   { m:["גו תות"],            cal:108, prot:null, label:"גו תות" },
   { m:["גלידונית"],          cal:32,  prot:null, label:"גלידונית" },
   { m:["קריספית"],           cal:18,  prot:null, label:"קריספית" },
+  { m:["דנונה"],             cal:112, prot:10.6, label:"דנונה 1.7" },
   { m:["שייטל"],             cal:140, prot:22,  label:"שייטל/בקר רזה", per100g:true }
 ];
+// מודלים: ראשי + גיבוי (לעקיפת עומס 503)
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+// תגיות ברירת מחדל (מתמזגות עם מותאמות אישית מ-localStorage)
+const DEFAULT_CHIPS = ["חזה עוף", "אורז מלא", "סלט", "יוגורט פרו"];
 const BEEF_KW  = ["בקר","שייטל","סטייק","אנטריקוט","המבורגר","אסאדו","צלי בקר"];
 const SUGAR_KW = ["סוכר","ממתק","שוקולד","עוגה","עוגיה","עוגיות","גלידה","קולה","מיץ","דבש","ריבה","וופל","סופגניה","קרואסון"];
 
@@ -210,7 +240,7 @@ let pending = [], pendingFile = null;
 function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.style.background=err?"#ba1a1a":"#003535"; t.classList.remove("hx"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add("hx"),3200); }
 const show=e=>e.classList.remove("hx"), hide=e=>e.classList.add("hx");
 
-function setDate(){ const mo=["בינואר","בפברואר","במרץ","באפריל","במאי","ביוני","ביולי","באוגוסט","בספטמבר","באוקטובר","בנובמבר","בדצמבר"]; const d=new Date(); $("today-date").textContent=d.getDate()+" "+mo[d.getMonth()]; }
+function setDate(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); $("today-date").textContent=p(d.getDate())+"-"+p(d.getMonth()+1)+"-"+String(d.getFullYear()).slice(-2); }
 
 // ===== זיהוי ארוחה דרך Gemini (ישיר) =====
 function fileToB64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>{const v=r.result; res({b64:v.slice(v.indexOf(",")+1), mime:file.type||"image/jpeg"});}; r.onerror=rej; r.readAsDataURL(file); }); }
@@ -218,9 +248,16 @@ function fileToB64(file){ return new Promise((res,rej)=>{ const r=new FileReader
 const PROMPT = `אתה דיאטן שמנתח ארוחות עבור איתן (גובה 180, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
 מהתמונה ו/או הטקסט זהה כל פריט מזון והערך קלוריות וחלבון.
 כללים: "ללא עור"=עוף רזה; "דג לבן"=לברק/אמנון; הערך כמויות לפי הצלחת/קופסה.
-ערכי ייחוס מחייבים: יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; גלידונית=32 ליח'; קריספית=18; שייטל/בקר רזה=140 ל-100 גרם.
+ערכי ייחוס מחייבים: יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
 אם פריט הוא בקר (סטייק/אנטריקוט/שייטל/המבורגר בקר) אמוד משקל בגרמים ב-beefGrams, אחרת 0.
 החזר אך ורק JSON: {"items":[{"name":"שם","calories":מספר,"protein":גרם,"beefGrams":מספר}]}`;
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+async function callGemini(model, body, key){
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key);
+  return fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body });
+}
 
 async function analyze(text, file){
   const key = S.apiKey;
@@ -228,10 +265,26 @@ async function analyze(text, file){
   const parts = [{text:PROMPT}];
   if(text) parts.push({text:"תיאור מאיתן: "+text});
   if(file){ const {b64,mime}=await fileToB64(file); parts.push({inline_data:{mime_type:mime,data:b64}}); }
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(key);
-  const resp = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ contents:[{role:"user",parts}], generationConfig:{temperature:0.2, responseMimeType:"application/json"} }) });
-  if(!resp.ok) throw new Error("שגיאת Gemini: "+(await resp.text()).slice(0,140));
+  const body = JSON.stringify({ contents:[{role:"user",parts}], generationConfig:{temperature:0.2, responseMimeType:"application/json"} });
+
+  // ניסיון חוזר על עומס (503/429/500) ומעבר למודל גיבוי
+  const delays = [0, 1500, 3000];
+  let resp, lastStatus = 0;
+  outer:
+  for(const model of GEMINI_MODELS){
+    for(let i=0;i<delays.length;i++){
+      if(delays[i]) await sleep(delays[i]);
+      resp = await callGemini(model, body, key);
+      if(resp.ok) break outer;
+      lastStatus = resp.status;
+      if(lastStatus!==503 && lastStatus!==429 && lastStatus!==500) break; // שגיאה לא-זמנית: לא לנסות שוב
+    }
+  }
+  if(!resp || !resp.ok){
+    if(lastStatus===503 || lastStatus===429) throw new Error("שרתי Gemini עמוסים כרגע. נסה שוב בעוד דקה.");
+    if(lastStatus===400 || lastStatus===403) throw new Error("מפתח Gemini לא תקין או פג תוקף - בדוק בהגדרות.");
+    throw new Error("שגיאת Gemini ("+(lastStatus||"?")+"). נסה שוב.");
+  }
   const j = await resp.json();
   const raw = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
   if(!raw) throw new Error("תשובה ריקה מ-Gemini");
@@ -297,7 +350,37 @@ function onSave(){
   render(); toast("הארוחה נשמרה");
 }
 function onPhoto(e){ const f=e.target.files[0]; if(!f) return; pendingFile=f; const img=$("photo-preview"); img.src=URL.createObjectURL(f); show(img); }
-function onChip(e){ const c=e.target.closest(".chip"); if(!c) return; const ta=$("meal-desc"); ta.value = ta.value ? ta.value.replace(/\s*$/,"")+", "+c.dataset.c : c.dataset.c; }
+function chipList(){ return DEFAULT_CHIPS.concat(S.chips||[]); }
+function renderChips(){
+  const box=$("chips"); box.innerHTML="";
+  chipList().forEach((c,idx)=>{
+    const custom = idx>=DEFAULT_CHIPS.length;
+    const span=document.createElement("span");
+    span.className="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer flex items-center gap-1";
+    span.dataset.c=c;
+    span.innerHTML='+ '+c+(custom?' <span class="chip-del material-symbols-outlined text-[15px] text-[#93000a]" title="מחק">close</span>':'');
+    box.appendChild(span);
+  });
+  const add=document.createElement("span");
+  add.id="chip-add";
+  add.className="bg-[#003535] text-white px-3 py-1.5 rounded-lg text-sm font-bold cursor-pointer flex items-center gap-1";
+  add.innerHTML='<span class="material-symbols-outlined text-[16px]">add</span>דוגמה';
+  box.appendChild(add);
+}
+function onChip(e){
+  if(e.target.closest("#chip-add")){
+    const v=prompt("הוסף דוגמת מזון חדשה:"); if(v===null) return;
+    const t=v.trim(); if(!t) return;
+    S.chips=S.chips||[]; if(!chipList().includes(t)){ S.chips.push(t); persist(); renderChips(); }
+    return;
+  }
+  if(e.target.classList.contains("chip-del")){
+    const c=e.target.closest(".chip"); if(!c) return;
+    S.chips=(S.chips||[]).filter(x=>x!==c.dataset.c); persist(); renderChips(); return;
+  }
+  const c=e.target.closest(".chip"); if(!c) return;
+  const ta=$("meal-desc"); ta.value = ta.value ? ta.value.replace(/\s*$/,"")+", "+c.dataset.c : c.dataset.c;
+}
 function onWeight(){ const v=prompt("משקל נוכחי (ק\"ג):", S.profile.weight||""); if(v===null) return; const w=parseFloat(v); if(isNaN(w)||w<=0){toast("ערך לא תקין",true);return;} S.profile.weight=w; ensure().weight=w; persist(); render(); toast("המשקל עודכן - היעדים חושבו מחדש"); }
 function onSteps(){ const v=prompt("מספר צעדים היום:", ensure().steps||""); if(v===null) return; const n=parseInt(v,10); if(isNaN(n)||n<0){toast("ערך לא תקין",true);return;} ensure().steps=n; persist(); render(); }
 function onStrength(e){ ensure().strength=e.target.checked; persist(); }
@@ -308,17 +391,51 @@ function closeSettings(){ hide($("settings-modal")); }
 function saveSettings(){ const k=$("api-key").value.trim(); const w=parseFloat($("set-weight").value);
   S.apiKey=k; if(!isNaN(w)&&w>0){ S.profile.weight=w; ensure().weight=w; } persist(); closeSettings(); render(); toast("ההגדרות נשמרו"); }
 
+// גיבוי/שחזור נתונים (JSON)
+function onBackup(){
+  try{
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+    const d=new Date(); const p=n=>String(n).padStart(2,"0");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="diatan-backup-"+p(d.getDate())+"-"+p(d.getMonth()+1)+"-"+String(d.getFullYear()).slice(-2)+".json";
+    a.click(); URL.revokeObjectURL(a.href);
+    toast("הגיבוי הורד בהצלחה");
+  }catch(e){ toast("שגיאה בגיבוי",true); }
+}
+function onRestore(e){
+  const f=e.target.files[0]; if(!f) return;
+  if(!confirm("שחזור יחליף את כל הנתונים הקיימים. להמשיך?")){ e.target.value=null; return; }
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(typeof data!=="object"||!data) throw new Error();
+      S=data; persist(); ensure(); persist();
+      $("api-key").value=S.apiKey||""; $("set-weight").value=S.profile&&S.profile.weight||"";
+      renderChips(); render(); toast("הנתונים שוחזרו בהצלחה");
+    }catch(err){ toast("קובץ גיבוי לא תקין",true); }
+    e.target.value=null;
+  };
+  r.readAsText(f);
+}
+
 // ===== אתחול =====
 function start(){
   setDate(); ensure(); persist();
-  $("btn-photo").onclick=()=>$("photo-input").click();
-  $("photo-input").onchange=onPhoto;
+  $("app-version").textContent="v."+APP_VERSION; $("settings-version").textContent=APP_VERSION;
+  $("btn-cam").onclick=()=>$("cam-input").click();
+  $("btn-gallery").onclick=()=>$("gallery-input").click();
+  $("cam-input").onchange=onPhoto; $("gallery-input").onchange=onPhoto;
   $("btn-calc").onclick=onCalc; $("btn-save").onclick=onSave;
-  $("chips").onclick=onChip;
+  $("chips").onclick=onChip; renderChips();
   $("btn-weight").onclick=onWeight; $("btn-steps").onclick=onSteps;
   $("strength").onchange=onStrength;
   $("btn-settings").onclick=openSettings;
   $("btn-save-settings").onclick=saveSettings; $("btn-close-settings").onclick=closeSettings;
+  $("btn-backup").onclick=onBackup;
+  $("btn-restore").onclick=()=>$("restore-input").click();
+  $("restore-input").onchange=onRestore;
   document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeSettings(); });
   render();
   if(!S.apiKey || !S.profile.weight){ openSettings(); toast("הזן מפתח Gemini ומשקל כדי להתחיל"); }
