@@ -54,7 +54,7 @@
 <main id="home-view" class="max-w-2xl mx-auto px-4 py-3 space-y-3">
 
   <!-- ניווט ימים -->
-  <div class="flex items-center justify-between bg-white border border-[#bfc8c8] rounded-2xl px-3 py-2 shadow-sm">
+  <div id="day-bar" class="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm">
     <button id="day-prev" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_right</button>
     <button id="day-label" class="text-base font-extrabold px-3 py-0.5 rounded-lg active:scale-95 flex items-center gap-1">היום <span class="material-symbols-outlined text-[16px]">calendar_month</span></button>
     <button id="day-next" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_left</button>
@@ -110,67 +110,62 @@
 
     <!-- יעדים חיטוב/איזון -->
     <div class="grid grid-cols-2 gap-2">
-      <div class="bg-[#003535] text-white rounded-xl px-3 py-2 text-center">
-        <div class="text-[10px] font-bold opacity-60">חיטוב</div>
-        <div class="text-lg font-extrabold"><span id="goal-cut">0</span> <span class="text-[10px] font-normal opacity-60">קק"ל</span></div>
+      <div class="bg-[#006c49] text-white rounded-xl px-3 py-1.5 flex items-center justify-between">
+        <span class="text-[11px] font-bold opacity-80">יעד חיטוב</span>
+        <span class="text-base font-extrabold"><span id="goal-cut">0</span></span>
       </div>
-      <div class="bg-[#0d4d4d] text-white rounded-xl px-3 py-2 text-center">
-        <div class="text-[10px] font-bold opacity-60">איזון</div>
-        <div class="text-lg font-extrabold"><span id="goal-bal">0</span> <span class="text-[10px] font-normal opacity-60">קק"ל</span></div>
+      <div class="bg-[#4CAF50] text-white rounded-xl px-3 py-1.5 flex items-center justify-between">
+        <span class="text-[11px] font-bold opacity-80">יעד איזון</span>
+        <span class="text-base font-extrabold"><span id="goal-bal">0</span></span>
       </div>
     </div>
 
-    <!-- קלוריות + חלבון זה לצד זה -->
+    <!-- קלוריות + חלבון זה לצד זה (קומפקטי) -->
     <div class="grid grid-cols-2 gap-2">
-      <div class="space-y-1.5 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
-        <span class="text-sm font-bold text-[#003535]">קלוריות</span>
-        <div class="flex items-baseline gap-1 flex-wrap">
-          <span id="cal-now" class="text-2xl font-extrabold text-[#0d4d4d]">0</span>
-          <span class="text-sm font-bold text-[#404848]">/<span id="cal-target" class="text-base">0</span></span>
+      <div class="bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-[#003535]">קלוריות</span>
+          <span id="cal-def" class="text-[11px] font-bold text-[#006c49]">—</span>
         </div>
-        <div class="h-3 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
-        <div id="cal-def" class="text-[11px] font-bold text-[#006c49]">—</div>
+        <div class="flex items-baseline gap-1">
+          <span id="cal-now" class="text-xl font-extrabold text-[#0d4d4d]">0</span>
+          <span class="text-xs font-bold text-[#404848]">/<span id="cal-target">0</span></span>
+        </div>
+        <div class="h-2.5 w-full bg-[#e5eeff] rounded-full overflow-hidden mt-1"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
-      <div class="space-y-1.5 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
-        <span class="text-sm font-bold text-[#003535]">חלבון</span>
-        <div class="flex items-baseline gap-1 flex-wrap">
-          <span id="prot-now" class="text-2xl font-extrabold text-[#0d4d4d]">0</span>
-          <span class="text-sm font-bold text-[#404848]">/<span id="prot-target" class="text-base">0</span></span>
+      <div class="bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-[#003535]">חלבון</span>
+          <span id="prot-remaining" class="text-[11px] font-bold text-[#404848]">—</span>
         </div>
-        <div class="h-3 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="prot-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
-        <div id="prot-remaining" class="text-[11px] text-[#404848]">—</div>
+        <div class="flex items-baseline gap-1">
+          <span id="prot-now" class="text-xl font-extrabold text-[#0d4d4d]">0</span>
+          <span class="text-xs font-bold text-[#404848]">/<span id="prot-target">0</span></span>
+        </div>
+        <div class="h-2.5 w-full bg-[#e5eeff] rounded-full overflow-hidden mt-1"><div id="prot-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
     </div>
   </section>
 
-  <!-- פעילות -->
-  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm">
-    <div class="grid grid-cols-2 gap-2">
-      <button id="btn-steps" class="bg-[#eff4ff] p-3 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-1 text-center active:scale-[0.98]">
-        <span class="material-symbols-outlined text-[#003535] text-[20px]">steps</span>
-        <span class="text-[11px] font-medium text-[#404848]">צעדים</span>
-        <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-xl font-bold text-[#003535]">0</span><span class="text-[10px] text-[#404848]">/10K</span></div>
-      </button>
-      <div class="bg-[#eff4ff] p-3 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-1 text-center">
-        <span class="material-symbols-outlined text-[#006c49] text-[20px]">fitness_center</span>
-        <span class="text-[11px] font-medium text-[#404848]">אימון כוח</span>
-        <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
-          <div class="w-10 h-5 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
-      </div>
+  <!-- פעילות + משקל — שורה אחת -->
+  <div class="grid grid-cols-3 gap-2">
+    <button id="btn-steps" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+      <span class="material-symbols-outlined text-[#003535] text-[18px]">steps</span>
+      <span class="text-[10px] font-medium text-[#404848]">צעדים</span>
+      <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-base font-bold text-[#003535]">0</span><span class="text-[9px] text-[#404848]">/10K</span></div>
+    </button>
+    <div class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center">
+      <span class="material-symbols-outlined text-[#006c49] text-[18px]">fitness_center</span>
+      <span class="text-[10px] font-medium text-[#404848]">אימון כוח</span>
+      <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
+        <div class="w-9 h-[18px] bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-[14px] after:w-[14px] after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
     </div>
-  </section>
-
-  <!-- משקל (קומפקטי) -->
-  <button id="btn-weight" class="w-full bg-white border border-[#bfc8c8] px-4 py-2.5 rounded-2xl shadow-sm flex items-center justify-between active:scale-[0.99]">
-    <div class="flex items-center gap-2">
+    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
       <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
-      <span class="text-sm font-bold text-[#003535]">משקל</span>
-    </div>
-    <div class="flex items-baseline gap-1">
-      <span id="weight-now" class="text-lg font-bold text-[#003535]">--</span>
-      <span class="text-[11px] text-[#404848]">ק"ג</span>
-    </div>
-  </button>
+      <span class="text-[10px] font-medium text-[#404848]">משקל</span>
+      <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
+    </button>
+  </div>
 </main>
 
 <!-- ===== מודאל משקל ===== -->
@@ -342,7 +337,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "1.2";
+const APP_VERSION = "1.3";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -480,25 +475,31 @@ function render(){
   const ct=calTarget(w), pt=protTarget(w), bw=beefWeek();
   const balance = ct ? ct+BALANCE_EXTRA : 0;
 
-  // ניווט ימים
+  // ניווט ימים — פס כחול להיום, אפור לימים קודמים
   const label = $("day-label");
+  const bar = $("day-bar");
   if(isToday){
+    bar.className="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm bg-[#1565C0]";
     label.innerHTML='היום  '+fmtDate(viewDay)+' <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
-    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#1565C0] bg-[#1565C0]/10 active:scale-95 flex items-center gap-1";
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-white active:scale-95 flex items-center gap-1";
+    $("day-prev").className="material-symbols-outlined text-white p-1 active:scale-90 text-[22px]";
+    $("day-next").className="material-symbols-outlined text-white/30 p-1 text-[22px]";
   } else {
+    bar.className="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm bg-[#666]";
     label.innerHTML=fmtDate(viewDay)+' <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
-    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#666] bg-[#666]/10 active:scale-95 flex items-center gap-1";
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-white active:scale-95 flex items-center gap-1";
+    $("day-prev").className="material-symbols-outlined text-white p-1 active:scale-90 text-[22px]";
+    $("day-next").className="material-symbols-outlined text-white p-1 active:scale-90 text-[22px]";
   }
-  $("day-next").style.opacity = isToday?"0.25":"1";
 
   // יעדים
   $("goal-cut").textContent=ct.toLocaleString();
   $("goal-bal").textContent=balance.toLocaleString();
 
-  // קלוריות — לוגיקת צבעים: ירוק ≤ חיטוב, כתום ≤ איזון, אדום > איזון
-  let calColor = "#006c49";
-  if(cal > balance && balance > 0) calColor = "#ba1a1a";
-  else if(cal > ct && ct > 0) calColor = "#c77700";
+  // קלוריות — לוגיקת צבעים: ירוק ≤ חיטוב, ירוק בהיר ≤ איזון, אדום > איזון
+  let calColor = "#006c49"; // ירוק כהה (חיטוב)
+  if(cal > balance && balance > 0) calColor = "#ba1a1a"; // אדום
+  else if(cal > ct && ct > 0) calColor = "#4CAF50"; // ירוק בהיר (איזון)
 
   $("cal-now").textContent=cal.toLocaleString();
   $("cal-target").textContent=ct.toLocaleString();
@@ -507,9 +508,9 @@ function render(){
   $("cal-bar").style.background = calColor;
 
   const def=$("cal-def"); const d=ct-cal;
-  if(d>=0){ def.textContent="גרעון "+d.toLocaleString()+" קק\"ל"; def.style.color="#006c49"; }
-  else if(cal<=balance){ def.textContent="באיזון (+"+(cal-ct).toLocaleString()+")"; def.style.color="#c77700"; }
-  else { def.textContent="חריגה! +"+(cal-ct).toLocaleString()+" קק\"ל"; def.style.color="#ba1a1a"; }
+  if(d>=0){ def.textContent="-"+d.toLocaleString(); def.style.color="#006c49"; }
+  else if(cal<=balance){ def.textContent="+"+(cal-ct).toLocaleString(); def.style.color="#4CAF50"; }
+  else { def.textContent="+"+(cal-ct).toLocaleString(); def.style.color="#ba1a1a"; }
 
   // חלבון
   $("prot-now").textContent=prot.toLocaleString();
@@ -520,9 +521,11 @@ function render(){
   $("prot-bar").style.background = protDone?"#006c49":"#0d4d4d";
   const protLeft = Math.max(0, pt-prot);
   if(protLeft>0){
-    $("prot-remaining").innerHTML='עוד <span class="text-base font-extrabold text-[#ba1a1a]">'+protLeft+'</span> גר\' ליעד';
+    $("prot-remaining").innerHTML='-<span class="font-extrabold text-[#ba1a1a]">'+protLeft+'</span>ג\'';
+    $("prot-remaining").style.color="#ba1a1a";
   } else {
-    $("prot-remaining").innerHTML='<span class="font-bold text-[#006c49]">הגעת ליעד!</span>';
+    $("prot-remaining").innerHTML='<span class="font-bold">OK</span>';
+    $("prot-remaining").style.color="#006c49";
   }
 
   // התראות
