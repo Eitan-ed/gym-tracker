@@ -11,222 +11,331 @@
   body { font-family: 'Hanken Grotesk', sans-serif; -webkit-tap-highlight-color: transparent; }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
   .hx { display:none !important; }
+  .acc-body { max-height:0; overflow:hidden; transition:max-height 0.3s ease; }
+  .acc-open .acc-body { max-height:2000px; }
+  .acc-arrow { transition:transform 0.3s; }
+  .acc-open .acc-arrow { transform:rotate(180deg); }
 </style>
 </head>
-<body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-28">
+<body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-24">
 
 <!-- כותרת -->
 <header class="relative bg-[#003535] overflow-hidden shadow-xl">
   <div class="absolute inset-0 bg-gradient-to-br from-[#003535] via-[#0d4d4d] to-[#0061a4] opacity-90"></div>
-  <div class="relative flex flex-row-reverse justify-between items-center px-4 h-20 max-w-2xl mx-auto z-10">
-    <div class="flex items-center gap-3">
-      <div class="p-2 bg-white/10 rounded-xl border border-white/20">
-        <span class="material-symbols-outlined text-white text-[28px]">restaurant</span>
+  <div class="relative flex flex-row-reverse justify-between items-center px-4 h-14 max-w-2xl mx-auto z-10">
+    <div class="flex items-center gap-2">
+      <div class="p-1.5 bg-white/10 rounded-xl border border-white/20">
+        <span class="material-symbols-outlined text-white text-[22px]">restaurant</span>
       </div>
       <div class="flex flex-col leading-none">
-        <span class="text-2xl font-extrabold text-white">דיאטן</span>
-        <span id="app-version" class="text-[11px] font-bold text-white/50" dir="ltr">v.0.0</span>
+        <span class="text-lg font-extrabold text-white">דיאטן</span>
+        <span class="text-[9px] font-bold text-white/40" dir="ltr">v.<span id="app-version">0.0</span></span>
       </div>
     </div>
-    <div class="flex items-center gap-2">
-      <span id="today-date" class="text-sm font-bold text-white bg-black/20 px-3 py-2 rounded-xl border border-white/10" dir="ltr">--</span>
-      <button id="btn-settings" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10">settings</button>
+    <div class="relative">
+      <button id="btn-menu" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10 text-[24px]">menu</button>
+      <div id="hamburger-menu" class="hx absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#bfc8c8] w-52 z-[90] overflow-hidden" style="left:0">
+        <button data-nav="home" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right">
+          <span class="material-symbols-outlined text-[#003535] text-[20px]">home</span><span class="font-bold text-[#003535]">בית</span>
+        </button>
+        <button data-nav="manage" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+          <span class="material-symbols-outlined text-[#003535] text-[20px]">settings</span><span class="font-bold text-[#003535]">ניהול והגדרות</span>
+        </button>
+      </div>
     </div>
   </div>
 </header>
 
-<main id="home-view" class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+<!-- ===== מסך הבית ===== -->
+<main id="home-view" class="max-w-2xl mx-auto px-4 py-3 space-y-3">
 
-  <!-- 0. כרטיסי יעד -->
-  <div class="grid grid-cols-2 gap-3">
-    <div class="bg-[#003535] text-white rounded-2xl p-4 text-center shadow-sm">
-      <div class="text-xs font-bold opacity-80">יעד חיטוב</div>
-      <div class="text-3xl font-extrabold leading-tight"><span id="goal-cut">0</span></div>
-      <div class="text-[11px] opacity-80">קק"ל &middot; חלבון <span id="goal-prot">0</span> ג'</div>
-    </div>
-    <div class="bg-[#0d4d4d] text-white rounded-2xl p-4 text-center shadow-sm">
-      <div class="text-xs font-bold opacity-80">יעד איזון</div>
-      <div class="text-3xl font-extrabold leading-tight"><span id="goal-bal">0</span></div>
-      <div class="text-[11px] opacity-80">קק"ל &middot; חלבון <span id="goal-prot2">0</span> ג'</div>
-    </div>
+  <!-- ניווט ימים -->
+  <div class="flex items-center justify-between bg-white border border-[#bfc8c8] rounded-2xl px-3 py-2 shadow-sm">
+    <button id="day-prev" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_right</button>
+    <div id="day-label" class="text-base font-extrabold px-3 py-0.5 rounded-lg">היום</div>
+    <button id="day-next" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_left</button>
   </div>
 
-  <!-- 1. הוספת ארוחה -->
-  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
-    <h2 class="text-xl font-bold text-[#003535]">הוספת ארוחה</h2>
+  <!-- הוספת ארוחה -->
+  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-3">
+    <h2 class="text-base font-bold text-[#003535]">הוספת ארוחה</h2>
     <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
     <input type="file" id="gallery-input" accept="image/*" class="hx">
-    <div class="flex gap-3">
-      <button id="btn-cam" class="flex-1 h-24 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-1.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
-        <span class="material-symbols-outlined text-[#003535] text-[28px]">photo_camera</span>
-        <span class="text-sm text-[#404848]">צלם</span>
+    <div class="flex gap-2">
+      <button id="btn-cam" class="flex-1 h-14 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-0.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
+        <span class="material-symbols-outlined text-[#003535] text-[20px]">photo_camera</span>
+        <span class="text-[11px] text-[#404848]">צלם</span>
       </button>
-      <button id="btn-gallery" class="flex-1 h-24 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-1.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
-        <span class="material-symbols-outlined text-[#003535] text-[28px]">image</span>
-        <span class="text-sm text-[#404848]">העלה תמונה</span>
+      <button id="btn-gallery" class="flex-1 h-14 border-2 border-dashed border-[#bfc8c8] rounded-xl flex flex-col items-center justify-center gap-0.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
+        <span class="material-symbols-outlined text-[#003535] text-[20px]">image</span>
+        <span class="text-[11px] text-[#404848]">העלה תמונה</span>
+      </button>
+      <button id="btn-calc" class="flex-1 h-14 bg-[#1565C0] text-white rounded-xl flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] disabled:opacity-50 shadow-md">
+        <span class="material-symbols-outlined text-[20px]" id="calc-icon">calculate</span>
+        <span class="text-[11px] font-bold" id="calc-text">חשב</span>
       </button>
     </div>
-    <img id="photo-preview" class="hx w-full max-h-48 object-cover rounded-xl border border-[#bfc8c8]" alt="">
-    <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ללא עור ואורז מלא..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535] resize-none"></textarea>
-    <div class="flex flex-wrap gap-2" id="chips"></div>
-    <button id="btn-calc" class="w-full bg-[#633d00] text-white text-xl font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
-      <span class="material-symbols-outlined" id="calc-icon">calculate</span>
-      <span id="calc-text">חשב נתונים</span>
-    </button>
+    <img id="photo-preview" class="hx w-full max-h-36 object-cover rounded-xl border border-[#bfc8c8]" alt="">
+    <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ואורז מלא..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] resize-none text-sm"></textarea>
 
-    <div id="results" class="hx space-y-3 pt-1">
-      <table class="w-full text-right border-collapse">
-        <thead><tr class="border-b-2 border-[#bfc8c8] text-[#404848] text-sm">
-          <th class="py-2 pr-1 text-right">מזון</th><th class="py-2 text-left">קל</th><th class="py-2 text-left pl-1">חלבון</th>
+    <div id="results" class="hx space-y-2 pt-1">
+      <table class="w-full text-right border-collapse text-sm">
+        <thead><tr class="border-b-2 border-[#bfc8c8] text-[#404848]">
+          <th class="py-1 pr-1 text-right">מזון</th><th class="py-1 text-left">קל</th><th class="py-1 text-left pl-1">חלבון</th>
         </tr></thead>
         <tbody id="results-body"></tbody>
         <tfoot><tr class="border-t-2 border-[#003535] font-bold text-[#003535]">
-          <td class="py-2 pr-1">סה"כ</td><td class="py-2 text-left" id="sum-cal">0</td><td class="py-2 text-left pl-1" id="sum-prot">0</td>
+          <td class="py-1 pr-1">סה"כ</td><td class="py-1 text-left" id="sum-cal">0</td><td class="py-1 text-left pl-1" id="sum-prot">0</td>
         </tr></tfoot>
       </table>
-      <button id="btn-save" class="w-full bg-[#006c49] text-white text-lg font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
-        <span class="material-symbols-outlined">check_circle</span> שמור ארוחה
+      <button id="btn-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
       </button>
     </div>
   </section>
 
-  <!-- 2. סיכום יומי -->
-  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
+  <!-- סיכום יומי -->
+  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-3">
     <div class="flex justify-between items-start">
-      <h2 class="text-xl font-bold text-[#003535]">סיכום יומי</h2>
-      <div id="alerts" class="flex flex-col gap-1 items-end"></div>
-    </div>
-    <div class="grid grid-cols-2 gap-3">
-      <!-- קלוריות -->
-      <div class="space-y-2 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
-        <span class="text-base font-bold text-[#003535]">קלוריות</span>
-        <div class="flex items-baseline gap-1 flex-wrap">
-          <span id="cal-now" class="text-3xl font-bold text-[#0d4d4d]">0</span>
-          <span class="text-lg font-bold text-[#404848]">/<span id="cal-target">0</span></span>
-        </div>
-        <div class="h-4 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="cal-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
-        <div class="text-sm"><span class="text-[#404848]">גרעון: </span><span id="cal-def" class="font-bold text-[#006c49]">0</span></div>
+      <h2 class="text-base font-bold text-[#003535]">סיכום יומי</h2>
+      <div class="flex items-center gap-1.5">
+        <div id="alerts" class="flex flex-wrap gap-1 items-end justify-end"></div>
+        <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[18px] p-1.5 bg-[#dce9ff] rounded-lg active:scale-90" title="הפק דוח MD">description</button>
       </div>
-      <!-- חלבון -->
-      <div class="space-y-2 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
-        <span class="text-base font-bold text-[#003535]">חלבון</span>
+    </div>
+
+    <!-- יעדים חיטוב/איזון -->
+    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-[#003535] text-white rounded-xl px-3 py-2 text-center">
+        <div class="text-[10px] font-bold opacity-60">חיטוב</div>
+        <div class="text-lg font-extrabold"><span id="goal-cut">0</span> <span class="text-[10px] font-normal opacity-60">קק"ל</span></div>
+      </div>
+      <div class="bg-[#0d4d4d] text-white rounded-xl px-3 py-2 text-center">
+        <div class="text-[10px] font-bold opacity-60">איזון</div>
+        <div class="text-lg font-extrabold"><span id="goal-bal">0</span> <span class="text-[10px] font-normal opacity-60">קק"ל</span></div>
+      </div>
+    </div>
+
+    <!-- קלוריות + חלבון זה לצד זה -->
+    <div class="grid grid-cols-2 gap-2">
+      <div class="space-y-1.5 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
+        <span class="text-sm font-bold text-[#003535]">קלוריות</span>
         <div class="flex items-baseline gap-1 flex-wrap">
-          <span id="prot-now" class="text-3xl font-bold text-[#0d4d4d]">0</span>
-          <span class="text-lg font-bold text-[#404848]">/<span id="prot-target">0</span></span>
+          <span id="cal-now" class="text-2xl font-extrabold text-[#0d4d4d]">0</span>
+          <span class="text-sm font-bold text-[#404848]">/<span id="cal-target" class="text-base">0</span></span>
         </div>
-        <div class="h-4 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="prot-bar" class="h-full bg-[#0d4d4d] transition-all duration-700" style="width:0%"></div></div>
-        <div class="text-sm text-[#404848]">גרם</div>
+        <div class="h-3 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
+        <div id="cal-def" class="text-[11px] font-bold text-[#006c49]">—</div>
+      </div>
+      <div class="space-y-1.5 bg-[#eff4ff] rounded-xl p-3 border border-[#bfc8c8]/40">
+        <span class="text-sm font-bold text-[#003535]">חלבון</span>
+        <div class="flex items-baseline gap-1 flex-wrap">
+          <span id="prot-now" class="text-2xl font-extrabold text-[#0d4d4d]">0</span>
+          <span class="text-sm font-bold text-[#404848]">/<span id="prot-target" class="text-base">0</span></span>
+        </div>
+        <div class="h-3 w-full bg-[#e5eeff] rounded-full overflow-hidden"><div id="prot-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
+        <div id="prot-remaining" class="text-[11px] text-[#404848]">—</div>
       </div>
     </div>
   </section>
 
-  <!-- 3. פעילות -->
-  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
-    <h2 class="text-xl font-bold text-[#003535]">פעילות גופנית</h2>
-    <div class="grid grid-cols-2 gap-3">
-      <!-- צעדים -->
-      <div class="bg-[#eff4ff] p-4 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-2 text-center">
-        <div class="flex items-center gap-2"><div class="w-9 h-9 rounded-full bg-[#003535]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#003535] text-[20px]">steps</span></div><span class="text-base font-medium">צעדים</span></div>
-        <div class="flex items-center gap-1"><span id="steps-now" class="text-2xl font-bold text-[#003535]">0</span><span class="text-xs text-[#404848]">/10,000</span><button id="btn-steps" class="material-symbols-outlined text-[#003535] text-[18px] p-1 hover:bg-[#003535]/10 rounded-full">edit</button></div>
-      </div>
-      <!-- אימון כוח -->
-      <div class="bg-[#eff4ff] p-4 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-2 text-center">
-        <div class="flex items-center gap-2"><div class="w-9 h-9 rounded-full bg-[#006c49]/10 flex items-center justify-center"><span class="material-symbols-outlined text-[#006c49] text-[20px]">fitness_center</span></div><span class="text-base font-medium">אימון כוח</span></div>
-        <label class="relative inline-flex items-center cursor-pointer"><input id="strength" type="checkbox" class="sr-only peer">
-          <div class="w-11 h-6 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
+  <!-- פעילות -->
+  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm">
+    <div class="grid grid-cols-2 gap-2">
+      <button id="btn-steps" class="bg-[#eff4ff] p-3 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-1 text-center active:scale-[0.98]">
+        <span class="material-symbols-outlined text-[#003535] text-[20px]">steps</span>
+        <span class="text-[11px] font-medium text-[#404848]">צעדים</span>
+        <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-xl font-bold text-[#003535]">0</span><span class="text-[10px] text-[#404848]">/10K</span></div>
+      </button>
+      <div class="bg-[#eff4ff] p-3 rounded-xl border border-[#bfc8c8]/30 flex flex-col items-center gap-1 text-center">
+        <span class="material-symbols-outlined text-[#006c49] text-[20px]">fitness_center</span>
+        <span class="text-[11px] font-medium text-[#404848]">אימון כוח</span>
+        <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
+          <div class="w-10 h-5 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
       </div>
     </div>
   </section>
 
-  <!-- 4. משקל -->
-  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-4">
-    <div class="flex justify-between items-center text-[#003535]">
-      <div class="flex items-center gap-2"><span class="material-symbols-outlined">monitor_weight</span><h2 class="text-xl font-bold">מעקב משקל</h2></div>
-      <button id="btn-weight" class="material-symbols-outlined p-2 hover:bg-[#003535]/10 rounded-full">edit</button>
+  <!-- משקל (קומפקטי) -->
+  <button id="btn-weight" class="w-full bg-white border border-[#bfc8c8] px-4 py-2.5 rounded-2xl shadow-sm flex items-center justify-between active:scale-[0.99]">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
+      <span class="text-sm font-bold text-[#003535]">משקל</span>
     </div>
-    <div class="bg-[#eff4ff] p-6 rounded-2xl border border-[#bfc8c8]/50 flex flex-col items-center">
-      <span class="text-sm text-[#404848] mb-1">משקל נוכחי</span>
-      <div class="flex items-baseline gap-2"><span id="weight-now" class="text-5xl font-bold text-[#003535]">--</span><span class="text-lg text-[#003535]/70">ק"ג</span></div>
+    <div class="flex items-baseline gap-1">
+      <span id="weight-now" class="text-lg font-bold text-[#003535]">--</span>
+      <span class="text-[11px] text-[#404848]">ק"ג</span>
     </div>
-  </section>
+  </button>
 </main>
 
-<!-- מסך ניהול והגדרות -->
-<main id="manage-view" class="hx max-w-2xl mx-auto px-4 py-6">
-  <div class="bg-white border border-[#bfc8c8] rounded-2xl p-5 space-y-4 shadow-sm">
-    <h2 class="text-xl font-bold text-[#003535] border-b-2 border-[#a0a0a0] pb-2">הגדרות וניהול</h2>
-    <div class="space-y-2">
-      <label class="text-sm font-bold text-[#404848]">מפתח Gemini API</label>
-      <input id="api-key" type="password" placeholder="מדביק כאן את המפתח" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535] text-left" dir="ltr">
-      <p class="text-xs text-[#404848] leading-relaxed">המפתח נשמר רק במכשיר הזה (לא נשלח לשום מקום מלבד Google). השג מפתח חינמי ב-aistudio.google.com תחת "Get API key".</p>
+<!-- ===== מודאל משקל ===== -->
+<div id="weight-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[70vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535]">עדכון משקל</h2>
+      <button id="close-weight-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <div class="space-y-2">
-      <label class="text-sm font-bold text-[#404848]">משקל נוכחי (ק"ג)</label>
-      <input id="set-weight" type="number" step="0.1" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-3 outline-none focus:border-[#003535]">
+    <div class="flex gap-2">
+      <input id="wm-value" type="number" step="0.1" placeholder='ק"ג' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+      <button id="wm-save" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
     </div>
-
-    <!-- ניהול נתונים -->
-    <div class="space-y-2 border-t border-[#bfc8c8] pt-3">
-      <label class="text-sm font-bold text-[#404848]">ניהול נתונים</label>
-      <input type="file" id="restore-input" accept="application/json,.json" class="hx">
-      <div class="flex gap-2">
-        <button id="btn-backup" class="flex-1 flex items-center justify-center gap-2 bg-[#dce9ff] text-[#003535] font-bold py-2.5 rounded-xl active:scale-[0.98]">
-          <span class="material-symbols-outlined text-[20px]">download</span> גיבוי
-        </button>
-        <button id="btn-restore" class="flex-1 flex items-center justify-center gap-2 bg-[#dce9ff] text-[#003535] font-bold py-2.5 rounded-xl active:scale-[0.98]">
-          <span class="material-symbols-outlined text-[20px]">upload</span> שחזור
-        </button>
-      </div>
-      <p class="text-xs text-[#404848] leading-relaxed">גיבוי מוריד קובץ JSON עם כל הנתונים. שחזור מייבא קובץ כזה ומחליף את הנתונים הקיימים.</p>
+    <div class="border-t border-[#bfc8c8] pt-2">
+      <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריה</h4>
+      <div id="wm-history" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div>
     </div>
-
-    <div class="flex gap-2 pt-1">
-      <button id="btn-save-settings" class="flex-1 bg-[#006c49] text-white font-bold py-3 rounded-xl">שמור</button>
-      <button id="btn-close-settings" class="flex-1 bg-[#e5eeff] text-[#003535] font-bold py-3 rounded-xl">חזרה לבית (ESC)</button>
-    </div>
-    <div class="text-center text-[11px] text-[#404848]/70 font-bold" dir="ltr">v.<span id="settings-version">0.0</span></div>
   </div>
+</div>
+
+<!-- ===== מודאל צעדים ===== -->
+<div id="steps-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[70vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535]">צעדים</h2>
+      <button id="close-steps-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <div class="flex gap-2">
+      <input id="sm-value" type="number" placeholder="מספר צעדים" class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+      <button id="sm-save" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
+    </div>
+    <div class="border-t border-[#bfc8c8] pt-2">
+      <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריה</h4>
+      <div id="sm-history" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== מסך ניהול והגדרות ===== -->
+<main id="manage-view" class="hx max-w-2xl mx-auto px-4 py-4 space-y-3 pb-28">
+
+  <!-- מפתח -->
+  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">key</span> מפתח Gemini</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-2">
+        <input id="api-key" type="password" placeholder="מדביק כאן את המפתח" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-left text-sm" dir="ltr">
+        <p class="text-[11px] text-[#404848]">המפתח נשמר רק במכשיר. השג מפתח חינמי ב-aistudio.google.com.</p>
+        <button id="btn-save-key" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm">שמור מפתח</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- גיבוי -->
+  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">cloud_sync</span> גיבוי ושחזור</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-2">
+        <input type="file" id="restore-input" accept="application/json,.json" class="hx">
+        <div class="flex gap-2">
+          <button id="btn-backup" class="flex-1 flex items-center justify-center gap-1 bg-[#dce9ff] text-[#003535] font-bold py-2 rounded-xl active:scale-[0.98] text-sm">
+            <span class="material-symbols-outlined text-[16px]">download</span> גיבוי
+          </button>
+          <button id="btn-restore" class="flex-1 flex items-center justify-center gap-1 bg-[#dce9ff] text-[#003535] font-bold py-2 rounded-xl active:scale-[0.98] text-sm">
+            <span class="material-symbols-outlined text-[16px]">upload</span> שחזור
+          </button>
+        </div>
+        <p class="text-[11px] text-[#404848]">גיבוי מוריד JSON. שחזור מחליף את כל הנתונים.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- משקל -->
+  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">monitor_weight</span> משקל</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-3">
+        <div class="flex gap-2">
+          <input id="set-weight" type="number" step="0.1" placeholder='משקל (ק"ג)' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <input id="set-weight-date" type="date" class="bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+        </div>
+        <button id="btn-save-weight-manage" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm">שמור משקל</button>
+        <div class="border-t border-[#bfc8c8] pt-2">
+          <h4 class="text-xs font-bold text-[#404848] mb-1">היסטוריית משקלים</h4>
+          <div id="weight-history-manage" class="space-y-1 max-h-48 overflow-y-auto text-sm"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- היסטוריית מדדים -->
+  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">timeline</span> היסטוריית מדדים</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4">
+        <div id="metrics-history" class="space-y-1 max-h-64 overflow-y-auto text-sm"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- עקרונות -->
+  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">rule</span> עקרונות</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-2">
+        <p class="text-[11px] text-[#404848]">עקרונות שמשפיעים על הערכת Gemini (מוזרקים אוטומטית לפרומפט).</p>
+        <div id="principles-list" class="space-y-1"></div>
+        <div class="flex gap-2">
+          <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <button id="btn-add-principle" class="bg-[#003535] text-white px-4 rounded-xl font-bold text-sm active:scale-[0.98]">+</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center text-[10px] text-[#404848]/50 font-bold pt-2" dir="ltr">v.<span id="settings-version">0.0</span></div>
 </main>
 
 <!-- סרגל ניווט תחתון -->
-<nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white/95 backdrop-blur-md border-t border-[#bfc8c8] px-8 pt-3 flex justify-around items-center z-50 rounded-t-3xl shadow-xl" style="padding-bottom:calc(0.75rem + env(safe-area-inset-bottom))">
-  <button id="nav-home" class="flex flex-col items-center gap-1 text-[#003535]">
-    <span class="material-symbols-outlined">home</span><span class="text-[11px] font-bold">בית</span>
+<nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white/95 backdrop-blur-md border-t border-[#bfc8c8] px-8 pt-2.5 flex justify-around items-center z-50 rounded-t-2xl shadow-xl" style="padding-bottom:calc(0.5rem + env(safe-area-inset-bottom))">
+  <button id="nav-home" class="flex flex-col items-center gap-0.5 text-[#003535]">
+    <span class="material-symbols-outlined text-[22px]">home</span><span class="text-[10px] font-bold">בית</span>
   </button>
-  <button id="nav-manage" class="flex flex-col items-center gap-1 text-[#404848]/60">
-    <span class="material-symbols-outlined">settings</span><span class="text-[11px] font-bold">ניהול והגדרות</span>
+  <button id="nav-manage" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
+    <span class="material-symbols-outlined text-[22px]">settings</span><span class="text-[10px] font-bold">ניהול</span>
   </button>
 </nav>
 
 <!-- טוסט -->
-<div id="toast" class="hx fixed top-24 left-1/2 -translate-x-1/2 z-[80] bg-[#003535] text-white px-5 py-3 rounded-xl shadow-2xl font-medium max-w-[90%] text-center"></div>
+<div id="toast" class="hx fixed top-16 left-1/2 -translate-x-1/2 z-[80] bg-[#003535] text-white px-4 py-2.5 rounded-xl shadow-2xl font-medium max-w-[90%] text-center text-sm"></div>
 
 <script>
 /***********************************************
- * דיאטן - אפליקציה בקובץ יחיד. נתונים ב-localStorage.
- * מפתח Gemini בהגדרות (לא בקוד). קריאה ישירה ל-Gemini.
+ * דיאטן v1.2 - אפליקציה בקובץ יחיד
+ * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.2";
 
-// ===== מנוע חישוב (לפי הסוכן) =====
-const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300;
+// ===== מנוע חישוב (לפי הסוכן — נעול) =====
+const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
 const REF_FOODS = [
-  { m:["יוגורט פרו בטעמים"], cal:130, prot:null, label:"יוגורט פרו בטעמים" },
-  { m:["יוגורט פרו רגיל"],   cal:171, prot:null, label:"יוגורט פרו רגיל" },
-  { m:["גו תות"],            cal:108, prot:null, label:"גו תות" },
-  { m:["גלידונית"],          cal:32,  prot:null, label:"גלידונית" },
-  { m:["קריספית"],           cal:18,  prot:null, label:"קריספית" },
-  { m:["דנונה"],             cal:112, prot:10.6, label:"דנונה 1.7" },
-  { m:["שייטל"],             cal:140, prot:22,  label:"שייטל/בקר רזה", per100g:true }
+  { m:["יוגורט פרו בטעמים"], cal:130, prot:null,  label:"יוגורט פרו בטעמים" },
+  { m:["יוגורט פרו רגיל"],   cal:171, prot:null,  label:"יוגורט פרו רגיל" },
+  { m:["גו תות"],            cal:108, prot:null,  label:"גו תות" },
+  { m:["גלידונית"],          cal:32,  prot:null,  label:"גלידונית" },
+  { m:["קריספית"],           cal:18,  prot:null,  label:"קריספית" },
+  { m:["דנונה"],             cal:112, prot:10.6,  label:"דנונה 1.7" },
+  { m:["שייטל"],             cal:140, prot:22,    label:"שייטל/בקר רזה", per100g:true }
 ];
-// מודלים: ראשי + גיבוי (לעקיפת עומס 503)
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
-// תגיות ברירת מחדל (מתמזגות עם מותאמות אישית מ-localStorage)
-const DEFAULT_CHIPS = ["חזה עוף", "אורז מלא", "סלט", "יוגורט פרו"];
+const GEMINI_MODELS = ["gemini-2.5-flash","gemini-2.0-flash"];
 const BEEF_KW  = ["בקר","שייטל","סטייק","אנטריקוט","המבורגר","אסאדו","צלי בקר"];
 const SUGAR_KW = ["סוכר","ממתק","שוקולד","עוגה","עוגיה","עוגיות","גלידה","קולה","מיץ","דבש","ריבה","וופל","סופגניה","קרואסון"];
 
@@ -246,45 +355,54 @@ function applyRef(item){
 // ===== מצב + שמירה מקומית =====
 const KEY = "diatan_state_v1";
 let S = load();
-function load(){
-  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ return {}; }
-}
+let viewDay = todayId();
+
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ return {}; } }
 function persist(){ localStorage.setItem(KEY, JSON.stringify(S)); }
-function todayId(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function ensure(){
-  if(!S.profile) S.profile = { weight: 0 };
-  if(!S.days)    S.days = {};
-  if(!S.days[todayId()]) S.days[todayId()] = { meals:[], steps:0, strength:false };
-  return S.days[todayId()];
+function todayId(){ return dateToId(new Date()); }
+function dateToId(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function idToDate(id){ const [y,m,d]=id.split("-").map(Number); return new Date(y,m-1,d); }
+function fmtDate(id){ const p=id.split("-"); return p[2]+"-"+p[1]+"-"+p[0].slice(-2); }
+function ensure(dayId){
+  dayId = dayId || todayId();
+  if(!S.profile) S.profile = { weight:0 };
+  if(!S.days) S.days = {};
+  if(!S.weights) S.weights = [];
+  if(!S.principles) S.principles = [];
+  if(!S.days[dayId]) S.days[dayId] = { meals:[], steps:0, strength:false };
+  return S.days[dayId];
 }
 function beefWeek(){
   let t=0; const today=new Date();
   for(let i=0;i<7;i++){ const d=new Date(today); d.setDate(today.getDate()-i);
-    const id=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-    const day=S.days&&S.days[id]; if(day) (day.meals||[]).forEach(m=>t+=(+m.beefGrams||0)); }
+    const id=dateToId(d); const day=S.days&&S.days[id];
+    if(day) (day.meals||[]).forEach(m=>t+=(+m.beefGrams||0)); }
   return t;
 }
 
-// ===== עזרי DOM =====
+// ===== DOM =====
 const $ = id => document.getElementById(id);
 let pending = [], pendingFile = null;
 function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.style.background=err?"#ba1a1a":"#003535"; t.classList.remove("hx"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add("hx"),3200); }
 const show=e=>e.classList.remove("hx"), hide=e=>e.classList.add("hx");
 
-function setDate(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); $("today-date").textContent=p(d.getDate())+"-"+p(d.getMonth()+1)+"-"+String(d.getFullYear()).slice(-2); }
-
-// ===== זיהוי ארוחה דרך Gemini (ישיר) =====
+// ===== Gemini =====
 function fileToB64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>{const v=r.result; res({b64:v.slice(v.indexOf(",")+1), mime:file.type||"image/jpeg"});}; r.onerror=rej; r.readAsDataURL(file); }); }
 
-const PROMPT = `אתה דיאטן שמנתח ארוחות עבור איתן (גובה 180, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
+function buildPrompt(){
+  let p = `אתה דיאטן שמנתח ארוחות עבור איתן (גובה 180, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
 מהתמונה ו/או הטקסט זהה כל פריט מזון והערך קלוריות וחלבון.
 כללים: "ללא עור"=עוף רזה; "דג לבן"=לברק/אמנון; הערך כמויות לפי הצלחת/קופסה.
 ערכי ייחוס מחייבים: יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
 אם פריט הוא בקר (סטייק/אנטריקוט/שייטל/המבורגר בקר) אמוד משקל בגרמים ב-beefGrams, אחרת 0.
 החזר אך ורק JSON: {"items":[{"name":"שם","calories":מספר,"protein":גרם,"beefGrams":מספר}]}`;
+  if(S.principles && S.principles.length){
+    p += "\n\nעקרונות נוספים מאיתן שיש לקחת בחשבון:\n" + S.principles.map((pr,i)=>(i+1)+". "+pr).join("\n");
+  }
+  return p;
+}
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
-
 async function callGemini(model, body, key){
   const url = "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key);
   return fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body });
@@ -292,13 +410,11 @@ async function callGemini(model, body, key){
 
 async function analyze(text, file){
   const key = S.apiKey;
-  if(!key) throw new Error("חסר מפתח Gemini - פתח הגדרות");
-  const parts = [{text:PROMPT}];
+  if(!key) throw new Error("חסר מפתח Gemini - פתח ניהול");
+  const parts = [{text:buildPrompt()}];
   if(text) parts.push({text:"תיאור מאיתן: "+text});
   if(file){ const {b64,mime}=await fileToB64(file); parts.push({inline_data:{mime_type:mime,data:b64}}); }
   const body = JSON.stringify({ contents:[{role:"user",parts}], generationConfig:{temperature:0.2, responseMimeType:"application/json"} });
-
-  // ניסיון חוזר על עומס (503/429/500) ומעבר למודל גיבוי
   const delays = [0, 1500, 3000];
   let resp, lastStatus = 0;
   outer:
@@ -308,53 +424,94 @@ async function analyze(text, file){
       resp = await callGemini(model, body, key);
       if(resp.ok) break outer;
       lastStatus = resp.status;
-      if(lastStatus!==503 && lastStatus!==429 && lastStatus!==500) break; // שגיאה לא-זמנית: לא לנסות שוב
+      if(lastStatus!==503 && lastStatus!==429 && lastStatus!==500) break;
     }
   }
-  if(!resp || !resp.ok){
-    if(lastStatus===503 || lastStatus===429) throw new Error("שרתי Gemini עמוסים כרגע. נסה שוב בעוד דקה.");
-    if(lastStatus===400 || lastStatus===403) throw new Error("מפתח Gemini לא תקין או פג תוקף - בדוק בהגדרות.");
+  if(!resp||!resp.ok){
+    if(lastStatus===503||lastStatus===429) throw new Error("שרתי Gemini עמוסים כרגע. נסה שוב בעוד דקה.");
+    if(lastStatus===400||lastStatus===403) throw new Error("מפתח Gemini לא תקין - בדוק בניהול.");
     throw new Error("שגיאת Gemini ("+(lastStatus||"?")+"). נסה שוב.");
   }
   const j = await resp.json();
-  const raw = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
+  const raw = j.candidates?.[0]?.content?.parts?.[0]?.text;
   if(!raw) throw new Error("תשובה ריקה מ-Gemini");
-  let p; try { p=JSON.parse(raw); } catch(e){ throw new Error("JSON לא תקין מ-Gemini"); }
-  return (p.items||[]).map(it=>applyRef({ name:String(it.name||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) }));
+  let parsed; try { parsed=JSON.parse(raw); } catch(e){ throw new Error("JSON לא תקין מ-Gemini"); }
+  return (parsed.items||[]).map(it=>applyRef({ name:String(it.name||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) }));
 }
 
-// ===== רינדור =====
-function render(){
-  const day = ensure(); const w = S.profile.weight||0;
-  const items = day.meals||[];
-  let cal=0, prot=0; items.forEach(m=>{cal+=(+m.calories||0); prot+=(+m.protein||0);});
-  const ct=calTarget(w), pt=protTarget(w), bw=beefWeek();
-  const balance = ct ? ct+500 : 0;
+// ===== ניווט ימים =====
+function shiftDay(delta){
+  const d = idToDate(viewDay);
+  d.setDate(d.getDate()+delta);
+  const id = dateToId(d);
+  if(id > todayId()) return;
+  viewDay = id;
+  render();
+}
 
-  // כרטיסי יעד למעלה
+// ===== רינדור ראשי =====
+function render(){
+  const isToday = viewDay === todayId();
+  const day = ensure(viewDay);
+  const w = S.profile.weight||0;
+  const items = day.meals||[];
+  let cal=0, prot=0;
+  items.forEach(m=>{cal+=(+m.calories||0); prot+=(+m.protein||0);});
+  const ct=calTarget(w), pt=protTarget(w), bw=beefWeek();
+  const balance = ct ? ct+BALANCE_EXTRA : 0;
+
+  // ניווט ימים
+  const label = $("day-label");
+  if(isToday){
+    label.textContent="היום  "+fmtDate(viewDay);
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#003535] bg-[#003535]/10";
+  } else {
+    label.textContent=fmtDate(viewDay);
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#555] bg-[#555]/10";
+  }
+  $("day-next").style.opacity = isToday?"0.25":"1";
+
+  // יעדים
   $("goal-cut").textContent=ct.toLocaleString();
   $("goal-bal").textContent=balance.toLocaleString();
-  $("goal-prot").textContent=pt.toLocaleString();
-  $("goal-prot2").textContent=pt.toLocaleString();
 
-  const over = cal>ct && ct>0;
-  $("cal-now").textContent=cal.toLocaleString(); $("cal-target").textContent=ct.toLocaleString();
+  // קלוריות — לוגיקת צבעים: ירוק ≤ חיטוב, כתום ≤ איזון, אדום > איזון
+  let calColor = "#006c49";
+  if(cal > balance && balance > 0) calColor = "#ba1a1a";
+  else if(cal > ct && ct > 0) calColor = "#c77700";
+
+  $("cal-now").textContent=cal.toLocaleString();
+  $("cal-target").textContent=ct.toLocaleString();
+  $("cal-now").style.color = calColor;
   $("cal-bar").style.width=Math.min(100, ct?Math.round(cal/ct*100):0)+"%";
-  $("cal-bar").style.background = over?"#ba1a1a":"#0d4d4d"; $("cal-now").style.color = over?"#ba1a1a":"#0d4d4d";
-  const def=$("cal-def"); const d=ct-cal;
-  if(d>=0){ def.textContent=d.toLocaleString()+" קק\"ל"; def.style.color="#006c49"; }
-  else { def.textContent="חריגה "+Math.abs(d).toLocaleString()+" קק\"ל"; def.style.color="#ba1a1a"; }
+  $("cal-bar").style.background = calColor;
 
-  $("prot-now").textContent=prot.toLocaleString(); $("prot-target").textContent=pt.toLocaleString();
-  $("prot-bar").style.width=Math.min(100, pt?Math.round(prot/pt*100):0)+"%";
-  $("prot-bar").style.background = prot>=pt?"#006c49":"#0d4d4d";
+  const def=$("cal-def"); const d=ct-cal;
+  if(d>=0){ def.textContent="גרעון "+d.toLocaleString()+" קק\"ל"; def.style.color="#006c49"; }
+  else if(cal<=balance){ def.textContent="באיזון (+"+(cal-ct).toLocaleString()+")"; def.style.color="#c77700"; }
+  else { def.textContent="חריגה! +"+(cal-ct).toLocaleString()+" קק\"ל"; def.style.color="#ba1a1a"; }
+
+  // חלבון
+  $("prot-now").textContent=prot.toLocaleString();
+  $("prot-target").textContent=pt.toLocaleString();
+  const protPct = Math.min(100, pt?Math.round(prot/pt*100):0);
+  $("prot-bar").style.width=protPct+"%";
+  const protDone = prot>=pt;
+  $("prot-bar").style.background = protDone?"#006c49":"#0d4d4d";
+  const protLeft = Math.max(0, pt-prot);
+  if(protLeft>0){
+    $("prot-remaining").innerHTML='עוד <span class="text-base font-extrabold text-[#ba1a1a]">'+protLeft+'</span> גר\' ליעד';
+  } else {
+    $("prot-remaining").innerHTML='<span class="font-bold text-[#006c49]">הגעת ליעד!</span>';
+  }
 
   // התראות
   const ac=$("alerts"); ac.innerHTML="";
-  const add=(msg,err)=>{ const x=document.createElement("div"); x.className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold "+(err?"bg-[#ffdad6] text-[#93000a]":"bg-[#633d00] text-white"); x.innerHTML='<span class="material-symbols-outlined text-[15px]">warning</span><span>'+msg+'</span>'; ac.appendChild(x); };
-  if(over) add("חריגה ב-"+(cal-ct).toLocaleString()+" קק\"ל", true);
-  if(bw>BEEF_LIMIT) add("בקר השבוע "+Math.round(bw)+"/"+BEEF_LIMIT+" גר'", false);
-  if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) add("זוהה סוכר/פחמימה פשוטה", false);
+  const addA=(msg,err)=>{ const x=document.createElement("div"); x.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold "+(err?"bg-[#ffdad6] text-[#93000a]":"bg-[#633d00] text-white"); x.innerHTML='<span class="material-symbols-outlined text-[11px]">warning</span>'+msg; ac.appendChild(x); };
+  if(cal>balance && balance>0) addA("חריגה!",true);
+  else if(cal>ct && ct>0) addA("מעל חיטוב",false);
+  if(bw>BEEF_LIMIT) addA("בקר "+Math.round(bw)+"ג'",false);
+  if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
   $("steps-now").textContent = (day.steps||0).toLocaleString();
@@ -365,103 +522,254 @@ function renderResults(){
   const b=$("results-body"); b.innerHTML=""; let c=0,p=0;
   pending.forEach(it=>{ c+=it.calories; p+=it.protein;
     const tr=document.createElement("tr"); tr.className="border-b border-[#bfc8c8]/40";
-    tr.innerHTML='<td class="py-2 pr-1">'+it.name+(it._ref?' <span class="text-[11px] text-[#006c49]">(ייחוס)</span>':'')+(it.beefGrams?' <span class="text-[11px] text-[#FF5252]">'+it.beefGrams+' ג בקר</span>':'')+'</td><td class="py-2 text-left">'+it.calories+'</td><td class="py-2 text-left pl-1">'+it.protein+'</td>';
+    tr.innerHTML='<td class="py-1 pr-1">'+it.name+(it._ref?' <span class="text-[9px] text-[#006c49]">(ייחוס)</span>':'')+(it.beefGrams?' <span class="text-[9px] text-[#FF5252]">'+it.beefGrams+'ג</span>':'')+'</td><td class="py-1 text-left">'+it.calories+'</td><td class="py-1 text-left pl-1">'+it.protein+'</td>';
     b.appendChild(tr); });
   $("sum-cal").textContent=c; $("sum-prot").textContent=p; show($("results"));
 }
 
-// ===== פעולות =====
+// ===== פעולות ארוחה =====
 async function onCalc(){
   const text=$("meal-desc").value.trim();
   if(!text && !pendingFile){ toast("הזן תיאור או צרף תמונה", true); return; }
-  $("btn-calc").disabled=true; $("calc-text").textContent="מנתח..."; $("calc-icon").textContent="hourglass_top";
+  $("btn-calc").disabled=true; $("calc-text").textContent="..."; $("calc-icon").textContent="hourglass_top";
   try { pending=await analyze(text, pendingFile);
     if(!pending.length) toast("לא זוהו פריטים", true); else renderResults();
   } catch(e){ toast(e.message||String(e), true); }
-  finally { $("btn-calc").disabled=false; $("calc-text").textContent="חשב נתונים"; $("calc-icon").textContent="calculate"; }
+  finally { $("btn-calc").disabled=false; $("calc-text").textContent="חשב"; $("calc-icon").textContent="calculate"; }
 }
 function onSave(){
-  if(!pending.length) return; const day=ensure();
+  if(!pending.length) return;
+  const day=ensure(viewDay);
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=i.calories;p+=i.protein;bg+=(+i.beefGrams||0);});
   day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg });
   persist(); pending=[]; pendingFile=null; $("meal-desc").value=""; hide($("results")); hide($("photo-preview"));
   render(); toast("הארוחה נשמרה");
 }
 function onPhoto(e){ const f=e.target.files[0]; if(!f) return; pendingFile=f; const img=$("photo-preview"); img.src=URL.createObjectURL(f); show(img); }
-function chipList(){ return DEFAULT_CHIPS.concat(S.chips||[]); }
-function renderChips(){
-  const box=$("chips"); box.innerHTML="";
-  chipList().forEach((c,idx)=>{
-    const custom = idx>=DEFAULT_CHIPS.length;
-    const span=document.createElement("span");
-    span.className="chip bg-[#dce9ff] text-[#003535] px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer flex items-center gap-1";
-    span.dataset.c=c;
-    span.innerHTML='+ '+c+(custom?' <span class="chip-del material-symbols-outlined text-[15px] text-[#93000a]" title="מחק">close</span>':'');
-    box.appendChild(span);
-  });
-  const add=document.createElement("span");
-  add.id="chip-add";
-  add.className="bg-[#003535] text-white px-3 py-1.5 rounded-lg text-sm font-bold cursor-pointer flex items-center gap-1";
-  add.innerHTML='<span class="material-symbols-outlined text-[16px]">add</span>דוגמה';
-  box.appendChild(add);
-}
-function onChip(e){
-  if(e.target.closest("#chip-add")){
-    const v=prompt("הוסף דוגמת מזון חדשה:"); if(v===null) return;
-    const t=v.trim(); if(!t) return;
-    S.chips=S.chips||[]; if(!chipList().includes(t)){ S.chips.push(t); persist(); renderChips(); }
-    return;
-  }
-  if(e.target.classList.contains("chip-del")){
-    const c=e.target.closest(".chip"); if(!c) return;
-    S.chips=(S.chips||[]).filter(x=>x!==c.dataset.c); persist(); renderChips(); return;
-  }
-  const c=e.target.closest(".chip"); if(!c) return;
-  const ta=$("meal-desc"); ta.value = ta.value ? ta.value.replace(/\s*$/,"")+", "+c.dataset.c : c.dataset.c;
-}
-function onWeight(){ const v=prompt("משקל נוכחי (ק\"ג):", S.profile.weight||""); if(v===null) return; const w=parseFloat(v); if(isNaN(w)||w<=0){toast("ערך לא תקין",true);return;} S.profile.weight=w; ensure().weight=w; persist(); render(); toast("המשקל עודכן - היעדים חושבו מחדש"); }
-function onSteps(){ const v=prompt("מספר צעדים היום:", ensure().steps||""); if(v===null) return; const n=parseInt(v,10); if(isNaN(n)||n<0){toast("ערך לא תקין",true);return;} ensure().steps=n; persist(); render(); }
-function onStrength(e){ ensure().strength=e.target.checked; persist(); }
 
-// הגדרות
+// ===== מודאל משקל =====
+function openWeightModal(){
+  $("wm-value").value = S.profile.weight||"";
+  renderWeightHistoryModal();
+  show($("weight-modal"));
+}
+function closeWeightModal(){ hide($("weight-modal")); }
+function saveWeightModal(){
+  const w = parseFloat($("wm-value").value);
+  if(isNaN(w)||w<=0){ toast("ערך לא תקין",true); return; }
+  S.profile.weight = w;
+  S.weights = S.weights||[];
+  S.weights.push({date:todayId(), kg:w});
+  ensure(todayId()).weight = w;
+  persist(); render(); closeWeightModal();
+  toast("המשקל עודכן - היעדים חושבו מחדש");
+}
+function renderWeightHistoryModal(){
+  const box=$("wm-history"); box.innerHTML="";
+  const ws = (S.weights||[]).slice().reverse().slice(0,20);
+  if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
+  ws.forEach(w=>{
+    const div=document.createElement("div");
+    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="font-bold">'+w.kg+' ק"ג</span>';
+    box.appendChild(div);
+  });
+}
+
+// ===== מודאל צעדים =====
+function openStepsModal(){
+  $("sm-value").value = ensure(viewDay).steps||"";
+  renderStepsHistoryModal();
+  show($("steps-modal"));
+}
+function closeStepsModal(){ hide($("steps-modal")); }
+function saveStepsModal(){
+  const n = parseInt($("sm-value").value,10);
+  if(isNaN(n)||n<0){ toast("ערך לא תקין",true); return; }
+  ensure(viewDay).steps = n;
+  persist(); render(); closeStepsModal();
+}
+function renderStepsHistoryModal(){
+  const box=$("sm-history"); box.innerHTML="";
+  if(!S.days) return;
+  const days = Object.keys(S.days).sort().reverse().slice(0,14);
+  days.forEach(id=>{
+    const d=S.days[id]; if(!d.steps) return;
+    const div=document.createElement("div");
+    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(id)+'</span><span class="font-bold">'+d.steps.toLocaleString()+'</span>';
+    box.appendChild(div);
+  });
+  if(!box.children.length) box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>';
+}
+
+function onStrength(e){ ensure(viewDay).strength=e.target.checked; persist(); }
+
+// ===== ניהול — אקורדיון =====
+function initAccordions(){
+  document.querySelectorAll(".acc-toggle").forEach(btn=>{
+    btn.onclick = () => {
+      const sec = btn.closest(".acc");
+      const isOpen = sec.classList.contains("acc-open");
+      document.querySelectorAll(".acc").forEach(s=>s.classList.remove("acc-open"));
+      if(!isOpen) sec.classList.add("acc-open");
+    };
+  });
+}
+
+// ===== ניהול — עקרונות =====
+function renderPrinciples(){
+  const box=$("principles-list"); box.innerHTML="";
+  (S.principles||[]).forEach((p,i)=>{
+    const div=document.createElement("div");
+    div.className="flex items-center gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+    div.innerHTML='<span class="flex-1 text-sm">'+p+'</span><button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
+    box.appendChild(div);
+  });
+  box.querySelectorAll(".del-pr").forEach(btn=>{
+    btn.onclick = () => { S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); };
+  });
+}
+function addPrinciple(){
+  const inp=$("new-principle"); const v=inp.value.trim();
+  if(!v) return;
+  S.principles=S.principles||[]; S.principles.push(v);
+  persist(); inp.value=""; renderPrinciples(); toast("העיקרון נוסף");
+}
+
+// ===== ניהול — משקל =====
+function renderWeightHistoryManage(){
+  const box=$("weight-history-manage"); box.innerHTML="";
+  const ws = (S.weights||[]).slice().reverse();
+  if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
+  ws.forEach(w=>{
+    const div=document.createElement("div");
+    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="font-bold">'+w.kg+' ק"ג</span>';
+    box.appendChild(div);
+  });
+}
+function saveWeightManage(){
+  const w=parseFloat($("set-weight").value);
+  const d=$("set-weight-date").value;
+  if(isNaN(w)||w<=0){toast("ערך לא תקין",true);return;}
+  const dateId = d || todayId();
+  S.profile.weight=w;
+  S.weights=S.weights||[];
+  S.weights.push({date:dateId, kg:w});
+  ensure(dateId).weight=w;
+  persist(); render(); renderWeightHistoryManage();
+  toast("המשקל נשמר");
+}
+
+// ===== ניהול — היסטוריית מדדים =====
+function renderMetricsHistory(){
+  const box=$("metrics-history"); box.innerHTML="";
+  if(!S.days){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>'; return; }
+  const days = Object.keys(S.days).sort().reverse();
+  let found=false;
+  days.forEach(id=>{
+    const day=S.days[id]; if(!day.meals||!day.meals.length) return;
+    found=true;
+    let c=0,p=0; day.meals.forEach(m=>{c+=(+m.calories||0);p+=(+m.protein||0);});
+    const div=document.createElement("div");
+    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(id)+'</span><span><b>'+c+'</b> קק"ל &middot; <b>'+p+'</b> ג\' חלבון</span>';
+    box.appendChild(div);
+  });
+  if(!found) box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>';
+}
+
+// ===== תפריט המבורגר =====
+function toggleMenu(){ $("hamburger-menu").classList.toggle("hx"); }
+function closeMenu(){ hide($("hamburger-menu")); }
+
+// ===== ניווט מסכים =====
 function showView(name){
   const manage = name==="manage";
   (manage?show:hide)($("manage-view"));
   (manage?hide:show)($("home-view"));
-  $("nav-manage").className="flex flex-col items-center gap-1 "+(manage?"text-[#003535]":"text-[#404848]/60");
-  $("nav-home").className  ="flex flex-col items-center gap-1 "+(manage?"text-[#404848]/60":"text-[#003535]");
-  if(manage){ $("api-key").value=S.apiKey||""; $("set-weight").value=S.profile&&S.profile.weight||""; }
+  $("nav-manage").className="flex flex-col items-center gap-0.5 "+(manage?"text-[#003535]":"text-[#404848]/60");
+  $("nav-home").className  ="flex flex-col items-center gap-0.5 "+(manage?"text-[#404848]/60":"text-[#003535]");
+  if(manage){
+    $("api-key").value=S.apiKey||"";
+    $("set-weight").value=S.profile&&S.profile.weight||"";
+    $("set-weight-date").value=todayId();
+    renderWeightHistoryManage(); renderMetricsHistory(); renderPrinciples();
+  }
   window.scrollTo(0,0);
+  closeMenu();
 }
-function openSettings(){ showView("manage"); }
-function closeSettings(){ showView("home"); }
-function saveSettings(){ const k=$("api-key").value.trim(); const w=parseFloat($("set-weight").value);
-  S.apiKey=k; if(!isNaN(w)&&w>0){ S.profile.weight=w; ensure().weight=w; } persist(); closeSettings(); render(); toast("ההגדרות נשמרו"); }
 
-// גיבוי/שחזור נתונים (JSON)
+// ===== דוח ניתוח (MD) =====
+function generateReport(){
+  const day = ensure(viewDay);
+  const w = S.profile.weight||0;
+  const ct=calTarget(w), pt=protTarget(w), balance=ct+BALANCE_EXTRA;
+  let cal=0, prot=0, beef=0;
+  day.meals.forEach(m=>{cal+=(+m.calories||0); prot+=(+m.protein||0); beef+=(+m.beefGrams||0);});
+
+  let md = "# דוח תזונה יומי - דיאטן\n";
+  md += "## תאריך: "+fmtDate(viewDay)+"\n\n";
+  md += "## פרופיל\n";
+  md += "- משקל: "+w+' ק"ג | גובה: 180 ס"מ\n';
+  md += "- רקע: כבד שומני, טרום-סוכרת, LDL גבוה\n\n";
+  md += "## יעדים\n";
+  md += "- חיטוב: "+ct+' קק"ל | חלבון: '+pt+" גר'\n";
+  md += "- איזון: "+balance+' קק"ל\n\n';
+  md += "## ארוחות\n";
+  if(!day.meals.length) md += "לא תועדו ארוחות.\n\n";
+  (day.meals||[]).forEach((m,i)=>{
+    md += "### ארוחה "+(i+1)+(m.desc?" — "+m.desc:"")+"\n";
+    (m.items||[]).forEach(it=>{
+      md += "- "+it.name+": "+it.calories+' קק"ל, '+it.protein+" גר' חלבון"+(it.beefGrams?" ("+it.beefGrams+" גר' בקר)":"")+"\n";
+    });
+    md += '- **סה"כ:** '+m.calories+' קק"ל, '+m.protein+" גר' חלבון\n\n";
+  });
+  md += "## סיכום\n";
+  md += '- קלוריות: '+cal+"/"+ct+' קק"ל';
+  if(cal<=ct) md += " (גרעון "+(ct-cal)+")\n";
+  else if(cal<=balance) md += " (באיזון +"+(cal-ct)+")\n";
+  else md += " (חריגה! +"+(cal-ct)+")\n";
+  md += "- חלבון: "+prot+"/"+pt+" גר'"+(prot<pt?" (חסרים "+(pt-prot)+" גר')":"")+"\n";
+  md += "- בקר: "+beef+" גר' (מגבלה שבועית "+BEEF_LIMIT+" גר')\n";
+  md += "- צעדים: "+(day.steps||0)+"\n";
+  md += "- אימון כוח: "+(day.strength?"כן":"לא")+"\n\n";
+  if(S.principles && S.principles.length){
+    md += "## עקרונות\n";
+    S.principles.forEach((p,i)=>{ md += (i+1)+". "+p+"\n"; });
+  }
+
+  const blob = new Blob([md],{type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "diatan-report-"+viewDay+".md";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("הדוח הורד");
+}
+
+// ===== גיבוי/שחזור =====
 function onBackup(){
   try{
     const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
-    const d=new Date(); const p=n=>String(n).padStart(2,"0");
     const a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
-    a.download="diatan-backup-"+p(d.getDate())+"-"+p(d.getMonth()+1)+"-"+String(d.getFullYear()).slice(-2)+".json";
+    a.download="diatan-backup-"+fmtDate(todayId())+".json";
     a.click(); URL.revokeObjectURL(a.href);
-    toast("הגיבוי הורד בהצלחה");
+    toast("הגיבוי הורד");
   }catch(e){ toast("שגיאה בגיבוי",true); }
 }
 function onRestore(e){
   const f=e.target.files[0]; if(!f) return;
-  if(!confirm("שחזור יחליף את כל הנתונים הקיימים. להמשיך?")){ e.target.value=null; return; }
+  if(!confirm("שחזור יחליף את כל הנתונים. להמשיך?")){ e.target.value=null; return; }
   const r=new FileReader();
   r.onload=ev=>{
     try{
       const data=JSON.parse(ev.target.result);
       if(typeof data!=="object"||!data) throw new Error();
       S=data; persist(); ensure(); persist();
-      $("api-key").value=S.apiKey||""; $("set-weight").value=S.profile&&S.profile.weight||"";
-      renderChips(); render(); toast("הנתונים שוחזרו בהצלחה");
-    }catch(err){ toast("קובץ גיבוי לא תקין",true); }
+      render(); toast("הנתונים שוחזרו");
+    }catch(err){ toast("קובץ לא תקין",true); }
     e.target.value=null;
   };
   r.readAsText(f);
@@ -469,25 +777,67 @@ function onRestore(e){
 
 // ===== אתחול =====
 function start(){
-  setDate(); ensure(); persist();
-  $("app-version").textContent="v."+APP_VERSION; $("settings-version").textContent=APP_VERSION;
+  ensure(); persist();
+  $("app-version").textContent=APP_VERSION;
+  $("settings-version").textContent=APP_VERSION;
+
+  // תפריט המבורגר
+  $("btn-menu").onclick=toggleMenu;
+  document.querySelectorAll(".hmenu-item").forEach(btn=>{
+    btn.onclick = () => showView(btn.dataset.nav);
+  });
+  document.addEventListener("click", e=>{
+    if(!e.target.closest("#btn-menu") && !e.target.closest("#hamburger-menu")) closeMenu();
+  });
+
+  // ניווט ימים
+  $("day-prev").onclick=()=>shiftDay(-1);
+  $("day-next").onclick=()=>shiftDay(1);
+
+  // ארוחה
   $("btn-cam").onclick=()=>$("cam-input").click();
   $("btn-gallery").onclick=()=>$("gallery-input").click();
-  $("cam-input").onchange=onPhoto; $("gallery-input").onchange=onPhoto;
-  $("btn-calc").onclick=onCalc; $("btn-save").onclick=onSave;
-  $("chips").onclick=onChip; renderChips();
-  $("btn-weight").onclick=onWeight; $("btn-steps").onclick=onSteps;
+  $("cam-input").onchange=onPhoto;
+  $("gallery-input").onchange=onPhoto;
+  $("btn-calc").onclick=onCalc;
+  $("btn-save").onclick=onSave;
+
+  // משקל + צעדים (מודאלים)
+  $("btn-weight").onclick=openWeightModal;
+  $("close-weight-modal").onclick=closeWeightModal;
+  $("wm-save").onclick=saveWeightModal;
+  $("weight-modal").onclick=e=>{ if(e.target===$("weight-modal")) closeWeightModal(); };
+
+  $("btn-steps").onclick=openStepsModal;
+  $("close-steps-modal").onclick=closeStepsModal;
+  $("sm-save").onclick=saveStepsModal;
+  $("steps-modal").onclick=e=>{ if(e.target===$("steps-modal")) closeStepsModal(); };
+
   $("strength").onchange=onStrength;
-  $("btn-settings").onclick=openSettings;
+
+  // דוח
+  $("btn-report").onclick=generateReport;
+
+  // ניווט תחתון
   $("nav-home").onclick=()=>showView("home");
   $("nav-manage").onclick=()=>showView("manage");
-  $("btn-save-settings").onclick=saveSettings; $("btn-close-settings").onclick=closeSettings;
+
+  // ניהול
+  initAccordions();
+  $("btn-save-key").onclick=()=>{ S.apiKey=$("api-key").value.trim(); persist(); toast("המפתח נשמר"); };
   $("btn-backup").onclick=onBackup;
   $("btn-restore").onclick=()=>$("restore-input").click();
   $("restore-input").onchange=onRestore;
-  document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeSettings(); });
+  $("btn-save-weight-manage").onclick=saveWeightManage;
+  $("btn-add-principle").onclick=addPrinciple;
+  $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
+
+  document.addEventListener("keydown", e=>{
+    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); }
+  });
+
   render();
-  if(!S.apiKey || !S.profile.weight){ openSettings(); toast("הזן מפתח Gemini ומשקל כדי להתחיל"); }
+  if(!S.apiKey || !S.profile.weight){ showView("manage"); toast("הגדר מפתח Gemini ומשקל כדי להתחיל"); }
 }
 document.addEventListener("DOMContentLoaded", start);
 })();
