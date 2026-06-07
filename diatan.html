@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="דיאטן">
 <title>דיאטן - מעקב תזונה</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%23003535'/%3E%3Cpath d='M200 130c0-11 9-20 20-20s20 9 20 20v100c0 30-20 55-48 62v120c0 11-9 20-20 20s-20-9-20-20V292c-28-7-48-32-48-62V130c0-11 9-20 20-20s20 9 20 20v80c0 6 4 10 8 10s8-4 8-10V130zm120-20c-11 0-20 9-20 20v80c0 44 32 80 72 88v114c0 11 9 20 20 20s20-9 20-20V130c0-55-40-20-72-20h-20z' fill='white'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23003535'/%3E%3Crect x='30' y='20' width='3' height='28' rx='1.5' fill='white'/%3E%3Crect x='37' y='20' width='3' height='28' rx='1.5' fill='white'/%3E%3Crect x='44' y='20' width='3' height='28' rx='1.5' fill='white'/%3E%3Crect x='29' y='45' width='19' height='5' rx='2.5' fill='white'/%3E%3Crect x='36' y='48' width='5' height='34' rx='2.5' fill='white'/%3E%3Crect x='60' y='20' width='5' height='62' rx='2.5' fill='white'/%3E%3Cpath d='M65 22 Q74 35 68 50 L65 50Z' fill='white'/%3E%3C/svg%3E">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
@@ -337,7 +337,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -902,21 +902,24 @@ function setupPwaIcon(){
     ctx.quadraticCurveTo(0,size,0,size-r); ctx.lineTo(0,r);
     ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
     ctx.fillStyle = "#003535"; ctx.fill();
-    // ציור מזלג+סכין (כמו אייקון restaurant בכותרת)
-    const s = size/512; // scale factor
+    // ציור מזלג+סכין (תואם כל דפדפן, ללא roundRect)
+    const s = size/100;
     ctx.fillStyle = "white";
-    // מזלג (שמאל)
+    // מזלג — 3 שיניים
+    ctx.fillRect(30*s, 20*s, 3*s, 28*s);
+    ctx.fillRect(37*s, 20*s, 3*s, 28*s);
+    ctx.fillRect(44*s, 20*s, 3*s, 28*s);
+    // בסיס מזלג
+    ctx.fillRect(29*s, 45*s, 19*s, 5*s);
+    // ידית מזלג
+    ctx.fillRect(36*s, 48*s, 5*s, 34*s);
+    // סכין — להב+ידית
+    ctx.fillRect(60*s, 20*s, 5*s, 62*s);
     ctx.beginPath();
-    ctx.roundRect(170*s, 100*s, 16*s, 130*s, 4*s); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(200*s, 100*s, 16*s, 130*s, 4*s); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(230*s, 100*s, 16*s, 130*s, 4*s); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(168*s, 220*s, 80*s, 30*s, 8*s); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(196*s, 240*s, 24*s, 180*s, 8*s); ctx.fill();
-    // סכין (ימין)
-    ctx.beginPath(); ctx.roundRect(300*s, 100*s, 28*s, 310*s, 10*s); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(328*s, 110*s); ctx.quadraticCurveTo(360*s, 160*s, 340*s, 240*s);
-    ctx.lineTo(328*s, 240*s); ctx.closePath(); ctx.fill();
+    ctx.moveTo(65*s, 22*s);
+    ctx.quadraticCurveTo(74*s, 35*s, 68*s, 50*s);
+    ctx.lineTo(65*s, 50*s);
+    ctx.closePath(); ctx.fill();
     // הוספה כ-link
     const url = c.toDataURL("image/png");
     if(size===180){
