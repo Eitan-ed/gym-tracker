@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="דיאטן">
 <title>דיאטן - מעקב תזונה</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%23003535'/%3E%3Ctext x='256' y='310' text-anchor='middle' font-size='320' font-family='Arial,sans-serif' font-weight='bold' fill='white'%3ED%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%23003535'/%3E%3Cpath d='M200 130c0-11 9-20 20-20s20 9 20 20v100c0 30-20 55-48 62v120c0 11-9 20-20 20s-20-9-20-20V292c-28-7-48-32-48-62V130c0-11 9-20 20-20s20 9 20 20v80c0 6 4 10 8 10s8-4 8-10V130zm120-20c-11 0-20 9-20 20v80c0 44 32 80 72 88v114c0 11 9 20 20 20s20-9 20-20V130c0-55-40-20-72-20h-20z' fill='white'/%3E%3C/svg%3E">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
@@ -337,7 +337,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -508,9 +508,9 @@ function render(){
   $("cal-bar").style.background = calColor;
 
   const def=$("cal-def"); const d=ct-cal;
-  if(d>=0){ def.textContent="-"+d.toLocaleString(); def.style.color="#006c49"; }
-  else if(cal<=balance){ def.textContent="+"+(cal-ct).toLocaleString(); def.style.color="#4CAF50"; }
-  else { def.textContent="+"+(cal-ct).toLocaleString(); def.style.color="#ba1a1a"; }
+  if(d>=0){ def.innerHTML='עוד <b>'+d.toLocaleString()+'</b> קק"ל'; def.style.color="#006c49"; }
+  else if(cal<=balance){ def.innerHTML='<b>+'+(cal-ct).toLocaleString()+'</b> קק"ל'; def.style.color="#4CAF50"; }
+  else { def.innerHTML='<b>+'+(cal-ct).toLocaleString()+'</b> קק"ל'; def.style.color="#ba1a1a"; }
 
   // חלבון
   $("prot-now").textContent=prot.toLocaleString();
@@ -521,10 +521,10 @@ function render(){
   $("prot-bar").style.background = protDone?"#006c49":"#0d4d4d";
   const protLeft = Math.max(0, pt-prot);
   if(protLeft>0){
-    $("prot-remaining").innerHTML='-<span class="font-extrabold text-[#ba1a1a]">'+protLeft+'</span>ג\'';
+    $("prot-remaining").innerHTML='עוד <b>'+protLeft+'</b> ג\'';
     $("prot-remaining").style.color="#ba1a1a";
   } else {
-    $("prot-remaining").innerHTML='<span class="font-bold">OK</span>';
+    $("prot-remaining").innerHTML='<b>הושג!</b>';
     $("prot-remaining").style.color="#006c49";
   }
 
@@ -591,11 +591,15 @@ function renderWeightHistoryModal(){
   const box=$("wm-history"); box.innerHTML="";
   const ws = (S.weights||[]).slice().reverse().slice(0,20);
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
-  ws.forEach(w=>{
+  ws.forEach((w,i)=>{
+    const realIdx = S.weights.length-1-i;
     const div=document.createElement("div");
-    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
-    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="font-bold">'+w.kg+' ק"ג</span>';
+    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="flex items-center gap-2"><span class="font-bold">'+w.kg+' ק"ג</span><button class="del-wm material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button></span>';
     box.appendChild(div);
+  });
+  box.querySelectorAll(".del-wm").forEach(btn=>{
+    btn.onclick=()=>{ if(!confirm("למחוק?")) return; S.weights.splice(+btn.dataset.idx,1); if(S.weights.length) S.profile.weight=S.weights[S.weights.length-1].kg; persist(); render(); renderWeightHistoryModal(); };
   });
 }
 
@@ -665,11 +669,15 @@ function renderWeightHistoryManage(){
   const box=$("weight-history-manage"); box.innerHTML="";
   const ws = (S.weights||[]).slice().reverse();
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
-  ws.forEach(w=>{
+  ws.forEach((w,i)=>{
+    const realIdx = S.weights.length-1-i;
     const div=document.createElement("div");
-    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
-    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="font-bold">'+w.kg+' ק"ג</span>';
+    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="flex items-center gap-2"><span class="font-bold">'+w.kg+' ק"ג</span><button class="del-w material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button></span>';
     box.appendChild(div);
+  });
+  box.querySelectorAll(".del-w").forEach(btn=>{
+    btn.onclick=()=>{ if(!confirm("למחוק רשומת משקל?")) return; S.weights.splice(+btn.dataset.idx,1); if(S.weights.length) S.profile.weight=S.weights[S.weights.length-1].kg; persist(); render(); renderWeightHistoryManage(); toast("נמחק"); };
   });
 }
 function saveWeightManage(){
@@ -702,8 +710,11 @@ function renderMetricsHistory(){
     const defText = deficit >= 0 ? "+"+deficit : ""+deficit;
     const div=document.createElement("div");
     div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
-    div.innerHTML='<span>'+fmtDate(id)+'</span><span class="flex items-center gap-2"><span><b>'+c+'</b> קק"ל &middot; <b>'+p+'</b> ג\'</span><span class="font-extrabold text-sm" style="color:'+defColor+'">'+defText+'</span></span>';
+    div.innerHTML='<span>'+fmtDate(id)+'</span><span class="flex items-center gap-2"><span><b>'+c+'</b> קק"ל &middot; <b>'+p+'</b> ג\'</span><span class="font-extrabold text-sm" style="color:'+defColor+'">'+defText+'</span><button class="del-day material-symbols-outlined text-[#93000a] text-[14px]" data-id="'+id+'">close</button></span>';
     box.appendChild(div);
+  });
+  box.querySelectorAll(".del-day").forEach(btn=>{
+    btn.onclick=()=>{ if(!confirm("למחוק את נתוני היום "+fmtDate(btn.dataset.id)+"?")) return; delete S.days[btn.dataset.id]; persist(); render(); renderMetricsHistory(); toast("נמחק"); };
   });
   if(!found) box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>';
 }
@@ -891,11 +902,21 @@ function setupPwaIcon(){
     ctx.quadraticCurveTo(0,size,0,size-r); ctx.lineTo(0,r);
     ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
     ctx.fillStyle = "#003535"; ctx.fill();
-    // אות D
+    // ציור מזלג+סכין (כמו אייקון restaurant בכותרת)
+    const s = size/512; // scale factor
     ctx.fillStyle = "white";
-    ctx.font = "bold "+Math.round(size*0.55)+"px Arial,sans-serif";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("D", size/2, size*0.52);
+    // מזלג (שמאל)
+    ctx.beginPath();
+    ctx.roundRect(170*s, 100*s, 16*s, 130*s, 4*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(200*s, 100*s, 16*s, 130*s, 4*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(230*s, 100*s, 16*s, 130*s, 4*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(168*s, 220*s, 80*s, 30*s, 8*s); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(196*s, 240*s, 24*s, 180*s, 8*s); ctx.fill();
+    // סכין (ימין)
+    ctx.beginPath(); ctx.roundRect(300*s, 100*s, 28*s, 310*s, 10*s); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(328*s, 110*s); ctx.quadraticCurveTo(360*s, 160*s, 340*s, 240*s);
+    ctx.lineTo(328*s, 240*s); ctx.closePath(); ctx.fill();
     // הוספה כ-link
     const url = c.toDataURL("image/png");
     if(size===180){
