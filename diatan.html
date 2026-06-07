@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
 <meta name="theme-color" content="#003535">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="דיאטן">
 <title>דיאטן - מעקב תזונה</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%23003535'/%3E%3Ctext x='256' y='310' text-anchor='middle' font-size='320' font-family='Arial,sans-serif' font-weight='bold' fill='white'%3ED%3C/text%3E%3C/svg%3E">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
@@ -52,7 +56,7 @@
   <!-- ניווט ימים -->
   <div class="flex items-center justify-between bg-white border border-[#bfc8c8] rounded-2xl px-3 py-2 shadow-sm">
     <button id="day-prev" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_right</button>
-    <div id="day-label" class="text-base font-extrabold px-3 py-0.5 rounded-lg">היום</div>
+    <button id="day-label" class="text-base font-extrabold px-3 py-0.5 rounded-lg active:scale-95 flex items-center gap-1">היום <span class="material-symbols-outlined text-[16px]">calendar_month</span></button>
     <button id="day-next" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_left</button>
   </div>
 
@@ -310,6 +314,22 @@
   </button>
 </nav>
 
+<!-- מודאל לוח שנה -->
+<div id="cal-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl p-4 w-full max-w-md shadow-2xl">
+    <div class="flex justify-between items-center mb-3">
+      <button id="cal-prev-month" class="material-symbols-outlined text-[#003535] p-1 active:scale-90">chevron_right</button>
+      <h2 id="cal-month-label" class="text-base font-bold text-[#003535]"></h2>
+      <button id="cal-next-month" class="material-symbols-outlined text-[#003535] p-1 active:scale-90">chevron_left</button>
+    </div>
+    <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-[#404848] mb-1">
+      <div>א</div><div>ב</div><div>ג</div><div>ד</div><div>ה</div><div>ו</div><div>ש</div>
+    </div>
+    <div id="cal-grid" class="grid grid-cols-7 gap-1"></div>
+    <button id="cal-close" class="w-full mt-3 bg-[#e5eeff] text-[#003535] font-bold py-2 rounded-xl text-sm">סגור</button>
+  </div>
+</div>
+
 <!-- טוסט -->
 <div id="toast" class="hx fixed top-16 left-1/2 -translate-x-1/2 z-[80] bg-[#003535] text-white px-4 py-2.5 rounded-xl shadow-2xl font-medium max-w-[90%] text-center text-sm"></div>
 
@@ -463,11 +483,11 @@ function render(){
   // ניווט ימים
   const label = $("day-label");
   if(isToday){
-    label.textContent="היום  "+fmtDate(viewDay);
-    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#003535] bg-[#003535]/10";
+    label.innerHTML='היום  '+fmtDate(viewDay)+' <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#1565C0] bg-[#1565C0]/10 active:scale-95 flex items-center gap-1";
   } else {
-    label.textContent=fmtDate(viewDay);
-    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#555] bg-[#555]/10";
+    label.innerHTML=fmtDate(viewDay)+' <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-[#666] bg-[#666]/10 active:scale-95 flex items-center gap-1";
   }
   $("day-next").style.opacity = isToday?"0.25":"1";
 
@@ -627,7 +647,7 @@ function renderPrinciples(){
     box.appendChild(div);
   });
   box.querySelectorAll(".del-pr").forEach(btn=>{
-    btn.onclick = () => { S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); };
+    btn.onclick = () => { if(!confirm("למחוק את העיקרון?")) return; S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); toast("העיקרון נמחק"); };
   });
 }
 function addPrinciple(){
@@ -668,13 +688,18 @@ function renderMetricsHistory(){
   if(!S.days){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>'; return; }
   const days = Object.keys(S.days).sort().reverse();
   let found=false;
+  const w = S.profile.weight||0;
+  const ct = calTarget(w);
   days.forEach(id=>{
     const day=S.days[id]; if(!day.meals||!day.meals.length) return;
     found=true;
     let c=0,p=0; day.meals.forEach(m=>{c+=(+m.calories||0);p+=(+m.protein||0);});
+    const deficit = ct - c;
+    const defColor = deficit >= 0 ? "#006c49" : "#ba1a1a";
+    const defText = deficit >= 0 ? "+"+deficit : ""+deficit;
     const div=document.createElement("div");
-    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
-    div.innerHTML='<span>'+fmtDate(id)+'</span><span><b>'+c+'</b> קק"ל &middot; <b>'+p+'</b> ג\' חלבון</span>';
+    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(id)+'</span><span class="flex items-center gap-2"><span><b>'+c+'</b> קק"ל &middot; <b>'+p+'</b> ג\'</span><span class="font-extrabold text-sm" style="color:'+defColor+'">'+defText+'</span></span>';
     box.appendChild(div);
   });
   if(!found) box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>';
@@ -775,6 +800,127 @@ function onRestore(e){
   r.readAsText(f);
 }
 
+// ===== לוח שנה =====
+let calViewYear, calViewMonth;
+const HEB_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+
+function openCalendar(){
+  const d = idToDate(viewDay);
+  calViewYear = d.getFullYear();
+  calViewMonth = d.getMonth();
+  renderCalendar();
+  show($("cal-modal"));
+}
+function closeCalendar(){ hide($("cal-modal")); }
+
+function renderCalendar(){
+  $("cal-month-label").textContent = HEB_MONTHS[calViewMonth]+" "+calViewYear;
+  const grid = $("cal-grid"); grid.innerHTML = "";
+  const w = S.profile.weight||0;
+  const ct = calTarget(w);
+  const today = todayId();
+
+  // יום ראשון של החודש
+  const first = new Date(calViewYear, calViewMonth, 1);
+  const startDow = first.getDay(); // 0=ראשון
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate();
+
+  // תאים ריקים לפני תחילת החודש
+  for(let i=0; i<startDow; i++){
+    const empty = document.createElement("div");
+    grid.appendChild(empty);
+  }
+
+  for(let d=1; d<=daysInMonth; d++){
+    const id = calViewYear+"-"+String(calViewMonth+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const isFuture = id > today;
+    const isToday = id === today;
+    const isViewed = id === viewDay;
+    const day = S.days && S.days[id];
+    let cal=0;
+    if(day && day.meals) day.meals.forEach(m=>{ cal+=(+m.calories||0); });
+
+    const cell = document.createElement("button");
+    cell.className = "flex flex-col items-center justify-center rounded-lg p-1 min-h-[44px] text-center ";
+    if(isViewed) cell.className += "bg-[#1565C0] text-white ";
+    else if(isToday) cell.className += "bg-[#1565C0]/10 text-[#1565C0] ";
+    else if(isFuture) cell.className += "text-[#bfc8c8] ";
+    else cell.className += "bg-[#f8f9ff] hover:bg-[#e5eeff] ";
+
+    let inner = '<span class="text-sm font-bold">'+d+'</span>';
+    if(!isFuture && cal>0 && ct>0){
+      const deficit = ct - cal;
+      const color = isViewed ? "white" : (deficit>=0 ? "#006c49" : "#ba1a1a");
+      const txt = deficit>=0 ? "+"+deficit : ""+deficit;
+      inner += '<span class="text-[8px] font-bold leading-none" style="color:'+color+'">'+txt+'</span>';
+    }
+    cell.innerHTML = inner;
+    if(!isFuture){
+      cell.onclick = () => { viewDay = id; render(); closeCalendar(); };
+    } else {
+      cell.disabled = true;
+    }
+    grid.appendChild(cell);
+  }
+}
+
+function calShiftMonth(delta){
+  calViewMonth += delta;
+  if(calViewMonth > 11){ calViewMonth=0; calViewYear++; }
+  if(calViewMonth < 0){ calViewMonth=11; calViewYear--; }
+  renderCalendar();
+}
+
+// ===== אייקון PWA (דינמי) =====
+function setupPwaIcon(){
+  // יצירת אייקון מ-canvas עבור apple-touch-icon
+  const sizes = [180, 192, 512];
+  sizes.forEach(size=>{
+    const c = document.createElement("canvas");
+    c.width = c.height = size;
+    const ctx = c.getContext("2d");
+    // רקע מעוגל
+    const r = size * 0.21;
+    ctx.beginPath();
+    ctx.moveTo(r,0); ctx.lineTo(size-r,0);
+    ctx.quadraticCurveTo(size,0,size,r); ctx.lineTo(size,size-r);
+    ctx.quadraticCurveTo(size,size,size-r,size); ctx.lineTo(r,size);
+    ctx.quadraticCurveTo(0,size,0,size-r); ctx.lineTo(0,r);
+    ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
+    ctx.fillStyle = "#003535"; ctx.fill();
+    // אות D
+    ctx.fillStyle = "white";
+    ctx.font = "bold "+Math.round(size*0.55)+"px Arial,sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("D", size/2, size*0.52);
+    // הוספה כ-link
+    const url = c.toDataURL("image/png");
+    if(size===180){
+      const link = document.createElement("link");
+      link.rel = "apple-touch-icon"; link.href = url;
+      document.head.appendChild(link);
+    }
+  });
+  // manifest דינמי
+  const manifest = {
+    name: "דיאטן - מעקב תזונה",
+    short_name: "דיאטן",
+    start_url: "diatan.html",
+    display: "standalone",
+    background_color: "#f8f9ff",
+    theme_color: "#003535",
+    icons: [{
+      src: document.querySelector("link[rel=icon]").href,
+      sizes: "any",
+      type: "image/svg+xml"
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)],{type:"application/json"});
+  const link = document.createElement("link");
+  link.rel = "manifest"; link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+}
+
 // ===== אתחול =====
 function start(){
   ensure(); persist();
@@ -790,9 +936,17 @@ function start(){
     if(!e.target.closest("#btn-menu") && !e.target.closest("#hamburger-menu")) closeMenu();
   });
 
-  // ניווט ימים
+  // ניווט ימים + לוח שנה
   $("day-prev").onclick=()=>shiftDay(-1);
   $("day-next").onclick=()=>shiftDay(1);
+  $("day-label").onclick=openCalendar;
+  $("cal-close").onclick=closeCalendar;
+  $("cal-prev-month").onclick=()=>calShiftMonth(-1);
+  $("cal-next-month").onclick=()=>calShiftMonth(1);
+  $("cal-modal").onclick=e=>{ if(e.target===$("cal-modal")) closeCalendar(); };
+
+  // אייקון PWA
+  setupPwaIcon();
 
   // ארוחה
   $("btn-cam").onclick=()=>$("cam-input").click();
@@ -833,7 +987,7 @@ function start(){
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
 
   document.addEventListener("keydown", e=>{
-    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); }
+    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); }
   });
 
   render();
