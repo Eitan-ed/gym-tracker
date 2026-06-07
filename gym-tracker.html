@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.14';
+const APP_VERSION = '9.15';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -165,7 +165,7 @@ const DEFAULT_STARTING_REPS = {
 const THIGH_VALUES = [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95,100];
 const CUSTOM_WEIGHT_VALUES = {
     'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
-    'ex7c': THIGH_VALUES,
+    'ex7c': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פולי גב — רצף 4-5 מ-5
     'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
     'ex3':  THIGH_VALUES,   // פולי יד אחורית
     'ex13': THIGH_VALUES,   // מכשיר ירך חיצוני
@@ -706,7 +706,7 @@ const EXERCISE_IMAGES = {
     ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
     ex7b:'ex7b.png', ex7c:'ex7c.png', ex8:'ex8.png',
     ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png',
-    ex11:'ex11.jpg', ex12:'ex12.png', ex13:'ex13.jpg', ex14:'ex14.jpg'
+    ex11:'ex11.jpg', ex12:'ex12.jpg', ex13:'ex13.jpg', ex14:'ex14.jpg'
 };
 
 // ─── VideoModal ─────────────────────────────────────────────
@@ -734,7 +734,8 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false }) {
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false,
+    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -778,6 +779,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         forceSet1Disabled=false, forceSet2Disabled=false,
         prevRestTimer=0, prevRestTimerTotal=0 } = {}) => {
         const accentHex  = group.hex || '#3b82f6';
+        const isTimerEx  = TIMER_EXERCISES.has(ex.id);
         // exHistory מנוהל inline בבלוק ההיסטוריה הcollapsible
         const imgSrc     = images?.[ex.id];
         const staticImg  = EXERCISE_IMAGES[ex.id];
@@ -822,6 +824,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             </button>
         ) : null;
 
+        // טיימר כולל של האימון (כמו בדף הראשי) — מוצג בחצי אזור הווידאו
+        const wTimerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
+        const miniTimer = (
+            <button onClick={()=>onToggleWorkout&&onToggleWorkout()}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl font-black active:scale-95 border transition-colors
+                    ${isWorkoutActive ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-200 border-slate-300 text-slate-600'}`}>
+                <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
+                <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{wTimerStr}</span>
+            </button>
+        );
+
         return (
             <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
                 {/* תמונה + וידאו */}
@@ -845,15 +858,15 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 </label>
                             )}
                         </div>
-                        {hasVideo && (
-                            <div className="flex-1 flex flex-col">{videoBtn(false)}</div>
-                        )}
-                        {!hasVideo && !youtubeId && <div className="flex-1" />}
+                        <div className="flex-1 flex gap-1.5">
+                            {hasVideo && <div className="flex-1 min-w-0 flex flex-col">{videoBtn(false)}</div>}
+                            <div className="flex-1 min-w-0 flex flex-col">{miniTimer}</div>
+                        </div>
                     </div>
                 ) : (
                     /* תרגיל רגיל */
                     <>
-                        {(dispImgSrc || hasVideo || lastW>0 || lastR>0) && (
+                        {(
                             <div className="flex gap-2 mb-0">
                                 {dispImgSrc && (
                                     <div className="relative flex-1 min-w-0">
@@ -863,11 +876,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
                                     </div>
                                 )}
-                                {(hasVideo || lastW>0 || lastR>0) && (
+                                {(
                                     <div className={`flex flex-col gap-2 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'9rem'}}>
-                                        {hasVideo && (
-                                            <div className="flex-1 min-h-0 flex flex-col">{videoBtn(false)}</div>
-                                        )}
+                                        <div className="flex-1 min-h-0 flex gap-1.5">
+                                            {hasVideo && <div className="flex-1 min-w-0 flex flex-col">{videoBtn(false)}</div>}
+                                            <div className="flex-1 min-w-0 flex flex-col">{miniTimer}</div>
+                                        </div>
                                         {(lastW>0 || lastR>0) && (
                                             <div className="flex-1 min-h-0 flex gap-1.5">
                                                 {lastW>0 && (
@@ -879,7 +893,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                 {lastR>0 && (
                                                     <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
                                                         <span className="text-3xl font-black text-orange-500 leading-none">{lastR}</span>
-                                                        <span className="text-[10px] font-black text-orange-400 mt-0.5">חזרות</span>
+                                                        <span className="text-[10px] font-black text-orange-400 mt-0.5">{isTimerEx ? 'שניות' : 'חזרות'}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -2720,7 +2734,7 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} /></>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} /></>; }
     if (view==='exercises') return <>{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
     if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
     if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} /></>;
