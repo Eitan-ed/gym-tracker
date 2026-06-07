@@ -1,0 +1,12 @@
+{
+  "name": "דיאטן",
+  "short_name": "דיאטן",
+  "start_url": "./diatan.html",
+  "display": "standalone",
+  "background_color": "#003535",
+  "theme_color": "#003535",
+  "icons": [
+    { "src": "diatan-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "diatan-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

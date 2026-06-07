@@ -337,7 +337,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -885,67 +885,14 @@ function calShiftMonth(delta){
   renderCalendar();
 }
 
-// ===== אייקון PWA (דינמי) =====
+// ===== אייקון PWA (סטטי — קבצי PNG אמיתיים) =====
 function setupPwaIcon(){
-  // יצירת אייקון מ-canvas עבור apple-touch-icon
-  const sizes = [180, 192, 512];
-  sizes.forEach(size=>{
-    const c = document.createElement("canvas");
-    c.width = c.height = size;
-    const ctx = c.getContext("2d");
-    // רקע מעוגל
-    const r = size * 0.21;
-    ctx.beginPath();
-    ctx.moveTo(r,0); ctx.lineTo(size-r,0);
-    ctx.quadraticCurveTo(size,0,size,r); ctx.lineTo(size,size-r);
-    ctx.quadraticCurveTo(size,size,size-r,size); ctx.lineTo(r,size);
-    ctx.quadraticCurveTo(0,size,0,size-r); ctx.lineTo(0,r);
-    ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
-    ctx.fillStyle = "#003535"; ctx.fill();
-    // ציור מזלג+סכין (תואם כל דפדפן, ללא roundRect)
-    const s = size/100;
-    ctx.fillStyle = "white";
-    // מזלג — 3 שיניים
-    ctx.fillRect(30*s, 20*s, 3*s, 28*s);
-    ctx.fillRect(37*s, 20*s, 3*s, 28*s);
-    ctx.fillRect(44*s, 20*s, 3*s, 28*s);
-    // בסיס מזלג
-    ctx.fillRect(29*s, 45*s, 19*s, 5*s);
-    // ידית מזלג
-    ctx.fillRect(36*s, 48*s, 5*s, 34*s);
-    // סכין — להב+ידית
-    ctx.fillRect(60*s, 20*s, 5*s, 62*s);
-    ctx.beginPath();
-    ctx.moveTo(65*s, 22*s);
-    ctx.quadraticCurveTo(74*s, 35*s, 68*s, 50*s);
-    ctx.lineTo(65*s, 50*s);
-    ctx.closePath(); ctx.fill();
-    // הוספה כ-link
-    const url = c.toDataURL("image/png");
-    if(size===180){
-      const link = document.createElement("link");
-      link.rel = "apple-touch-icon"; link.href = url;
-      document.head.appendChild(link);
-    }
-  });
-  // manifest דינמי
-  const manifest = {
-    name: "דיאטן - מעקב תזונה",
-    short_name: "דיאטן",
-    start_url: "diatan.html",
-    display: "standalone",
-    background_color: "#f8f9ff",
-    theme_color: "#003535",
-    icons: [{
-      src: document.querySelector("link[rel=icon]").href,
-      sizes: "any",
-      type: "image/svg+xml"
-    }]
-  };
-  const blob = new Blob([JSON.stringify(manifest)],{type:"application/json"});
-  const link = document.createElement("link");
-  link.rel = "manifest"; link.href = URL.createObjectURL(blob);
-  document.head.appendChild(link);
+  const link1 = document.createElement("link");
+  link1.rel = "apple-touch-icon"; link1.href = "diatan-icon-180.png";
+  document.head.appendChild(link1);
+  const link2 = document.createElement("link");
+  link2.rel = "manifest"; link2.href = "diatan-manifest.json";
+  document.head.appendChild(link2);
 }
 
 // ===== אתחול =====
