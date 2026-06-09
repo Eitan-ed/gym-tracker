@@ -57,6 +57,7 @@
             <button data-sec="acc-weight" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">monitor_weight</span>משקל ומגמה</button>
             <button data-sec="acc-metrics" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">timeline</span>היסטוריית מדדים</button>
             <button data-sec="acc-principles" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">rule</span>עקרונות</button>
+            <button data-sec="acc-favorites" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#e6a700]">star</span>מועדפים</button>
           </div>
         </div>
 
@@ -395,6 +396,20 @@
     </div>
   </section>
 
+  <!-- מועדפים -->
+  <section id="acc-favorites" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#e6a700]">star</span> מועדפים</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-2">
+        <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + מוסיפה ליום הנוכחי.</p>
+        <div id="fav-manage-list" class="space-y-2"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="text-center text-[10px] text-[#404848]/50 font-bold pt-2" dir="ltr">v.<span id="settings-version">0.0</span></div>
 </main>
 
@@ -429,14 +444,14 @@
 
 <script>
 /***********************************************
- * דיאטן v2.4 - אפליקציה בקובץ יחיד
+ * דיאטן v2.5 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -746,10 +761,12 @@ function renderResults(){
       +'<input class="r-amt w-16 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-center font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'">'
       +'<input class="r-cal w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
       +'<input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
+      +'<button class="r-fav material-symbols-outlined text-[#e6a700] text-[15px]" data-i="'+i+'" title="הוסף למועדפים">star</button>'
       +'<button class="r-del material-symbols-outlined text-[#93000a] text-[15px]" data-i="'+i+'">close</button>';
     box.appendChild(row);
   });
   box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); pending.splice(+btn.dataset.i,1); renderResults(); });
+  box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
   box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",updateResultsSum));
   updateResultsSum();
   const noteEl=$("ai-note");
@@ -923,6 +940,7 @@ function renderMealsEdit(){
         +'<input class="me-amt w-16 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-center font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'">'
         +'<input class="me-cal w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
         +'<input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
+        +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[15px]" data-mi="'+mi+'" data-ii="'+ii+'" title="הוסף למועדפים">star</button>'
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[15px]" data-mi="'+mi+'" data-ii="'+ii+'">close</button></div>';
     });
     html+='<div class="me-subtotal text-[11px] font-bold text-[#003535] text-left border-t border-[#bfc8c8]/40 pt-1 mt-1"></div>';
@@ -932,6 +950,7 @@ function renderMealsEdit(){
   box.querySelectorAll(".del-item").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); S.days[viewDay].meals[+btn.dataset.mi].items.splice(+btn.dataset.ii,1); renderMealsEdit(); setMealsDirty(true); });
   box.querySelectorAll(".del-meal").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק את הארוחה?")) return; applyMealsEdit(); S.days[viewDay].meals.splice(+btn.dataset.mi,1); renderMealsEdit(); setMealsDirty(true); });
   box.querySelectorAll(".fav-meal").forEach(btn=>btn.onclick=()=>{ const mi=+btn.dataset.mi; applyMealsEdit(); recalcMeal(mi); saveFavorite(S.days[viewDay].meals[mi]); });
+  box.querySelectorAll(".fav-item-me").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); const it=S.days[viewDay].meals[+btn.dataset.mi].items[+btn.dataset.ii]; saveItemFavorite(it); });
   box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ updateMealsEditSum(); setMealsDirty(true); }));
   updateMealsEditSum();
   setMealsDirty(false);
@@ -960,51 +979,70 @@ function openNoteModal(){
 }
 function closeNoteModal(){ hide($("note-modal")); }
 
-// ===== ארוחות מועדפות =====
-function favLabel(meal){
-  if(meal.desc) return meal.desc;
-  const names=(meal.items||[]).map(i=>i.name).filter(Boolean);
-  return names.slice(0,3).join(", ")+(names.length>3?"...":"") || "ארוחה";
+// ===== מועדפים (ארוחה שלמה או פריט בודד) =====
+function favLabel(f){
+  if(f.type==="item") return f.name||"פריט";
+  if(f.desc) return f.desc;
+  const names=(f.items||[]).map(i=>i.name).filter(Boolean);
+  return (names.slice(0,3).join(", ")+(names.length>3?"...":"")) || "ארוחה";
 }
 function saveFavorite(meal){
   if(!meal) return;
   S.favorites = S.favorites || [];
-  const label = favLabel(meal);
-  if(S.favorites.some(f=>favLabel(f)===label)){ toast("כבר במועדפים"); return; }
+  const label = favLabel(Object.assign({type:"meal"},meal));
+  if(S.favorites.some(f=>f.type!=="item" && favLabel(f)===label)){ toast("כבר במועדפים"); return; }
   S.favorites.push({
-    desc: meal.desc||"", note: meal.note||"",
+    type:"meal", desc: meal.desc||"", note: meal.note||"",
     items: (meal.items||[]).map(it=>Object.assign({},it)),
     calories: meal.calories||0, protein: meal.protein||0, beefGrams: meal.beefGrams||0
   });
-  persist(); toast("נוסף למועדפים");
+  persist(); renderFavorites(); toast("הארוחה נוספה למועדפים");
 }
-function openFavModal(){ renderFavList(); show($("fav-modal")); }
+function saveItemFavorite(item){
+  if(!item || !item.name) return;
+  S.favorites = S.favorites || [];
+  if(S.favorites.some(f=>f.type==="item" && norm(f.name)===norm(item.name) && norm(f.amount||"")===norm(item.amount||""))){ toast("כבר במועדפים"); return; }
+  S.favorites.push({
+    type:"item", name:item.name, amount:item.amount||"",
+    calories:Math.round(+item.calories||0), protein:Math.round(+item.protein||0), beefGrams:Math.round(+item.beefGrams||0)
+  });
+  persist(); renderFavorites(); toast("הפריט נוסף למועדפים");
+}
+function openFavModal(){ renderFavorites(); show($("fav-modal")); }
 function closeFavModal(){ hide($("fav-modal")); }
-function renderFavList(){
-  const box=$("fav-list"); box.innerHTML="";
+function renderFavorites(){ ["fav-list","fav-manage-list"].forEach(id=>{ const box=$(id); if(box) renderFavBox(box); }); }
+function renderFavBox(box){
+  box.innerHTML="";
   const favs=S.favorites||[];
-  if(!favs.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין מועדפות עדיין</p>'; return; }
+  if(!favs.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין מועדפים עדיין</p>'; return; }
   favs.forEach((f,i)=>{
+    const isItem=f.type==="item";
+    const icon=isItem?"nutrition":"restaurant";
+    const sub=isItem
+      ? ((f.amount?esc(f.amount)+' &middot; ':'')+'<b>'+(f.calories||0)+'</b> קק"ל &middot; <b>'+(f.protein||0)+'</b> ג\'')
+      : ('<b>'+(f.calories||0)+'</b> קק"ל &middot; <b>'+(f.protein||0)+'</b> ג\' חלבון');
     const div=document.createElement("div");
     div.className="flex items-center gap-2 bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40";
-    div.innerHTML='<div class="flex-1 min-w-0"><div class="text-sm font-bold text-[#003535] truncate">'+esc(favLabel(f))+'</div>'
-      +'<div class="text-[11px] text-[#404848]"><b>'+(f.calories||0)+'</b> קק"ל &middot; <b>'+(f.protein||0)+'</b> ג\' חלבון</div></div>'
+    div.innerHTML='<span class="material-symbols-outlined text-[18px] '+(isItem?'text-[#0061a4]':'text-[#e6a700]')+'">'+icon+'</span>'
+      +'<div class="flex-1 min-w-0"><div class="text-sm font-bold text-[#003535] truncate">'+esc(favLabel(f))+'</div>'
+      +'<div class="text-[11px] text-[#404848]">'+sub+'</div></div>'
       +'<button class="fav-add material-symbols-outlined text-[#006c49] text-[22px]" data-idx="'+i+'">add_circle</button>'
       +'<button class="fav-del material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">delete</button>';
     box.appendChild(div);
   });
   box.querySelectorAll(".fav-add").forEach(btn=>btn.onclick=()=>addFavToDay(+btn.dataset.idx));
-  box.querySelectorAll(".fav-del").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק מהמועדפים?")) return; S.favorites.splice(+btn.dataset.idx,1); persist(); renderFavList(); });
+  box.querySelectorAll(".fav-del").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק מהמועדפים?")) return; S.favorites.splice(+btn.dataset.idx,1); persist(); renderFavorites(); });
 }
 function addFavToDay(idx){
   const f=(S.favorites||[])[idx]; if(!f) return;
   const day=ensure(viewDay);
-  day.meals.push({
-    time:new Date().toISOString(), desc:f.desc||"", note:f.note||"",
-    items:(f.items||[]).map(it=>Object.assign({},it)),
-    calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0
-  });
-  persist(); render(); closeFavModal(); toast("הארוחה נוספה");
+  if(f.type==="item"){
+    const it={name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0};
+    day.meals.push({ time:new Date().toISOString(), desc:f.name, note:"", items:[it], calories:it.calories, protein:it.protein, beefGrams:it.beefGrams });
+  } else {
+    day.meals.push({ time:new Date().toISOString(), desc:f.desc||"", note:f.note||"", items:(f.items||[]).map(it=>Object.assign({},it)), calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0 });
+  }
+  persist(); render(); closeFavModal(); toast("נוסף ליום");
 }
 
 // ===== ניהול — אקורדיון =====
@@ -1160,7 +1198,7 @@ function showView(name){
     $("api-key").value=S.apiKey||"";
     $("set-weight").value=S.profile&&S.profile.weight||"";
     $("set-weight-date").value=todayId();
-    renderWeightHistoryManage(); renderWeightChart(); renderMetricsHistory(); renderPrinciples();
+    renderWeightHistoryManage(); renderWeightChart(); renderMetricsHistory(); renderPrinciples(); renderFavorites();
   }
   window.scrollTo(0,0);
   closeMenu();
