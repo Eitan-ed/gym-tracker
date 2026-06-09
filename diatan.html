@@ -88,16 +88,19 @@
     </div>
 
     <div id="results" class="hx space-y-2 pt-1">
-      <table class="w-full text-right border-collapse text-sm">
-        <thead><tr class="border-b-2 border-[#bfc8c8] text-[#404848]">
-          <th class="py-1 pr-1 text-right">מזון</th><th class="py-1 text-left">קל</th><th class="py-1 text-left pl-1">חלבון</th>
-        </tr></thead>
-        <tbody id="results-body"></tbody>
-        <tfoot><tr class="border-t-2 border-[#003535] font-bold text-[#003535]">
-          <td class="py-1 pr-1">סה"כ</td><td class="py-1 text-left" id="sum-cal">0</td><td class="py-1 text-left pl-1" id="sum-prot">0</td>
-        </tr></tfoot>
-      </table>
+      <p class="text-[10px] text-[#404848]">לחיצה על שורה מאפשרת לדייק (שם / כמות / קל' / חלבון). אפשר גם להוסיף הבהרה ולחשב מחדש.</p>
+      <div class="flex gap-1 text-[9px] text-[#404848] px-1">
+        <span class="flex-1">מזון</span><span class="w-16 text-center">כמות</span><span class="w-12 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span>
+      </div>
+      <div id="results-edit" class="space-y-1"></div>
+      <div class="flex items-center justify-between border-t-2 border-[#003535] pt-1 font-bold text-[#003535] text-sm">
+        <span>סה"כ</span><span><span id="sum-cal">0</span> קק"ל &middot; <span id="sum-prot">0</span> ג'</span>
+      </div>
       <div id="ai-note" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#eff4ff] border border-[#bfc8c8]/40 rounded-xl p-2.5"></div>
+      <div class="flex gap-2">
+        <input id="meal-refine" type="text" placeholder="הבהרה לדיוק (לדוגמה: האורז 3 כפות, בלי שמן)..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
+        <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:opacity-50"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
+      </div>
       <button id="btn-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
         <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
       </button>
@@ -223,6 +226,20 @@
       <span><span id="me-sum-cal">0</span> קק"ל &middot; <span id="me-sum-prot">0</span> ג'</span>
     </div>
     <button id="me-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98]">שמור שינויים</button>
+  </div>
+</div>
+
+<!-- ===== מודאל דוח ===== -->
+<div id="report-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[85vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535]">דוח תזונה יומי</h2>
+      <button id="close-report-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <pre id="report-content" dir="rtl" class="text-[12px] leading-snug whitespace-pre-wrap break-words bg-[#f8f9ff] border border-[#bfc8c8] rounded-xl p-3 font-sans"></pre>
+    <button id="report-download" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined text-[18px]">download</span> הורד דוח (MD)
+    </button>
   </div>
 </div>
 
@@ -352,14 +369,14 @@
 
 <script>
 /***********************************************
- * דיאטן v1.8 - אפליקציה בקובץ יחיד
+ * דיאטן v1.9 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "1.8";
+const APP_VERSION = "1.9";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -453,8 +470,10 @@ function buildPrompt(){
 הערכת כמויות לפי כלים בבית של איתן: צלחות בקוטר 220 / 263 / 268 מ"מ; קערות בנפח 0.6 ל' ו-0.4 ל'; קופסאות בנפח 120 מ"ל / 300 מ"ל / 700 מ"ל / 1.1 ל' / 2.3 ל'. נצל את הגדלים האלה כדי לאמוד מנות בצורה מדויקת.
 ערכי ייחוס מחייבים (גוברים על כל הערכה): יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
 אם פריט הוא בקר (סטייק/אנטריקוט/שייטל/המבורגר בקר) אמוד משקל בגרמים ב-beefGrams, אחרת 0.
+לכל פריט הוסף שדה amount — הכמות במונחים אנושיים מתאימים לסוג המזון: גרמים לבשר/דג ("220 גרם"), כפות לאורז/קטניות/דגנים ("3 כפות"), יחידות לפריכיות/ביצים ("2 יח'"), כוסות/קערות לנוזלים. תמיד ציין amount.
+אם זוהה כלי מהרשימה שלמעלה (צלחת/קערה/קופסה בגודל מסוים) ציין זאת בקצרה בשדה note.
 הוסף שדה note: 2 שורות קצרות בלבד, כתזונאי בכיר, על מה שעלה בארוחה וההיבט התזונתי הרלוונטי לרקע של איתן (כבד שומני/טרום-סוכרת/כולסטרול).
-החזר אך ורק JSON: {"items":[{"name":"שם","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה"}`;
+החזר אך ורק JSON: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה"}`;
   if(S.principles && S.principles.length){
     p += "\n\nעקרונות נוספים מאיתן שיש לקחת בחשבון:\n" + S.principles.map((pr,i)=>(i+1)+". "+pr).join("\n");
   }
@@ -496,7 +515,7 @@ async function analyze(text, files){
   const raw = j.candidates?.[0]?.content?.parts?.[0]?.text;
   if(!raw) throw new Error("תשובה ריקה מ-Gemini");
   let parsed; try { parsed=JSON.parse(raw); } catch(e){ throw new Error("JSON לא תקין מ-Gemini"); }
-  const items = (parsed.items||[]).map(it=>applyRef({ name:String(it.name||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) }));
+  const items = (parsed.items||[]).map(it=>applyRef({ name:String(it.name||"").trim(), amount:String(it.amount||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) }));
   return { items, note:String(parsed.note||"").trim() };
 }
 
@@ -596,17 +615,55 @@ function render(){
   $("strength").checked = !!day.strength;
 }
 
-function renderResults(){
-  const b=$("results-body"); b.innerHTML=""; let c=0,p=0;
-  pending.forEach(it=>{ c+=it.calories; p+=it.protein;
-    const tr=document.createElement("tr"); tr.className="border-b border-[#bfc8c8]/40";
-    tr.innerHTML='<td class="py-1 pr-1">'+it.name+(it._ref?' <span class="text-[9px] text-[#006c49]">(ייחוס)</span>':'')+(it.beefGrams?' <span class="text-[9px] text-[#FF5252]">'+it.beefGrams+'ג</span>':'')+'</td><td class="py-1 text-left">'+it.calories+'</td><td class="py-1 text-left pl-1">'+it.protein+'</td>';
-    b.appendChild(tr); });
+function applyResultsEdit(){
+  $("results-edit").querySelectorAll(".r-row").forEach(row=>{
+    const i=+row.dataset.i; const it=pending[i]; if(!it) return;
+    it.name=row.querySelector(".r-name").value.trim();
+    it.amount=row.querySelector(".r-amt").value.trim();
+    it.calories=Math.round(+row.querySelector(".r-cal").value||0);
+    it.protein=Math.round(+row.querySelector(".r-prot").value||0);
+  });
+}
+function updateResultsSum(){
+  let c=0,p=0;
+  $("results-edit").querySelectorAll(".r-row").forEach(row=>{
+    c+=Math.round(+row.querySelector(".r-cal").value||0);
+    p+=Math.round(+row.querySelector(".r-prot").value||0);
+  });
   $("sum-cal").textContent=c; $("sum-prot").textContent=p;
+}
+function renderResults(){
+  const box=$("results-edit"); box.innerHTML="";
+  pending.forEach((it,i)=>{
+    const row=document.createElement("div");
+    row.className="r-row flex gap-1 items-center"; row.dataset.i=i;
+    row.innerHTML='<input class="r-name flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm" value="'+esc(it.name)+'">'
+      +'<input class="r-amt w-16 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-center font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'">'
+      +'<input class="r-cal w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
+      +'<input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
+      +'<button class="r-del material-symbols-outlined text-[#93000a] text-[15px]" data-i="'+i+'">close</button>';
+    box.appendChild(row);
+  });
+  box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); pending.splice(+btn.dataset.i,1); renderResults(); });
+  box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",updateResultsSum));
+  updateResultsSum();
   const noteEl=$("ai-note");
-  if(pendingNote){ noteEl.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#006c49]">stethoscope</span> '+pendingNote; show(noteEl); }
+  if(pendingNote){ noteEl.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#006c49]">stethoscope</span> '+esc(pendingNote); show(noteEl); }
   else hide(noteEl);
   show($("results"));
+}
+async function onRecalc(){
+  applyResultsEdit();
+  const refine=$("meal-refine").value.trim();
+  const baseText=$("meal-desc").value.trim();
+  const itemsCtx = pending.length ? "הפריטים שזוהו עד כה: "+pending.map(it=>it.name+(it.amount?" ("+it.amount+")":"")).join(", ")+"." : "";
+  const combined = [baseText, itemsCtx, refine?("הבהרות/תיקונים מאיתן לדייק לפיהם: "+refine):""].filter(Boolean).join("\n");
+  if(!combined && !pendingFiles.length){ toast("אין מה לחשב מחדש", true); return; }
+  $("btn-recalc").disabled=true; $("recalc-text").textContent="..."; $("recalc-icon").textContent="hourglass_top";
+  try { const res=await analyze(combined, pendingFiles); pending=res.items; pendingNote=res.note;
+    if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); toast("חושב מחדש"); }
+  } catch(e){ toast(e.message||String(e), true); }
+  finally { $("btn-recalc").disabled=false; $("recalc-text").textContent="חשב מחדש"; $("recalc-icon").textContent="refresh"; }
 }
 
 // ===== פעולות ארוחה =====
@@ -621,10 +678,11 @@ async function onCalc(){
 }
 function onSave(){
   if(!pending.length) return;
+  applyResultsEdit();
   const day=ensure(viewDay);
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=i.calories;p+=i.protein;bg+=(+i.beefGrams||0);});
   day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
-  persist(); pending=[]; pendingFiles=[]; pendingNote=""; $("meal-desc").value="";
+  persist(); pending=[]; pendingFiles=[]; pendingNote=""; $("meal-desc").value=""; $("meal-refine").value="";
   hide($("results")); hide($("ai-note")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
   render(); toast("הארוחה נשמרה");
 }
@@ -714,17 +772,18 @@ function recalcMeal(mi){
 }
 function applyMealsEdit(){
   const day=S.days[viewDay]; if(!day) return;
-  $("meals-edit-list").querySelectorAll("[data-mi][data-ii]").forEach(row=>{
+  $("meals-edit-list").querySelectorAll(".me-row").forEach(row=>{
     const mi=+row.dataset.mi, ii=+row.dataset.ii;
     const m=day.meals[mi]; if(!m||!m.items||!m.items[ii]) return;
     m.items[ii].name=row.querySelector(".me-name").value.trim();
+    m.items[ii].amount=row.querySelector(".me-amt").value.trim();
     m.items[ii].calories=Math.round(+row.querySelector(".me-cal").value||0);
     m.items[ii].protein=Math.round(+row.querySelector(".me-prot").value||0);
   });
 }
 function updateMealsEditSum(){
   let c=0,p=0;
-  $("meals-edit-list").querySelectorAll("[data-mi][data-ii]").forEach(row=>{
+  $("meals-edit-list").querySelectorAll(".me-row").forEach(row=>{
     c+=Math.round(+row.querySelector(".me-cal").value||0);
     p+=Math.round(+row.querySelector(".me-prot").value||0);
   });
@@ -738,11 +797,12 @@ function renderMealsEdit(){
     const card=document.createElement("div");
     card.className="border border-[#bfc8c8] rounded-xl p-2 space-y-1";
     let html='<div class="flex justify-between items-center mb-1"><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+'</span><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></div>';
-    html+='<div class="flex gap-1 text-[9px] text-[#404848] px-1"><span class="flex-1">מזון</span><span class="w-14 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span></div>';
+    html+='<div class="flex gap-1 text-[9px] text-[#404848] px-1"><span class="flex-1">מזון</span><span class="w-16 text-center">כמות</span><span class="w-12 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span></div>';
     (m.items||[]).forEach((it,ii)=>{
-      html+='<div class="flex gap-1 items-center" data-mi="'+mi+'" data-ii="'+ii+'">'
+      html+='<div class="me-row flex gap-1 items-center" data-mi="'+mi+'" data-ii="'+ii+'">'
         +'<input class="me-name flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm" value="'+esc(it.name)+'">'
-        +'<input class="me-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
+        +'<input class="me-amt w-16 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-center font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'">'
+        +'<input class="me-cal w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
         +'<input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[15px]" data-mi="'+mi+'" data-ii="'+ii+'">close</button></div>';
     });
@@ -887,6 +947,21 @@ function showView(name){
 
 // ===== דוח ניתוח (MD) =====
 function generateReport(){
+  const md = buildReportMD();
+  $("report-content").textContent = md;
+  show($("report-modal"));
+}
+function closeReportModal(){ hide($("report-modal")); }
+function downloadReport(){
+  const md = $("report-content").textContent || buildReportMD();
+  const blob = new Blob([md],{type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "diatan-report-"+viewDay+".md";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("הדוח הורד");
+}
+function buildReportMD(){
   const day = ensure(viewDay);
   const w = S.profile.weight||0;
   const baseCt=calTarget(w), pt=protTarget(w);
@@ -909,7 +984,7 @@ function generateReport(){
   (day.meals||[]).forEach((m,i)=>{
     md += "### ארוחה "+(i+1)+(m.desc?" — "+m.desc:"")+"\n";
     (m.items||[]).forEach(it=>{
-      md += "- "+it.name+": "+it.calories+' קק"ל, '+it.protein+" גר' חלבון"+(it.beefGrams?" ("+it.beefGrams+" גר' בקר)":"")+"\n";
+      md += "- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קק"ל, '+it.protein+" גר' חלבון"+(it.beefGrams?" ("+it.beefGrams+" גר' בקר)":"")+"\n";
     });
     md += '- **סה"כ:** '+m.calories+' קק"ל, '+m.protein+" גר' חלבון\n";
     if(m.note) md += "- _הערת תזונאי:_ "+m.note+"\n";
@@ -929,12 +1004,7 @@ function generateReport(){
     S.principles.forEach((p,i)=>{ md += (i+1)+". "+p+"\n"; });
   }
 
-  const blob = new Blob([md],{type:"text/markdown;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "diatan-report-"+viewDay+".md";
-  a.click(); URL.revokeObjectURL(a.href);
-  toast("הדוח הורד");
+  return md;
 }
 
 // ===== גיבוי/שחזור =====
@@ -1067,6 +1137,7 @@ function start(){
   $("cam-input").onchange=onPhoto;
   $("gallery-input").onchange=onPhoto;
   $("btn-calc").onclick=onCalc;
+  $("btn-recalc").onclick=onRecalc;
   $("btn-save").onclick=onSave;
 
   // משקל + צעדים (מודאלים)
@@ -1091,6 +1162,9 @@ function start(){
 
   // דוח
   $("btn-report").onclick=generateReport;
+  $("close-report-modal").onclick=closeReportModal;
+  $("report-download").onclick=downloadReport;
+  $("report-modal").onclick=e=>{ if(e.target===$("report-modal")) closeReportModal(); };
 
   // ניווט תחתון
   $("nav-home").onclick=()=>showView("home");
@@ -1107,7 +1181,7 @@ function start(){
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
 
   document.addEventListener("keydown", e=>{
-    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); }
+    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); }
   });
 
   render();
