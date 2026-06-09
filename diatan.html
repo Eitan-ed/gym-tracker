@@ -40,12 +40,34 @@
     </div>
     <div class="relative">
       <button id="btn-menu" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10 text-[24px]">menu</button>
-      <div id="hamburger-menu" class="hx absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#bfc8c8] w-52 z-[90] overflow-hidden" style="left:0">
+      <div id="hamburger-menu" class="hx absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#bfc8c8] w-60 max-h-[80vh] overflow-y-auto z-[90]" style="left:0">
         <button data-nav="home" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right">
           <span class="material-symbols-outlined text-[#003535] text-[20px]">home</span><span class="font-bold text-[#003535]">בית</span>
         </button>
-        <button data-nav="manage" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
-          <span class="material-symbols-outlined text-[#003535] text-[20px]">settings</span><span class="font-bold text-[#003535]">ניהול והגדרות</span>
+
+        <!-- ניהול + תת-תפריט -->
+        <div class="border-t border-[#bfc8c8]/30">
+          <button id="hmenu-manage-toggle" class="w-full flex items-center justify-between px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right">
+            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[#003535] text-[20px]">settings</span><span class="font-bold text-[#003535]">ניהול והגדרות</span></span>
+            <span id="hmenu-manage-arrow" class="material-symbols-outlined text-[#404848] text-[18px] transition-transform">expand_more</span>
+          </button>
+          <div id="hmenu-manage-sub" class="hx bg-[#f8f9ff]">
+            <button data-sec="acc-key" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">key</span>מפתח Gemini</button>
+            <button data-sec="acc-backup" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">cloud_sync</span>גיבוי ושחזור</button>
+            <button data-sec="acc-weight" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">monitor_weight</span>משקל ומגמה</button>
+            <button data-sec="acc-metrics" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">timeline</span>היסטוריית מדדים</button>
+            <button data-sec="acc-principles" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">rule</span>עקרונות</button>
+          </div>
+        </div>
+
+        <button id="hmenu-fav" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+          <span class="material-symbols-outlined text-[#e6a700] text-[20px]">star</span><span class="font-bold text-[#003535]">ארוחות מועדפות</span>
+        </button>
+        <button id="hmenu-report" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+          <span class="material-symbols-outlined text-[#003535] text-[20px]">description</span><span class="font-bold text-[#003535]">דוח יומי</span>
+        </button>
+        <button id="hmenu-backup" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+          <span class="material-symbols-outlined text-[#006c49] text-[20px]">download</span><span class="font-bold text-[#003535]">גיבוי מהיר</span>
         </button>
       </div>
     </div>
@@ -278,7 +300,7 @@
 <main id="manage-view" class="hx max-w-2xl mx-auto px-4 py-4 space-y-3 pb-28">
 
   <!-- מפתח -->
-  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+  <section id="acc-key" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">key</span> מפתח Gemini</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
@@ -293,7 +315,7 @@
   </section>
 
   <!-- גיבוי -->
-  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+  <section id="acc-backup" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">cloud_sync</span> גיבוי ושחזור</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
@@ -315,7 +337,7 @@
   </section>
 
   <!-- משקל -->
-  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+  <section id="acc-weight" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">monitor_weight</span> משקל</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
@@ -343,7 +365,7 @@
   </section>
 
   <!-- היסטוריית מדדים -->
-  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+  <section id="acc-metrics" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">timeline</span> היסטוריית מדדים</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
@@ -356,7 +378,7 @@
   </section>
 
   <!-- עקרונות -->
-  <section class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+  <section id="acc-principles" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">rule</span> עקרונות</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
@@ -407,14 +429,14 @@
 
 <script>
 /***********************************************
- * דיאטן v2.3 - אפליקציה בקובץ יחיד
+ * דיאטן v2.4 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1118,7 +1140,14 @@ function renderMetricsHistory(){
 
 // ===== תפריט המבורגר =====
 function toggleMenu(){ $("hamburger-menu").classList.toggle("hx"); }
-function closeMenu(){ hide($("hamburger-menu")); }
+function closeMenu(){ hide($("hamburger-menu")); const sub=$("hmenu-manage-sub"); if(sub){ sub.classList.add("hx"); const ar=$("hmenu-manage-arrow"); if(ar) ar.style.transform=""; } }
+function openManageSection(secId){
+  showView("manage"); // סוגר את התפריט וגולל למעלה
+  const sec=$(secId); if(!sec) return;
+  document.querySelectorAll("#manage-view .acc").forEach(s=>s.classList.remove("acc-open"));
+  sec.classList.add("acc-open");
+  setTimeout(()=>{ try{ sec.scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){} }, 60);
+}
 
 // ===== ניווט מסכים =====
 function showView(name){
@@ -1309,9 +1338,19 @@ function start(){
 
   // תפריט המבורגר
   $("btn-menu").onclick=toggleMenu;
-  document.querySelectorAll(".hmenu-item").forEach(btn=>{
+  document.querySelectorAll("#hamburger-menu [data-nav]").forEach(btn=>{
     btn.onclick = () => showView(btn.dataset.nav);
   });
+  $("hmenu-manage-toggle").onclick=()=>{
+    $("hmenu-manage-sub").classList.toggle("hx");
+    $("hmenu-manage-arrow").style.transform = $("hmenu-manage-sub").classList.contains("hx") ? "" : "rotate(180deg)";
+  };
+  document.querySelectorAll("#hamburger-menu [data-sec]").forEach(btn=>{
+    btn.onclick = () => openManageSection(btn.dataset.sec);
+  });
+  $("hmenu-fav").onclick=()=>{ closeMenu(); openFavModal(); };
+  $("hmenu-report").onclick=()=>{ closeMenu(); generateReport(); };
+  $("hmenu-backup").onclick=()=>{ closeMenu(); onBackup(); };
   document.addEventListener("click", e=>{
     if(!e.target.closest("#btn-menu") && !e.target.closest("#hamburger-menu")) closeMenu();
   });
