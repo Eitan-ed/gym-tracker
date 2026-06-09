@@ -380,14 +380,14 @@
 
 <script>
 /***********************************************
- * דיאטן v2.0 - אפליקציה בקובץ יחיד
+ * דיאטן v2.1 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -396,7 +396,8 @@ const STEP_CAL_PER_1000 = 37, STRENGTH_CAL = 200;
 
 // ===== עקרונות ברירת מחדל (מוזרקים בכניסה ראשונה, ניתנים לעריכה/מחיקה) =====
 const DEFAULT_PRINCIPLES = [
-  "ערכי ייחוס קבועים: GO תות=108 קק\"ל; דנונה PRO 1.7%=112 קק\"ל ו-10.6ג' חלבון; PRO בטעמים=130; PRO רגיל=171; בקר רזה (שייטל/סינטה)=130-150 ל-100ג'; גלידונית=32 ליח'; פריכית קריספית=18 ליח'.",
+  "ערכי ייחוס קבועים: GO תות=108 קק\"ל; דנונה PRO 1.7%=112 קק\"ל ו-10.6ג' חלבון; PRO בטעמים=130; PRO רגיל=171; יוגורט וניל=123 קק\"ל ו-20ג' חלבון; בקר רזה (שייטל/סינטה)=130-150 ל-100ג'; גלידונית=32 ליח'; פריכית קריספית=18 ליח'.",
+  "תווית מוצר מצולמת: כאשר מצלמים מוצר עם רשימת רכיבים / ערכים תזונתיים מודפסים — יש לאמץ את הערכים המודפסים כפי שהם לחישוב; הם גוברים על הערכה כללית.",
   "פירות: לא לחרוג מ-1-2 מנות פרי ביום (פרוקטוז מעמיס על כבד שומני), ולוודא שילוב עם מקור חלבון או שומן איכותי כדי להאט את ספיגת הסוכר לדם.",
   "בשר אדום ושומן רווי: עד 300 גרם בקר רזה בשבוע (שייטל/נתח 5 בלבד). העדפת חלבון ביצה (הלבן) על פני ריבוי ביצים שלמות לשליטה בכולסטרול ובפרופיל השומנים.",
   "ניהול שומנים מחמיר: גרם שומן=9 קלוריות. לסרוק בקפידה אחר עודף שמן זית, טחינה או רטבים סמויים שעלולים לרסק את הגרעון הקלורי."
@@ -407,6 +408,7 @@ const REF_FOODS = [
   { m:["גו תות"],            cal:108, prot:null,  label:"גו תות" },
   { m:["גלידונית"],          cal:32,  prot:null,  label:"גלידונית" },
   { m:["קריספית"],           cal:18,  prot:null,  label:"קריספית" },
+  { m:["יוגורט וניל"],       cal:123, prot:20,    label:"יוגורט וניל" },
   { m:["דנונה"],             cal:112, prot:10.6,  label:"דנונה 1.7" },
   { m:["שייטל"],             cal:140, prot:22,    label:"שייטל/בקר רזה", per100g:true }
 ];
@@ -498,7 +500,8 @@ function buildPrompt(){
 בסיס הערכים: הסתמך על מאגרי התזונה המקובלים (USDA / משרד הבריאות) שבידיעתך כדי לדייק קלוריות וחלבון לכל פריט. אל תנחש — אמוד לפי ערכים תזונתיים מקובלים.
 כללים: "ללא עור"=עוף רזה; "דג לבן"=לברק/אמנון; הערך כמויות לפי הצלחת/קופסה.
 הערכת כמויות לפי כלים בבית של איתן: צלחות בקוטר 220 / 263 / 268 מ"מ; קערות בנפח 0.6 ל' ו-0.4 ל'; קופסאות בנפח 120 מ"ל / 300 מ"ל / 700 מ"ל / 1.1 ל' / 2.3 ל'. נצל את הגדלים האלה כדי לאמוד מנות בצורה מדויקת.
-ערכי ייחוס מחייבים (גוברים על כל הערכה): יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
+ערכי ייחוס מחייבים (גוברים על כל הערכה): יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; יוגורט וניל=123 קל ו-20 גרם חלבון; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
+אם בתמונה מופיעה תווית ערך תזונתי או רשימת רכיבים מודפסת של מוצר — אמץ את הערכים המודפסים (קלוריות/חלבון) כפי שהם לחישוב; הם גוברים על כל הערכה כללית.
 אם פריט הוא בקר (סטייק/אנטריקוט/שייטל/המבורגר בקר) אמוד משקל בגרמים ב-beefGrams, אחרת 0.
 לכל פריט הוסף שדה amount — הכמות במונחים אנושיים מתאימים לסוג המזון: גרמים לבשר/דג ("220 גרם"), כפות לאורז/קטניות/דגנים ("3 כפות"), יחידות לפריכיות/ביצים ("2 יח'"), כוסות/קערות לנוזלים. תמיד ציין amount.
 אם זוהה כלי מהרשימה שלמעלה (צלחת/קערה/קופסה בגודל מסוים) ציין זאת בקצרה בשדה note.
@@ -593,9 +596,10 @@ function render(){
     $("day-next").className="material-symbols-outlined text-white p-1 active:scale-90 text-[22px]";
   }
 
-  // יעדים (כולל תרומת פעילות) + צבעי רקע לפי היום
-  $("goal-cut").textContent=ct.toLocaleString();
-  $("goal-bal").textContent=balance.toLocaleString();
+  // יעדים: בסיס + תוספת פעילות (לדוגמה 1970+450) + צבעי רקע לפי היום
+  const addTag = burn>0 ? '<span class="text-[11px] font-bold opacity-80">+'+burn+'</span>' : '';
+  $("goal-cut").innerHTML = baseCt.toLocaleString() + addTag;
+  $("goal-bal").innerHTML = (baseCt+BALANCE_EXTRA).toLocaleString() + addTag;
   $("goalcut-box").style.background=PAL.cut;
   $("goalbal-box").style.background=PAL.bal;
 
@@ -611,10 +615,9 @@ function render(){
   $("cal-bar").style.background = calColor;
 
   const def=$("cal-def"); const d=ct-cal;
-  const burnTag = burn>0 ? ' <span class="text-[9px] opacity-70">(כולל +'+burn+' פעילות)</span>' : '';
-  if(d>=0){ def.innerHTML='עוד <b>'+d.toLocaleString()+'</b> קק"ל'+burnTag; def.style.color=PAL.cut; }
-  else if(cal<=balance){ def.innerHTML='<b>+'+(cal-ct).toLocaleString()+'</b> קק"ל'+burnTag; def.style.color=PAL.light; }
-  else { def.innerHTML='<b>+'+(cal-ct).toLocaleString()+'</b> קק"ל'+burnTag; def.style.color="#ba1a1a"; }
+  if(d>=0){ def.innerHTML='עוד <b>'+d.toLocaleString()+'</b> קק"ל'; def.style.color=PAL.cut; }
+  else if(cal<=balance){ def.innerHTML='<b>+'+(cal-ct).toLocaleString()+'</b> קק"ל'; def.style.color=PAL.light; }
+  else { def.innerHTML='<b>+'+(cal-ct).toLocaleString()+'</b> קק"ל'; def.style.color="#ba1a1a"; }
 
   // חלבון
   $("prot-now").textContent=prot.toLocaleString();
@@ -794,6 +797,13 @@ function renderStepsHistoryModal(){
 function onStrength(e){ ensure(viewDay).strength=e.target.checked; persist(); render(); }
 
 // ===== מודאל עריכת ארוחות שמורות =====
+let mealsDirty=false;
+function setMealsDirty(v){
+  mealsDirty=v;
+  const b=$("me-save");
+  if(v){ b.style.background="#006c49"; b.style.color="#fff"; b.style.opacity="1"; b.style.cursor="pointer"; }
+  else { b.style.background="#bfc8c8"; b.style.color="#5b6565"; b.style.opacity="1"; b.style.cursor="default"; }
+}
 function openMealsModal(){ ensure(viewDay); renderMealsEdit(); show($("meals-modal")); }
 function closeMealsModal(){ hide($("meals-modal")); }
 function recalcMeal(mi){
@@ -814,19 +824,25 @@ function applyMealsEdit(){
 }
 function updateMealsEditSum(){
   let c=0,p=0;
-  $("meals-edit-list").querySelectorAll(".me-row").forEach(row=>{
-    c+=Math.round(+row.querySelector(".me-cal").value||0);
-    p+=Math.round(+row.querySelector(".me-prot").value||0);
+  $("meals-edit-list").querySelectorAll(".me-card").forEach(card=>{
+    let cc=0,pp=0;
+    card.querySelectorAll(".me-row").forEach(row=>{
+      cc+=Math.round(+row.querySelector(".me-cal").value||0);
+      pp+=Math.round(+row.querySelector(".me-prot").value||0);
+    });
+    const st=card.querySelector(".me-subtotal");
+    if(st) st.innerHTML='סה"כ ארוחה: <b>'+cc+'</b> קק"ל &middot; <b>'+pp+'</b> ג\' חלבון';
+    c+=cc; p+=pp;
   });
   $("me-sum-cal").textContent=c; $("me-sum-prot").textContent=p;
 }
 function renderMealsEdit(){
   const box=$("meals-edit-list"); box.innerHTML="";
   const day=ensure(viewDay);
-  if(!day.meals.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין ארוחות ביום זה</p>'; updateMealsEditSum(); return; }
+  if(!day.meals.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין ארוחות ביום זה</p>'; updateMealsEditSum(); setMealsDirty(false); return; }
   day.meals.forEach((m,mi)=>{
     const card=document.createElement("div");
-    card.className="border border-[#bfc8c8] rounded-xl p-2 space-y-1";
+    card.className="me-card border border-[#bfc8c8] rounded-xl p-2 space-y-1"; card.dataset.mi=mi;
     let html='<div class="flex justify-between items-center mb-1"><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+'</span><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></div>';
     html+='<div class="flex gap-1 text-[9px] text-[#404848] px-1"><span class="flex-1">מזון</span><span class="w-16 text-center">כמות</span><span class="w-12 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span></div>';
     (m.items||[]).forEach((it,ii)=>{
@@ -837,19 +853,22 @@ function renderMealsEdit(){
         +'<input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[15px]" data-mi="'+mi+'" data-ii="'+ii+'">close</button></div>';
     });
+    html+='<div class="me-subtotal text-[11px] font-bold text-[#003535] text-left border-t border-[#bfc8c8]/40 pt-1 mt-1"></div>';
     card.innerHTML=html;
     box.appendChild(card);
   });
-  box.querySelectorAll(".del-item").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); S.days[viewDay].meals[+btn.dataset.mi].items.splice(+btn.dataset.ii,1); renderMealsEdit(); });
-  box.querySelectorAll(".del-meal").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק את הארוחה?")) return; applyMealsEdit(); S.days[viewDay].meals.splice(+btn.dataset.mi,1); renderMealsEdit(); });
-  box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",updateMealsEditSum));
+  box.querySelectorAll(".del-item").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); S.days[viewDay].meals[+btn.dataset.mi].items.splice(+btn.dataset.ii,1); renderMealsEdit(); setMealsDirty(true); });
+  box.querySelectorAll(".del-meal").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק את הארוחה?")) return; applyMealsEdit(); S.days[viewDay].meals.splice(+btn.dataset.mi,1); renderMealsEdit(); setMealsDirty(true); });
+  box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ updateMealsEditSum(); setMealsDirty(true); }));
   updateMealsEditSum();
+  setMealsDirty(false);
 }
 function saveMealsEdit(){
+  if(!mealsDirty){ closeMealsModal(); return; }
   applyMealsEdit();
   const day=S.days[viewDay];
   if(day){ day.meals.forEach((m,mi)=>recalcMeal(mi)); day.meals=day.meals.filter(m=>m.items&&m.items.length); }
-  persist(); closeMealsModal(); render(); toast("הארוחות עודכנו");
+  persist(); setMealsDirty(false); closeMealsModal(); render(); toast("הארוחות עודכנו");
 }
 
 // ===== מודאל הערות תזונתיות (לחיצה על חלבון) =====
