@@ -40,7 +40,7 @@
     </div>
     <div class="relative">
       <button id="btn-menu" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10 text-[24px]">menu</button>
-      <div id="hamburger-menu" class="hx absolute top-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#bfc8c8] w-60 max-h-[80vh] overflow-y-auto z-[90]" style="left:0">
+      <div id="hamburger-menu" class="hx fixed bg-white rounded-2xl shadow-2xl border border-[#bfc8c8] w-60 max-w-[88vw] max-h-[80vh] overflow-y-auto z-[95]" style="top:58px;right:10px">
         <button data-nav="home" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right">
           <span class="material-symbols-outlined text-[#003535] text-[20px]">home</span><span class="font-bold text-[#003535]">בית</span>
         </button>
@@ -116,11 +116,8 @@
     </div>
 
     <div id="results" class="hx space-y-2 pt-1">
-      <p class="text-[10px] text-[#404848]">לחיצה על שורה מאפשרת לדייק (שם / כמות / קל' / חלבון). אפשר גם להוסיף הבהרה ולחשב מחדש.</p>
-      <div class="flex gap-1 text-[9px] text-[#404848] px-1">
-        <span class="flex-1">מזון</span><span class="w-16 text-center">כמות</span><span class="w-12 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span>
-      </div>
-      <div id="results-edit" class="space-y-1"></div>
+      <p class="text-[10px] text-[#404848]">אפשר לערוך כל שדה, להוסיף פריט למועדפים (כוכב), או להוסיף הבהרה ולחשב מחדש.</p>
+      <div id="results-edit" class="space-y-2"></div>
       <div class="flex items-center justify-between border-t-2 border-[#003535] pt-1 font-bold text-[#003535] text-sm">
         <span>סה"כ</span><span><span id="sum-cal">0</span> קק"ל &middot; <span id="sum-prot">0</span> ג'</span>
       </div>
@@ -290,7 +287,7 @@
       <h2 class="text-base font-bold text-[#003535]">דוח תזונה יומי</h2>
       <button id="close-report-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <pre id="report-content" dir="rtl" class="text-[12px] leading-snug whitespace-pre-wrap break-words bg-[#f8f9ff] border border-[#bfc8c8] rounded-xl p-3 font-sans"></pre>
+    <textarea id="report-content" dir="rtl" rows="16" class="w-full text-[12px] leading-snug bg-[#f8f9ff] border border-[#bfc8c8] rounded-xl p-3 font-sans outline-none focus:border-[#003535] resize-y"></textarea>
     <button id="report-download" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
       <span class="material-symbols-outlined text-[18px]">download</span> הורד דוח (MD)
     </button>
@@ -444,14 +441,14 @@
 
 <script>
 /***********************************************
- * דיאטן v2.5 - אפליקציה בקובץ יחיד
+ * דיאטן v2.6 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.5";
+const APP_VERSION = "2.6";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -756,13 +753,18 @@ function renderResults(){
   const box=$("results-edit"); box.innerHTML="";
   pending.forEach((it,i)=>{
     const row=document.createElement("div");
-    row.className="r-row flex gap-1 items-center"; row.dataset.i=i;
-    row.innerHTML='<input class="r-name flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm" value="'+esc(it.name)+'">'
-      +'<input class="r-amt w-16 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-center font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'">'
-      +'<input class="r-cal w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
-      +'<input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
-      +'<button class="r-fav material-symbols-outlined text-[#e6a700] text-[15px]" data-i="'+i+'" title="הוסף למועדפים">star</button>'
-      +'<button class="r-del material-symbols-outlined text-[#93000a] text-[15px]" data-i="'+i+'">close</button>';
+    row.className="r-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white"; row.dataset.i=i;
+    row.innerHTML=
+       '<div class="flex items-center gap-1">'
+      +'<button class="r-fav material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" data-i="'+i+'" title="הוסף למועדפים">star</button>'
+      +'<input class="r-name flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
+      +'<button class="r-del material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-i="'+i+'">close</button>'
+      +'</div>'
+      +'<div class="flex gap-1.5 items-center pr-7">'
+      +'<div class="flex items-center gap-1 flex-1 min-w-0"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="r-amt flex-1 min-w-0 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1.5 py-1 text-[11px] font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="r-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
+      +'</div>';
     box.appendChild(row);
   });
   box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); pending.splice(+btn.dataset.i,1); renderResults(); });
@@ -933,15 +935,18 @@ function renderMealsEdit(){
     const card=document.createElement("div");
     card.className="me-card border border-[#bfc8c8] rounded-xl p-2 space-y-1"; card.dataset.mi=mi;
     let html='<div class="flex justify-between items-center mb-1"><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+'</span><span class="flex items-center gap-2"><button class="fav-meal material-symbols-outlined text-[#e6a700] text-[17px]" data-mi="'+mi+'" title="שמור כמועדפת">star</button><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></span></div>';
-    html+='<div class="flex gap-1 text-[9px] text-[#404848] px-1"><span class="flex-1">מזון</span><span class="w-16 text-center">כמות</span><span class="w-12 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span></div>';
     (m.items||[]).forEach((it,ii)=>{
-      html+='<div class="me-row flex gap-1 items-center" data-mi="'+mi+'" data-ii="'+ii+'">'
-        +'<input class="me-name flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm" value="'+esc(it.name)+'">'
-        +'<input class="me-amt w-16 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-center font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'">'
-        +'<input class="me-cal w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'">'
-        +'<input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'">'
-        +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[15px]" data-mi="'+mi+'" data-ii="'+ii+'" title="הוסף למועדפים">star</button>'
-        +'<button class="del-item material-symbols-outlined text-[#93000a] text-[15px]" data-mi="'+mi+'" data-ii="'+ii+'">close</button></div>';
+      html+='<div class="me-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white" data-mi="'+mi+'" data-ii="'+ii+'">'
+        +'<div class="flex items-center gap-1">'
+        +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'" title="הוסף למועדפים">star</button>'
+        +'<input class="me-name flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
+        +'<button class="del-item material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'">close</button>'
+        +'</div>'
+        +'<div class="flex gap-1.5 items-center pr-7">'
+        +'<div class="flex items-center gap-1 flex-1 min-w-0"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="me-amt flex-1 min-w-0 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1.5 py-1 text-[11px] font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'"></div>'
+        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="me-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
+        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
+        +'</div></div>';
     });
     html+='<div class="me-subtotal text-[11px] font-bold text-[#003535] text-left border-t border-[#bfc8c8]/40 pt-1 mt-1"></div>';
     card.innerHTML=html;
@@ -1015,7 +1020,9 @@ function renderFavBox(box){
   box.innerHTML="";
   const favs=S.favorites||[];
   if(!favs.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין מועדפים עדיין</p>'; return; }
-  favs.forEach((f,i)=>{
+  // מיון א"ב אוטומטי תוך שמירת האינדקס המקורי
+  const ordered=favs.map((f,i)=>({f,i})).sort((a,b)=>favLabel(a.f).localeCompare(favLabel(b.f),"he"));
+  ordered.forEach(({f,i})=>{
     const isItem=f.type==="item";
     const icon=isItem?"nutrition":"restaurant";
     const sub=isItem
@@ -1207,12 +1214,12 @@ function showView(name){
 // ===== דוח ניתוח (MD) =====
 function generateReport(){
   const md = buildReportMD();
-  $("report-content").textContent = md;
+  $("report-content").value = md;
   show($("report-modal"));
 }
 function closeReportModal(){ hide($("report-modal")); }
 function downloadReport(){
-  const md = $("report-content").textContent || buildReportMD();
+  const md = $("report-content").value || buildReportMD();
   const blob = new Blob([md],{type:"text/markdown;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
