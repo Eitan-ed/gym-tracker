@@ -64,7 +64,12 @@
 
   <!-- הוספת ארוחה -->
   <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-3">
-    <h2 class="text-base font-bold text-[#003535]">הוספת ארוחה</h2>
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-bold text-[#003535]">הוספת ארוחה</h2>
+      <button id="btn-fav" class="flex items-center gap-1 text-[12px] font-bold text-[#003535] bg-[#fff7e0] border border-[#e6c200]/40 px-2.5 py-1 rounded-lg active:scale-95">
+        <span class="material-symbols-outlined text-[16px] text-[#e6a700]">star</span> מועדפות
+      </button>
+    </div>
     <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
     <input type="file" id="gallery-input" accept="image/*" multiple class="hx">
     <div class="flex gap-2">
@@ -110,7 +115,10 @@
   <!-- סיכום יומי -->
   <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-3">
     <div class="flex justify-between items-start">
-      <h2 class="text-base font-bold text-[#003535]">סיכום יומי</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-base font-bold text-[#003535]">סיכום יומי</h2>
+        <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff0e0] text-[#b54708] border border-[#f5b67a]/50"></span>
+      </div>
       <div class="flex items-center gap-1.5">
         <div id="alerts" class="flex flex-wrap gap-1 items-end justify-end"></div>
         <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[18px] p-1.5 bg-[#dce9ff] rounded-lg active:scale-90" title="הפק דוח MD">description</button>
@@ -229,6 +237,18 @@
   </div>
 </div>
 
+<!-- ===== מודאל ארוחות מועדפות ===== -->
+<div id="fav-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#e6a700]">star</span> ארוחות מועדפות</h2>
+      <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <p class="text-[11px] text-[#404848]">לחיצה על מועדפת מוסיפה אותה ליום הנוכחי. לשמירת מועדפת — כוכב בעריכת הארוחות.</p>
+    <div id="fav-list" class="space-y-2"></div>
+  </div>
+</div>
+
 <!-- ===== מודאל הערות תזונתיות ===== -->
 <div id="note-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
   <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
@@ -308,6 +328,13 @@
         </div>
         <button id="btn-save-weight-manage" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm">שמור משקל</button>
         <div class="border-t border-[#bfc8c8] pt-2">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="text-xs font-bold text-[#404848]">מגמת משקל</h4>
+            <span id="weight-trend" class="text-[11px] font-bold"></span>
+          </div>
+          <div id="weight-chart"></div>
+        </div>
+        <div class="border-t border-[#bfc8c8] pt-2">
           <h4 class="text-xs font-bold text-[#404848] mb-1">היסטוריית משקלים</h4>
           <div id="weight-history-manage" class="space-y-1 max-h-48 overflow-y-auto text-sm"></div>
         </div>
@@ -380,14 +407,14 @@
 
 <script>
 /***********************************************
- * דיאטן v2.2 - אפליקציה בקובץ יחיד
+ * דיאטן v2.3 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.3";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -445,6 +472,7 @@ function ensure(dayId){
   if(!S.profile) S.profile = { weight:0 };
   if(!S.days) S.days = {};
   if(!S.weights) S.weights = [];
+  if(!S.favorites) S.favorites = [];
   if(!S.principles){ S.principles = DEFAULT_PRINCIPLES.slice(); }
   if(!S.principlesSeeded){ if(!S.principles.length) S.principles = DEFAULT_PRINCIPLES.slice(); S.principlesSeeded = true; }
   if(!S.days[dayId]) S.days[dayId] = { meals:[], steps:0, strength:false };
@@ -464,6 +492,23 @@ function activityBurn(day){
   const fromSteps = Math.round(steps/1000*STEP_CAL_PER_1000);
   const fromStrength = day.strength ? STRENGTH_CAL : 0;
   return fromSteps + fromStrength;
+}
+// רצף ימים רצופים בהם עמדנו ביעד החיטוב (כולל תרומת פעילות)
+function calcStreak(){
+  const w=S.profile.weight||0; const baseCt=calTarget(w);
+  if(!baseCt) return 0;
+  let streak=0; const d=new Date();
+  for(let i=0;i<366;i++){
+    const id=dateToId(d);
+    const day=S.days&&S.days[id];
+    const hasMeals=day&&day.meals&&day.meals.length;
+    if(i===0 && !hasMeals){ d.setDate(d.getDate()-1); continue; } // היום טרם תועד — לא שובר רצף
+    if(!hasMeals) break;
+    let cal=0; day.meals.forEach(m=>cal+=(+m.calories||0));
+    if(cal <= baseCt + activityBurn(day)) streak++; else break;
+    d.setDate(d.getDate()-1);
+  }
+  return streak;
 }
 
 // ===== DOM =====
@@ -646,6 +691,11 @@ function render(){
   $("weight-now").textContent = w||"--";
   $("steps-now").textContent = (day.steps||0).toLocaleString();
   $("strength").checked = !!day.strength;
+
+  // רצף ימים
+  const streak=calcStreak(); const sc=$("streak-chip");
+  if(streak>=2){ sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף'; show(sc); }
+  else hide(sc);
 }
 
 function applyResultsEdit(){
@@ -843,7 +893,7 @@ function renderMealsEdit(){
   day.meals.forEach((m,mi)=>{
     const card=document.createElement("div");
     card.className="me-card border border-[#bfc8c8] rounded-xl p-2 space-y-1"; card.dataset.mi=mi;
-    let html='<div class="flex justify-between items-center mb-1"><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+'</span><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></div>';
+    let html='<div class="flex justify-between items-center mb-1"><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+'</span><span class="flex items-center gap-2"><button class="fav-meal material-symbols-outlined text-[#e6a700] text-[17px]" data-mi="'+mi+'" title="שמור כמועדפת">star</button><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></span></div>';
     html+='<div class="flex gap-1 text-[9px] text-[#404848] px-1"><span class="flex-1">מזון</span><span class="w-16 text-center">כמות</span><span class="w-12 text-center">קל</span><span class="w-12 text-center">חלבון</span><span class="w-[15px]"></span></div>';
     (m.items||[]).forEach((it,ii)=>{
       html+='<div class="me-row flex gap-1 items-center" data-mi="'+mi+'" data-ii="'+ii+'">'
@@ -859,6 +909,7 @@ function renderMealsEdit(){
   });
   box.querySelectorAll(".del-item").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); S.days[viewDay].meals[+btn.dataset.mi].items.splice(+btn.dataset.ii,1); renderMealsEdit(); setMealsDirty(true); });
   box.querySelectorAll(".del-meal").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק את הארוחה?")) return; applyMealsEdit(); S.days[viewDay].meals.splice(+btn.dataset.mi,1); renderMealsEdit(); setMealsDirty(true); });
+  box.querySelectorAll(".fav-meal").forEach(btn=>btn.onclick=()=>{ const mi=+btn.dataset.mi; applyMealsEdit(); recalcMeal(mi); saveFavorite(S.days[viewDay].meals[mi]); });
   box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ updateMealsEditSum(); setMealsDirty(true); }));
   updateMealsEditSum();
   setMealsDirty(false);
@@ -886,6 +937,53 @@ function openNoteModal(){
   show($("note-modal"));
 }
 function closeNoteModal(){ hide($("note-modal")); }
+
+// ===== ארוחות מועדפות =====
+function favLabel(meal){
+  if(meal.desc) return meal.desc;
+  const names=(meal.items||[]).map(i=>i.name).filter(Boolean);
+  return names.slice(0,3).join(", ")+(names.length>3?"...":"") || "ארוחה";
+}
+function saveFavorite(meal){
+  if(!meal) return;
+  S.favorites = S.favorites || [];
+  const label = favLabel(meal);
+  if(S.favorites.some(f=>favLabel(f)===label)){ toast("כבר במועדפים"); return; }
+  S.favorites.push({
+    desc: meal.desc||"", note: meal.note||"",
+    items: (meal.items||[]).map(it=>Object.assign({},it)),
+    calories: meal.calories||0, protein: meal.protein||0, beefGrams: meal.beefGrams||0
+  });
+  persist(); toast("נוסף למועדפים");
+}
+function openFavModal(){ renderFavList(); show($("fav-modal")); }
+function closeFavModal(){ hide($("fav-modal")); }
+function renderFavList(){
+  const box=$("fav-list"); box.innerHTML="";
+  const favs=S.favorites||[];
+  if(!favs.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין מועדפות עדיין</p>'; return; }
+  favs.forEach((f,i)=>{
+    const div=document.createElement("div");
+    div.className="flex items-center gap-2 bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40";
+    div.innerHTML='<div class="flex-1 min-w-0"><div class="text-sm font-bold text-[#003535] truncate">'+esc(favLabel(f))+'</div>'
+      +'<div class="text-[11px] text-[#404848]"><b>'+(f.calories||0)+'</b> קק"ל &middot; <b>'+(f.protein||0)+'</b> ג\' חלבון</div></div>'
+      +'<button class="fav-add material-symbols-outlined text-[#006c49] text-[22px]" data-idx="'+i+'">add_circle</button>'
+      +'<button class="fav-del material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">delete</button>';
+    box.appendChild(div);
+  });
+  box.querySelectorAll(".fav-add").forEach(btn=>btn.onclick=()=>addFavToDay(+btn.dataset.idx));
+  box.querySelectorAll(".fav-del").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק מהמועדפים?")) return; S.favorites.splice(+btn.dataset.idx,1); persist(); renderFavList(); });
+}
+function addFavToDay(idx){
+  const f=(S.favorites||[])[idx]; if(!f) return;
+  const day=ensure(viewDay);
+  day.meals.push({
+    time:new Date().toISOString(), desc:f.desc||"", note:f.note||"",
+    items:(f.items||[]).map(it=>Object.assign({},it)),
+    calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0
+  });
+  persist(); render(); closeFavModal(); toast("הארוחה נוספה");
+}
 
 // ===== ניהול — אקורדיון =====
 function initAccordions(){
@@ -948,8 +1046,36 @@ function renderWeightHistoryManage(){
     box.appendChild(div);
   });
   box.querySelectorAll(".del-w").forEach(btn=>{
-    btn.onclick=()=>{ if(!confirm("למחוק רשומת משקל?")) return; S.weights.splice(+btn.dataset.idx,1); if(S.weights.length) S.profile.weight=S.weights[S.weights.length-1].kg; persist(); render(); renderWeightHistoryManage(); toast("נמחק"); };
+    btn.onclick=()=>{ if(!confirm("למחוק רשומת משקל?")) return; S.weights.splice(+btn.dataset.idx,1); if(S.weights.length) S.profile.weight=S.weights[S.weights.length-1].kg; persist(); render(); renderWeightHistoryManage(); renderWeightChart(); toast("נמחק"); };
   });
+}
+function renderWeightChart(){
+  const wrap=$("weight-chart"), trendEl=$("weight-trend");
+  if(!wrap) return;
+  const ws=(S.weights||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  if(ws.length<2){ wrap.innerHTML='<p class="text-[11px] text-[#404848]">דרושות לפחות 2 מדידות להצגת גרף.</p>'; trendEl.textContent=''; return; }
+  const W=300,H=90,pad=18;
+  const xs=ws.map(w=>idToDate(w.date).getTime());
+  const kgs=ws.map(w=>+w.kg);
+  const minK=Math.min(...kgs), maxK=Math.max(...kgs), rangeK=(maxK-minK)||1;
+  const minX=xs[0], maxX=xs[xs.length-1], rangeX=(maxX-minX)||1;
+  const px=t=>pad+(t-minX)/rangeX*(W-2*pad);
+  const py=k=>pad+(1-(k-minK)/rangeK)*(H-2*pad);
+  const pts=ws.map((w,i)=>px(xs[i]).toFixed(1)+","+py(kgs[i]).toFixed(1)).join(" ");
+  const dots=ws.map((w,i)=>'<circle cx="'+px(xs[i]).toFixed(1)+'" cy="'+py(kgs[i]).toFixed(1)+'" r="2.5" fill="#0061a4"/>').join("");
+  wrap.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" class="w-full" style="height:90px">'
+    +'<polyline points="'+pts+'" fill="none" stroke="#0061a4" stroke-width="2" stroke-linejoin="round"/>'+dots
+    +'<text x="'+(W-2)+'" y="'+(py(maxK)+3).toFixed(1)+'" font-size="9" fill="#999" text-anchor="end">'+maxK+'</text>'
+    +'<text x="'+(W-2)+'" y="'+(py(minK)+3).toFixed(1)+'" font-size="9" fill="#999" text-anchor="end">'+minK+'</text></svg>';
+  // רגרסיה ליניארית — שיפוע לק"ג/שבוע
+  const n=ws.length, t0=xs[0];
+  const X=xs.map(t=>(t-t0)/86400000);
+  const mx=X.reduce((a,b)=>a+b,0)/n, my=kgs.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0; for(let i=0;i<n;i++){ num+=(X[i]-mx)*(kgs[i]-my); den+=(X[i]-mx)*(X[i]-mx); }
+  const perWeek=(den?num/den:0)*7, abs=Math.abs(perWeek).toFixed(2);
+  if(Math.abs(perWeek)<0.01){ trendEl.textContent='יציב'; trendEl.style.color='#404848'; }
+  else if(perWeek<0){ trendEl.innerHTML='ירידה '+abs+' ק"ג/שבוע'; trendEl.style.color='#006c49'; }
+  else { trendEl.innerHTML='עלייה '+abs+' ק"ג/שבוע'; trendEl.style.color='#ba1a1a'; }
 }
 function saveWeightManage(){
   const w=parseFloat($("set-weight").value);
@@ -960,7 +1086,7 @@ function saveWeightManage(){
   S.weights=S.weights||[];
   S.weights.push({date:dateId, kg:w});
   ensure(dateId).weight=w;
-  persist(); render(); renderWeightHistoryManage();
+  persist(); render(); renderWeightHistoryManage(); renderWeightChart();
   toast("המשקל נשמר");
 }
 
@@ -1005,7 +1131,7 @@ function showView(name){
     $("api-key").value=S.apiKey||"";
     $("set-weight").value=S.profile&&S.profile.weight||"";
     $("set-weight-date").value=todayId();
-    renderWeightHistoryManage(); renderMetricsHistory(); renderPrinciples();
+    renderWeightHistoryManage(); renderWeightChart(); renderMetricsHistory(); renderPrinciples();
   }
   window.scrollTo(0,0);
   closeMenu();
@@ -1230,6 +1356,9 @@ function start(){
   $("meals-modal").onclick=e=>{ if(e.target===$("meals-modal")) closeMealsModal(); };
   $("close-note-modal").onclick=closeNoteModal;
   $("note-modal").onclick=e=>{ if(e.target===$("note-modal")) closeNoteModal(); };
+  $("btn-fav").onclick=openFavModal;
+  $("close-fav-modal").onclick=closeFavModal;
+  $("fav-modal").onclick=e=>{ if(e.target===$("fav-modal")) closeFavModal(); };
 
   // דוח
   $("btn-report").onclick=generateReport;
@@ -1252,7 +1381,7 @@ function start(){
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
 
   document.addEventListener("keydown", e=>{
-    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); }
+    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); }
   });
 
   render();
