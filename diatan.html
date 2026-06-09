@@ -26,10 +26,10 @@
 <body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-24">
 
 <!-- כותרת -->
-<header class="relative bg-[#003535] overflow-hidden shadow-xl">
+<header class="relative bg-[#003535] shadow-xl">
   <div class="absolute inset-0 bg-gradient-to-br from-[#003535] via-[#0d4d4d] to-[#0061a4] opacity-90"></div>
   <div class="relative flex flex-row-reverse justify-between items-center px-4 h-14 max-w-2xl mx-auto z-10">
-    <div class="flex items-center gap-2">
+    <div id="brand-home" class="flex items-center gap-2 cursor-pointer active:scale-95">
       <div class="p-1.5 bg-white/10 rounded-xl border border-white/20">
         <span class="material-symbols-outlined text-white text-[22px]">restaurant</span>
       </div>
@@ -119,13 +119,13 @@
 
     <!-- יעדים חיטוב/איזון -->
     <div class="grid grid-cols-2 gap-2">
-      <div id="goalcut-box" class="bg-[#006c49] text-white rounded-xl px-3 py-1.5 flex items-center justify-between">
-        <span class="text-[11px] font-bold opacity-80">יעד חיטוב</span>
-        <span class="text-base font-extrabold"><span id="goal-cut">0</span></span>
+      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-1.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+        <span class="text-[11px] font-bold text-[#404848]">יעד חיטוב</span>
+        <span class="text-base font-extrabold" id="goal-cut" style="color:#006c49">0</span>
       </div>
-      <div id="goalbal-box" class="bg-[#4CAF50] text-white rounded-xl px-3 py-1.5 flex items-center justify-between">
-        <span class="text-[11px] font-bold opacity-80">יעד איזון</span>
-        <span class="text-base font-extrabold"><span id="goal-bal">0</span></span>
+      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-1.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+        <span class="text-[11px] font-bold text-[#404848]">יעד איזון</span>
+        <span class="text-base font-extrabold" id="goal-bal" style="color:#4CAF50">0</span>
       </div>
     </div>
 
@@ -380,14 +380,14 @@
 
 <script>
 /***********************************************
- * דיאטן v2.1 - אפליקציה בקובץ יחיד
+ * דיאטן v2.2 - אפליקציה בקובץ יחיד
  * נתונים ב-localStorage. מפתח Gemini בהגדרות.
  ***********************************************/
 (() => {
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -600,8 +600,8 @@ function render(){
   const addTag = burn>0 ? '<span class="text-[11px] font-bold opacity-80">+'+burn+'</span>' : '';
   $("goal-cut").innerHTML = baseCt.toLocaleString() + addTag;
   $("goal-bal").innerHTML = (baseCt+BALANCE_EXTRA).toLocaleString() + addTag;
-  $("goalcut-box").style.background=PAL.cut;
-  $("goalbal-box").style.background=PAL.bal;
+  $("goal-cut").style.color=PAL.cut;
+  $("goal-bal").style.color=PAL.bal;
 
   // קלוריות — לוגיקת צבעים: חיטוב ≤, איזון ≤, אדום > איזון
   let calColor = PAL.cut;
@@ -1177,6 +1177,9 @@ function start(){
   ensure(); persist();
   $("app-version").textContent=APP_VERSION;
   $("settings-version").textContent=APP_VERSION;
+
+  // לוגו/כיתוב → מסך הבית
+  $("brand-home").onclick=()=>showView("home");
 
   // תפריט המבורגר
   $("btn-menu").onclick=toggleMenu;
