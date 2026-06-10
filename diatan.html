@@ -124,13 +124,15 @@
       <div id="ai-note" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#eff4ff] border border-[#bfc8c8]/40 rounded-xl p-2.5"></div>
       <div class="flex gap-2">
         <input id="meal-refine" type="text" placeholder="הבהרה לדיוק או שאלת המשך..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
-        <button id="btn-ask" class="shrink-0 bg-[#0061a4] text-white px-2.5 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:opacity-50" disabled><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
         <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
       </div>
       <div id="chat-answer" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e8f0fe] border border-[#0061a4]/30 rounded-xl p-2.5"></div>
-      <button id="btn-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
-        <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
-      </button>
+      <div class="flex gap-2">
+        <button id="btn-save" class="flex-1 bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
+        </button>
+        <button id="btn-ask" class="shrink-0 bg-[#0061a4] text-white px-4 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:opacity-50" disabled><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
+      </div>
     </div>
   </section>
 
@@ -415,8 +417,18 @@
     </button>
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
-        <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + מוסיפה ליום הנוכחי.</p>
+        <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + טוענת לאזור הוספת ארוחה.</p>
         <div id="fav-manage-list" class="space-y-2"></div>
+        <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
+          <h4 class="text-xs font-bold text-[#404848]">הוספת מועדף ידנית</h4>
+          <input id="new-fav-name" type="text" placeholder="שם הפריט" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <div class="flex gap-2">
+            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          </div>
+          <button id="btn-add-fav" class="w-full bg-[#003535] text-white font-bold py-2 rounded-xl text-sm active:scale-[0.98] flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span> הוסף למועדפים</button>
+        </div>
       </div>
     </div>
   </section>
@@ -462,7 +474,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.7.1";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1157,6 +1169,16 @@ function addFavToDay(idx){
   toast("נטען מהמועדפים — בדוק ושמור");
 }
 
+function addManualFavorite(){
+  const name=$("new-fav-name").value.trim();
+  if(!name){ toast("הזן שם לפריט",true); return; }
+  const cal=Math.round(+$("new-fav-cal").value||0);
+  const prot=Math.round(+$("new-fav-prot").value||0);
+  const amt=$("new-fav-amt").value.trim();
+  saveItemFavorite({name, amount:amt, calories:cal, protein:prot, beefGrams:0});
+  $("new-fav-name").value=""; $("new-fav-cal").value=""; $("new-fav-prot").value=""; $("new-fav-amt").value="";
+}
+
 // ===== ניהול — אקורדיון =====
 function initAccordions(){
   document.querySelectorAll(".acc-toggle").forEach(btn=>{
@@ -1583,6 +1605,7 @@ function start(){
   $("btn-save-weight-manage").onclick=saveWeightManage;
   $("btn-add-principle").onclick=addPrinciple;
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
+  $("btn-add-fav").onclick=addManualFavorite;
 
   document.addEventListener("keydown", e=>{
     if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
