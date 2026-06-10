@@ -207,6 +207,18 @@
       <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
     </button>
   </div>
+
+  <!-- סגירת יום -->
+  <button id="btn-close-day" class="hx w-full bg-gradient-to-l from-[#003535] to-[#0d4d4d] text-white text-sm font-bold py-3 rounded-2xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
+    <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
+  </button>
+  <div id="close-day-summary" class="hx bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <div class="bg-gradient-to-l from-[#003535] to-[#0d4d4d] px-4 py-2.5 flex items-center justify-between">
+      <span class="text-white font-bold text-sm flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">nightlight</span> סיכום יום</span>
+      <button id="close-day-dismiss" class="material-symbols-outlined text-white/70 text-[18px]">close</button>
+    </div>
+    <div id="close-day-content" class="p-4 text-[13px] leading-relaxed text-[#0b1c30] space-y-2"></div>
+  </div>
 </main>
 
 <!-- ===== מודאל משקל ===== -->
@@ -474,7 +486,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.7.1";
+const APP_VERSION = "2.8";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -751,6 +763,16 @@ function render(){
   $("weight-now").textContent = w||"--";
   $("steps-now").textContent = (day.steps||0).toLocaleString();
   $("strength").checked = !!day.strength;
+
+  // סגירת יום — מציג כפתור רק אם יש ארוחות
+  const cdBtn=$("btn-close-day"), cdSum=$("close-day-summary");
+  if(items.length){
+    if(day.closeSummary){
+      hide(cdBtn);
+      $("close-day-content").innerHTML=day.closeSummary.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+      show(cdSum);
+    } else { show(cdBtn); hide(cdSum); }
+  } else { hide(cdBtn); hide(cdSum); }
 
   // רצף ימים
   const streak=calcStreak(); const sc=$("streak-chip");
@@ -1400,6 +1422,76 @@ function buildReportMD(){
   return md;
 }
 
+// ===== סגירת יום =====
+async function onCloseDay(){
+  const day=ensure(viewDay);
+  if(!day.meals||!day.meals.length){ toast("אין ארוחות לסכם",true); return; }
+  const w=S.profile.weight||0;
+  const baseCt=calTarget(w), pt=protTarget(w);
+  const burn=activityBurn(day);
+  const ct=baseCt+burn, balance=ct+BALANCE_EXTRA;
+  let cal=0,prot=0,beef=0;
+  day.meals.forEach(m=>{cal+=(+m.calories||0);prot+=(+m.protein||0);beef+=(+m.beefGrams||0);});
+  const steps=+day.steps||0;
+  const strength=!!day.strength;
+  const streak=calcStreak();
+  const mealsDesc=day.meals.map((m,i)=>{
+    const items=(m.items||[]).map(it=>it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קק"ל, '+it.protein+"ג' חלבון").join("; ");
+    return "ארוחה "+(i+1)+(m.desc?" ("+m.desc+")":"")+": "+items;
+  }).join("\n");
+
+  const key=S.apiKey;
+  if(!key){ toast("חסר מפתח Gemini",true); return; }
+
+  const btn=$("btn-close-day");
+  btn.disabled=true; btn.innerHTML='<span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span> מנתח...';
+
+  try{
+    const prompt=`אתה דיאטן/תזונאי בכיר שמסכם את היום של איתן (גובה 180, משקל ${w}, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
+
+נתוני היום (${fmtDate(viewDay)}):
+${mealsDesc}
+
+סה"כ: ${cal} קק"ל מתוך יעד חיטוב ${ct} (בסיס ${baseCt}${burn>0?" + "+burn+" פעילות":""}), יעד איזון ${balance}
+חלבון: ${prot} מתוך ${pt} גר'
+בקר: ${beef} גר' (מגבלה שבועית ${BEEF_LIMIT} גר', צריכה שבועית נוכחית ${beefWeek()} גר')
+צעדים: ${steps} (יעד 10,000)
+אימון כוח: ${strength?"כן":"לא"}
+רצף ימים בחיטוב: ${streak}
+
+כתוב סיכום יום קצר ומעשי בעברית. מבנה:
+
+1. **קלוריות** — האם עמד ביעד? גרעון/עודף? משמעות
+2. **חלבון** — האם הגיע ליעד? אם לא, כמה חסר ומה היה אפשר להוסיף
+3. **צעדים** — ביחס ליעד 10K, תרומה לגרעון
+4. **הישגים** — מה היה טוב היום (ספציפי לארוחות)
+5. **טיפ לשיפור** — דבר אחד קונקרטי שאפשר לשנות/להימנע ממנו מחר
+
+כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
+
+    const parts=[{text:prompt}];
+    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.4,thinkingConfig:{thinkingBudget:0}}});
+    let resp;
+    for(const model of GEMINI_MODELS){
+      resp=await callGemini(model,body,key);
+      if(resp.ok) break;
+    }
+    if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
+    const j=await resp.json();
+    const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    if(!answer) throw new Error("תשובה ריקה");
+
+    const html=answer.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+    $("close-day-content").innerHTML=html;
+    show($("close-day-summary"));
+    hide(btn);
+    day.closeSummary=answer;
+    persist();
+    $("close-day-summary").scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(e){ toast(e.message||String(e),true); }
+  finally{ btn.disabled=false; btn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI'; }
+}
+
 // ===== גיבוי/שחזור =====
 function onBackup(){
   try{
@@ -1571,6 +1663,8 @@ function start(){
   $("steps-modal").onclick=e=>{ if(e.target===$("steps-modal")) closeStepsModal(); };
 
   $("strength").onchange=onStrength;
+  $("btn-close-day").onclick=onCloseDay;
+  $("close-day-dismiss").onclick=()=>{ hide($("close-day-summary")); show($("btn-close-day")); };
 
   // עריכת ארוחות שמורות (לחיצה על קלוריות/חלבון)
   $("cal-box").onclick=openMealsModal;
