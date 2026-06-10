@@ -109,7 +109,7 @@
     <div id="photo-previews" class="hx flex gap-2 flex-wrap"></div>
     <div class="flex gap-2 items-stretch">
       <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ואורז מלא..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] resize-none text-sm"></textarea>
-      <button id="btn-calc" class="w-16 shrink-0 bg-[#1565C0] text-white rounded-xl flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] disabled:opacity-50 shadow-md">
+      <button id="btn-calc" disabled class="w-16 shrink-0 bg-[#1565C0] text-white rounded-xl flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none shadow-md">
         <span class="material-symbols-outlined text-[20px]" id="calc-icon">calculate</span>
         <span class="text-[11px] font-bold" id="calc-text">חשב</span>
       </button>
@@ -123,9 +123,11 @@
       </div>
       <div id="ai-note" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#eff4ff] border border-[#bfc8c8]/40 rounded-xl p-2.5"></div>
       <div class="flex gap-2">
-        <input id="meal-refine" type="text" placeholder="הבהרה לדיוק (לדוגמה: האורז 3 כפות, בלי שמן)..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
-        <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:opacity-50"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
+        <input id="meal-refine" type="text" placeholder="הבהרה לדיוק או שאלת המשך..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
+        <button id="btn-ask" class="shrink-0 bg-[#0061a4] text-white px-2.5 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:opacity-50" disabled><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
+        <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
       </div>
+      <div id="chat-answer" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e8f0fe] border border-[#0061a4]/30 rounded-xl p-2.5"></div>
       <button id="btn-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
         <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
       </button>
@@ -277,6 +279,18 @@
       <button id="close-note-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <div id="note-list" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- ===== מודאל בקר שבועי ===== -->
+<div id="beef-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#633d00]">kebab_dining</span> צריכת בקר שבועית</h2>
+      <button id="close-beef-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <div id="beef-list" class="space-y-2"></div>
+    <div id="beef-total" class="flex items-center justify-between border-t-2 border-[#003535] pt-2 font-bold text-[#003535] text-sm"></div>
   </div>
 </div>
 
@@ -448,7 +462,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -716,10 +730,10 @@ function render(){
 
   // התראות
   const ac=$("alerts"); ac.innerHTML="";
-  const addA=(msg,err)=>{ const x=document.createElement("div"); x.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold "+(err?"bg-[#ffdad6] text-[#93000a]":"bg-[#633d00] text-white"); x.innerHTML='<span class="material-symbols-outlined text-[11px]">warning</span>'+msg; ac.appendChild(x); };
+  const addA=(msg,err,onclick)=>{ const x=document.createElement("div"); x.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold "+(err?"bg-[#ffdad6] text-[#93000a]":"bg-[#633d00] text-white")+(onclick?" cursor-pointer active:scale-95":""); x.innerHTML='<span class="material-symbols-outlined text-[11px]">warning</span>'+msg; if(onclick) x.onclick=onclick; ac.appendChild(x); };
   if(cal>balance && balance>0) addA("חריגה!",true);
   else if(cal>ct && ct>0) addA("מעל חיטוב",false);
-  if(bw>BEEF_LIMIT) addA("בקר "+Math.round(bw)+"ג'",false);
+  if(bw>0) addA("בקר "+Math.round(bw)+"ג'",bw>BEEF_LIMIT,openBeefModal);
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
@@ -728,7 +742,7 @@ function render(){
 
   // רצף ימים
   const streak=calcStreak(); const sc=$("streak-chip");
-  if(streak>=2){ sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף'; show(sc); }
+  if(streak>=2){ sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף'; sc.classList.add("cursor-pointer","active:scale-95"); sc.onclick=openCalendar; show(sc); }
   else hide(sc);
 }
 
@@ -767,14 +781,48 @@ function renderResults(){
       +'</div>';
     box.appendChild(row);
   });
-  box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); pending.splice(+btn.dataset.i,1); renderResults(); });
+  box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{
+    applyResultsEdit(); pending.splice(+btn.dataset.i,1);
+    if(!pending.length){ hide($("results")); hide($("ai-note")); pendingNote=""; $("meal-refine").value=""; recalcBaseline=null; return; }
+    renderResults();
+  });
   box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
-  box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",updateResultsSum));
+  box.querySelectorAll("input").forEach(inp=>{inp.addEventListener("input",updateResultsSum); inp.addEventListener("input",updateRecalcState);});
   updateResultsSum();
   const noteEl=$("ai-note");
   if(pendingNote){ noteEl.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#006c49]">stethoscope</span> '+esc(pendingNote); show(noteEl); }
   else hide(noteEl);
   show($("results"));
+  snapshotRecalcBaseline();
+  $("btn-recalc").disabled=true;
+}
+async function onAsk(){
+  const q=$("meal-refine").value.trim();
+  if(!q){ toast("כתוב שאלה",true); return; }
+  applyResultsEdit();
+  const itemsCtx=pending.length ? pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קק"ל, '+it.protein+" ג' חלבון").join("\n") : "";
+  const key=S.apiKey;
+  if(!key){ toast("חסר מפתח Gemini",true); return; }
+  $("btn-ask").disabled=true;
+  try{
+    const prompt='אתה תזונאי בכיר. הנה הארוחה הנוכחית של איתן:\n'+itemsCtx+'\n\nשאלת המשך מאיתן: '+q+'\n\nענה בקצרה בעברית (2-3 משפטים). אל תחזיר JSON.';
+    const parts=[{text:prompt}];
+    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.3,thinkingConfig:{thinkingBudget:0}}});
+    let resp;
+    for(const model of GEMINI_MODELS){
+      resp=await callGemini(model,body,key);
+      if(resp.ok) break;
+    }
+    if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
+    const j=await resp.json();
+    const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    if(!answer) throw new Error("תשובה ריקה");
+    const el=$("chat-answer");
+    el.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#0061a4]">chat</span> <b>שאלה:</b> '+esc(q)+'<br><b>תשובה:</b> '+esc(answer);
+    show(el);
+    $("meal-refine").value="";
+  }catch(e){ toast(e.message||String(e),true); }
+  finally{ $("btn-ask").disabled=false; }
 }
 async function onRecalc(){
   applyResultsEdit();
@@ -807,9 +855,9 @@ function onSave(){
   const day=ensure(viewDay);
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=i.calories;p+=i.protein;bg+=(+i.beefGrams||0);});
   day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
-  persist(); pending=[]; pendingFiles=[]; pendingNote=""; $("meal-desc").value=""; $("meal-refine").value="";
-  hide($("results")); hide($("ai-note")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
-  render(); toast("הארוחה נשמרה");
+  persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("meal-refine").value="";
+  hide($("results")); hide($("ai-note")); hide($("chat-answer")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
+  render(); updateCalcState(); toast("הארוחה נשמרה");
 }
 function onPhoto(e){
   const files=Array.from(e.target.files||[]); if(!files.length) return;
@@ -823,6 +871,28 @@ function onPhoto(e){
   });
   show(box);
   e.target.value=null;
+  updateCalcState();
+}
+function updateCalcState(){
+  const hasText=$("meal-desc").value.trim().length>0;
+  const hasFiles=pendingFiles.length>0;
+  $("btn-calc").disabled=!(hasText||hasFiles);
+}
+
+// ===== מצב כפתור חשב מחדש =====
+let recalcBaseline=null;
+function snapshotRecalcBaseline(){
+  recalcBaseline={refine:"", values:pending.map(it=>it.name+"|"+it.calories+"|"+it.protein).join(",")};
+}
+function updateRecalcState(){
+  if(!recalcBaseline){ $("btn-recalc").disabled=true; return; }
+  const refine=$("meal-refine").value.trim();
+  let vals="";
+  $("results-edit").querySelectorAll(".r-row").forEach(row=>{
+    vals+=(vals?",":"")+row.querySelector(".r-name").value.trim()+"|"+Math.round(+row.querySelector(".r-cal").value||0)+"|"+Math.round(+row.querySelector(".r-prot").value||0);
+  });
+  const changed=refine!==recalcBaseline.refine||vals!==recalcBaseline.values;
+  $("btn-recalc").disabled=!changed;
 }
 
 // ===== מודאל משקל =====
@@ -934,7 +1004,9 @@ function renderMealsEdit(){
   day.meals.forEach((m,mi)=>{
     const card=document.createElement("div");
     card.className="me-card border border-[#bfc8c8] rounded-xl p-2 space-y-1"; card.dataset.mi=mi;
-    let html='<div class="flex justify-between items-center mb-1"><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+'</span><span class="flex items-center gap-2"><button class="fav-meal material-symbols-outlined text-[#e6a700] text-[17px]" data-mi="'+mi+'" title="שמור כמועדפת">star</button><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></span></div>';
+    const mTime=m.time?new Date(m.time):null;
+    const mTimeStr=mTime?(' ('+String(mTime.getHours()).padStart(2,"0")+':'+String(mTime.getMinutes()).padStart(2,"0")+')'):'';
+    let html='<div class="flex justify-between items-center mb-1"><span class="flex items-center gap-1"><button class="fav-meal material-symbols-outlined text-[#e6a700] text-[17px]" data-mi="'+mi+'" title="שמור כמועדפת">star</button><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+mTimeStr+'</span></span><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></div>';
     (m.items||[]).forEach((it,ii)=>{
       html+='<div class="me-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white" data-mi="'+mi+'" data-ii="'+ii+'">'
         +'<div class="flex items-center gap-1">'
@@ -983,6 +1055,33 @@ function openNoteModal(){
   show($("note-modal"));
 }
 function closeNoteModal(){ hide($("note-modal")); }
+
+// ===== מודאל בקר שבועי =====
+function openBeefModal(){
+  const box=$("beef-list"); box.innerHTML="";
+  const today=new Date(); let total=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(today); d.setDate(today.getDate()-i);
+    const id=dateToId(d); const day=S.days&&S.days[id];
+    if(!day) continue;
+    (day.meals||[]).forEach(m=>{
+      (m.items||[]).forEach(it=>{
+        if(+it.beefGrams>0){
+          total+=+it.beefGrams;
+          const div=document.createElement("div");
+          div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+          div.innerHTML='<span class="text-sm">'+esc(it.name)+'</span><span class="text-sm"><span class="font-bold">'+it.beefGrams+' גר\'</span> &middot; '+fmtDate(id)+'</span>';
+          box.appendChild(div);
+        }
+      });
+    });
+  }
+  if(!box.children.length) box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין צריכת בקר השבוע</p>';
+  const color=total>BEEF_LIMIT?"#ba1a1a":"#006c49";
+  $("beef-total").innerHTML='<span>סה"כ 7 ימים</span><span style="color:'+color+'">'+total+' / '+BEEF_LIMIT+' גר\'</span>';
+  show($("beef-modal"));
+}
+function closeBeefModal(){ hide($("beef-modal")); }
 
 // ===== מועדפים (ארוחה שלמה או פריט בודד) =====
 function favLabel(f){
@@ -1042,14 +1141,20 @@ function renderFavBox(box){
 }
 function addFavToDay(idx){
   const f=(S.favorites||[])[idx]; if(!f) return;
-  const day=ensure(viewDay);
+  closeFavModal();
+  showView("home");
   if(f.type==="item"){
-    const it={name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0};
-    day.meals.push({ time:new Date().toISOString(), desc:f.name, note:"", items:[it], calories:it.calories, protein:it.protein, beefGrams:it.beefGrams });
+    $("meal-desc").value=f.name;
+    pending=[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}];
+    pendingNote="";
   } else {
-    day.meals.push({ time:new Date().toISOString(), desc:f.desc||"", note:f.note||"", items:(f.items||[]).map(it=>Object.assign({},it)), calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0 });
+    $("meal-desc").value=f.desc||favLabel(f);
+    pending=(f.items||[]).map(it=>Object.assign({},it));
+    pendingNote=f.note||"";
   }
-  persist(); render(); closeFavModal(); toast("נוסף ליום");
+  renderResults();
+  updateCalcState();
+  toast("נטען מהמועדפים — בדוק ושמור");
 }
 
 // ===== ניהול — אקורדיון =====
@@ -1349,10 +1454,20 @@ function renderCalendar(){
 
     let inner = '<span class="text-sm font-bold">'+d+'</span>';
     if(!isFuture && cal>0 && ct>0){
-      const deficit = (ct + activityBurn(day)) - cal;
-      const color = isViewed ? "white" : (deficit>=0 ? "#006c49" : "#ba1a1a");
+      const balTarget = ct + BALANCE_EXTRA + activityBurn(day);
+      const effTarget = ct + activityBurn(day);
+      const deficit = effTarget - cal;
+      const underBalance = cal <= balTarget;
+      const underCut = cal <= effTarget;
+      if(!isViewed){
+        if(underCut) cell.className += "bg-[#e6f4ea] border border-[#006c49]/30 ";
+        else if(underBalance) cell.className += "bg-[#fff8e1] border border-[#e6a700]/30 ";
+        else cell.className += "bg-[#ffeaea] border border-[#ba1a1a]/30 ";
+      }
+      const color = isViewed ? "white" : (underCut ? "#006c49" : (underBalance ? "#b54708" : "#ba1a1a"));
+      const icon = isViewed ? "" : (underCut ? "✔" : (underBalance ? "●" : "✘"));
       const txt = deficit>=0 ? "+"+deficit : ""+deficit;
-      inner += '<span class="text-[8px] font-bold leading-none" style="color:'+color+'">'+txt+'</span>';
+      inner += '<span class="text-[8px] font-bold leading-none" style="color:'+color+'">'+icon+' '+txt+'</span>';
     }
     cell.innerHTML = inner;
     if(!isFuture){
@@ -1417,7 +1532,10 @@ function start(){
   $("gallery-input").onchange=onPhoto;
   $("btn-calc").onclick=onCalc;
   $("btn-recalc").onclick=onRecalc;
+  $("btn-ask").onclick=onAsk;
   $("btn-save").onclick=onSave;
+  $("meal-desc").addEventListener("input",updateCalcState);
+  $("meal-refine").addEventListener("input",()=>{ updateRecalcState(); $("btn-ask").disabled=!$("meal-refine").value.trim(); });
 
   // משקל + צעדים (מודאלים)
   $("btn-weight").onclick=openWeightModal;
@@ -1440,6 +1558,8 @@ function start(){
   $("meals-modal").onclick=e=>{ if(e.target===$("meals-modal")) closeMealsModal(); };
   $("close-note-modal").onclick=closeNoteModal;
   $("note-modal").onclick=e=>{ if(e.target===$("note-modal")) closeNoteModal(); };
+  $("close-beef-modal").onclick=closeBeefModal;
+  $("beef-modal").onclick=e=>{ if(e.target===$("beef-modal")) closeBeefModal(); };
   $("btn-fav").onclick=openFavModal;
   $("close-fav-modal").onclick=closeFavModal;
   $("fav-modal").onclick=e=>{ if(e.target===$("fav-modal")) closeFavModal(); };
@@ -1465,7 +1585,7 @@ function start(){
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
 
   document.addEventListener("keydown", e=>{
-    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); }
+    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
   });
 
   render();
