@@ -187,7 +187,7 @@
     <button id="btn-steps" class="bg-white border border-[#bfc8c8] p-2 rounded-xl shadow-sm flex flex-col items-center gap-0 text-center active:scale-[0.98]">
       <span class="material-symbols-outlined text-[#003535] text-[16px]">steps</span>
       <span class="text-[9px] font-medium text-[#404848]">צעדים</span>
-      <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-sm font-bold text-[#003535]">0</span><span class="text-[8px] text-[#404848]">/10K</span></div>
+      <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-sm font-bold text-[#003535]">0</span><span class="text-[8px] text-[#404848]">/<span id="steps-goal-label">8K</span></span></div>
     </button>
     <div class="bg-white border border-[#bfc8c8] p-2 rounded-xl shadow-sm flex flex-col items-center gap-0 text-center">
       <span class="material-symbols-outlined text-[#006c49] text-[16px]">fitness_center</span>
@@ -356,6 +356,23 @@
     </div>
   </section>
 
+  <!-- יעד צעדים -->
+  <section id="acc-steps-goal" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">steps</span> יעד צעדים</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-2">
+        <div class="flex gap-2">
+          <input id="set-steps-goal" type="number" placeholder="יעד צעדים יומי" class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <button id="btn-save-steps-goal" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
+        </div>
+        <p class="text-[11px] text-[#404848]">ברירת מחדל: 8,000 צעדים.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- משקל -->
   <section id="acc-weight" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
@@ -480,12 +497,12 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.8.2";
+const APP_VERSION = "2.9";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
 // ===== תרומת פעילות לגרעון (מבוסס מחקר) =====
-const STEP_CAL_PER_1000 = 37, STRENGTH_CAL = 200;
+const STEP_CAL_PER_1000 = 37, STRENGTH_CAL = 200, DEFAULT_STEPS_GOAL = 8000;
 
 // ===== עקרונות ברירת מחדל (מוזרקים בכניסה ראשונה, ניתנים לעריכה/מחיקה) =====
 const DEFAULT_PRINCIPLES = [
@@ -509,6 +526,7 @@ const GEMINI_MODELS = ["gemini-2.5-flash","gemini-2.0-flash"];
 const BEEF_KW  = ["בקר","שייטל","סטייק","אנטריקוט","המבורגר","אסאדו","צלי בקר"];
 const SUGAR_KW = ["סוכר","ממתק","שוקולד","עוגה","עוגיה","עוגיות","גלידה","קולה","מיץ","דבש","ריבה","וופל","סופגניה","קרואסון"];
 
+function stepsGoal(){ return +(S.stepsGoal||DEFAULT_STEPS_GOAL); }
 const norm = s => String(s||"").replace(/\s+/g," ").trim().toLowerCase();
 const hasAll = (t,p) => { const x=norm(t), w=norm(p).split(" ").filter(Boolean); return w.length>0 && w.every(k=>x.includes(k)); };
 const hasAny = (t,arr) => { const x=norm(t); return arr.some(k=>x.includes(norm(k))); };
@@ -756,16 +774,21 @@ function render(){
 
   $("weight-now").textContent = w||"--";
   $("steps-now").textContent = (day.steps||0).toLocaleString();
+  const sg=stepsGoal(); $("steps-goal-label").textContent=sg>=1000?(sg/1000)+"K":sg;
   $("strength").checked = !!day.strength;
 
-  // סגירת יום — מציג כפתור רק אם יש ארוחות
+  // סגירת יום — כפתור תמיד נראה אם יש ארוחות, toggle לסיכום
   const cdBtn=$("btn-close-day"), cdSum=$("close-day-summary");
   if(items.length){
+    show(cdBtn);
     if(day.closeSummary){
-      hide(cdBtn);
+      cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סיכום יום';
       $("close-day-content").innerHTML=day.closeSummary.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
       show(cdSum);
-    } else { show(cdBtn); hide(cdSum); }
+    } else {
+      cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI';
+      hide(cdSum);
+    }
   } else { hide(cdBtn); hide(cdSum); }
 
   // רצף ימים
@@ -1346,6 +1369,7 @@ function showView(name){
   $("nav-home").className  ="flex flex-col items-center gap-0.5 "+(manage?"text-[#404848]/60":"text-[#003535]");
   if(manage){
     $("api-key").value=S.apiKey||"";
+    $("set-steps-goal").value=stepsGoal();
     $("set-weight").value=S.profile&&S.profile.weight||"";
     $("set-weight-date").value=todayId();
     renderWeightHistoryManage(); renderWeightChart(); renderMetricsHistory(); renderPrinciples(); renderFavorites();
@@ -1406,7 +1430,7 @@ function buildReportMD(){
   else md += " (חריגה! +"+(cal-ct)+")\n";
   md += "- חלבון: "+prot+"/"+pt+" גר'"+(prot<pt?" (חסרים "+(pt-prot)+" גר')":"")+"\n";
   md += "- בקר: "+beef+" גר' (מגבלה שבועית "+BEEF_LIMIT+" גר')\n";
-  md += "- צעדים: "+(day.steps||0)+"\n";
+  md += "- צעדים: "+(day.steps||0)+" (יעד "+stepsGoal().toLocaleString()+")\n";
   md += "- אימון כוח: "+(day.strength?"כן":"לא")+"\n\n";
   if(S.principles && S.principles.length){
     md += "## עקרונות\n";
@@ -1420,6 +1444,13 @@ function buildReportMD(){
 async function onCloseDay(){
   const day=ensure(viewDay);
   if(!day.meals||!day.meals.length){ toast("אין ארוחות לסכם",true); return; }
+  // אם יש כבר סיכום — toggle פתח/סגור
+  if(day.closeSummary){
+    const sum=$("close-day-summary");
+    if(sum.classList.contains("hx")){ show(sum); sum.scrollIntoView({behavior:"smooth",block:"start"}); }
+    else hide(sum);
+    return;
+  }
   const w=S.profile.weight||0;
   const baseCt=calTarget(w), pt=protTarget(w);
   const burn=activityBurn(day);
@@ -1429,9 +1460,10 @@ async function onCloseDay(){
   const steps=+day.steps||0;
   const strength=!!day.strength;
   const streak=calcStreak();
-  const mealsDesc=day.meals.map((m,i)=>{
+  const sg=stepsGoal();
+  const mealsDesc=day.meals.map(m=>{
     const items=(m.items||[]).map(it=>it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קק"ל, '+it.protein+"ג' חלבון").join("; ");
-    return "ארוחה "+(i+1)+(m.desc?" ("+m.desc+")":"")+": "+items;
+    return items;
   }).join("\n");
 
   const key=S.apiKey;
@@ -1443,13 +1475,13 @@ async function onCloseDay(){
   try{
     const prompt=`אתה דיאטן/תזונאי בכיר שמסכם את היום של איתן (גובה 180, משקל ${w}, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
 
-נתוני היום (${fmtDate(viewDay)}):
+מה איתן אכל היום (${fmtDate(viewDay)}):
 ${mealsDesc}
 
 סה"כ: ${cal} קק"ל מתוך יעד חיטוב ${ct} (בסיס ${baseCt}${burn>0?" + "+burn+" פעילות":""}), יעד איזון ${balance}
 חלבון: ${prot} מתוך ${pt} גר'
 בקר: ${beef} גר' (מגבלה שבועית ${BEEF_LIMIT} גר', צריכה שבועית נוכחית ${beefWeek()} גר')
-צעדים: ${steps} (יעד 10,000)
+צעדים: ${steps} (יעד ${sg.toLocaleString()})
 אימון כוח: ${strength?"כן":"לא"}
 רצף ימים בחיטוב: ${streak}
 
@@ -1457,11 +1489,11 @@ ${mealsDesc}
 
 1. **קלוריות** — האם עמד ביעד? גרעון/עודף? משמעות
 2. **חלבון** — האם הגיע ליעד? אם לא, כמה חסר ומה היה אפשר להוסיף
-3. **צעדים** — ביחס ליעד 10K, תרומה לגרעון
-4. **הישגים** — מה היה טוב היום (ספציפי לארוחות)
-5. **טיפ לשיפור** — דבר אחד קונקרטי שאפשר לשנות/להימנע ממנו מחר
+3. **צעדים** — ביחס ליעד ${sg.toLocaleString()}, תרומה לגרעון
+4. **הישגים** — מה היה טוב היום? ציין את שמות המזונות הספציפיים, לא "ארוחה 1/2/3"
+5. **טיפ פשוט למחר** — שינוי קל אחד וקונקרטי בסוג המזון או בפעילות שיכול להקל על החיטוב. למשל: להחליף מזון X ב-Y, להוסיף הליכה קצרה, להעדיף מקור חלבון רזה יותר. המטרה — פשטות ויעילות, לא מהפכה
 
-כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
+חשוב: התייחס לכל פריט מזון בשמו (חזה עוף, אורז, יוגורט וכו') ולא במספר ארוחה. כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
 
     const parts=[{text:prompt}];
     const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.4,thinkingConfig:{thinkingBudget:0}}});
@@ -1691,6 +1723,7 @@ function start(){
   $("btn-restore").onclick=()=>$("restore-input").click();
   $("restore-input").onchange=onRestore;
   $("btn-save-weight-manage").onclick=saveWeightManage;
+  $("btn-save-steps-goal").onclick=()=>{ const v=parseInt($("set-steps-goal").value,10); if(isNaN(v)||v<100){toast("ערך לא תקין",true);return;} S.stepsGoal=v; persist(); render(); toast("יעד הצעדים עודכן"); };
   $("btn-add-principle").onclick=addPrinciple;
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
   $("btn-add-fav").onclick=addManualFavorite;
