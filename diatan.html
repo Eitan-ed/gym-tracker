@@ -810,8 +810,10 @@ function render(){
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
-  $("steps-now").textContent = (day.steps||0).toLocaleString();
-  const sg=stepsGoal(); $("steps-goal-label").textContent=sg>=1000?(sg/1000)+"K":sg;
+  const stNow=day.steps||0; const sg=stepsGoal();
+  $("steps-now").textContent = stNow.toLocaleString();
+  $("steps-now").className = "text-base font-bold "+(stNow>=sg?"text-[#006c49]":"text-[#003535]");
+  $("steps-goal-label").textContent=sg>=1000?(sg/1000)+"K":sg;
   $("strength").checked = !!day.strength;
 
   // סגירת יום — כפתור תמיד נראה אם יש ארוחות, toggle לסיכום
@@ -1298,7 +1300,7 @@ function renderFavBox(box){
 }
 function addFavToDay(idx){
   const f=(S.favorites||[])[idx]; if(!f) return;
-  const day=getDay(currentDateId());
+  const day=ensure(viewDay);
   const now=new Date(); const hh=String(now.getHours()).padStart(2,"0"); const mm=String(now.getMinutes()).padStart(2,"0"); const time=hh+":"+mm;
   if(f.type==="item"){
     day.meals.push({desc:f.name, items:[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}], note:"", time});
