@@ -207,11 +207,14 @@
     <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
   </button>
   <div id="close-day-summary" class="hx bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <div class="bg-gradient-to-l from-[#003535] to-[#0d4d4d] px-4 py-2.5 flex items-center justify-between">
-      <span class="text-white font-bold text-sm flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">nightlight</span> סיכום יום</span>
-      <button id="close-day-dismiss" class="material-symbols-outlined text-white/70 text-[18px]">close</button>
-    </div>
     <div id="close-day-content" class="p-4 text-[13px] leading-relaxed text-[#0b1c30] space-y-2"></div>
+    <div id="close-day-qa" class="hx px-4 pb-4 space-y-2">
+      <div id="close-day-qa-history"></div>
+      <div class="flex gap-2">
+        <input id="close-day-q" type="text" placeholder="שאל שאלה על הניתוח..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm" dir="rtl">
+        <button id="close-day-q-send" class="bg-[#006c49] text-white font-bold px-4 rounded-xl text-sm">שלח</button>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -534,7 +537,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.0.2";
+const APP_VERSION = "3.1";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -823,7 +826,7 @@ function render(){
     if(day.closeSummary){
       cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סיכום יום';
       $("close-day-content").innerHTML=day.closeSummary.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
-      show(cdSum);
+      show(cdSum); show($("close-day-qa"));
     } else {
       cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI';
       hide(cdSum);
@@ -1570,8 +1573,8 @@ async function onCloseDay(){
   // אם יש כבר סיכום — toggle פתח/סגור
   if(day.closeSummary){
     const sum=$("close-day-summary");
-    if(sum.classList.contains("hx")){ show(sum); sum.scrollIntoView({behavior:"smooth",block:"start"}); }
-    else hide(sum);
+    if(sum.classList.contains("hx")){ show(sum); show($("close-day-qa")); sum.scrollIntoView({behavior:"smooth",block:"start"}); }
+    else { hide(sum); hide($("close-day-qa")); }
     return;
   }
   const w=S.profile.weight||0;
@@ -1610,11 +1613,11 @@ ${mealsDesc}
 
 כתוב סיכום יום קצר ומעשי בעברית. מבנה:
 
-1. **קלוריות** — האם עמד ביעד? גרעון/עודף? משמעות
+1. **קלוריות** — צריכה ${cal} מתוך יעד חיטוב בסיסי ${baseCt}, ויעד מורחב ${ct} (כולל שריפת פעילות ${burn}). פרט גרעון או עודף ביחס לשני היעדים
 2. **חלבון** — האם הגיע ליעד? אם לא, כמה חסר ומה היה אפשר להוסיף
 3. **צעדים** — ביחס ליעד ${sg.toLocaleString()}, תרומה לגרעון
 4. **הישגים** — מה היה טוב היום? ציין את שמות המזונות הספציפיים, לא "ארוחה 1/2/3"
-5. **טיפ פשוט למחר** — שינוי קל אחד וקונקרטי בסוג המזון או בפעילות שיכול להקל על החיטוב. למשל: להחליף מזון X ב-Y, להוסיף הליכה קצרה, להעדיף מקור חלבון רזה יותר. המטרה — פשטות ויעילות, לא מהפכה
+5. **טיפ יעיל** — רעיון אחד פרקטי לשילוב פעילות או שיפור תזונה בתוך השגרה היומית. למשל: הליכה תוך שיחת טלפון, החלפת חטיף בגזר, מדרגות במקום מעלית, תרגילי גוף בהפסקה. המטרה — דבר קטן שקל לשלב מחר בלי מאמץ מיוחד
 
 חשוב: התייחס לכל פריט מזון בשמו (חזה עוף, אורז, יוגורט וכו') ולא במספר ארוחה. כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
 
@@ -1632,13 +1635,39 @@ ${mealsDesc}
 
     const html=answer.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
     $("close-day-content").innerHTML=html;
-    show($("close-day-summary"));
-    hide(btn);
+    show($("close-day-summary")); show($("close-day-qa"));
+    btn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סיכום יום';
     day.closeSummary=answer;
     persist();
     $("close-day-summary").scrollIntoView({behavior:"smooth",block:"start"});
   }catch(e){ toast(e.message||String(e),true); }
-  finally{ btn.disabled=false; btn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI'; }
+  finally{ btn.disabled=false; if(!day.closeSummary) btn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI'; }
+}
+
+async function onCloseDayQ(){
+  const q=$("close-day-q").value.trim(); if(!q) return;
+  const day=ensure(viewDay); const key=S.apiKey;
+  if(!key){ toast("חסר מפתח Gemini",true); return; }
+  $("close-day-q").value="";
+  const hist=$("close-day-qa-history");
+  const qDiv=document.createElement("div");
+  qDiv.className="bg-[#eff4ff] rounded-xl p-2.5 text-sm text-[#003535] font-bold"; qDiv.textContent=q;
+  hist.appendChild(qDiv);
+  const aDiv=document.createElement("div");
+  aDiv.className="text-[13px] text-[#0b1c30] leading-relaxed py-1";
+  aDiv.innerHTML='<span class="material-symbols-outlined text-[14px] animate-spin align-middle">progress_activity</span> חושב...';
+  hist.appendChild(aDiv);
+  try{
+    const prompt=`הקשר: סיכום יום של איתן (דיאטן):\n${day.closeSummary}\n\nשאלת המשך: ${q}\n\nענה בקצרה בעברית, 2-4 משפטים. אל תחזיר JSON.`;
+    const body=JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.4,thinkingConfig:{thinkingBudget:0}}});
+    let resp;
+    for(const model of GEMINI_MODELS){ resp=await callGemini(model,body,key); if(resp.ok) break; }
+    if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
+    const j=await resp.json();
+    const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    aDiv.innerHTML=answer.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>')||"אין תשובה";
+  }catch(e){ aDiv.innerHTML='<span class="text-red-600">'+esc(e.message||String(e))+'</span>'; }
+  hist.scrollIntoView({behavior:"smooth",block:"end"});
 }
 
 // ===== גיבוי/שחזור =====
@@ -1821,7 +1850,8 @@ function start(){
   $("strength-modal").onclick=e=>{ if(e.target===$("strength-modal")) closeStrengthModal(); };
   $("strength-modal-toggle").onchange=e=>{ ensure(viewDay).strength=e.target.checked; $("strength").checked=e.target.checked; persist(); render(); renderStrengthHistory(); };
   $("btn-close-day").onclick=onCloseDay;
-  $("close-day-dismiss").onclick=()=>{ hide($("close-day-summary")); show($("btn-close-day")); };
+  $("close-day-q-send").onclick=onCloseDayQ;
+  $("close-day-q").onkeydown=e=>{ if(e.key==="Enter") onCloseDayQ(); };
 
   // עריכת ארוחות שמורות (לחיצה על קלוריות/חלבון)
   $("cal-box").onclick=openMealsModal;
