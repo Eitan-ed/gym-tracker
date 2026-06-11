@@ -1307,7 +1307,7 @@ function addFavToDay(idx){
   } else {
     day.meals.push({desc:f.desc||favLabel(f), items:(f.items||[]).map(it=>Object.assign({},it)), note:f.note||"", time});
   }
-  persist(); renderDay();
+  persist(); render();
   closeFavModal();
   showView("home");
   toast("✔ נוסף מהמועדפים");
