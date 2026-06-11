@@ -114,7 +114,7 @@
 
     <div id="results" class="hx space-y-2 pt-1">
       <p class="text-[10px] text-[#404848]">אפשר לערוך כל שדה, להוסיף פריט למועדפים (כוכב), או להוסיף הבהרה ולחשב מחדש.</p>
-      <div id="results-edit" class="space-y-2"></div>
+      <div id="results-edit" class="space-y-3"></div>
       <div class="flex items-center justify-between border-t-2 border-[#003535] pt-1 font-bold text-[#003535] text-sm">
         <span>סה"כ</span><span><span id="sum-cal">0</span> קק"ל &middot; <span id="sum-prot">0</span> ג'</span>
       </div>
@@ -293,7 +293,7 @@
       <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <p class="text-[11px] text-[#404848]">לחיצה על מועדפת מוסיפה אותה ליום הנוכחי. לשמירת מועדפת — כוכב בעריכת הארוחות.</p>
-    <div id="fav-list" class="space-y-2"></div>
+    <div id="fav-list" class="space-y-3"></div>
   </div>
 </div>
 
@@ -304,7 +304,7 @@
       <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#006c49]">stethoscope</span> הערות תזונתיות</h2>
       <button id="close-note-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <div id="note-list" class="space-y-2"></div>
+    <div id="note-list" class="space-y-3"></div>
   </div>
 </div>
 
@@ -334,7 +334,7 @@
       <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#633d00]">kebab_dining</span> צריכת בקר שבועית</h2>
       <button id="close-beef-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <div id="beef-list" class="space-y-2"></div>
+    <div id="beef-list" class="space-y-3"></div>
     <div id="beef-total" class="flex items-center justify-between border-t-2 border-[#003535] pt-2 font-bold text-[#003535] text-sm"></div>
   </div>
 </div>
@@ -478,7 +478,7 @@
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + טוענת לאזור הוספת ארוחה.</p>
-        <div id="fav-manage-list" class="space-y-2"></div>
+        <div id="fav-manage-list" class="space-y-3"></div>
         <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
           <h4 class="text-xs font-bold text-[#404848]">הוספת מועדף ידנית</h4>
           <input id="new-fav-name" type="text" placeholder="שם הפריט" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
@@ -534,7 +534,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.0.1";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1283,33 +1283,47 @@ function renderFavBox(box){
       ? ((f.amount?esc(f.amount)+' &middot; ':'')+'<b>'+(f.calories||0)+'</b> קק"ל &middot; <b>'+(f.protein||0)+'</b> ג\'')
       : ('<b>'+(f.calories||0)+'</b> קק"ל &middot; <b>'+(f.protein||0)+'</b> ג\' חלבון');
     const div=document.createElement("div");
-    div.className="flex items-center gap-2 bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40";
+    div.className="fav-row flex items-center gap-2.5 bg-[#eff4ff] rounded-xl px-3 py-2.5 border border-[#bfc8c8]/40 cursor-pointer active:bg-[#dce9ff]";
+    div.dataset.idx=i;
     div.innerHTML='<span class="material-symbols-outlined text-[18px] '+(isItem?'text-[#0061a4]':'text-[#e6a700]')+'">'+icon+'</span>'
       +'<div class="flex-1 min-w-0"><div class="text-sm font-bold text-[#003535] truncate">'+esc(favLabel(f))+'</div>'
       +'<div class="text-[11px] text-[#404848]">'+sub+'</div></div>'
-      +'<button class="fav-add material-symbols-outlined text-[#006c49] text-[22px]" data-idx="'+i+'">add_circle</button>'
-      +'<button class="fav-del material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">delete</button>';
+      +'<button class="fav-edit material-symbols-outlined text-[#0061a4] text-[18px] shrink-0" data-idx="'+i+'" title="ערוך">edit</button>'
+      +'<button class="fav-del material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-idx="'+i+'">delete</button>';
     box.appendChild(div);
   });
-  box.querySelectorAll(".fav-add").forEach(btn=>btn.onclick=()=>addFavToDay(+btn.dataset.idx));
+  box.querySelectorAll(".fav-row").forEach(row=>row.onclick=e=>{ if(e.target.closest(".fav-edit")||e.target.closest(".fav-del")) return; addFavToDay(+row.dataset.idx); });
+  box.querySelectorAll(".fav-edit").forEach(btn=>btn.onclick=()=>editFavorite(+btn.dataset.idx, box));
   box.querySelectorAll(".fav-del").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק מהמועדפים?")) return; S.favorites.splice(+btn.dataset.idx,1); persist(); renderFavorites(); });
 }
 function addFavToDay(idx){
   const f=(S.favorites||[])[idx]; if(!f) return;
+  const day=getDay(currentDateId());
+  const now=new Date(); const hh=String(now.getHours()).padStart(2,"0"); const mm=String(now.getMinutes()).padStart(2,"0"); const time=hh+":"+mm;
+  if(f.type==="item"){
+    day.meals.push({desc:f.name, items:[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}], note:"", time});
+  } else {
+    day.meals.push({desc:f.desc||favLabel(f), items:(f.items||[]).map(it=>Object.assign({},it)), note:f.note||"", time});
+  }
+  persist(); renderDay();
   closeFavModal();
   showView("home");
-  if(f.type==="item"){
-    $("meal-desc").value=f.name;
-    pending=[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}];
-    pendingNote="";
+  toast("✔ נוסף מהמועדפים");
+}
+
+function editFavorite(idx, box){
+  const f=(S.favorites||[])[idx]; if(!f) return;
+  const isItem=f.type==="item";
+  const name=prompt("שם:", favLabel(f)); if(name===null) return;
+  const cal=prompt("קלוריות:", f.calories||0); if(cal===null) return;
+  const prot=prompt("חלבון (גרם):", f.protein||0); if(prot===null) return;
+  if(isItem){
+    const amt=prompt("כמות:", f.amount||""); if(amt===null) return;
+    f.name=name; f.calories=Math.round(+cal)||0; f.protein=Math.round(+prot)||0; f.amount=amt;
   } else {
-    $("meal-desc").value=f.desc||favLabel(f);
-    pending=(f.items||[]).map(it=>Object.assign({},it));
-    pendingNote=f.note||"";
+    f.desc=name; f.calories=Math.round(+cal)||0; f.protein=Math.round(+prot)||0;
   }
-  renderResults();
-  updateCalcState();
-  toast("נטען מהמועדפים — בדוק ושמור");
+  persist(); renderFavBox(box);
 }
 
 function addManualFavorite(){
