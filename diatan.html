@@ -1300,17 +1300,20 @@ function renderFavBox(box){
 }
 function addFavToDay(idx){
   const f=(S.favorites||[])[idx]; if(!f) return;
-  const day=ensure(viewDay);
-  const now=new Date(); const hh=String(now.getHours()).padStart(2,"0"); const mm=String(now.getMinutes()).padStart(2,"0"); const time=hh+":"+mm;
-  if(f.type==="item"){
-    day.meals.push({desc:f.name, items:[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}], note:"", time});
-  } else {
-    day.meals.push({desc:f.desc||favLabel(f), items:(f.items||[]).map(it=>Object.assign({},it)), note:f.note||"", time});
-  }
-  persist(); render();
   closeFavModal();
   showView("home");
-  toast("✔ נוסף מהמועדפים");
+  if(f.type==="item"){
+    $("meal-desc").value=f.name;
+    pending=[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}];
+    pendingNote="";
+  } else {
+    $("meal-desc").value=f.desc||favLabel(f);
+    pending=(f.items||[]).map(it=>Object.assign({},it));
+    pendingNote=f.note||"";
+  }
+  renderResults();
+  updateCalcState();
+  toast("נטען מהמועדפים — בדוק ושמור");
 }
 
 function editFavorite(idx, box){
