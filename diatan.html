@@ -62,7 +62,7 @@
         </div>
 
         <button id="hmenu-fav" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
-          <span class="material-symbols-outlined text-[#e6a700] text-[20px]">star</span><span class="font-bold text-[#003535]">ארוחות מועדפות</span>
+          <span class="material-symbols-outlined text-[#e6a700] text-[20px]">star</span><span class="font-bold text-[#003535]">מאכלים מועדפים</span>
         </button>
         <button id="hmenu-report" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
           <span class="material-symbols-outlined text-[#003535] text-[20px]">description</span><span class="font-bold text-[#003535]">דוח יומי</span>
@@ -76,17 +76,17 @@
 </header>
 
 <!-- ===== מסך הבית ===== -->
-<main id="home-view" class="max-w-2xl mx-auto px-3 pt-1.5 pb-3 space-y-1.5">
+<main id="home-view" class="max-w-2xl mx-auto px-3 pt-1 pb-3 space-y-2">
 
   <!-- ניווט ימים -->
-  <div id="day-bar" class="flex items-center justify-between rounded-xl px-3 py-1 shadow-sm">
+  <div id="day-bar" class="flex items-center justify-between rounded-xl px-3 py-1.5 shadow-sm">
     <button id="day-prev" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_right</button>
     <button id="day-label" class="text-base font-extrabold px-3 py-0.5 rounded-lg active:scale-95 flex items-center gap-1">היום <span class="material-symbols-outlined text-[16px]">calendar_month</span></button>
     <button id="day-next" class="material-symbols-outlined text-[#003535] p-1 active:scale-90 text-[22px]">chevron_left</button>
   </div>
 
   <!-- הוספת ארוחה -->
-  <section class="bg-white border border-[#bfc8c8] p-2.5 rounded-2xl shadow-sm space-y-2">
+  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-2.5">
     <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
     <input type="file" id="gallery-input" accept="image/*" multiple class="hx">
     <div class="flex gap-2">
@@ -134,7 +134,7 @@
   </section>
 
   <!-- סיכום יומי -->
-  <section class="bg-white border border-[#bfc8c8] p-2.5 rounded-2xl shadow-sm space-y-2">
+  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-2.5">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-1.5 flex-wrap">
         <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff0e0] text-[#b54708] border border-[#f5b67a]/50"></span>
@@ -183,22 +183,22 @@
   </section>
 
   <!-- פעילות + משקל — שורה אחת -->
-  <div class="grid grid-cols-3 gap-1.5">
-    <button id="btn-steps" class="bg-white border border-[#bfc8c8] p-2 rounded-xl shadow-sm flex flex-col items-center gap-0 text-center active:scale-[0.98]">
-      <span class="material-symbols-outlined text-[#003535] text-[16px]">steps</span>
-      <span class="text-[9px] font-medium text-[#404848]">צעדים</span>
-      <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-sm font-bold text-[#003535]">0</span><span class="text-[8px] text-[#404848]">/<span id="steps-goal-label">8K</span></span></div>
+  <div class="grid grid-cols-3 gap-2">
+    <button id="btn-steps" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+      <span class="material-symbols-outlined text-[#003535] text-[18px]">steps</span>
+      <span class="text-[10px] font-medium text-[#404848]">צעדים</span>
+      <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-base font-bold text-[#003535]">0</span><span class="text-[9px] text-[#404848]">/<span id="steps-goal-label">8K</span></span></div>
     </button>
-    <div class="bg-white border border-[#bfc8c8] p-2 rounded-xl shadow-sm flex flex-col items-center gap-0 text-center">
-      <span class="material-symbols-outlined text-[#006c49] text-[16px]">fitness_center</span>
-      <span class="text-[9px] font-medium text-[#404848]">אימון כוח</span>
+    <button id="btn-strength" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+      <span class="material-symbols-outlined text-[#006c49] text-[18px]">fitness_center</span>
+      <span class="text-[10px] font-medium text-[#404848]">אימון כוח</span>
       <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
         <div class="w-9 h-[18px] bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-[14px] after:w-[14px] after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
-    </div>
-    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2 rounded-xl shadow-sm flex flex-col items-center gap-0 text-center active:scale-[0.98]">
-      <span class="material-symbols-outlined text-[#003535] text-[16px]">monitor_weight</span>
-      <span class="text-[9px] font-medium text-[#404848]">משקל</span>
-      <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-sm font-bold text-[#003535]">--</span><span class="text-[8px] text-[#404848]">ק"ג</span></div>
+    </button>
+    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+      <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
+      <span class="text-[10px] font-medium text-[#404848]">משקל</span>
+      <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
     </button>
   </div>
 
@@ -225,11 +225,29 @@
     <div class="flex gap-2">
       <input id="wm-value" type="number" step="0.1" placeholder='ק"ג' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
       <button id="wm-save" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
+      <button id="wm-graph" class="bg-[#0061a4] text-white font-bold px-3 rounded-xl text-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">show_chart</span>גרף</button>
     </div>
     <div class="border-t border-[#bfc8c8] pt-2">
       <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריה</h4>
       <div id="wm-history" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div>
     </div>
+  </div>
+</div>
+
+<!-- ===== מודאל גרף משקל ===== -->
+<div id="weight-graph-modal" class="hx fixed inset-0 z-[75] bg-black/40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl p-4 w-full max-w-md shadow-2xl space-y-3">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">show_chart</span> גרף משקל</h2>
+      <button id="close-wg-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <div class="flex gap-1 justify-center">
+      <button class="wg-range-btn px-3 py-1 rounded-lg text-xs font-bold active:scale-95" data-range="all">מההתחלה</button>
+      <button class="wg-range-btn px-3 py-1 rounded-lg text-xs font-bold active:scale-95" data-range="month">חודש</button>
+      <button class="wg-range-btn px-3 py-1 rounded-lg text-xs font-bold active:scale-95" data-range="year">שנה</button>
+    </div>
+    <div id="wg-chart" class="w-full"></div>
+    <div id="wg-trend" class="text-center text-sm font-bold"></div>
   </div>
 </div>
 
@@ -267,11 +285,11 @@
   </div>
 </div>
 
-<!-- ===== מודאל ארוחות מועדפות ===== -->
+<!-- ===== מודאל מאכלים מועדפים ===== -->
 <div id="fav-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
   <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
     <div class="flex justify-between items-center">
-      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#e6a700]">star</span> ארוחות מועדפות</h2>
+      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#e6a700]">star</span> מאכלים מועדפים</h2>
       <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <p class="text-[11px] text-[#404848]">לחיצה על מועדפת מוסיפה אותה ליום הנוכחי. לשמירת מועדפת — כוכב בעריכת הארוחות.</p>
@@ -287,6 +305,25 @@
       <button id="close-note-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <div id="note-list" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- ===== מודאל אימון כוח ===== -->
+<div id="strength-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[70vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#006c49]">fitness_center</span> אימון כוח</h2>
+      <button id="close-strength-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <div class="flex items-center justify-between bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40">
+      <span class="text-sm font-bold text-[#003535]">אימנת היום?</span>
+      <label class="relative inline-flex items-center cursor-pointer"><input id="strength-modal-toggle" type="checkbox" class="sr-only peer">
+        <div class="w-10 h-5 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
+    </div>
+    <div class="border-t border-[#bfc8c8] pt-2">
+      <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריית אימונים</h4>
+      <div id="strength-history" class="space-y-1 max-h-48 overflow-y-auto text-sm"></div>
+    </div>
   </div>
 </div>
 
@@ -497,7 +534,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "2.9";
+const APP_VERSION = "3.0";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -979,6 +1016,53 @@ function renderWeightHistoryModal(){
   });
 }
 
+// ===== מודאל גרף משקל =====
+let wgRange="all";
+function openWeightGraph(){
+  wgRange="all"; renderWeightGraphModal(); show($("weight-graph-modal"));
+}
+function closeWeightGraph(){ hide($("weight-graph-modal")); }
+function renderWeightGraphModal(){
+  document.querySelectorAll(".wg-range-btn").forEach(b=>{
+    const active=b.dataset.range===wgRange;
+    b.className="wg-range-btn px-3 py-1 rounded-lg text-xs font-bold active:scale-95 "+(active?"bg-[#0061a4] text-white":"bg-[#eff4ff] text-[#003535] border border-[#bfc8c8]");
+  });
+  const ws=(S.weights||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const now=new Date();
+  let filtered=ws;
+  if(wgRange==="month"){ const cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-30); filtered=ws.filter(w=>idToDate(w.date)>=cutoff); }
+  else if(wgRange==="year"){ const cutoff=new Date(now); cutoff.setFullYear(cutoff.getFullYear()-1); filtered=ws.filter(w=>idToDate(w.date)>=cutoff); }
+  const wrap=$("wg-chart"), trendEl=$("wg-trend");
+  if(filtered.length<2){ wrap.innerHTML='<p class="text-[11px] text-[#404848] text-center py-6">דרושות לפחות 2 מדידות בטווח זה.</p>'; trendEl.textContent=''; return; }
+  const W=340,H=160,pad=30;
+  const xs=filtered.map(w=>idToDate(w.date).getTime());
+  const kgs=filtered.map(w=>+w.kg);
+  const minK=Math.min(...kgs), maxK=Math.max(...kgs), rangeK=(maxK-minK)||1;
+  const minX=xs[0], maxX=xs[xs.length-1], rangeX=(maxX-minX)||1;
+  const px=t=>pad+(t-minX)/rangeX*(W-2*pad);
+  const py=k=>pad+(1-(k-minK)/rangeK)*(H-2*pad);
+  const pts=filtered.map((w,i)=>px(xs[i]).toFixed(1)+","+py(kgs[i]).toFixed(1)).join(" ");
+  const dots=filtered.map((w,i)=>'<circle cx="'+px(xs[i]).toFixed(1)+'" cy="'+py(kgs[i]).toFixed(1)+'" r="3" fill="#0061a4"/>'
+    +'<text x="'+px(xs[i]).toFixed(1)+'" y="'+(py(kgs[i])-6).toFixed(1)+'" font-size="8" fill="#404848" text-anchor="middle">'+w.kg+'</text>').join("");
+  const gridLines=5; let gridSvg='';
+  for(let i=0;i<=gridLines;i++){
+    const k=minK+rangeK*i/gridLines;
+    const y=py(k);
+    gridSvg+='<line x1="'+pad+'" x2="'+(W-pad)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#e5eeff" stroke-width="0.5"/>';
+    gridSvg+='<text x="'+(pad-3)+'" y="'+(y+3).toFixed(1)+'" font-size="8" fill="#999" text-anchor="end">'+k.toFixed(1)+'</text>';
+  }
+  wrap.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" class="w-full" style="height:160px">'+gridSvg
+    +'<polyline points="'+pts+'" fill="none" stroke="#0061a4" stroke-width="2" stroke-linejoin="round"/>'+dots+'</svg>';
+  const n=filtered.length, t0=xs[0];
+  const X=xs.map(t=>(t-t0)/86400000);
+  const mx=X.reduce((a,b)=>a+b,0)/n, my=kgs.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0; for(let i=0;i<n;i++){ num+=(X[i]-mx)*(kgs[i]-my); den+=(X[i]-mx)*(X[i]-mx); }
+  const perWeek=(den?num/den:0)*7, abs=Math.abs(perWeek).toFixed(2);
+  if(Math.abs(perWeek)<0.01){ trendEl.textContent='מגמה: יציב'; trendEl.style.color='#404848'; }
+  else if(perWeek<0){ trendEl.innerHTML='מגמה: ירידה '+abs+' ק"ג/שבוע'; trendEl.style.color='#006c49'; }
+  else { trendEl.innerHTML='מגמה: עלייה '+abs+' ק"ג/שבוע'; trendEl.style.color='#ba1a1a'; }
+}
+
 // ===== מודאל צעדים =====
 function openStepsModal(){
   $("sm-value").value = ensure(viewDay).steps||"";
@@ -1007,6 +1091,26 @@ function renderStepsHistoryModal(){
 }
 
 function onStrength(e){ ensure(viewDay).strength=e.target.checked; persist(); render(); }
+function openStrengthModal(){
+  $("strength-modal-toggle").checked=!!ensure(viewDay).strength;
+  renderStrengthHistory();
+  show($("strength-modal"));
+}
+function closeStrengthModal(){ hide($("strength-modal")); }
+function renderStrengthHistory(){
+  const box=$("strength-history"); box.innerHTML="";
+  if(!S.days) return;
+  const days=Object.keys(S.days).sort().reverse().slice(0,30);
+  let count=0;
+  days.forEach(id=>{
+    const d=S.days[id]; if(!d.strength) return; count++;
+    const div=document.createElement("div");
+    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span>'+fmtDate(id)+'</span><span class="material-symbols-outlined text-[#006c49] text-[16px]">check_circle</span>';
+    box.appendChild(div);
+  });
+  if(!count) box.innerHTML='<p class="text-[11px] text-[#404848]">אין אימונים ב-30 ימים אחרונים</p>';
+}
 
 // ===== מודאל עריכת ארוחות שמורות =====
 let mealsDirty=false;
@@ -1681,6 +1785,10 @@ function start(){
   $("btn-weight").onclick=openWeightModal;
   $("close-weight-modal").onclick=closeWeightModal;
   $("wm-save").onclick=saveWeightModal;
+  $("wm-graph").onclick=openWeightGraph;
+  $("close-wg-modal").onclick=closeWeightGraph;
+  $("weight-graph-modal").onclick=e=>{ if(e.target===$("weight-graph-modal")) closeWeightGraph(); };
+  document.querySelectorAll(".wg-range-btn").forEach(b=>b.onclick=()=>{ wgRange=b.dataset.range; renderWeightGraphModal(); });
   $("weight-modal").onclick=e=>{ if(e.target===$("weight-modal")) closeWeightModal(); };
 
   $("btn-steps").onclick=openStepsModal;
@@ -1689,6 +1797,10 @@ function start(){
   $("steps-modal").onclick=e=>{ if(e.target===$("steps-modal")) closeStepsModal(); };
 
   $("strength").onchange=onStrength;
+  $("btn-strength").onclick=openStrengthModal;
+  $("close-strength-modal").onclick=closeStrengthModal;
+  $("strength-modal").onclick=e=>{ if(e.target===$("strength-modal")) closeStrengthModal(); };
+  $("strength-modal-toggle").onchange=e=>{ ensure(viewDay).strength=e.target.checked; $("strength").checked=e.target.checked; persist(); render(); renderStrengthHistory(); };
   $("btn-close-day").onclick=onCloseDay;
   $("close-day-dismiss").onclick=()=>{ hide($("close-day-summary")); show($("btn-close-day")); };
 
@@ -1729,7 +1841,7 @@ function start(){
   $("btn-add-fav").onclick=addManualFavorite;
 
   document.addEventListener("keydown", e=>{
-    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeStepsModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
+    if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeWeightGraph(); closeStepsModal(); closeStrengthModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
   });
 
   render();
