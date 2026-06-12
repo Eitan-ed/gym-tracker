@@ -124,6 +124,10 @@
         <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
       </div>
       <div id="chat-answer" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e8f0fe] border border-[#0061a4]/30 rounded-xl p-2.5"></div>
+      <div id="chat-followup" class="hx flex gap-2">
+        <input id="chat-followup-q" type="text" placeholder="שאלת המשך..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
+        <button id="btn-followup" class="shrink-0 bg-[#0061a4] text-white px-4 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98]"><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
+      </div>
       <div class="flex gap-2">
         <button id="btn-save" class="flex-1 bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
           <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
@@ -572,7 +576,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.5";
+const APP_VERSION = "3.6";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -603,6 +607,8 @@ const BEEF_EXEMPT = ["שייטל","כתף"];
 const SUGAR_KW = ["סוכר","ממתק","שוקולד","עוגה","עוגיה","עוגיות","גלידה","קולה","מיץ","דבש","ריבה","וופל","סופגניה","קרואסון"];
 
 function stepsGoal(){ return +(S.stepsGoal||DEFAULT_STEPS_GOAL); }
+function parseAmtNum(s){ const m=String(s||"").match(/^[\d.]+/); return m?m[0]:""; }
+function parseAmtUnit(s){ return String(s||"").replace(/^[\d.\s]+/,"").trim(); }
 const norm = s => String(s||"").replace(/\s+/g," ").trim().toLowerCase();
 const hasAll = (t,p) => { const x=norm(t), w=norm(p).split(" ").filter(Boolean); return w.length>0 && w.every(k=>x.includes(k)); };
 const hasAny = (t,arr) => { const x=norm(t); return arr.some(k=>x.includes(norm(k))); };
@@ -902,7 +908,9 @@ function applyResultsEdit(){
   $("results-edit").querySelectorAll(".r-row").forEach(row=>{
     const i=+row.dataset.i; const it=pending[i]; if(!it) return;
     it.name=row.querySelector(".r-name").value.trim();
-    it.amount=row.querySelector(".r-amt").value.trim();
+    const num=row.querySelector(".r-amt").value.trim();
+    const unit=row.querySelector(".r-unit").value.trim();
+    it.amount=(num&&unit)?num+" "+unit:(num||unit||"");
     it.calories=Math.round(+row.querySelector(".r-cal").value||0);
     it.protein=Math.round(+row.querySelector(".r-prot").value||0);
   });
@@ -927,7 +935,8 @@ function renderResults(){
       +'<button class="r-del material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-i="'+i+'">close</button>'
       +'</div>'
       +'<div class="flex gap-1.5 items-center pr-7">'
-      +'<div class="flex items-center gap-1 flex-1 min-w-0"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="r-amt flex-1 min-w-0 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1.5 py-1 text-[11px] font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="r-amt w-12 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] font-bold text-[#ba1a1a] text-center" placeholder="—" value="'+esc(parseAmtNum(it.amount||(it.beefGrams?String(it.beefGrams):"")))+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">יח׳</span><input class="r-unit w-14 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-[#ba1a1a]" placeholder="—" value="'+esc(parseAmtUnit(it.amount||(it.beefGrams?"גרם":"")))+'"></div>'
       +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="r-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
       +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
       +'</div>';
@@ -935,7 +944,7 @@ function renderResults(){
   });
   box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{
     applyResultsEdit(); pending.splice(+btn.dataset.i,1);
-    if(!pending.length){ hide($("results")); hide($("ai-note")); pendingNote=""; $("meal-refine").value=""; recalcBaseline=null; return; }
+    if(!pending.length){ hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); pendingNote=""; $("meal-refine").value=""; recalcBaseline=null; return; }
     renderResults();
   });
   box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
@@ -944,6 +953,7 @@ function renderResults(){
   const noteEl=$("ai-note");
   if(pendingNote){ noteEl.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#006c49]">stethoscope</span> '+esc(pendingNote); show(noteEl); }
   else hide(noteEl);
+  hide($("chat-answer")); hide($("chat-followup"));
   show($("results"));
   snapshotRecalcBaseline();
   $("btn-recalc").disabled=true;
@@ -973,8 +983,36 @@ async function onAsk(){
     el.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#0061a4]">chat</span> <b>שאלה:</b> '+esc(q)+'<br><b>תשובה:</b> '+esc(answer);
     show(el);
     $("meal-refine").value="";
+    show($("chat-followup")); $("chat-followup-q").value=""; $("chat-followup-q").focus();
   }catch(e){ toast(e.message||String(e),true); }
   finally{ $("btn-ask").disabled=false; }
+}
+async function onFollowup(){
+  const q=$("chat-followup-q").value.trim(); if(!q) return;
+  applyResultsEdit();
+  const itemsCtx=pending.length ? pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קק"ל, '+it.protein+" ג' חלבון").join("\n") : "";
+  const prevQ=$("chat-answer").textContent||"";
+  const key=S.apiKey;
+  if(!key){ toast("חסר מפתח Gemini",true); return; }
+  $("btn-followup").disabled=true;
+  try{
+    const prompt='אתה תזונאי בכיר. הנה הארוחה הנוכחית של איתן:\n'+itemsCtx+'\n\nהקשר קודם:\n'+prevQ+'\n\nשאלת המשך: '+q+'\n\nענה בקצרה בעברית (2-3 משפטים). אל תחזיר JSON.';
+    const parts=[{text:prompt}];
+    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.3,thinkingConfig:{thinkingBudget:0}}});
+    let resp;
+    for(const model of GEMINI_MODELS){
+      resp=await callGemini(model,body,key);
+      if(resp.ok) break;
+    }
+    if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
+    const j=await resp.json();
+    const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    if(!answer) throw new Error("תשובה ריקה");
+    const el=$("chat-answer");
+    el.innerHTML+='<hr class="my-1.5 border-[#0061a4]/20"><span class="material-symbols-outlined text-[13px] align-middle text-[#0061a4]">chat</span> <b>שאלה:</b> '+esc(q)+'<br><b>תשובה:</b> '+esc(answer);
+    $("chat-followup-q").value="";
+  }catch(e){ toast(e.message||String(e),true); }
+  finally{ $("btn-followup").disabled=false; }
 }
 async function onRecalc(){
   applyResultsEdit();
@@ -997,9 +1035,9 @@ async function onCalc(){
   if(!text && !pendingFiles.length){ toast("הזן תיאור או צרף תמונה", true); return; }
   $("btn-calc").disabled=true; $("calc-text").textContent="..."; $("calc-icon").textContent="hourglass_top";
   try { const res=await analyze(text, pendingFiles); pending=res.items; pendingNote=res.note;
-    if(!pending.length) toast("לא זוהו פריטים", true); else renderResults();
+    if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); $("meal-desc").value=""; pendingFiles=[]; $("photo-previews").innerHTML=""; hide($("photo-previews")); }
   } catch(e){ toast(e.message||String(e), true); }
-  finally { $("btn-calc").disabled=false; $("calc-text").textContent="חשב"; $("calc-icon").textContent="calculate"; }
+  finally { $("calc-text").textContent="חשב"; $("calc-icon").textContent="calculate"; updateCalcState(); }
 }
 function onSave(){
   if(!pending.length) return;
@@ -1008,7 +1046,7 @@ function onSave(){
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=i.calories;p+=i.protein;bg+=(+i.beefGrams||0);});
   day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
   persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("meal-refine").value="";
-  hide($("results")); hide($("ai-note")); hide($("chat-answer")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
+  hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
   render(); updateCalcState(); toast("הארוחה נשמרה");
 }
 function onPhoto(e){
@@ -1259,7 +1297,9 @@ function applyMealsEdit(){
     const mi=+row.dataset.mi, ii=+row.dataset.ii;
     const m=day.meals[mi]; if(!m||!m.items||!m.items[ii]) return;
     m.items[ii].name=row.querySelector(".me-name").value.trim();
-    m.items[ii].amount=row.querySelector(".me-amt").value.trim();
+    const num=row.querySelector(".me-amt").value.trim();
+    const unit=row.querySelector(".me-unit").value.trim();
+    m.items[ii].amount=(num&&unit)?num+" "+unit:(num||unit||"");
     m.items[ii].calories=Math.round(+row.querySelector(".me-cal").value||0);
     m.items[ii].protein=Math.round(+row.querySelector(".me-prot").value||0);
   });
@@ -1296,7 +1336,8 @@ function renderMealsEdit(){
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'">close</button>'
         +'</div>'
         +'<div class="flex gap-1.5 items-center pr-7">'
-        +'<div class="flex items-center gap-1 flex-1 min-w-0"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="me-amt flex-1 min-w-0 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1.5 py-1 text-[11px] font-bold text-[#ba1a1a]" placeholder="כמות" value="'+esc(it.amount||(it.beefGrams?it.beefGrams+" גרם":""))+'"></div>'
+        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="me-amt w-12 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] font-bold text-[#ba1a1a] text-center" placeholder="—" value="'+esc(parseAmtNum(it.amount||(it.beefGrams?String(it.beefGrams):"")))+'"></div>'
+        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">יח׳</span><input class="me-unit w-14 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-[#ba1a1a]" placeholder="—" value="'+esc(parseAmtUnit(it.amount||(it.beefGrams?"גרם":"")))+'"></div>'
         +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="me-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
         +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
         +'</div></div>';
@@ -1962,6 +2003,7 @@ function start(){
   $("btn-calc").onclick=onCalc;
   $("btn-recalc").onclick=onRecalc;
   $("btn-ask").onclick=onAsk;
+  $("btn-followup").onclick=onFollowup;
   $("btn-save").onclick=onSave;
   $("meal-desc").addEventListener("input",updateCalcState);
   $("meal-refine").addEventListener("input",()=>{ updateRecalcState(); $("btn-ask").disabled=!$("meal-refine").value.trim(); });
