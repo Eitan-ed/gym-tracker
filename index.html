@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.16';
+const APP_VERSION = '9.17';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1398,7 +1398,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, initialOpenSection=null, onClearOpenSection=null }) => {
     const [open, setOpen] = useState(()=>{
-        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false};
+        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false};
         if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
         return base;
     });
@@ -1412,7 +1412,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const musicRef     = React.useRef(null);
     const progressRef  = React.useRef(null);
     const instructorsRef = React.useRef(null);
-    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef };
+    const gymInfoRef = React.useRef(null);
+    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef, gymInfo: gymInfoRef };
     React.useEffect(()=>{
         if (initialOpenSection && sectionRefs[initialOpenSection]) {
             setOpen(p => ({...p, [initialOpenSection]: true}));
@@ -1424,7 +1425,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         }
     }, [initialOpenSection]);
     // ─── סידור אלפביתי (א"ב) של קטגוריות הניהול — אוטומטי בכל הוספת קטגוריה ───
-    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'מדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים' };
+    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'מדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים', gymInfo:'שעות פתיחת מכון' };
     const sectionOrder = Object.entries(SECTION_TITLES).sort((a,b)=>a[1].localeCompare(b[1],'he')).map(e=>e[0]);
     const ord = key => sectionOrder.indexOf(key);
     const toggleSection = key => {
@@ -1786,6 +1787,31 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         ))}
                     </div>}
                 </section>
+                {/* ── ש: שעות פתיחת מכון ── */}
+                <section ref={gymInfoRef} style={{order:ord('gymInfo')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0`}>
+                    <button onClick={()=>toggleSection('gymInfo')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Clock" size={20} className="text-blue-500" /> שעות פתיחת מכון</h3>
+                        <Icon name={open.gymInfo?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.gymInfo && <div className="px-5 pb-5 space-y-3">
+                        <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-2">
+                            <div className="flex items-center gap-2 text-sm font-black text-slate-700"><Icon name="Clock" size={16} className="text-blue-400" /> שעות פתיחה</div>
+                            <div className="space-y-1 text-[13px] font-bold text-slate-600 mr-6">
+                                <div className="flex justify-between"><span>א׳ – ה׳</span><span className="font-black text-slate-800" dir="ltr">06:00 – 23:00</span></div>
+                                <div className="flex justify-between"><span>ו׳</span><span className="font-black text-slate-800" dir="ltr">06:00 – 16:00</span></div>
+                                <div className="flex justify-between"><span>ש׳</span><span className="font-black text-slate-800" dir="ltr">08:00 – 13:00</span></div>
+                            </div>
+                        </div>
+                        <a href="tel:*6628" className="flex items-center gap-3 bg-green-50 p-4 rounded-2xl border border-green-100 text-green-700 active:scale-[0.98]">
+                            <div className="bg-green-100 p-2 rounded-xl"><Icon name="Phone" size={20} /></div>
+                            <div><div className="font-black text-sm">טלפון</div><div className="text-[13px] font-bold" dir="ltr">*6628</div></div>
+                        </a>
+                        <a href="https://www.iconfitness.co.il/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
+                            <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Globe" size={20} /></div>
+                            <div><div className="font-black text-sm">אתר המכון</div><div className="text-[11px] font-bold opacity-70">iconfitness.co.il</div></div>
+                        </a>
+                    </div>}
+                </section>
             </div>
         </div>
     );
@@ -1826,7 +1852,8 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
         { key:'instructors', label:'מדריכים',            icon:'BookOpen',     color:'text-rose-500' },
         { key:'music',       label:'מוזיקה',             icon:'Music',        color:'text-purple-500' },
         { key:'progress',    label:'תדירות אימון',       icon:'CheckCircle2', color:'text-emerald-500' },
-        { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' }
+        { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
+        { key:'gymInfo',     label:'שעות פתיחת מכון',    icon:'Clock',        color:'text-blue-500' }
     ].sort((a,b)=>a.label.localeCompare(b.label,'he'));
     const topItems = [
         { key:'list',    label:'בית',      icon:'Home' },
