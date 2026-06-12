@@ -199,6 +199,7 @@
       <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
       <span class="text-[10px] font-medium text-[#404848]">משקל</span>
       <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
+      <span id="weight-week-diff" class="text-[9px] font-bold"></span>
     </button>
   </div>
 
@@ -225,10 +226,27 @@
       <h2 class="text-base font-bold text-[#003535]">עדכון משקל</h2>
       <button id="close-weight-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
+    <!-- גלגלת משקל -->
+    <div class="flex flex-col items-center gap-2">
+      <div class="flex items-center gap-3">
+        <button id="wm-minus" class="w-10 h-10 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
+        <div id="wm-wheel" class="relative w-36 h-28 overflow-hidden select-none touch-none rounded-xl border border-[#bfc8c8] bg-[#f8f9ff]" style="cursor:grab">
+          <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#f8f9ff] to-transparent z-10 pointer-events-none"></div>
+          <div class="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#f8f9ff] to-transparent z-10 pointer-events-none"></div>
+          <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-9 border-y-2 border-[#0061a4]/30 bg-[#dce9ff]/40 z-[5] pointer-events-none"></div>
+          <div id="wm-wheel-inner" class="absolute inset-x-0 flex flex-col items-center" style="transition:transform 0.1s ease-out"></div>
+        </div>
+        <button id="wm-plus" class="w-10 h-10 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
+      </div>
+      <div class="flex items-baseline gap-1">
+        <span id="wm-display" class="text-3xl font-extrabold text-[#003535]">0.0</span>
+        <span class="text-sm font-bold text-[#404848]">ק"ג</span>
+      </div>
+      <input id="wm-value" type="hidden">
+    </div>
     <div class="flex gap-2">
-      <input id="wm-value" type="number" step="0.1" placeholder='ק"ג' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-      <button id="wm-save" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
-      <button id="wm-graph" class="bg-[#0061a4] text-white font-bold px-3 rounded-xl text-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">show_chart</span>גרף</button>
+      <button id="wm-save" class="flex-1 bg-[#006c49] text-white font-bold py-2.5 rounded-xl text-sm">שמור</button>
+      <button id="wm-graph" class="bg-[#0061a4] text-white font-bold px-4 rounded-xl text-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">show_chart</span>גרף</button>
     </div>
     <div class="border-t border-[#bfc8c8] pt-2">
       <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריה</h4>
@@ -537,7 +555,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.1";
+const APP_VERSION = "3.2";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -813,6 +831,21 @@ function render(){
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
+  // השוואת משקל לשבוע שעבר
+  const wdEl=$("weight-week-diff");
+  const todayW = day.weight||0;
+  if(todayW>0){
+    const d7=new Date(viewDay); d7.setDate(d7.getDate()-7);
+    const d7id=d7.toISOString().slice(0,10);
+    const prevDay=S.days&&S.days[d7id];
+    const prevW=prevDay&&prevDay.weight;
+    if(prevW>0){
+      const diff=Math.round((todayW-prevW)*10)/10;
+      if(diff<0){ wdEl.textContent=diff.toFixed(1); wdEl.style.color="#006c49"; }
+      else if(diff>0){ wdEl.textContent="+"+diff.toFixed(1); wdEl.style.color="#ba1a1a"; }
+      else { wdEl.textContent="0.0"; wdEl.style.color="#404848"; }
+    } else { wdEl.textContent=""; }
+  } else { wdEl.textContent=""; }
   const stNow=day.steps||0; const sg=stepsGoal();
   $("steps-now").textContent = stNow.toLocaleString();
   $("steps-now").className = "text-base font-bold "+(stNow>=sg?"text-[#006c49]":"text-[#003535]");
@@ -988,11 +1021,48 @@ function updateRecalcState(){
   $("btn-recalc").disabled=!changed;
 }
 
-// ===== מודאל משקל =====
+// ===== מודאל משקל — גלגלת =====
+let wmWheelVal = 80.0;
+const WM_STEP = 0.1, WM_MIN = 30, WM_MAX = 200;
+function wmSetVal(v){
+  wmWheelVal = Math.round(Math.max(WM_MIN, Math.min(WM_MAX, v))*10)/10;
+  $("wm-value").value = wmWheelVal;
+  $("wm-display").textContent = wmWheelVal.toFixed(1);
+  wmRenderWheel();
+}
+function wmRenderWheel(){
+  const inner=$("wm-wheel-inner"); inner.innerHTML="";
+  const count=9, half=Math.floor(count/2);
+  const baseIdx = Math.round(wmWheelVal*10);
+  for(let i=-half;i<=half;i++){
+    const val = (baseIdx+i)/10;
+    if(val<WM_MIN||val>WM_MAX) continue;
+    const div=document.createElement("div");
+    const isCenter = i===0;
+    div.className="h-9 flex items-center justify-center w-full "+(isCenter?"text-xl font-extrabold text-[#003535]":"text-sm font-medium text-[#404848]/60");
+    div.textContent=val.toFixed(1);
+    inner.appendChild(div);
+  }
+  inner.style.transform="translateY(0px)";
+}
+function initWmWheel(){
+  const wheel=$("wm-wheel");
+  let startY=0, dragging=false, startVal=0;
+  const onStart=e=>{ dragging=true; startY=(e.touches?e.touches[0]:e).clientY; startVal=wmWheelVal; wheel.style.cursor="grabbing"; };
+  const onMove=e=>{ if(!dragging) return; e.preventDefault(); const y=(e.touches?e.touches[0]:e).clientY; const diff=(startY-y)/36; wmSetVal(Math.round((startVal+diff*WM_STEP*10)*10)/10); };
+  const onEnd=()=>{ dragging=false; wheel.style.cursor="grab"; };
+  wheel.addEventListener("mousedown",onStart); wheel.addEventListener("touchstart",onStart,{passive:true});
+  window.addEventListener("mousemove",onMove); window.addEventListener("touchmove",onMove,{passive:false});
+  window.addEventListener("mouseup",onEnd); window.addEventListener("touchend",onEnd);
+  wheel.addEventListener("wheel",e=>{ e.preventDefault(); wmSetVal(wmWheelVal+(e.deltaY>0?WM_STEP:-WM_STEP)); },{passive:false});
+  $("wm-minus").onclick=()=>wmSetVal(wmWheelVal-WM_STEP);
+  $("wm-plus").onclick=()=>wmSetVal(wmWheelVal+WM_STEP);
+}
 function openWeightModal(){
-  $("wm-value").value = S.profile.weight||"";
+  wmSetVal(S.profile.weight||80);
   renderWeightHistoryModal();
   show($("weight-modal"));
+  initWmWheel();
 }
 function closeWeightModal(){ hide($("weight-modal")); }
 function saveWeightModal(){
@@ -1570,11 +1640,9 @@ function buildReportMD(){
 async function onCloseDay(){
   const day=ensure(viewDay);
   if(!day.meals||!day.meals.length){ toast("אין ארוחות לסכם",true); return; }
-  // אם יש כבר סיכום — toggle פתח/סגור
+  // אם יש כבר סיכום — גלול אליו (לא toggle — הסיכום נשאר תמיד פתוח)
   if(day.closeSummary){
-    const sum=$("close-day-summary");
-    if(sum.classList.contains("hx")){ show(sum); show($("close-day-qa")); sum.scrollIntoView({behavior:"smooth",block:"start"}); }
-    else { hide(sum); hide($("close-day-qa")); }
+    $("close-day-summary").scrollIntoView({behavior:"smooth",block:"start"});
     return;
   }
   const w=S.profile.weight||0;
@@ -1611,15 +1679,12 @@ ${mealsDesc}
 אימון כוח: ${strength?"כן":"לא"}
 רצף ימים בחיטוב: ${streak}
 
-כתוב סיכום יום קצר ומעשי בעברית. מבנה:
-
-1. **קלוריות** — צריכה ${cal} מתוך יעד חיטוב בסיסי ${baseCt}, ויעד מורחב ${ct} (כולל שריפת פעילות ${burn}). פרט גרעון או עודף ביחס לשני היעדים
-2. **חלבון** — האם הגיע ליעד? אם לא, כמה חסר ומה היה אפשר להוסיף
-3. **צעדים** — ביחס ליעד ${sg.toLocaleString()}, תרומה לגרעון
-4. **הישגים** — מה היה טוב היום? ציין את שמות המזונות הספציפיים, לא "ארוחה 1/2/3"
-5. **טיפ יעיל** — רעיון אחד פרקטי לשילוב פעילות או שיפור תזונה בתוך השגרה היומית. למשל: הליכה תוך שיחת טלפון, החלפת חטיף בגזר, מדרגות במקום מעלית, תרגילי גוף בהפסקה. המטרה — דבר קטן שקל לשלב מחר בלי מאמץ מיוחד
-
-חשוב: התייחס לכל פריט מזון בשמו (חזה עוף, אורז, יוגורט וכו') ולא במספר ארוחה. כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
+כתוב סיכום יום קצר וחד בעברית, 4-5 שורות בלבד. גוף שני. התייחס לפריטים בשמם, לא "ארוחה 1".
+שורה 1: קלוריות — גרעון/עודף ביחס לחיטוב ${ct} ולאיזון ${balance}.
+שורה 2: חלבון — הושג או כמה חסר.
+שורה 3: מה היה טוב היום (ציין מזונות ספציפיים).
+שורה 4: טיפ אחד קצר ופרקטי למחר.
+אל תחזיר JSON.`;
 
     const parts=[{text:prompt}];
     const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.4,thinkingConfig:{thinkingBudget:0}}});
