@@ -26,7 +26,7 @@
 <body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-24">
 
 <!-- כותרת -->
-<header class="relative bg-[#003535] shadow-xl">
+<header class="relative bg-[#003535] shadow-xl sticky top-0 z-50">
   <div class="absolute inset-0 bg-gradient-to-br from-[#003535] via-[#0d4d4d] to-[#0061a4] opacity-90"></div>
   <div class="relative flex flex-row-reverse justify-between items-center px-4 h-11 max-w-2xl mx-auto z-10">
     <div id="brand-home" class="flex items-center gap-2 cursor-pointer active:scale-95">
@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.9";
+const APP_VERSION = "4.0";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1546,7 +1546,14 @@ function initAccordions(){
       const sec = btn.closest(".acc");
       const isOpen = sec.classList.contains("acc-open");
       document.querySelectorAll(".acc").forEach(s=>s.classList.remove("acc-open"));
-      if(!isOpen) sec.classList.add("acc-open");
+      if(!isOpen){
+        sec.classList.add("acc-open");
+        setTimeout(()=>{
+          const headerH=document.querySelector("header").offsetHeight||44;
+          const top=sec.getBoundingClientRect().top+window.scrollY-headerH-4;
+          window.scrollTo({top,behavior:"smooth"});
+        },60);
+      }
     };
   });
 }
@@ -1559,7 +1566,7 @@ function renderPrinciples(){
     const div=document.createElement("div");
     div.className="flex items-start gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
     const isFav=(S.favorites||[]).some(f=>f.type==="item" && norm(f.name)===norm(p));
-    div.innerHTML='<button class="fav-pr material-symbols-outlined text-[18px] shrink-0'+(isFav?'" style="font-variation-settings:\'FILL\' 1;color:#e6a700"':'" style="color:#d0c8a0"')+' data-idx="'+i+'" title="'+(isFav?"כבר במועדפים":"הוסף למועדפים")+'">star</button>'+
+    div.innerHTML='<button class="fav-pr material-symbols-outlined text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isFav?'1':'0')+';color:'+(isFav?'#e6a700':'#c8c0a0')+'" data-idx="'+i+'" title="'+(isFav?"כבר במועדפים":"הוסף למועדפים")+'">star</button>'+
       '<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'+
       '<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'+
       '<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
