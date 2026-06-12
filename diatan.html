@@ -572,7 +572,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.4";
+const APP_VERSION = "3.5";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1518,11 +1518,27 @@ function renderWeightHistoryManage(){
   const box=$("weight-history-manage"); box.innerHTML="";
   const ws = (S.weights||[]).slice().reverse();
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
+  const hdr=document.createElement("div");
+  hdr.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 px-2 py-1 text-[9px] font-bold text-[#404848] border-b border-[#bfc8c8]/50";
+  hdr.innerHTML='<span>תאריך</span><span class="w-14 text-center">משקל</span><span class="w-14 text-center">שבוע קודם</span><span class="w-10 text-center">פער</span><span></span>';
+  box.appendChild(hdr);
   ws.forEach((w,i)=>{
     const realIdx = S.weights.length-1-i;
+    const prevW = findWeightWeekAgo(w.date);
+    let diffHtml='<span class="w-10 text-center text-[10px] text-[#404848]">—</span>';
+    if(prevW){
+      const diff=Math.round((w.kg-prevW)*10)/10;
+      const color=diff<0?"#006c49":diff>0?"#ba1a1a":"#404848";
+      const txt=diff>0?"+"+diff.toFixed(1):diff.toFixed(1);
+      diffHtml='<span class="w-10 text-center text-[10px] font-extrabold" style="color:'+color+'">'+txt+'</span>';
+    }
     const div=document.createElement("div");
-    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
-    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="flex items-center gap-2"><span class="font-bold">'+w.kg+' ק"ג</span><button class="del-w material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button></span>';
+    div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#eff4ff] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span class="text-[11px]">'+fmtDate(w.date)+'</span>'
+      +'<span class="w-14 text-center font-bold text-[11px]">'+w.kg+'</span>'
+      +'<span class="w-14 text-center text-[10px] text-[#404848]">'+(prevW?prevW.toFixed(1):'—')+'</span>'
+      +diffHtml
+      +'<button class="del-w material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button>';
     box.appendChild(div);
   });
   box.querySelectorAll(".del-w").forEach(btn=>{
