@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.8";
+const APP_VERSION = "3.9";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -866,7 +866,13 @@ function render(){
   const addA=(msg,err,onclick)=>{ const x=document.createElement("div"); x.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold "+(err?"bg-[#ffdad6] text-[#93000a]":"bg-[#633d00] text-white")+(onclick?" cursor-pointer active:scale-95":""); x.innerHTML='<span class="material-symbols-outlined text-[11px]">warning</span>'+msg; if(onclick) x.onclick=onclick; ac.appendChild(x); };
   if(cal>balance && balance>0) addA("חריגה!",true);
   else if(cal>ct && ct>0) addA("מעל חיטוב",false);
-  if(bw>0) addA("בקר "+Math.round(bw)+"ג'",bw>BEEF_LIMIT,openBeefModal);
+  if(bw>0){
+    const beefOver=bw>BEEF_LIMIT;
+    const bx=document.createElement("div");
+    bx.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold cursor-pointer active:scale-95 "+(beefOver?"bg-[#ffdad6] text-[#93000a]":"bg-[#fff7e0] text-[#7a5900]");
+    bx.innerHTML='<span class="material-symbols-outlined text-[11px]">'+(beefOver?"warning":"kebab_dining")+'</span>בקר '+Math.round(bw)+"ג'";
+    bx.onclick=openBeefModal; ac.appendChild(bx);
+  }
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
@@ -1552,7 +1558,8 @@ function renderPrinciples(){
   (S.principles||[]).forEach((p,i)=>{
     const div=document.createElement("div");
     div.className="flex items-start gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
-    div.innerHTML='<button class="fav-pr material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" data-idx="'+i+'" title="הוסף למועדפים">star</button>'+
+    const isFav=(S.favorites||[]).some(f=>f.type==="item" && norm(f.name)===norm(p));
+    div.innerHTML='<button class="fav-pr material-symbols-outlined text-[18px] shrink-0'+(isFav?'" style="font-variation-settings:\'FILL\' 1;color:#e6a700"':'" style="color:#d0c8a0"')+' data-idx="'+i+'" title="'+(isFav?"כבר במועדפים":"הוסף למועדפים")+'">star</button>'+
       '<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'+
       '<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'+
       '<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
@@ -1880,30 +1887,51 @@ async function onCloseDayQ(){
 }
 
 // ===== גיבוי/שחזור =====
-function onBackup(){
+let lastBackupDirHandle=null;
+async function onBackup(){
   try{
-    const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download="diatan-backup-"+fmtDate(todayId())+".json";
-    a.click(); URL.revokeObjectURL(a.href);
-    toast("הגיבוי הורד");
-  }catch(e){ toast("שגיאה בגיבוי",true); }
+    const fname="diatan-backup-"+fmtDate(todayId())+".json";
+    if(window.showSaveFilePicker){
+      const opts={suggestedName:fname, types:[{description:"JSON",accept:{"application/json":[".json"]}}]};
+      if(lastBackupDirHandle) opts.startIn=lastBackupDirHandle;
+      const fh=await window.showSaveFilePicker(opts);
+      const writable=await fh.createWritable();
+      await writable.write(JSON.stringify(S,null,2));
+      await writable.close();
+      try{ lastBackupDirHandle=await fh.getParent&&fh.getParent(); }catch(e){}
+    } else {
+      const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+      const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; a.click(); URL.revokeObjectURL(a.href);
+    }
+    toast("הגיבוי נשמר");
+  }catch(e){ if(e.name!=="AbortError") toast("שגיאה בגיבוי",true); }
+}
+async function onRestoreClick(){
+  try{
+    if(window.showOpenFilePicker){
+      const opts={types:[{description:"JSON",accept:{"application/json":[".json"]}}], multiple:false};
+      if(lastBackupDirHandle) opts.startIn=lastBackupDirHandle;
+      const [fh]=await window.showOpenFilePicker(opts);
+      const file=await fh.getFile();
+      await doRestore(file);
+      try{ lastBackupDirHandle=await fh.getParent&&fh.getParent(); }catch(e){}
+    } else {
+      $("restore-input").click();
+    }
+  }catch(e){ if(e.name!=="AbortError") toast("שגיאה בשחזור",true); }
 }
 function onRestore(e){
-  const f=e.target.files[0]; if(!f) return;
-  if(!confirm("שחזור יחליף את כל הנתונים. להמשיך?")){ e.target.value=null; return; }
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const data=JSON.parse(ev.target.result);
-      if(typeof data!=="object"||!data) throw new Error();
-      S=data; persist(); ensure(); persist();
-      render(); toast("הנתונים שוחזרו");
-    }catch(err){ toast("קובץ לא תקין",true); }
-    e.target.value=null;
-  };
-  r.readAsText(f);
+  const f=e.target.files[0]; if(!f){ return; } doRestore(f); e.target.value=null;
+}
+async function doRestore(file){
+  if(!confirm("שחזור יחליף את כל הנתונים. להמשיך?")) return;
+  try{
+    const text=await file.text();
+    const data=JSON.parse(text);
+    if(typeof data!=="object"||!data) throw new Error();
+    S=data; persist(); ensure(); persist();
+    render(); toast("הנתונים שוחזרו");
+  }catch(err){ toast("קובץ לא תקין",true); }
 }
 
 // ===== לוח שנה =====
@@ -2096,7 +2124,7 @@ function start(){
   initAccordions();
   $("btn-save-key").onclick=()=>{ S.apiKey=$("api-key").value.trim(); persist(); toast("המפתח נשמר"); };
   $("btn-backup").onclick=onBackup;
-  $("btn-restore").onclick=()=>$("restore-input").click();
+  $("btn-restore").onclick=onRestoreClick;
   $("restore-input").onchange=onRestore;
   $("btn-save-weight-manage").onclick=saveWeightManage;
   $("btn-save-steps-goal").onclick=()=>{ const v=parseInt($("set-steps-goal").value,10); if(isNaN(v)||v<100){toast("ערך לא תקין",true);return;} S.stepsGoal=v; persist(); render(); toast("יעד הצעדים עודכן"); };
