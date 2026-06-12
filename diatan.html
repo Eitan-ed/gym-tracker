@@ -195,11 +195,23 @@
       <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
         <div class="w-9 h-[18px] bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-[14px] after:w-[14px] after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
     </button>
-    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98] col-span-1">
       <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
       <span class="text-[10px] font-medium text-[#404848]">משקל</span>
-      <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
-      <span id="weight-week-diff" class="text-[9px] font-bold"></span>
+      <div class="flex items-center gap-2 mt-0.5">
+        <div class="flex flex-col items-center">
+          <span id="weight-now" class="text-lg font-extrabold text-[#003535]">--</span>
+          <span class="text-[8px] text-[#404848]">היום</span>
+        </div>
+        <div id="weight-week-col" class="hx flex flex-col items-center border-r border-[#bfc8c8]/50 pr-2">
+          <span id="weight-prev" class="text-[11px] font-medium text-[#404848]">--</span>
+          <span class="text-[8px] text-[#404848]">שבוע קודם</span>
+        </div>
+        <div id="weight-diff-col" class="hx flex flex-col items-center">
+          <span id="weight-week-diff" class="text-[11px] font-extrabold">--</span>
+          <span class="text-[8px] text-[#404848]">פער</span>
+        </div>
+      </div>
     </button>
   </div>
 
@@ -555,7 +567,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.2";
+const APP_VERSION = "3.3";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -581,7 +593,8 @@ const REF_FOODS = [
   { m:["שייטל"],             cal:140, prot:22,    label:"שייטל/בקר רזה", per100g:true }
 ];
 const GEMINI_MODELS = ["gemini-2.5-flash","gemini-2.0-flash"];
-const BEEF_KW  = ["בקר","שייטל","סטייק","אנטריקוט","המבורגר","אסאדו","צלי בקר"];
+const BEEF_KW  = ["בקר","סטייק","אנטריקוט","המבורגר","אסאדו","צלי בקר"];
+const BEEF_EXEMPT = ["שייטל","כתף"];
 const SUGAR_KW = ["סוכר","ממתק","שוקולד","עוגה","עוגיה","עוגיות","גלידה","קולה","מיץ","דבש","ריבה","וופל","סופגניה","קרואסון"];
 
 function stepsGoal(){ return +(S.stepsGoal||DEFAULT_STEPS_GOAL); }
@@ -689,7 +702,7 @@ function buildPrompt(){
 הערכת כמויות לפי כלים בבית של איתן: צלחות בקוטר 220 / 263 / 268 מ"מ; קערות בנפח 0.6 ל' ו-0.4 ל'; קופסאות בנפח 120 מ"ל / 300 מ"ל / 700 מ"ל / 1.1 ל' / 2.3 ל'. נצל את הגדלים האלה כדי לאמוד מנות בצורה מדויקת.
 ערכי ייחוס מחייבים (גוברים על כל הערכה): יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; יוגורט וניל=123 קל ו-20 גרם חלבון; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
 אם בתמונה מופיעה תווית ערך תזונתי או רשימת רכיבים מודפסת של מוצר — אמץ את הערכים המודפסים (קלוריות/חלבון) כפי שהם לחישוב; הם גוברים על כל הערכה כללית.
-אם פריט הוא בקר (סטייק/אנטריקוט/שייטל/המבורגר בקר) אמוד משקל בגרמים ב-beefGrams, אחרת 0.
+אם פריט הוא בקר שומני (סטייק/אנטריקוט/המבורגר בקר/אסאדו/צלי בקר) אמוד משקל בגרמים ב-beefGrams. נתחים רזים כמו שייטל או כתף ללא שומן — beefGrams=0 (לא נספרים במגבלת הבקר השבועית).
 לכל פריט הוסף שדה amount — הכמות במונחים אנושיים מתאימים לסוג המזון: גרמים לבשר/דג ("220 גרם"), כפות לאורז/קטניות/דגנים ("3 כפות"), יחידות לפריכיות/ביצים ("2 יח'"), כוסות/קערות לנוזלים. תמיד ציין amount.
 אם זוהה כלי מהרשימה שלמעלה (צלחת/קערה/קופסה בגודל מסוים) ציין זאת בקצרה בשדה note.
 הוסף שדה note: 2 שורות קצרות בלבד, כתזונאי בכיר, על מה שעלה בארוחה וההיבט התזונתי הרלוונטי לרקע של איתן (כבד שומני/טרום-סוכרת/כולסטרול).
@@ -735,7 +748,11 @@ async function analyze(text, files){
   const raw = j.candidates?.[0]?.content?.parts?.[0]?.text;
   if(!raw) throw new Error("תשובה ריקה מ-Gemini");
   let parsed; try { parsed=JSON.parse(raw); } catch(e){ throw new Error("JSON לא תקין מ-Gemini"); }
-  const items = (parsed.items||[]).map(it=>applyRef({ name:String(it.name||"").trim(), amount:String(it.amount||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) }));
+  const items = (parsed.items||[]).map(it=>{
+    const o = applyRef({ name:String(it.name||"").trim(), amount:String(it.amount||"").trim(), calories:Math.round(+it.calories||0), protein:Math.round(+it.protein||0), beefGrams:Math.round(+it.beefGrams||0) });
+    if(o.beefGrams>0 && hasAny(o.name, BEEF_EXEMPT)) o.beefGrams=0;
+    return o;
+  });
   return { items, note:String(parsed.note||"").trim() };
 }
 
@@ -831,21 +848,23 @@ function render(){
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
-  // השוואת משקל לשבוע שעבר
-  const wdEl=$("weight-week-diff");
+  // השוואת משקל לשבוע שעבר — 2 טורים
   const todayW = day.weight||0;
+  const wcol=$("weight-week-col"), dcol=$("weight-diff-col"), wdEl=$("weight-week-diff"), wpEl=$("weight-prev");
   if(todayW>0){
     const d7=new Date(viewDay); d7.setDate(d7.getDate()-7);
     const d7id=d7.toISOString().slice(0,10);
     const prevDay=S.days&&S.days[d7id];
     const prevW=prevDay&&prevDay.weight;
     if(prevW>0){
+      wpEl.textContent=prevW.toFixed(1);
+      show(wcol); show(dcol);
       const diff=Math.round((todayW-prevW)*10)/10;
       if(diff<0){ wdEl.textContent=diff.toFixed(1); wdEl.style.color="#006c49"; }
       else if(diff>0){ wdEl.textContent="+"+diff.toFixed(1); wdEl.style.color="#ba1a1a"; }
       else { wdEl.textContent="0.0"; wdEl.style.color="#404848"; }
-    } else { wdEl.textContent=""; }
-  } else { wdEl.textContent=""; }
+    } else { hide(wcol); hide(dcol); }
+  } else { hide(wcol); hide(dcol); }
   const stNow=day.steps||0; const sg=stepsGoal();
   $("steps-now").textContent = stNow.toLocaleString();
   $("steps-now").className = "text-base font-bold "+(stNow>=sg?"text-[#006c49]":"text-[#003535]");
@@ -1640,9 +1659,11 @@ function buildReportMD(){
 async function onCloseDay(){
   const day=ensure(viewDay);
   if(!day.meals||!day.meals.length){ toast("אין ארוחות לסכם",true); return; }
-  // אם יש כבר סיכום — גלול אליו (לא toggle — הסיכום נשאר תמיד פתוח)
+  // אם יש כבר סיכום — toggle פתח/סגור
   if(day.closeSummary){
-    $("close-day-summary").scrollIntoView({behavior:"smooth",block:"start"});
+    const sum=$("close-day-summary");
+    if(sum.classList.contains("hx")){ show(sum); show($("close-day-qa")); sum.scrollIntoView({behavior:"smooth",block:"start"}); }
+    else { hide(sum); hide($("close-day-qa")); }
     return;
   }
   const w=S.profile.weight||0;
@@ -1679,12 +1700,15 @@ ${mealsDesc}
 אימון כוח: ${strength?"כן":"לא"}
 רצף ימים בחיטוב: ${streak}
 
-כתוב סיכום יום קצר וחד בעברית, 4-5 שורות בלבד. גוף שני. התייחס לפריטים בשמם, לא "ארוחה 1".
-שורה 1: קלוריות — גרעון/עודף ביחס לחיטוב ${ct} ולאיזון ${balance}.
-שורה 2: חלבון — הושג או כמה חסר.
-שורה 3: מה היה טוב היום (ציין מזונות ספציפיים).
-שורה 4: טיפ אחד קצר ופרקטי למחר.
-אל תחזיר JSON.`;
+כתוב סיכום יום קצר ומעשי בעברית. מבנה:
+
+1. **קלוריות** — צריכה ${cal} מתוך יעד חיטוב בסיסי ${baseCt}, ויעד מורחב ${ct} (כולל שריפת פעילות ${burn}). פרט גרעון או עודף ביחס לשני היעדים
+2. **חלבון** — האם הגיע ליעד? אם לא, כמה חסר ומה היה אפשר להוסיף
+3. **צעדים** — ביחס ליעד ${sg.toLocaleString()}, תרומה לגרעון
+4. **הישגים** — מה היה טוב היום? ציין את שמות המזונות הספציפיים, לא "ארוחה 1/2/3"
+5. **טיפ יעיל** — רעיון אחד פרקטי לשילוב פעילות או שיפור תזונה בתוך השגרה היומית. למשל: הליכה תוך שיחת טלפון, החלפת חטיף בגזר, מדרגות במקום מעלית, תרגילי גוף בהפסקה. המטרה — דבר קטן שקל לשלב מחר בלי מאמץ מיוחד
+
+חשוב: התייחס לכל פריט מזון בשמו (חזה עוף, אורז, יוגורט וכו') ולא במספר ארוחה. כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
 
     const parts=[{text:prompt}];
     const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.4,thinkingConfig:{thinkingBudget:0}}});
