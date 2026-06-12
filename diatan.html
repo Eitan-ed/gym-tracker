@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.0";
+const APP_VERSION = "4.1";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -966,6 +966,23 @@ function renderResults(){
   });
   box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
   box.querySelectorAll("input").forEach(inp=>{inp.addEventListener("input",updateResultsSum); inp.addEventListener("input",updateRecalcState);});
+  box.querySelectorAll(".r-row").forEach(row=>{
+    const amtInp=row.querySelector(".r-amt");
+    const origAmt=parseFloat(amtInp.value)||0;
+    if(origAmt>0){
+      const calInp=row.querySelector(".r-cal"), protInp=row.querySelector(".r-prot");
+      const origCal=parseFloat(calInp.value)||0, origProt=parseFloat(protInp.value)||0;
+      amtInp.addEventListener("input",()=>{
+        const newAmt=parseFloat(amtInp.value)||0;
+        if(newAmt>0&&origAmt>0){
+          const ratio=newAmt/origAmt;
+          calInp.value=Math.round(origCal*ratio);
+          protInp.value=Math.round(origProt*ratio);
+          updateResultsSum();
+        }
+      });
+    }
+  });
   updateResultsSum();
   const noteEl=$("ai-note");
   if(pendingNote){ noteEl.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#006c49]">stethoscope</span> '+esc(pendingNote); show(noteEl); }
@@ -1089,14 +1106,17 @@ function updateCalcState(){
 // ===== מצב כפתור חשב מחדש =====
 let recalcBaseline=null;
 function snapshotRecalcBaseline(){
-  recalcBaseline={refine:"", values:pending.map(it=>it.name+"|"+it.calories+"|"+it.protein).join(",")};
+  recalcBaseline={refine:"", values:pending.map(it=>it.name+"|"+it.calories+"|"+it.protein+"|"+(it.amount||"")).join(",")};
 }
 function updateRecalcState(){
   if(!recalcBaseline){ $("btn-recalc").disabled=true; return; }
   const refine=$("meal-refine").value.trim();
   let vals="";
   $("results-edit").querySelectorAll(".r-row").forEach(row=>{
-    vals+=(vals?",":"")+row.querySelector(".r-name").value.trim()+"|"+Math.round(+row.querySelector(".r-cal").value||0)+"|"+Math.round(+row.querySelector(".r-prot").value||0);
+    const num=row.querySelector(".r-amt").value.trim();
+    const unit=row.querySelector(".r-unit").value.trim();
+    const amt=(num&&unit)?num+" "+unit:(num||unit||"");
+    vals+=(vals?",":"")+row.querySelector(".r-name").value.trim()+"|"+Math.round(+row.querySelector(".r-cal").value||0)+"|"+Math.round(+row.querySelector(".r-prot").value||0)+"|"+amt;
   });
   const changed=refine!==recalcBaseline.refine||vals!==recalcBaseline.values;
   $("btn-recalc").disabled=!changed;
