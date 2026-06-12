@@ -100,7 +100,7 @@
       </button>
       <button id="btn-fav" class="flex-1 h-11 border-2 border-dashed border-[#e6c200]/50 rounded-xl flex items-center justify-center gap-1.5 bg-[#fff7e0]/50 active:scale-[0.98]">
         <span class="material-symbols-outlined text-[#e6a700] text-[18px]">star</span>
-        <span class="text-[11px] font-medium text-[#404848]">מועדפות</span>
+        <span class="text-[11px] font-medium text-[#404848]">מועדפים</span>
       </button>
     </div>
     <div id="photo-previews" class="hx flex gap-2 flex-wrap"></div>
@@ -334,7 +334,18 @@
       <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#e6a700]">star</span> מאכלים מועדפים</h2>
       <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <p class="text-[11px] text-[#404848]">לחיצה על מועדפת מוסיפה אותה ליום הנוכחי. לשמירת מועדפת — כוכב בעריכת הארוחות.</p>
+    <p class="text-[11px] text-[#404848]">לחיצה על מועדף מוסיפה אותו ליום הנוכחי.</p>
+    <div class="bg-[#f8f9ff] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
+      <div class="flex gap-1.5">
+        <input id="fav-modal-name" type="text" placeholder="שם פריט" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <input id="fav-modal-amt" type="text" placeholder="כמות" class="w-16 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+      </div>
+      <div class="flex gap-1.5">
+        <input id="fav-modal-cal" type="number" placeholder="קלוריות" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <input id="fav-modal-prot" type="number" placeholder="חלבון (ג')" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <button id="btn-add-fav-modal" class="bg-[#003535] text-white font-bold px-3 rounded-lg text-sm active:scale-[0.98] flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span></button>
+      </div>
+    </div>
     <div id="fav-list" class="space-y-3"></div>
   </div>
 </div>
@@ -576,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.6";
+const APP_VERSION = "3.7";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1525,7 +1536,8 @@ function renderPrinciples(){
   (S.principles||[]).forEach((p,i)=>{
     const div=document.createElement("div");
     div.className="flex items-start gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
-    div.innerHTML='<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'+
+    div.innerHTML='<button class="fav-pr material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" data-idx="'+i+'" title="הוסף למועדפים">star</button>'+
+      '<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'+
       '<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'+
       '<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
     box.appendChild(div);
@@ -1535,6 +1547,9 @@ function renderPrinciples(){
   });
   box.querySelectorAll(".edit-pr").forEach(btn=>{
     btn.onclick = () => editPrinciple(+btn.dataset.idx);
+  });
+  box.querySelectorAll(".fav-pr").forEach(btn=>{
+    btn.onclick = () => { const p=S.principles[+btn.dataset.idx]; if(!p) return; saveItemFavorite({name:p, amount:"", calories:0, protein:0, beefGrams:0}); };
   });
 }
 function editPrinciple(i){
@@ -2045,6 +2060,11 @@ function start(){
   $("btn-fav").onclick=openFavModal;
   $("close-fav-modal").onclick=closeFavModal;
   $("fav-modal").onclick=e=>{ if(e.target===$("fav-modal")) closeFavModal(); };
+  $("btn-add-fav-modal").onclick=()=>{
+    const name=$("fav-modal-name").value.trim(); if(!name){ toast("הזן שם לפריט",true); return; }
+    saveItemFavorite({name, amount:$("fav-modal-amt").value.trim(), calories:Math.round(+$("fav-modal-cal").value||0), protein:Math.round(+$("fav-modal-prot").value||0), beefGrams:0});
+    $("fav-modal-name").value=""; $("fav-modal-amt").value=""; $("fav-modal-cal").value=""; $("fav-modal-prot").value="";
+  };
 
   // דוח
   $("btn-report").onclick=generateReport;
