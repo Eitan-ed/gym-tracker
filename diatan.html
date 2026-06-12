@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.2";
+const APP_VERSION = "4.3";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -947,7 +947,7 @@ function renderResults(){
     row.className="r-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white"; row.dataset.i=i;
     row.innerHTML=
        '<div class="flex items-center gap-1">'
-      +'<button class="r-fav material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" data-i="'+i+'" title="הוסף למועדפים">star</button>'
+      +'<button class="r-fav material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isItemFav(it.name)?'1':'0')+'" data-i="'+i+'" title="'+(isItemFav(it.name)?'במועדפים':'הוסף למועדפים')+'">star</button>'
       +'<input class="r-name flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
       +'<button class="r-del material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-i="'+i+'">close</button>'
       +'</div>'
@@ -1368,7 +1368,7 @@ function renderMealsEdit(){
     (m.items||[]).forEach((it,ii)=>{
       html+='<div class="me-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white" data-mi="'+mi+'" data-ii="'+ii+'">'
         +'<div class="flex items-center gap-1">'
-        +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'" title="הוסף למועדפים">star</button>'
+        +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isItemFav(it.name)?'1':'0')+'" data-mi="'+mi+'" data-ii="'+ii+'" title="'+(isItemFav(it.name)?'במועדפים':'הוסף למועדפים')+'">star</button>'
         +'<input class="me-name flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'">close</button>'
         +'</div>'
@@ -1475,6 +1475,7 @@ function openBeefModal(){
 }
 function closeBeefModal(){ hide($("beef-modal")); }
 
+function isItemFav(name){ return (S.favorites||[]).some(f=>f.type==="item"&&norm(f.name)===norm(name)); }
 // ===== מועדפים (ארוחה שלמה או פריט בודד) =====
 function favLabel(f){
   if(f.type==="item") return f.name||"פריט";
