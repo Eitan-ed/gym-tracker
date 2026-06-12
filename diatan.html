@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.7";
+const APP_VERSION = "3.8";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1393,23 +1393,39 @@ function closeNoteModal(){ hide($("note-modal")); }
 function openBeefModal(){
   const box=$("beef-list"); box.innerHTML="";
   const today=new Date(); let total=0;
+  const entries=[];
   for(let i=0;i<7;i++){
     const d=new Date(today); d.setDate(today.getDate()-i);
     const id=dateToId(d); const day=S.days&&S.days[id];
     if(!day) continue;
-    (day.meals||[]).forEach(m=>{
-      (m.items||[]).forEach(it=>{
+    (day.meals||[]).forEach((m,mi)=>{
+      (m.items||[]).forEach((it,ii)=>{
         if(+it.beefGrams>0){
           total+=+it.beefGrams;
-          const div=document.createElement("div");
-          div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
-          div.innerHTML='<span class="text-sm">'+esc(it.name)+'</span><span class="text-sm"><span class="font-bold">'+it.beefGrams+' גר\'</span> &middot; '+fmtDate(id)+'</span>';
-          box.appendChild(div);
+          entries.push({id, mi, ii, name:it.name, grams:it.beefGrams});
         }
       });
     });
   }
-  if(!box.children.length) box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין צריכת בקר השבוע</p>';
+  entries.forEach((e,idx)=>{
+    const div=document.createElement("div");
+    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+    div.innerHTML='<span class="text-sm">'+esc(e.name)+'</span><span class="flex items-center gap-2 text-sm"><span class="font-bold">'+e.grams+' גר\'</span> &middot; '+fmtDate(e.id)
+      +'<button class="del-beef material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+idx+'">close</button></span>';
+    box.appendChild(div);
+  });
+  box.querySelectorAll(".del-beef").forEach(btn=>{
+    btn.onclick=()=>{
+      if(!confirm("למחוק רשומת בקר?")) return;
+      const e=entries[+btn.dataset.idx];
+      const day=S.days&&S.days[e.id]; if(!day) return;
+      const m=day.meals[e.mi]; if(!m||!m.items||!m.items[e.ii]) return;
+      m.items[e.ii].beefGrams=0;
+      let bg=0; (m.items||[]).forEach(it=>bg+=(+it.beefGrams||0)); m.beefGrams=bg;
+      persist(); render(); openBeefModal(); toast("נמחק");
+    };
+  });
+  if(!entries.length) box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין צריכת בקר השבוע</p>';
   const color=total>BEEF_LIMIT?"#ba1a1a":"#006c49";
   $("beef-total").innerHTML='<span>סה"כ 7 ימים</span><span style="color:'+color+'">'+total+' / '+BEEF_LIMIT+' גר\'</span>';
   show($("beef-modal"));
