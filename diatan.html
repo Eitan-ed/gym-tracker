@@ -195,24 +195,29 @@
       <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
         <div class="w-9 h-[18px] bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-[14px] after:w-[14px] after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
     </button>
-    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98] col-span-1">
+    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
       <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
       <span class="text-[10px] font-medium text-[#404848]">משקל</span>
-      <div class="flex items-center gap-2 mt-0.5">
-        <div class="flex flex-col items-center">
-          <span id="weight-now" class="text-lg font-extrabold text-[#003535]">--</span>
-          <span class="text-[8px] text-[#404848]">היום</span>
-        </div>
-        <div id="weight-week-col" class="hx flex flex-col items-center border-r border-[#bfc8c8]/50 pr-2">
-          <span id="weight-prev" class="text-[11px] font-medium text-[#404848]">--</span>
-          <span class="text-[8px] text-[#404848]">שבוע קודם</span>
-        </div>
-        <div id="weight-diff-col" class="hx flex flex-col items-center">
-          <span id="weight-week-diff" class="text-[11px] font-extrabold">--</span>
-          <span class="text-[8px] text-[#404848]">פער</span>
-        </div>
-      </div>
+      <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
     </button>
+  </div>
+
+  <!-- השוואת משקל שבועית -->
+  <div id="weight-compare-row" class="hx bg-white border border-[#bfc8c8] rounded-xl shadow-sm px-3 py-2">
+    <div class="grid grid-cols-3 text-center gap-2">
+      <div class="flex flex-col items-center">
+        <span class="text-[9px] font-bold text-[#404848]">היום</span>
+        <span id="wc-today" class="text-lg font-extrabold text-[#003535]">--</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <span class="text-[9px] font-bold text-[#404848]">לפני שבוע</span>
+        <span id="wc-prev" class="text-sm font-medium text-[#404848]">--</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <span class="text-[9px] font-bold text-[#404848]">פער</span>
+        <span id="wc-diff" class="text-sm font-extrabold">--</span>
+      </div>
+    </div>
   </div>
 
   <!-- סגירת יום -->
@@ -567,7 +572,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "3.3";
+const APP_VERSION = "3.4";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -848,23 +853,25 @@ function render(){
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
-  // השוואת משקל לשבוע שעבר — 2 טורים
+  // השוואת משקל שבועית — שורה נפרדת
+  const compareRow=$("weight-compare-row");
   const todayW = day.weight||0;
-  const wcol=$("weight-week-col"), dcol=$("weight-diff-col"), wdEl=$("weight-week-diff"), wpEl=$("weight-prev");
   if(todayW>0){
     const d7=new Date(viewDay); d7.setDate(d7.getDate()-7);
     const d7id=d7.toISOString().slice(0,10);
     const prevDay=S.days&&S.days[d7id];
     const prevW=prevDay&&prevDay.weight;
     if(prevW>0){
-      wpEl.textContent=prevW.toFixed(1);
-      show(wcol); show(dcol);
+      $("wc-today").textContent=todayW.toFixed(1);
+      $("wc-prev").textContent=prevW.toFixed(1);
       const diff=Math.round((todayW-prevW)*10)/10;
-      if(diff<0){ wdEl.textContent=diff.toFixed(1); wdEl.style.color="#006c49"; }
-      else if(diff>0){ wdEl.textContent="+"+diff.toFixed(1); wdEl.style.color="#ba1a1a"; }
-      else { wdEl.textContent="0.0"; wdEl.style.color="#404848"; }
-    } else { hide(wcol); hide(dcol); }
-  } else { hide(wcol); hide(dcol); }
+      const diffEl=$("wc-diff");
+      if(diff<0){ diffEl.textContent=diff.toFixed(1); diffEl.style.color="#006c49"; }
+      else if(diff>0){ diffEl.textContent="+"+diff.toFixed(1); diffEl.style.color="#ba1a1a"; }
+      else { diffEl.textContent="0.0"; diffEl.style.color="#404848"; }
+      show(compareRow);
+    } else { hide(compareRow); }
+  } else { hide(compareRow); }
   const stNow=day.steps||0; const sg=stepsGoal();
   $("steps-now").textContent = stNow.toLocaleString();
   $("steps-now").className = "text-base font-bold "+(stNow>=sg?"text-[#006c49]":"text-[#003535]");
@@ -1094,15 +1101,40 @@ function saveWeightModal(){
   persist(); render(); closeWeightModal();
   toast("המשקל עודכן - היעדים חושבו מחדש");
 }
+function findWeightWeekAgo(dateStr){
+  const d=new Date(dateStr); d.setDate(d.getDate()-7);
+  const id=dateToId(d);
+  const dayData=S.days&&S.days[id];
+  if(dayData&&dayData.weight) return dayData.weight;
+  const ws=(S.weights||[]).filter(w=>w.date===id);
+  return ws.length?ws[ws.length-1].kg:null;
+}
 function renderWeightHistoryModal(){
   const box=$("wm-history"); box.innerHTML="";
   const ws = (S.weights||[]).slice().reverse().slice(0,20);
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
+  // כותרת טבלה
+  const hdr=document.createElement("div");
+  hdr.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 px-2 py-1 text-[9px] font-bold text-[#404848] border-b border-[#bfc8c8]/50";
+  hdr.innerHTML='<span>תאריך</span><span class="w-14 text-center">משקל</span><span class="w-14 text-center">שבוע קודם</span><span class="w-10 text-center">פער</span><span></span>';
+  box.appendChild(hdr);
   ws.forEach((w,i)=>{
     const realIdx = S.weights.length-1-i;
+    const prevW = findWeightWeekAgo(w.date);
+    let diffHtml='<span class="w-10 text-center text-[10px] text-[#404848]">—</span>';
+    if(prevW){
+      const diff=Math.round((w.kg-prevW)*10)/10;
+      const color=diff<0?"#006c49":diff>0?"#ba1a1a":"#404848";
+      const txt=diff>0?"+"+diff.toFixed(1):diff.toFixed(1);
+      diffHtml='<span class="w-10 text-center text-[10px] font-extrabold" style="color:'+color+'">'+txt+'</span>';
+    }
     const div=document.createElement("div");
-    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
-    div.innerHTML='<span>'+fmtDate(w.date)+'</span><span class="flex items-center gap-2"><span class="font-bold">'+w.kg+' ק"ג</span><button class="del-wm material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button></span>';
+    div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#eff4ff] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
+    div.innerHTML='<span class="text-[11px]">'+fmtDate(w.date)+'</span>'
+      +'<span class="w-14 text-center font-bold text-[11px]">'+w.kg+'</span>'
+      +'<span class="w-14 text-center text-[10px] text-[#404848]">'+(prevW?prevW.toFixed(1):'—')+'</span>'
+      +diffHtml
+      +'<button class="del-wm material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button>';
     box.appendChild(div);
   });
   box.querySelectorAll(".del-wm").forEach(btn=>{
