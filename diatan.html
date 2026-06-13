@@ -225,7 +225,7 @@
   </div>
 
   <!-- סגירת יום -->
-  <button id="btn-close-day" class="hx w-full bg-gradient-to-l from-[#003535] to-[#0d4d4d] text-white text-sm font-bold py-2 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
+  <button id="btn-close-day" class="hx w-full bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-2 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
     <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
   </button>
   <div id="close-day-summary" class="hx bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.6";
+const APP_VERSION = "4.7";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -917,8 +917,8 @@ function render(){
 
   // רצף ימים
   const streak=calcStreak(); const sc=$("streak-chip");
-  if(streak>=2){ sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף'; sc.classList.add("cursor-pointer","active:scale-95"); sc.onclick=openCalendar; show(sc); }
-  else hide(sc);
+  sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף';
+  sc.classList.add("cursor-pointer","active:scale-95"); sc.onclick=openCalendar; show(sc);
 }
 
 function applyResultsEdit(){
@@ -1563,14 +1563,16 @@ function editFavorite(idx, box){
   let targetRow=null;
   rows.forEach(r=>{ if(+r.dataset.idx===idx) targetRow=r; });
   if(!targetRow) return;
-  targetRow.className="fav-row border border-[#0061a4] rounded-xl px-3 py-2.5 bg-white space-y-2";
+  targetRow.className="fav-row border border-[#0061a4] rounded-xl px-3 py-2.5 bg-white space-y-2 w-full box-border";
   targetRow.onclick=null;
+  const amtParts=isItem?parseAmtNum(f.amount||""):"";
+  const amtUnit=isItem?parseAmtUnit(f.amount||""):"";
   targetRow.innerHTML=
-    '<input class="fe-name w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm font-bold" placeholder="שם" value="'+esc(favLabel(f))+'">'
-    +(isItem?'<div class="flex gap-1.5"><input class="fe-amt flex-1 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-2 py-1 text-[11px]" placeholder="כמות" value="'+esc(f.amount||"")+'"></div>':'')
+    '<div><span class="text-[10px] text-[#404848]">שם</span><input class="fe-name w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm font-bold" value="'+esc(favLabel(f))+'"></div>'
+    +(isItem?'<div class="flex gap-1.5"><div class="flex-1"><span class="text-[10px] text-[#404848]">כמות</span><input class="fe-amt w-full bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" value="'+esc(amtParts)+'"></div><div class="w-20"><span class="text-[10px] text-[#404848]">יח׳</span><input class="fe-unit w-full bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm" value="'+esc(amtUnit)+'"></div></div>':'')
     +'<div class="flex gap-1.5">'
-    +'<input class="fe-cal flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" placeholder="קלוריות" value="'+(f.calories||0)+'">'
-    +'<input class="fe-prot flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" placeholder="חלבון" value="'+(f.protein||0)+'">'
+    +'<div class="flex-1"><span class="text-[10px] text-[#404848]">קלוריות</span><input class="fe-cal w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+(f.calories||0)+'"></div>'
+    +'<div class="flex-1"><span class="text-[10px] text-[#404848]">חלבון (ג׳)</span><input class="fe-prot w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+(f.protein||0)+'"></div>'
     +'</div>'
     +'<div class="flex gap-2 justify-end">'
     +'<button class="fe-cancel material-symbols-outlined text-[#404848] text-[20px] p-1">close</button>'
@@ -1579,7 +1581,7 @@ function editFavorite(idx, box){
   targetRow.querySelector(".fe-name").focus();
   targetRow.querySelector(".fe-ok").onclick=()=>{
     const name=targetRow.querySelector(".fe-name").value.trim(); if(!name){ toast("הזן שם",true); return; }
-    if(isItem){ f.name=name; f.amount=(targetRow.querySelector(".fe-amt")||{}).value||""; }
+    if(isItem){ f.name=name; const num=(targetRow.querySelector(".fe-amt")||{}).value||""; const unit=(targetRow.querySelector(".fe-unit")||{}).value||""; f.amount=(num.trim()&&unit.trim())?num.trim()+" "+unit.trim():(num.trim()||unit.trim()||""); }
     else f.desc=name;
     f.calories=Math.round(+targetRow.querySelector(".fe-cal").value||0);
     f.protein=Math.round(+targetRow.querySelector(".fe-prot").value||0);
