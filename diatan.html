@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.3";
+const APP_VERSION = "4.4";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1604,11 +1604,21 @@ function renderPrinciples(){
     const div=document.createElement("div");
     div.className="flex items-start gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
     const isFav=(S.favorites||[]).some(f=>f.type==="item" && norm(f.name)===norm(p));
-    div.innerHTML='<button class="fav-pr material-symbols-outlined text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isFav?'1':'0')+';color:'+(isFav?'#e6a700':'#c8c0a0')+'" data-idx="'+i+'" title="'+(isFav?"כבר במועדפים":"הוסף למועדפים")+'">star</button>'+
-      '<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'+
-      '<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'+
-      '<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
+    div.innerHTML='<div class="flex flex-col gap-0.5 shrink-0">'
+      +'<button class="pr-up material-symbols-outlined text-[#404848] text-[14px] leading-none'+(i===0?' opacity-30':'')+'" data-idx="'+i+'">expand_less</button>'
+      +'<button class="pr-down material-symbols-outlined text-[#404848] text-[14px] leading-none'+(i===(S.principles||[]).length-1?' opacity-30':'')+'" data-idx="'+i+'">expand_more</button>'
+      +'</div>'
+      +'<button class="fav-pr material-symbols-outlined text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isFav?'1':'0')+';color:'+(isFav?'#e6a700':'#c8c0a0')+'" data-idx="'+i+'" title="'+(isFav?"כבר במועדפים":"הוסף למועדפים")+'">star</button>'
+      +'<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'
+      +'<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'
+      +'<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
     box.appendChild(div);
+  });
+  box.querySelectorAll(".pr-up").forEach(btn=>{
+    btn.onclick = () => { const i=+btn.dataset.idx; if(i<=0) return; [S.principles[i-1],S.principles[i]]=[S.principles[i],S.principles[i-1]]; persist(); renderPrinciples(); };
+  });
+  box.querySelectorAll(".pr-down").forEach(btn=>{
+    btn.onclick = () => { const i=+btn.dataset.idx; if(i>=S.principles.length-1) return; [S.principles[i],S.principles[i+1]]=[S.principles[i+1],S.principles[i]]; persist(); renderPrinciples(); };
   });
   box.querySelectorAll(".del-pr").forEach(btn=>{
     btn.onclick = () => { if(!confirm("למחוק את העיקרון?")) return; S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); toast("העיקרון נמחק"); };
