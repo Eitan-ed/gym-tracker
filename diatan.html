@@ -514,8 +514,13 @@
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">עקרונות שמשפיעים על הערכת Gemini (מוזרקים אוטומטית לפרומפט).</p>
         <div id="principles-list" class="space-y-1"></div>
-        <div class="flex gap-2">
-          <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+        <div class="flex gap-2 flex-wrap">
+          <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <select id="new-principle-cat" class="bg-[#eff4ff] border border-[#bfc8c8] rounded-xl px-2 py-1 text-[11px] outline-none">
+            <option value="assumptions">הנחות</option>
+            <option value="sizes">גדלים</option>
+            <option value="foods">מאכלים</option>
+          </select>
           <button id="btn-add-principle" class="bg-[#003535] text-white px-4 rounded-xl font-bold text-sm active:scale-[0.98]">+</button>
         </div>
       </div>
@@ -587,7 +592,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.0";
+const APP_VERSION = "5.1";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -595,12 +600,18 @@ const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
 const STEP_CAL_PER_1000 = 37, STRENGTH_CAL = 200, DEFAULT_STEPS_GOAL = 8000;
 
 // ===== עקרונות ברירת מחדל (מוזרקים בכניסה ראשונה, ניתנים לעריכה/מחיקה) =====
+const PRINCIPLE_CATS = [
+  {id:"assumptions", label:"הנחות כלליות", icon:"lightbulb", color:"#0061a4"},
+  {id:"sizes", label:"גדלים ומשקלים", icon:"straighten", color:"#6d4c00"},
+  {id:"foods", label:"מאכלים", icon:"nutrition", color:"#006c49"}
+];
 const DEFAULT_PRINCIPLES = [
-  "ערכי ייחוס קבועים: GO תות=108 קק\"ל; דנונה PRO 1.7%=112 קק\"ל ו-10.6ג' חלבון; PRO בטעמים=130; PRO רגיל=171; יוגורט וניל=123 קק\"ל ו-20ג' חלבון; בקר רזה (שייטל/סינטה)=130-150 ל-100ג'; גלידונית=32 ליח'; פריכית קריספית=18 ליח'.",
-  "תווית מוצר מצולמת: כאשר מצלמים מוצר עם רשימת רכיבים / ערכים תזונתיים מודפסים — יש לאמץ את הערכים המודפסים כפי שהם לחישוב; הם גוברים על הערכה כללית.",
-  "פירות: לא לחרוג מ-1-2 מנות פרי ביום (פרוקטוז מעמיס על כבד שומני), ולוודא שילוב עם מקור חלבון או שומן איכותי כדי להאט את ספיגת הסוכר לדם.",
-  "בשר אדום ושומן רווי: עד 300 גרם בקר רזה בשבוע (שייטל/נתח 5 בלבד). העדפת חלבון ביצה (הלבן) על פני ריבוי ביצים שלמות לשליטה בכולסטרול ובפרופיל השומנים.",
-  "ניהול שומנים מחמיר: גרם שומן=9 קלוריות. לסרוק בקפידה אחר עודף שמן זית, טחינה או רטבים סמויים שעלולים לרסק את הגרעון הקלורי."
+  {text:"תווית מוצר מצולמת: כאשר מצלמים מוצר עם רשימת רכיבים / ערכים תזונתיים מודפסים — יש לאמץ את הערכים המודפסים כפי שהם לחישוב; הם גוברים על הערכה כללית.", cat:"assumptions"},
+  {text:"פירות: לא לחרוג מ-1-2 מנות פרי ביום (פרוקטוז מעמיס על כבד שומני), ולוודא שילוב עם מקור חלבון או שומן איכותי כדי להאט את ספיגת הסוכר לדם.", cat:"assumptions"},
+  {text:"בשר אדום ושומן רווי: עד 300 גרם בקר רזה בשבוע (שייטל/נתח 5 בלבד). העדפת חלבון ביצה (הלבן) על פני ריבוי ביצים שלמות לשליטה בכולסטרול ובפרופיל השומנים.", cat:"assumptions"},
+  {text:"ניהול שומנים מחמיר: גרם שומן=9 קלוריות. לסרוק בקפידה אחר עודף שמן זית, טחינה או רטבים סמויים שעלולים לרסק את הגרעון הקלורי.", cat:"assumptions"},
+  {text:"חישוב קלוריות לצעדים: 37 קלוריות לכל 1000 צעדים. אימון כוח=200 קלוריות.", cat:"assumptions"},
+  {text:"ערכי ייחוס קבועים: GO תות=108 קק\"ל; דנונה PRO 1.7%=112 קק\"ל ו-10.6ג' חלבון; PRO בטעמים=130; PRO רגיל=171; יוגורט וניל=123 קק\"ל ו-20ג' חלבון; בקר רזה (שייטל/סינטה)=130-150 ל-100ג'; גלידונית=32 ליח'; פריכית קריספית=18 ליח'.", cat:"foods"}
 ];
 const REF_FOODS = [
   { m:["יוגורט פרו בטעמים"], cal:130, prot:null,  label:"יוגורט פרו בטעמים" },
@@ -650,8 +661,9 @@ function ensure(dayId){
   if(!S.days) S.days = {};
   if(!S.weights) S.weights = [];
   if(!S.favorites) S.favorites = [];
-  if(!S.principles){ S.principles = DEFAULT_PRINCIPLES.slice(); }
-  if(!S.principlesSeeded){ if(!S.principles.length) S.principles = DEFAULT_PRINCIPLES.slice(); S.principlesSeeded = true; }
+  if(!S.principles){ S.principles = DEFAULT_PRINCIPLES.map(p=>Object.assign({},p)); }
+  if(S.principles.length && typeof S.principles[0]==="string"){ S.principles=S.principles.map(t=>({text:t,cat:"assumptions"})); }
+  if(!S.principlesSeeded){ if(!S.principles.length) S.principles=DEFAULT_PRINCIPLES.map(p=>Object.assign({},p)); S.principlesSeeded=true; }
   if(!S.days[dayId]) S.days[dayId] = { meals:[], steps:0, strength:false };
   return S.days[dayId];
 }
@@ -731,7 +743,7 @@ function buildPrompt(){
 אם אתה לא בטוח במשהו (כמות, סוג מאכל, שיטת בישול) — הוסף שדה "questions" עם מערך של שאלות קצרות בעברית לאיתן כדי לדייק. אם הכל ברור, לא צריך את השדה.
 החזר אך ורק JSON: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה","questions":["שאלה1"]}`;
   if(S.principles && S.principles.length){
-    p += "\n\nעקרונות נוספים מאיתן שיש לקחת בחשבון:\n" + S.principles.map((pr,i)=>(i+1)+". "+pr).join("\n");
+    p += "\n\nעקרונות נוספים מאיתן שיש לקחת בחשבון:\n" + S.principles.map((pr,i)=>(i+1)+". "+(pr.text||pr)).join("\n");
   }
   return p;
 }
@@ -1637,58 +1649,70 @@ function initAccordions(){
 
 // ===== ניהול — עקרונות =====
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function prText(p){ return typeof p==="string"?p:(p.text||""); }
+function prCat(p){ return (p&&p.cat)||"assumptions"; }
 function renderPrinciples(){
   const box=$("principles-list"); box.innerHTML="";
-  (S.principles||[]).forEach((p,i)=>{
-    const div=document.createElement("div");
-    div.className="flex items-start gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
-    const isFav=(S.favorites||[]).some(f=>f.type==="item" && norm(f.name)===norm(p));
-    div.innerHTML='<div class="flex flex-col shrink-0">'
-      +'<button class="pr-up material-symbols-outlined text-[#404848] text-[22px] leading-none p-1'+(i===0?' opacity-30':'')+'" data-idx="'+i+'">expand_less</button>'
-      +'<button class="pr-down material-symbols-outlined text-[#404848] text-[22px] leading-none p-1'+(i===(S.principles||[]).length-1?' opacity-30':'')+'" data-idx="'+i+'">expand_more</button>'
-      +'</div>'
-      +'<button class="fav-pr material-symbols-outlined text-[20px] shrink-0" style="font-variation-settings:\'FILL\' '+(isFav?'1':'0')+';color:'+(isFav?'#e6a700':'#c8c0a0')+'" data-idx="'+i+'" title="'+(isFav?"הסר ממועדפים":"הוסף למועדפים")+'">star</button>'
-      +'<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'
-      +'<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'
-      +'<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
-    box.appendChild(div);
+  const all=S.principles||[];
+  PRINCIPLE_CATS.forEach(cat=>{
+    const items=all.map((p,i)=>({p,i})).filter(({p})=>prCat(p)===cat.id);
+    const sec=document.createElement("div");
+    sec.className="space-y-1.5";
+    sec.innerHTML='<div class="flex items-center gap-1.5 pt-2 pb-1 border-b border-[#bfc8c8]/40"><span class="material-symbols-outlined text-[16px]" style="color:'+cat.color+'">'+cat.icon+'</span><span class="text-[12px] font-bold" style="color:'+cat.color+'">'+cat.label+' ('+items.length+')</span></div>';
+    items.forEach(({p,i})=>{
+      const div=document.createElement("div");
+      div.className="pr-item flex items-start gap-1.5 bg-[#eff4ff] rounded-lg px-2.5 py-1.5 border border-[#bfc8c8]/30";
+      div.dataset.idx=i;
+      const catIdx=PRINCIPLE_CATS.findIndex(c=>c.id===cat.id);
+      const prevCat=catIdx>0?PRINCIPLE_CATS[catIdx-1]:null;
+      const nextCat=catIdx<PRINCIPLE_CATS.length-1?PRINCIPLE_CATS[catIdx+1]:null;
+      div.innerHTML='<div class="flex flex-col shrink-0">'
+        +'<button class="pr-up material-symbols-outlined text-[#404848] text-[20px] leading-none p-0.5" data-idx="'+i+'" title="הזז למעלה">expand_less</button>'
+        +'<button class="pr-down material-symbols-outlined text-[#404848] text-[20px] leading-none p-0.5" data-idx="'+i+'" title="הזז למטה">expand_more</button>'
+        +'</div>'
+        +'<div class="flex flex-col shrink-0">'
+        +(prevCat?'<button class="pr-cat-prev material-symbols-outlined text-[18px] leading-none p-0.5" style="color:'+prevCat.color+'" data-idx="'+i+'" data-cat="'+prevCat.id+'" title="העבר ל'+prevCat.label+'">arrow_back</button>':'')
+        +(nextCat?'<button class="pr-cat-next material-symbols-outlined text-[18px] leading-none p-0.5" style="color:'+nextCat.color+'" data-idx="'+i+'" data-cat="'+nextCat.id+'" title="העבר ל'+nextCat.label+'">arrow_forward</button>':'')
+        +'</div>'
+        +'<span class="flex-1 text-[12px] leading-snug">'+esc(prText(p))+'</span>'
+        +'<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[15px] shrink-0" data-idx="'+i+'">edit</button>'
+        +'<button class="del-pr material-symbols-outlined text-[#93000a] text-[15px] shrink-0" data-idx="'+i+'">close</button>';
+      sec.appendChild(div);
+    });
+    box.appendChild(sec);
   });
   box.querySelectorAll(".pr-up").forEach(btn=>{
-    btn.onclick = () => { const i=+btn.dataset.idx; if(i<=0) return; [S.principles[i-1],S.principles[i]]=[S.principles[i],S.principles[i-1]]; persist(); renderPrinciples(); };
+    btn.onclick=()=>{ const i=+btn.dataset.idx; const cat=prCat(S.principles[i]); const same=(S.principles||[]).map((p,j)=>({p,j})).filter(({p})=>prCat(p)===cat); const pos=same.findIndex(x=>x.j===i); if(pos<=0) return; const prev=same[pos-1].j; [S.principles[prev],S.principles[i]]=[S.principles[i],S.principles[prev]]; persist(); renderPrinciples(); };
   });
   box.querySelectorAll(".pr-down").forEach(btn=>{
-    btn.onclick = () => { const i=+btn.dataset.idx; if(i>=S.principles.length-1) return; [S.principles[i],S.principles[i+1]]=[S.principles[i+1],S.principles[i]]; persist(); renderPrinciples(); };
+    btn.onclick=()=>{ const i=+btn.dataset.idx; const cat=prCat(S.principles[i]); const same=(S.principles||[]).map((p,j)=>({p,j})).filter(({p})=>prCat(p)===cat); const pos=same.findIndex(x=>x.j===i); if(pos>=same.length-1) return; const next=same[pos+1].j; [S.principles[i],S.principles[next]]=[S.principles[next],S.principles[i]]; persist(); renderPrinciples(); };
+  });
+  box.querySelectorAll(".pr-cat-prev,.pr-cat-next").forEach(btn=>{
+    btn.onclick=()=>{ const i=+btn.dataset.idx; S.principles[i].cat=btn.dataset.cat; persist(); renderPrinciples(); toast("הועבר"); };
   });
   box.querySelectorAll(".del-pr").forEach(btn=>{
-    btn.onclick = () => { if(!confirm("למחוק את העיקרון?")) return; S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); toast("העיקרון נמחק"); };
+    btn.onclick=()=>{ if(!confirm("למחוק?")) return; S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); toast("נמחק"); };
   });
   box.querySelectorAll(".edit-pr").forEach(btn=>{
-    btn.onclick = () => editPrinciple(+btn.dataset.idx);
-  });
-  box.querySelectorAll(".fav-pr").forEach(btn=>{
-    btn.onclick = () => {
-      const p=S.principles[+btn.dataset.idx]; if(!p) return;
-      const fi=(S.favorites||[]).findIndex(f=>f.type==="item"&&norm(f.name)===norm(p));
-      if(fi>=0){ S.favorites.splice(fi,1); persist(); renderPrinciples(); renderFavorites(); toast("הוסר ממועדפים"); }
-      else { saveItemFavorite({name:p, amount:"", calories:0, protein:0, beefGrams:0}); renderPrinciples(); }
-    };
+    btn.onclick=()=>editPrinciple(+btn.dataset.idx);
   });
 }
 function editPrinciple(i){
-  const box=$("principles-list");
-  const row=box.children[i]; if(!row) return;
-  row.innerHTML='<textarea class="pr-edit flex-1 bg-white border border-[#003535] rounded-lg p-2 text-sm resize-none" rows="3"></textarea>'+
-    '<button class="pr-ok material-symbols-outlined text-[#006c49] text-[18px]">check</button>'+
-    '<button class="pr-cancel material-symbols-outlined text-[#404848] text-[18px]">close</button>';
-  const ta=row.querySelector(".pr-edit"); ta.value=S.principles[i]; ta.focus();
-  row.querySelector(".pr-ok").onclick=()=>{ const v=ta.value.trim(); if(!v){ toast("עיקרון ריק",true); return; } S.principles[i]=v; persist(); renderPrinciples(); toast("העיקרון עודכן"); };
+  const item=S.principles[i]; if(!item) return;
+  const row=document.querySelector('.pr-item[data-idx="'+i+'"]'); if(!row) return;
+  row.innerHTML='<textarea class="pr-edit flex-1 bg-white border border-[#003535] rounded-lg p-2 text-sm resize-none" rows="3"></textarea>'
+    +'<button class="pr-ok material-symbols-outlined text-[#006c49] text-[18px]">check</button>'
+    +'<button class="pr-cancel material-symbols-outlined text-[#404848] text-[18px]">close</button>';
+  const ta=row.querySelector(".pr-edit"); ta.value=prText(item); ta.focus();
+  row.querySelector(".pr-ok").onclick=()=>{ const v=ta.value.trim(); if(!v){ toast("עיקרון ריק",true); return; } S.principles[i]={text:v,cat:prCat(item)}; persist(); renderPrinciples(); toast("עודכן"); };
   row.querySelector(".pr-cancel").onclick=()=>renderPrinciples();
 }
 function addPrinciple(){
   const inp=$("new-principle"); const v=inp.value.trim();
   if(!v) return;
-  S.principles=S.principles||[]; S.principles.push(v);
-  persist(); inp.value=""; renderPrinciples(); toast("העיקרון נוסף");
+  const cat=$("new-principle-cat")?$("new-principle-cat").value:"assumptions";
+  S.principles=S.principles||[]; S.principles.push({text:v,cat});
+  persist(); inp.value=""; renderPrinciples(); toast("נוסף");
 }
 
 // ===== ניהול — משקל =====
@@ -1875,7 +1899,7 @@ function buildReportMD(){
   md += "- אימון כוח: "+(day.strength?"כן":"לא")+"\n\n";
   if(S.principles && S.principles.length){
     md += "## עקרונות\n";
-    S.principles.forEach((p,i)=>{ md += (i+1)+". "+p+"\n"; });
+    S.principles.forEach((p,i)=>{ md += (i+1)+". "+(p.text||p)+"\n"; });
   }
 
   return md;
