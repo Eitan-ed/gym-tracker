@@ -26,7 +26,7 @@
 <body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-24">
 
 <!-- כותרת -->
-<header class="relative bg-[#003535] shadow-xl sticky top-0 z-50">
+<header class="relative bg-[#003535] shadow-xl sticky top-0 z-50 cursor-pointer">
   <div class="absolute inset-0 bg-gradient-to-br from-[#003535] via-[#0d4d4d] to-[#0061a4] opacity-90"></div>
   <div class="relative flex flex-row-reverse justify-between items-center px-4 h-11 max-w-2xl mx-auto z-10">
     <div id="brand-home" class="flex items-center gap-2 cursor-pointer active:scale-95">
@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.8";
+const APP_VERSION = "4.9";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2106,7 +2106,7 @@ function start(){
   $("settings-version").textContent=APP_VERSION;
 
   // לוגו/כיתוב → מסך הבית
-  $("brand-home").onclick=()=>showView("home");
+  document.querySelector("header").onclick=e=>{ if(!e.target.closest("#btn-menu")&&!e.target.closest("#hamburger-menu")) showView("home"); };
 
   // תפריט המבורגר
   $("btn-menu").onclick=toggleMenu;
