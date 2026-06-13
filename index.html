@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.17';
+const APP_VERSION = '9.18';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1265,16 +1265,45 @@ const collectAllGymData = () => {
     } catch {}
     return all;
 };
-const triggerBackupDownload = data => {
-    // צירוף כל הנתונים הגולמיים (ללא יוצא מן הכלל) לצד השדות המפורטים — לתאימות לאחור
+let _backupDirHandle = null;
+const getBackupDirName = () => _backupDirHandle?.name || null;
+
+const triggerBackupDownload = async (data) => {
     const payload = { ...data, _all: collectAllGymData() };
-    const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
-    a.click();
+    const json = JSON.stringify(payload, null, 2);
+    const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+    if (window.showSaveFilePicker) {
+        try {
+            const opts = { suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] };
+            if (_backupDirHandle) opts.startIn = _backupDirHandle;
+            const fh = await window.showSaveFilePicker(opts);
+            const writable = await fh.createWritable();
+            await writable.write(json);
+            await writable.close();
+            try { _backupDirHandle = await fh.getParent?.(); } catch {}
+            return true;
+        } catch (e) { if (e.name === 'AbortError') return false; }
+    }
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname; a.click();
     URL.revokeObjectURL(url);
+    return true;
+};
+
+const triggerBackupRestore = async () => {
+    if (window.showOpenFilePicker) {
+        try {
+            const opts = { types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }], multiple: false };
+            if (_backupDirHandle) opts.startIn = _backupDirHandle;
+            const [fh] = await window.showOpenFilePicker(opts);
+            const file = await fh.getFile();
+            try { _backupDirHandle = await fh.getParent?.(); } catch {}
+            return file;
+        } catch (e) { if (e.name === 'AbortError') return null; }
+    }
+    return null;
 };
 
 // ─── Sound helpers ─────────────────────────────────────────
@@ -1438,8 +1467,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             return next;
         });
     };
-    const handleBackup = () => {
-        triggerBackupDownload({
+    const [backupDir, setBackupDir] = useState(getBackupDirName);
+    const handleBackup = async () => {
+        const ok = await triggerBackupDownload({
             logs, notes, images, videos, settings, groupOrder,
             sessionStart:   sessionStartTime,
             sessionEnd:     sessionEndTime,
@@ -1452,18 +1482,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             bodyweightLog:    LS.get('gym-bodyweight-log',     []),
             lastSummary:      LS.get('gym-last-summary',       null)
         });
-        showToast('הגיבוי הורד בהצלחה');
+        if (ok) { showToast('הגיבוי נשמר בהצלחה'); setBackupDir(getBackupDirName()); }
     };
 
-    const handleRestore = e => {
-        const file = e.target.files[0];
-        if (!file) return;
+    const doRestoreFile = (file) => {
         requestConfirm('שחזור ימחוק את כל הנתונים הקיימים. להמשיך?', () => {
             const reader = new FileReader();
             reader.onload = ev => {
                 try {
                     const data = JSON.parse(ev.target.result);
-                    // שחזור גורף — כל מפתח gym-* מהקובץ; טעינה מחדש כדי שהכל יופיע
                     if (data._all && typeof data._all === 'object') {
                         Object.entries(data._all).forEach(([k, v]) => {
                             if (k.startsWith('gym-') && !BACKUP_SKIP_KEYS.has(k)) LS.set(k, v);
@@ -1493,7 +1520,19 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 } catch { showToast('שגיאה בשחזור', true); }
             };
             reader.readAsText(file);
-        }, () => { e.target.value = null; });
+        });
+    };
+
+    const handleRestore = async () => {
+        const file = await triggerBackupRestore();
+        if (file) { setBackupDir(getBackupDirName()); doRestoreFile(file); }
+    };
+
+    const handleRestoreFallback = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        doRestoreFile(file);
+        e.target.value = null;
     };
 
     return (
@@ -1515,15 +1554,28 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.backup && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
+                        {backupDir && (
+                            <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100">
+                                <Icon name="Folder" size={16} className="text-slate-400 shrink-0" />
+                                <span className="text-[12px] font-bold text-slate-500 truncate flex-1" dir="ltr">{backupDir}</span>
+                            </div>
+                        )}
                         <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
-                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">הורדת קובץ למכשיר</div></div>
+                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">שמירת קובץ לספרייה</div></div>
                         </button>
-                        <label className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]">
-                            <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                            <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
-                            <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
-                        </label>
+                        {window.showOpenFilePicker ? (
+                            <button onClick={handleRestore} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
+                                <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
+                                <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">בחירת קובץ גיבוי מהספרייה</div></div>
+                            </button>
+                        ) : (
+                            <label className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]">
+                                <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
+                                <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
+                                <input type="file" accept=".json" className="hidden" onChange={handleRestoreFallback} />
+                            </label>
+                        )}
                     </div>}
                 </section>
                 {/* ── ה: הגדרות אימון ── */}
