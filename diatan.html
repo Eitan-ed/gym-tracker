@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.9";
+const APP_VERSION = "5.0";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -728,7 +728,8 @@ function buildPrompt(){
 לכל פריט הוסף שדה amount — הכמות במונחים אנושיים מתאימים לסוג המזון: גרמים לבשר/דג ("220 גרם"), כפות לאורז/קטניות/דגנים ("3 כפות"), יחידות לפריכיות/ביצים ("2 יח'"), כוסות/קערות לנוזלים. תמיד ציין amount.
 אם זוהה כלי מהרשימה שלמעלה (צלחת/קערה/קופסה בגודל מסוים) ציין זאת בקצרה בשדה note.
 הוסף שדה note: 2 שורות קצרות בלבד, כתזונאי בכיר, על מה שעלה בארוחה וההיבט התזונתי הרלוונטי לרקע של איתן (כבד שומני/טרום-סוכרת/כולסטרול).
-החזר אך ורק JSON: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה"}`;
+אם אתה לא בטוח במשהו (כמות, סוג מאכל, שיטת בישול) — הוסף שדה "questions" עם מערך של שאלות קצרות בעברית לאיתן כדי לדייק. אם הכל ברור, לא צריך את השדה.
+החזר אך ורק JSON: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה","questions":["שאלה1"]}`;
   if(S.principles && S.principles.length){
     p += "\n\nעקרונות נוספים מאיתן שיש לקחת בחשבון:\n" + S.principles.map((pr,i)=>(i+1)+". "+pr).join("\n");
   }
@@ -775,7 +776,7 @@ async function analyze(text, files){
     if(o.beefGrams>0 && hasAny(o.name, BEEF_EXEMPT)) o.beefGrams=0;
     return o;
   });
-  return { items, note:String(parsed.note||"").trim() };
+  return { items, note:String(parsed.note||"").trim(), questions:parsed.questions||[] };
 }
 
 // ===== ניווט ימים =====
@@ -1068,11 +1069,26 @@ async function onRecalc(){
 }
 
 // ===== פעולות ארוחה =====
+function matchFavorites(text){
+  const favs=S.favorites||[];
+  const words=norm(text).split(/[,;+\n]+/).map(w=>w.trim()).filter(Boolean);
+  const matched=[];
+  for(const w of words){
+    const fav=favs.find(f=>f.type==="item"&&norm(f.name)===w);
+    if(fav) matched.push({name:fav.name, amount:fav.amount||"", calories:fav.calories||0, protein:fav.protein||0, beefGrams:fav.beefGrams||0});
+  }
+  return matched.length===words.length&&matched.length>0 ? matched : null;
+}
 async function onCalc(){
   const text=$("meal-desc").value.trim();
   if(!text && !pendingFiles.length){ toast("הזן תיאור או צרף תמונה", true); return; }
+  if(text && !pendingFiles.length){
+    const favMatch=matchFavorites(text);
+    if(favMatch){ pending=favMatch; pendingNote=""; renderResults(); $("meal-desc").value=""; updateCalcState(); toast("נטען ממועדפים"); return; }
+  }
   $("btn-calc").disabled=true; $("calc-text").textContent="..."; $("calc-icon").textContent="hourglass_top";
   try { const res=await analyze(text, pendingFiles); pending=res.items; pendingNote=res.note;
+    if(res.questions&&res.questions.length){ pendingNote=(pendingNote?pendingNote+"\n":"")+"שאלות לדיוק: "+res.questions.join(" | "); $("meal-refine").placeholder="ענה כאן על השאלות לדיוק..."; }
     if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); $("meal-desc").value=""; pendingFiles=[]; $("photo-previews").innerHTML=""; hide($("photo-previews")); }
   } catch(e){ toast(e.message||String(e), true); }
   finally { $("calc-text").textContent="חשב"; $("calc-icon").textContent="calculate"; updateCalcState(); }
