@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.19';
+const APP_VERSION = '9.20';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2878,7 +2878,6 @@ function App() {
 
     // List view
     return (
-        <>
         <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">
         {appTitleBar}
         {overlays}
