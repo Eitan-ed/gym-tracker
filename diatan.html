@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.5";
+const APP_VERSION = "4.6";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -928,17 +928,21 @@ function applyResultsEdit(){
     const num=row.querySelector(".r-amt").value.trim();
     const unit=row.querySelector(".r-unit").value.trim();
     it.amount=(num&&unit)?num+" "+unit:(num||unit||"");
-    it.calories=Math.round(+row.querySelector(".r-cal").value||0);
-    it.protein=Math.round(+row.querySelector(".r-prot").value||0);
+    const rawCal=row.querySelector(".r-cal").value.trim();
+    const rawProt=row.querySelector(".r-prot").value.trim();
+    it.calories=(rawCal==="?"||rawCal==="") ? "?" : Math.round(+rawCal||0);
+    it.protein=(rawProt==="?"||rawProt==="") ? "?" : Math.round(+rawProt||0);
   });
 }
 function updateResultsSum(){
-  let c=0,p=0;
+  let c=0,p=0,cQ=false,pQ=false;
   $("results-edit").querySelectorAll(".r-row").forEach(row=>{
-    c+=Math.round(+row.querySelector(".r-cal").value||0);
-    p+=Math.round(+row.querySelector(".r-prot").value||0);
+    const cv=row.querySelector(".r-cal").value.trim();
+    const pv=row.querySelector(".r-prot").value.trim();
+    if(cv==="?"||cv==="") cQ=true; else c+=Math.round(+cv||0);
+    if(pv==="?"||pv==="") pQ=true; else p+=Math.round(+pv||0);
   });
-  $("sum-cal").textContent=c; $("sum-prot").textContent=p;
+  $("sum-cal").textContent=cQ?c+"+?":c; $("sum-prot").textContent=pQ?p+"+?":p;
 }
 function renderResults(){
   const box=$("results-edit"); box.innerHTML="";
@@ -954,8 +958,8 @@ function renderResults(){
       +'<div class="flex gap-1.5 items-center pr-7">'
       +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="r-amt w-12 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] font-bold text-[#ba1a1a] text-center" placeholder="—" value="'+esc(parseAmtNum(it.amount||(it.beefGrams?String(it.beefGrams):"")))+'"></div>'
       +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">יח׳</span><input class="r-unit w-14 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-[#ba1a1a]" placeholder="—" value="'+esc(parseAmtUnit(it.amount||(it.beefGrams?"גרם":"")))+'"></div>'
-      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="r-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
-      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="r-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" placeholder="?" value="'+(it.calories==="?"?"?":((+it.calories||0)))+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" placeholder="?" value="'+(it.protein==="?"?"?":((+it.protein||0)))+'"></div>'
       +'</div>';
     box.appendChild(row);
   });
@@ -1052,8 +1056,8 @@ async function onRecalc(){
   applyResultsEdit();
   const refine=$("meal-refine").value.trim();
   const baseText=$("meal-desc").value.trim();
-  const itemsCtx = pending.length ? ("הטבלה הנוכחית כולל תיקונים ידניים שלי (כבד אותם כנקודת מוצא ועדכן רק את מה שצריך): "
-    + pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קק"ל, '+it.protein+" ג' חלבון").join("\n")) : "";
+  const itemsCtx = pending.length ? ("הטבלה הנוכחית כולל תיקונים ידניים שלי (כבד אותם כנקודת מוצא ועדכן רק את מה שצריך). ערכים עם ? הם לא ידועים לי — חשב אותם בעצמך:\n"
+    + pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+(it.calories==="?"?"? (חשב)":it.calories)+' קק"ל, '+(it.protein==="?"?"? (חשב)":it.protein)+" ג' חלבון").join("\n")) : "";
   const combined = [baseText, itemsCtx, refine?("הבהרות/תיקונים נוספים מאיתן לדייק לפיהם: "+refine):""].filter(Boolean).join("\n");
   if(!combined && !pendingFiles.length){ toast("אין מה לחשב מחדש", true); return; }
   $("btn-recalc").disabled=true; $("recalc-text").textContent="..."; $("recalc-icon").textContent="hourglass_top";
@@ -1077,7 +1081,7 @@ function onSave(){
   if(!pending.length) return;
   applyResultsEdit();
   const day=ensure(viewDay);
-  let c=0,p=0,bg=0; pending.forEach(i=>{c+=i.calories;p+=i.protein;bg+=(+i.beefGrams||0);});
+  let c=0,p=0,bg=0; pending.forEach(i=>{c+=(i.calories==="?"?0:+i.calories||0);p+=(i.protein==="?"?0:+i.protein||0);bg+=(+i.beefGrams||0);i.calories=(i.calories==="?"?0:+i.calories||0);i.protein=(i.protein==="?"?0:+i.protein||0);});
   day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
   persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("meal-refine").value="";
   hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
@@ -1555,16 +1559,33 @@ function addFavToDay(idx){
 function editFavorite(idx, box){
   const f=(S.favorites||[])[idx]; if(!f) return;
   const isItem=f.type==="item";
-  const name=prompt("שם:", favLabel(f)); if(name===null) return;
-  const cal=prompt("קלוריות:", f.calories||0); if(cal===null) return;
-  const prot=prompt("חלבון (גרם):", f.protein||0); if(prot===null) return;
-  if(isItem){
-    const amt=prompt("כמות:", f.amount||""); if(amt===null) return;
-    f.name=name; f.calories=Math.round(+cal)||0; f.protein=Math.round(+prot)||0; f.amount=amt;
-  } else {
-    f.desc=name; f.calories=Math.round(+cal)||0; f.protein=Math.round(+prot)||0;
-  }
-  persist(); renderFavBox(box);
+  const rows=box.querySelectorAll(".fav-row");
+  let targetRow=null;
+  rows.forEach(r=>{ if(+r.dataset.idx===idx) targetRow=r; });
+  if(!targetRow) return;
+  targetRow.className="fav-row border border-[#0061a4] rounded-xl px-3 py-2.5 bg-white space-y-2";
+  targetRow.onclick=null;
+  targetRow.innerHTML=
+    '<input class="fe-name w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm font-bold" placeholder="שם" value="'+esc(favLabel(f))+'">'
+    +(isItem?'<div class="flex gap-1.5"><input class="fe-amt flex-1 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-2 py-1 text-[11px]" placeholder="כמות" value="'+esc(f.amount||"")+'"></div>':'')
+    +'<div class="flex gap-1.5">'
+    +'<input class="fe-cal flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" placeholder="קלוריות" value="'+(f.calories||0)+'">'
+    +'<input class="fe-prot flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" placeholder="חלבון" value="'+(f.protein||0)+'">'
+    +'</div>'
+    +'<div class="flex gap-2 justify-end">'
+    +'<button class="fe-cancel material-symbols-outlined text-[#404848] text-[20px] p-1">close</button>'
+    +'<button class="fe-ok material-symbols-outlined text-[#006c49] text-[20px] p-1">check</button>'
+    +'</div>';
+  targetRow.querySelector(".fe-name").focus();
+  targetRow.querySelector(".fe-ok").onclick=()=>{
+    const name=targetRow.querySelector(".fe-name").value.trim(); if(!name){ toast("הזן שם",true); return; }
+    if(isItem){ f.name=name; f.amount=(targetRow.querySelector(".fe-amt")||{}).value||""; }
+    else f.desc=name;
+    f.calories=Math.round(+targetRow.querySelector(".fe-cal").value||0);
+    f.protein=Math.round(+targetRow.querySelector(".fe-prot").value||0);
+    persist(); renderFavBox(box); toast("מועדף עודכן");
+  };
+  targetRow.querySelector(".fe-cancel").onclick=()=>renderFavBox(box);
 }
 
 function addManualFavorite(){
