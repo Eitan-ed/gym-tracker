@@ -76,7 +76,7 @@
 </header>
 
 <!-- ===== מסך הבית ===== -->
-<main id="home-view" class="max-w-2xl mx-auto px-3 pt-1 pb-3 space-y-2">
+<main id="home-view" class="max-w-2xl mx-auto px-4 pt-2 pb-6 space-y-3">
 
   <!-- ניווט ימים -->
   <div id="day-bar" class="flex items-center justify-between rounded-xl px-3 py-1.5 shadow-sm">
@@ -86,7 +86,7 @@
   </div>
 
   <!-- הוספת ארוחה -->
-  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-2.5">
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-3">
     <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
     <input type="file" id="gallery-input" accept="image/*" multiple class="hx">
     <div class="flex gap-2">
@@ -138,7 +138,7 @@
   </section>
 
   <!-- סיכום יומי -->
-  <section class="bg-white border border-[#bfc8c8] p-3 rounded-2xl shadow-sm space-y-2.5">
+  <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-1.5 flex-wrap">
         <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff0e0] text-[#b54708] border border-[#f5b67a]/50"></span>
@@ -148,20 +148,20 @@
     </div>
 
     <!-- יעדים חיטוב/איזון -->
-    <div class="grid grid-cols-2 gap-2">
-      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-1.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+    <div class="grid grid-cols-2 gap-2.5">
+      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד חיטוב</span>
-        <span class="text-base font-extrabold" id="goal-cut" style="color:#006c49">0</span>
+        <span class="text-lg font-extrabold" id="goal-cut" style="color:#006c49">0</span>
       </div>
-      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-1.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד איזון</span>
-        <span class="text-base font-extrabold" id="goal-bal" style="color:#4CAF50">0</span>
+        <span class="text-lg font-extrabold" id="goal-bal" style="color:#4CAF50">0</span>
       </div>
     </div>
 
     <!-- קלוריות + חלבון זה לצד זה (קומפקטי) -->
-    <div class="grid grid-cols-2 gap-2">
-      <div id="cal-box" class="bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
+    <div class="grid grid-cols-2 gap-2.5">
+      <div id="cal-box" class="bg-[#eff4ff] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-bold text-[#003535] flex items-center gap-0.5">קלוריות <span class="material-symbols-outlined text-[12px] text-[#404848]/60">edit</span></span>
           <span id="cal-def" class="text-[11px] font-bold text-[#006c49]">—</span>
@@ -172,7 +172,7 @@
         </div>
         <div class="h-2.5 w-full bg-[#e5eeff] rounded-full overflow-hidden mt-1"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
-      <div id="prot-box" class="bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
+      <div id="prot-box" class="bg-[#eff4ff] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-bold text-[#003535] flex items-center gap-0.5">חלבון <span class="material-symbols-outlined text-[12px] text-[#404848]/60">stethoscope</span></span>
           <span id="prot-remaining" class="text-[11px] font-bold text-[#404848]">—</span>
@@ -187,19 +187,19 @@
   </section>
 
   <!-- פעילות + משקל — שורה אחת -->
-  <div class="grid grid-cols-3 gap-2">
-    <button id="btn-steps" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+  <div class="grid grid-cols-3 gap-2.5">
+    <button id="btn-steps" class="bg-white border border-[#bfc8c8] p-3 rounded-xl shadow-sm flex flex-col items-center gap-1 text-center active:scale-[0.98]">
       <span class="material-symbols-outlined text-[#003535] text-[18px]">steps</span>
       <span class="text-[10px] font-medium text-[#404848]">צעדים</span>
       <div class="flex items-baseline gap-0.5"><span id="steps-now" class="text-base font-bold text-[#003535]">0</span><span class="text-[9px] text-[#404848]">/<span id="steps-goal-label">8K</span></span></div>
     </button>
-    <button id="btn-strength" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+    <button id="btn-strength" class="bg-white border border-[#bfc8c8] p-3 rounded-xl shadow-sm flex flex-col items-center gap-1 text-center active:scale-[0.98]">
       <span class="material-symbols-outlined text-[#006c49] text-[18px]">fitness_center</span>
       <span class="text-[10px] font-medium text-[#404848]">אימון כוח</span>
       <label class="relative inline-flex items-center cursor-pointer mt-0.5"><input id="strength" type="checkbox" class="sr-only peer">
         <div class="w-9 h-[18px] bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-[14px] after:w-[14px] after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
     </button>
-    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-2.5 rounded-xl shadow-sm flex flex-col items-center gap-0.5 text-center active:scale-[0.98]">
+    <button id="btn-weight" class="bg-white border border-[#bfc8c8] p-3 rounded-xl shadow-sm flex flex-col items-center gap-1 text-center active:scale-[0.98]">
       <span class="material-symbols-outlined text-[#003535] text-[18px]">monitor_weight</span>
       <span class="text-[10px] font-medium text-[#404848]">משקל</span>
       <div class="flex items-baseline gap-0.5"><span id="weight-now" class="text-base font-bold text-[#003535]">--</span><span class="text-[9px] text-[#404848]">ק"ג</span></div>
@@ -207,7 +207,7 @@
   </div>
 
   <!-- השוואת משקל שבועית -->
-  <div id="weight-compare-row" class="hx bg-white border border-[#bfc8c8] rounded-xl shadow-sm px-3 py-2">
+  <div id="weight-compare-row" class="hx bg-white border border-[#bfc8c8] rounded-xl shadow-sm px-3 py-3">
     <div class="grid grid-cols-3 text-center gap-2">
       <div class="flex flex-col items-center">
         <span class="text-[9px] font-bold text-[#404848]">היום</span>
@@ -225,7 +225,7 @@
   </div>
 
   <!-- סגירת יום -->
-  <button id="btn-close-day" class="hx w-full bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-2 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
+  <button id="btn-close-day" class="hx w-full bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
     <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
   </button>
   <div id="close-day-summary" class="hx bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.7";
+const APP_VERSION = "4.8";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
