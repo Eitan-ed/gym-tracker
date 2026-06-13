@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.20';
+const APP_VERSION = '9.21';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1169,7 +1169,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
 
     return (
         <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
-            <div className="bg-slate-800 px-5 py-3 relative shrink-0 flex items-center justify-center">
+            <div className="bg-slate-800 px-5 py-3 mt-2 relative shrink-0 flex items-center justify-center">
                 <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
                 <h2 className="text-base font-black text-white">היסטוריה</h2>
             </div>
@@ -1534,7 +1534,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
 
     return (
         <div className="flex flex-col flex-1 bg-slate-50 overflow-hidden fade-in" dir="rtl">
-            <div className="bg-slate-800 px-5 py-3 relative shrink-0 flex items-center justify-center">
+            <div className="bg-slate-800 px-5 py-3 mt-2 relative shrink-0 flex items-center justify-center">
                 <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
                 {canBackToPrev && onBackToPrev && (
                     <button onClick={onBackToPrev} className="absolute right-14 p-2 bg-white/20 rounded-full text-white active:scale-90" title="חזור למסך הקודם">
@@ -1983,7 +1983,7 @@ const ExercisesListView = ({ logs, images, onBack, onNavigateToGroup }) => {
 
     return (
         <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
-            <div className="bg-slate-800 px-5 py-3 relative shrink-0 flex items-center justify-center">
+            <div className="bg-slate-800 px-5 py-3 mt-2 relative shrink-0 flex items-center justify-center">
                 <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
                 <h2 className="text-base font-black text-white">תרגילים</h2>
             </div>
@@ -2860,9 +2860,9 @@ function App() {
     );
 
     const appTitleBar = (
-        <div className="w-full relative overflow-hidden shrink-0" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
+        <div className="w-full relative overflow-hidden shrink-0 cursor-pointer" onClick={()=>{setView('list');setActiveGroup(null);}} style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
             <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
-            <div className="relative py-3 px-4 flex items-center justify-center gap-2">
+            <div className="relative py-3 px-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
                 <Icon name="Dumbbell" size={16} className="text-blue-400" />
                 <h1 className="text-lg font-black text-white tracking-widest" style={{letterSpacing:'0.12em'}}>אימון פול-באדי</h1>
                 <Icon name="Dumbbell" size={16} className="text-blue-400" />
