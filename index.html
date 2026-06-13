@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.18';
+const APP_VERSION = '9.19';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1035,7 +1035,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     };
 
     return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
+    <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0`}>
             <div className="absolute top-3 left-4 flex items-center gap-1.5">
                 {onMusicToggle && (
@@ -1168,13 +1168,10 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
     }, [logs]);
 
     return (
-        <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
-            <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
-                <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
-                <h2 className="text-xl font-black text-white text-center">היסטוריה</h2>
-                <p className="text-[10px] font-mono text-white/30 text-center mt-1 tracking-tight" dir="ltr">
-                    {(window.location.pathname.split('/').pop() || window.location.href.split('/').pop() || '').replace(/\?.*$/,'')}
-                </p>
+        <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
+            <div className="bg-slate-800 px-5 py-3 relative shrink-0 flex items-center justify-center">
+                <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
+                <h2 className="text-base font-black text-white">היסטוריה</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32">
                 {grouped.length===0 ? (
@@ -1536,15 +1533,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50 overflow-hidden fade-in" dir="rtl">
-            <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
-                <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
+        <div className="flex flex-col flex-1 bg-slate-50 overflow-hidden fade-in" dir="rtl">
+            <div className="bg-slate-800 px-5 py-3 relative shrink-0 flex items-center justify-center">
+                <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
                 {canBackToPrev && onBackToPrev && (
-                    <button onClick={onBackToPrev} className="absolute top-4 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg" style={{left:'5rem'}} title="חזור למסך הקודם">
-                        <Icon name="ChevronLeft" size={22} />
+                    <button onClick={onBackToPrev} className="absolute right-14 p-2 bg-white/20 rounded-full text-white active:scale-90" title="חזור למסך הקודם">
+                        <Icon name="ChevronLeft" size={18} />
                     </button>
                 )}
-                <h2 className="text-xl font-black text-white text-center">ניהול והגדרות</h2>
+                <h2 className="text-base font-black text-white">ניהול והגדרות</h2>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 no-scrollbar pb-32 relative">
                 {/* ── ג: גיבוי ושחזור ── */}
@@ -1985,10 +1982,10 @@ const ExercisesListView = ({ logs, images, onBack, onNavigateToGroup }) => {
     }, []);
 
     return (
-        <div className="flex flex-col h-screen bg-white overflow-hidden fade-in" dir="rtl">
-            <div className="bg-slate-900 p-5 pt-6 rounded-b-[2.5rem] shadow-xl relative shrink-0">
-                <button onClick={onBack} className="absolute top-4 left-6 p-2.5 bg-white/20 rounded-full text-white active:scale-90 shadow-lg"><Icon name="Home" size={22} /></button>
-                <h2 className="text-xl font-black text-white text-center">תרגילים</h2>
+        <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
+            <div className="bg-slate-800 px-5 py-3 relative shrink-0 flex items-center justify-center">
+                <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
+                <h2 className="text-base font-black text-white">תרגילים</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 no-scrollbar pb-32">
                 {Object.entries(categories).map(([cat, groups]) => (
@@ -2862,29 +2859,31 @@ function App() {
         </>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <>{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} /></>; }
-    if (view==='exercises') return <>{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></>;
-    if (view==='history') return <>{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></>;
-    if (view==='manage')  return <>{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} /></>;
+    const appTitleBar = (
+        <div className="w-full relative overflow-hidden shrink-0" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
+            <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
+            <div className="relative py-3 px-4 flex items-center justify-center gap-2">
+                <Icon name="Dumbbell" size={16} className="text-blue-400" />
+                <h1 className="text-lg font-black text-white tracking-widest" style={{letterSpacing:'0.12em'}}>אימון פול-באדי</h1>
+                <Icon name="Dumbbell" size={16} className="text-blue-400" />
+            </div>
+            <span className="absolute bottom-1 left-3 text-[11px] text-white/30 font-bold" dir="ltr">v.{APP_VERSION}</span>
+        </div>
+    );
+
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} /></div>; }
+    if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></div>;
+    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></div>;
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} /></div>;
 
     // List view
     return (
         <>
+        <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">
+        {appTitleBar}
         {overlays}
-        <div className="max-w-md mx-auto h-screen bg-slate-50 flex flex-col overflow-hidden shadow-2xl relative" dir="rtl">
+        <div className="flex-1 bg-slate-50 flex flex-col overflow-hidden relative">
             <header className="bg-white pb-2 rounded-b-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100 shrink-0">
-                <div className="w-full relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
-                    <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
-                    <div className="relative py-5 px-4 flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-2">
-                            <Icon name="Dumbbell" size={20} className="text-blue-400" />
-                            <h1 className="text-2xl font-black text-white tracking-widest" style={{letterSpacing:'0.15em'}}>אימון פול-באדי</h1>
-                            <Icon name="Dumbbell" size={20} className="text-blue-400" />
-                        </div>
-                        <div className="h-[2px] w-24 rounded-full bg-gradient-to-r from-transparent via-orange-400 to-transparent"/>
-                    </div>
-                    <span className="absolute bottom-2 left-3 text-[13px] text-white/40 font-bold" dir="ltr">v.{APP_VERSION}</span>
-                </div>
                 {(() => {
                     const start = new Date(sessionStartTime);
                     const end = sessionEndTime ? new Date(sessionEndTime) : null;
@@ -3044,7 +3043,7 @@ function App() {
                 </button>
             </nav>
         </div>
-        </>
+        </div>
     );
 }
 
