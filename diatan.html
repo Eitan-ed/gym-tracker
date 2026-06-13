@@ -587,7 +587,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "4.4";
+const APP_VERSION = "4.5";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1604,11 +1604,11 @@ function renderPrinciples(){
     const div=document.createElement("div");
     div.className="flex items-start gap-2 bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
     const isFav=(S.favorites||[]).some(f=>f.type==="item" && norm(f.name)===norm(p));
-    div.innerHTML='<div class="flex flex-col gap-0.5 shrink-0">'
-      +'<button class="pr-up material-symbols-outlined text-[#404848] text-[14px] leading-none'+(i===0?' opacity-30':'')+'" data-idx="'+i+'">expand_less</button>'
-      +'<button class="pr-down material-symbols-outlined text-[#404848] text-[14px] leading-none'+(i===(S.principles||[]).length-1?' opacity-30':'')+'" data-idx="'+i+'">expand_more</button>'
+    div.innerHTML='<div class="flex flex-col shrink-0">'
+      +'<button class="pr-up material-symbols-outlined text-[#404848] text-[22px] leading-none p-1'+(i===0?' opacity-30':'')+'" data-idx="'+i+'">expand_less</button>'
+      +'<button class="pr-down material-symbols-outlined text-[#404848] text-[22px] leading-none p-1'+(i===(S.principles||[]).length-1?' opacity-30':'')+'" data-idx="'+i+'">expand_more</button>'
       +'</div>'
-      +'<button class="fav-pr material-symbols-outlined text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isFav?'1':'0')+';color:'+(isFav?'#e6a700':'#c8c0a0')+'" data-idx="'+i+'" title="'+(isFav?"כבר במועדפים":"הוסף למועדפים")+'">star</button>'
+      +'<button class="fav-pr material-symbols-outlined text-[20px] shrink-0" style="font-variation-settings:\'FILL\' '+(isFav?'1':'0')+';color:'+(isFav?'#e6a700':'#c8c0a0')+'" data-idx="'+i+'" title="'+(isFav?"הסר ממועדפים":"הוסף למועדפים")+'">star</button>'
       +'<span class="flex-1 text-sm leading-snug">'+esc(p)+'</span>'
       +'<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[16px]" data-idx="'+i+'">edit</button>'
       +'<button class="del-pr material-symbols-outlined text-[#93000a] text-[16px]" data-idx="'+i+'">close</button>';
@@ -1627,7 +1627,12 @@ function renderPrinciples(){
     btn.onclick = () => editPrinciple(+btn.dataset.idx);
   });
   box.querySelectorAll(".fav-pr").forEach(btn=>{
-    btn.onclick = () => { const p=S.principles[+btn.dataset.idx]; if(!p) return; saveItemFavorite({name:p, amount:"", calories:0, protein:0, beefGrams:0}); };
+    btn.onclick = () => {
+      const p=S.principles[+btn.dataset.idx]; if(!p) return;
+      const fi=(S.favorites||[]).findIndex(f=>f.type==="item"&&norm(f.name)===norm(p));
+      if(fi>=0){ S.favorites.splice(fi,1); persist(); renderPrinciples(); renderFavorites(); toast("הוסר ממועדפים"); }
+      else { saveItemFavorite({name:p, amount:"", calories:0, protein:0, beefGrams:0}); renderPrinciples(); }
+    };
   });
 }
 function editPrinciple(i){
