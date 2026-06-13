@@ -141,7 +141,7 @@
   <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-1.5 flex-wrap">
-        <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fff0e0] text-[#b54708] border border-[#f5b67a]/50"></span>
+        <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border"></span>
         <div id="alerts" class="flex flex-wrap gap-1"></div>
       </div>
       <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="הפק דוח MD">description</button>
@@ -592,7 +592,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.2";
+const APP_VERSION = "5.3";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -882,8 +882,8 @@ function render(){
   if(bw>0){
     const beefOver=bw>BEEF_LIMIT;
     const bx=document.createElement("div");
-    bx.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold cursor-pointer active:scale-95 "+(beefOver?"bg-[#ffdad6] text-[#93000a]":"bg-[#fff7e0] text-[#7a5900]");
-    bx.innerHTML='<span class="material-symbols-outlined text-[11px]">'+(beefOver?"warning":"kebab_dining")+'</span>בקר '+Math.round(bw)+"ג'";
+    bx.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer active:scale-95 "+(beefOver?"bg-[#ffdad6] text-[#93000a] border-[#93000a]/30":"bg-[#e6f4ea] text-[#006c49] border-[#006c49]/30");
+    bx.innerHTML='<span class="material-symbols-outlined text-[12px]">'+(beefOver?"warning":"kebab_dining")+'</span>בקר '+Math.round(bw)+"ג'";
     bx.onclick=openBeefModal; ac.appendChild(bx);
   }
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
@@ -930,8 +930,10 @@ function render(){
 
   // רצף ימים
   const streak=calcStreak(); const sc=$("streak-chip");
+  const streakOk=streak>0;
+  sc.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer active:scale-95 "+(streakOk?"bg-[#e6f4ea] text-[#006c49] border-[#006c49]/30":"bg-[#ffdad6] text-[#93000a] border-[#93000a]/30");
   sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף';
-  sc.classList.add("cursor-pointer","active:scale-95"); sc.onclick=openCalendar; show(sc);
+  sc.onclick=openCalendar; show(sc);
 }
 
 function applyResultsEdit(){
@@ -978,7 +980,7 @@ function renderResults(){
   });
   box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{
     applyResultsEdit(); pending.splice(+btn.dataset.i,1);
-    if(!pending.length){ hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); pendingNote=""; $("meal-refine").value=""; recalcBaseline=null; return; }
+    if(!pending.length){ hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); pendingNote=""; $("meal-refine").value=""; $("meal-desc").value=""; recalcBaseline=null; return; }
     renderResults();
   });
   box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
@@ -1096,10 +1098,10 @@ async function onCalc(){
   if(!text && !pendingFiles.length){ toast("הזן תיאור או צרף תמונה", true); return; }
   if(text && !pendingFiles.length){
     const favMatch=matchFavorites(text);
-    if(favMatch){ pending=favMatch; pendingNote=""; renderResults(); $("meal-desc").value=""; updateCalcState(); toast("נטען ממועדפים"); return; }
+    if(favMatch){ applyResultsEdit(); pending=pending.concat(favMatch); renderResults(); $("meal-desc").value=""; updateCalcState(); toast("נטען ממועדפים"); return; }
   }
   $("btn-calc").disabled=true; $("calc-text").textContent="..."; $("calc-icon").textContent="hourglass_top";
-  try { const res=await analyze(text, pendingFiles); pending=res.items; pendingNote=res.note;
+  try { applyResultsEdit(); const res=await analyze(text, pendingFiles); pending=pending.concat(res.items); pendingNote=res.note;
     if(res.questions&&res.questions.length){ pendingNote=(pendingNote?pendingNote+"\n":"")+"שאלות לדיוק: "+res.questions.join(" | "); $("meal-refine").placeholder="ענה כאן על השאלות לדיוק..."; }
     if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); $("meal-desc").value=""; pendingFiles=[]; $("photo-previews").innerHTML=""; hide($("photo-previews")); }
   } catch(e){ toast(e.message||String(e), true); }
@@ -1298,7 +1300,8 @@ function renderWeightGraphModal(){
 
 // ===== מודאל צעדים =====
 function openStepsModal(){
-  $("sm-value").value = ensure(viewDay).steps||"";
+  $("sm-value").value = "";
+  $("sm-value").placeholder = ensure(viewDay).steps||"0";
   renderStepsHistoryModal();
   show($("steps-modal"));
 }
