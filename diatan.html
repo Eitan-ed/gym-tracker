@@ -609,7 +609,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.12";
+const APP_VERSION = "5.13";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2066,7 +2066,7 @@ ${mealsDesc}
 חשוב: התייחס לכל פריט מזון בשמו (חזה עוף, אורז, יוגורט וכו') ולא במספר ארוחה. כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
 
     const parts=[{text:prompt}];
-    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.4,thinkingConfig:{thinkingBudget:0}}});
+    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.4}});
     let resp;
     for(const model of GEMINI_MODELS){
       resp=await callGemini(model,body,key);
