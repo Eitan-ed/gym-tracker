@@ -247,21 +247,19 @@
       <h2 class="text-base font-bold text-[#003535]">עדכון משקל</h2>
       <button id="close-weight-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <!-- גלגלת משקל -->
+    <!-- משקל +/- -->
     <div class="flex flex-col items-center gap-2">
-      <div class="flex items-center gap-3">
-        <button id="wm-minus" class="w-10 h-10 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
-        <div id="wm-wheel" class="relative w-36 h-28 overflow-hidden select-none touch-none rounded-xl border border-[#bfc8c8] bg-[#f8f9ff]" style="cursor:grab">
-          <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#f8f9ff] to-transparent z-10 pointer-events-none"></div>
-          <div class="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#f8f9ff] to-transparent z-10 pointer-events-none"></div>
-          <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-9 border-y-2 border-[#0061a4]/30 bg-[#dce9ff]/40 z-[5] pointer-events-none"></div>
-          <div id="wm-wheel-inner" class="absolute inset-x-0 flex flex-col items-center" style="transition:transform 0.1s ease-out"></div>
+      <div class="flex items-center gap-4">
+        <button id="wm-minus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
+        <div class="flex items-baseline gap-1">
+          <span id="wm-display" class="text-4xl font-extrabold text-[#003535]">0.0</span>
+          <span class="text-sm font-bold text-[#404848]">ק"ג</span>
         </div>
-        <button id="wm-plus" class="w-10 h-10 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
+        <button id="wm-plus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
       </div>
-      <div class="flex items-baseline gap-1">
-        <span id="wm-display" class="text-3xl font-extrabold text-[#003535]">0.0</span>
-        <span class="text-sm font-bold text-[#404848]">ק"ג</span>
+      <div id="wm-timing" class="flex gap-2 mt-1">
+        <button data-timing="before" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-[#eff4ff] text-[#003535]">לפני אכילה</button>
+        <button data-timing="after" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">אחרי אכילה</button>
       </div>
       <input id="wm-value" type="hidden">
     </div>
@@ -270,8 +268,8 @@
       <button id="wm-graph" class="bg-[#0061a4] text-white font-bold px-4 rounded-xl text-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">show_chart</span>גרף</button>
     </div>
     <div class="border-t border-[#bfc8c8] pt-2">
-      <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריה</h4>
-      <div id="wm-history" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div>
+      <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריית משקל</h4>
+      <div id="wm-history" class="space-y-1 text-sm"></div>
     </div>
   </div>
 </div>
@@ -338,7 +336,8 @@
     <div class="bg-[#f8f9ff] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
       <div class="flex gap-1.5">
         <input id="fav-modal-name" type="text" placeholder="שם פריט" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
-        <input id="fav-modal-amt" type="text" placeholder="כמות" class="w-16 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <input id="fav-modal-qty" type="number" placeholder="כמות" class="w-14 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm text-center outline-none" value="1">
+        <input id="fav-modal-unit" type="text" placeholder="יח׳" class="w-16 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none" value="יח׳">
       </div>
       <div class="flex gap-1.5">
         <input id="fav-modal-cal" type="number" placeholder="קלוריות" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
@@ -592,7 +591,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.3";
+const APP_VERSION = "5.4";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -636,11 +635,35 @@ const hasAll = (t,p) => { const x=norm(t), w=norm(p).split(" ").filter(Boolean);
 const hasAny = (t,arr) => { const x=norm(t); return arr.some(k=>x.includes(norm(k))); };
 const calTarget  = w => Math.round(CAL_PER_KG*(+w||0));
 const protTarget = w => Math.round(PROT_PER_KG*(+w||0));
-function lookupRef(name){ for(const f of REF_FOODS){ if(f.m.some(m=>hasAll(name,m))) return f; } return null; }
+function lookupRef(name){
+  for(const f of REF_FOODS){ if(f.m.some(m=>hasAll(name,m))) return f; }
+  const favs = S.favorites || [];
+  for(const f of favs){
+    if(f.type === "item" && f.name && hasAll(name, f.name)){
+      return {
+        cal: f.calories,
+        prot: f.protein,
+        label: f.name + " (מועדפים)",
+        favItem: f
+      };
+    }
+  }
+  return null;
+}
 function applyRef(item){
   const r = lookupRef(item.name); if(!r) return item;
   const o = Object.assign({}, item);
-  if(!r.per100g){ o.calories=r.cal; if(r.prot!=null) o.protein=r.prot; }
+  if(!r.per100g){
+    if(r.favItem){
+      const favAmtVal = parseFloat(parseAmtNum(r.favItem.amount)) || 1;
+      const itemAmtVal = parseFloat(parseAmtNum(item.amount)) || 1;
+      const ratio = itemAmtVal / favAmtVal;
+      o.calories = Math.round(r.cal * ratio);
+      if(r.prot != null) o.protein = Math.round(r.prot * ratio);
+    } else {
+      o.calories=r.cal; if(r.prot!=null) o.protein=r.prot;
+    }
+  }
   o._ref = r.label; return o;
 }
 
@@ -744,6 +767,11 @@ function buildPrompt(){
 החזר אך ורק JSON: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה","questions":["שאלה1"]}`;
   if(S.principles && S.principles.length){
     p += "\n\nעקרונות נוספים מאיתן שיש לקחת בחשבון:\n" + S.principles.map((pr,i)=>(i+1)+". "+(pr.text||pr)).join("\n");
+  }
+  const favItems = (S.favorites || []).filter(f => f.type === "item");
+  if(favItems.length){
+    p += "\n\nערכי ייחוס מתוך מאכלים מועדפים של איתן (חובה להשתמש בהם במידה והמאכל מזוהה, ולבצע התאמה/כפל לפי הכמות הנצרכת):\n" + 
+         favItems.map((f,i)=>(i+1)+". "+f.name+(f.amount ? " ["+f.amount+"]" : "")+" = "+f.calories+" קלוריות"+(f.protein ? ", "+f.protein+" ג' חלבון" : "")).join("\n");
   }
   return p;
 }
@@ -1156,48 +1184,33 @@ function updateRecalcState(){
   $("btn-recalc").disabled=!changed;
 }
 
-// ===== מודאל משקל — גלגלת =====
+// ===== מודאל משקל =====
 let wmWheelVal = 80.0;
+let wmTiming = "before";
 const WM_STEP = 0.1, WM_MIN = 30, WM_MAX = 200;
 function wmSetVal(v){
   wmWheelVal = Math.round(Math.max(WM_MIN, Math.min(WM_MAX, v))*10)/10;
   $("wm-value").value = wmWheelVal;
   $("wm-display").textContent = wmWheelVal.toFixed(1);
-  wmRenderWheel();
 }
-function wmRenderWheel(){
-  const inner=$("wm-wheel-inner"); inner.innerHTML="";
-  const count=9, half=Math.floor(count/2);
-  const baseIdx = Math.round(wmWheelVal*10);
-  for(let i=-half;i<=half;i++){
-    const val = (baseIdx+i)/10;
-    if(val<WM_MIN||val>WM_MAX) continue;
-    const div=document.createElement("div");
-    const isCenter = i===0;
-    div.className="h-9 flex items-center justify-center w-full "+(isCenter?"text-xl font-extrabold text-[#003535]":"text-sm font-medium text-[#404848]/60");
-    div.textContent=val.toFixed(1);
-    inner.appendChild(div);
-  }
-  inner.style.transform="translateY(0px)";
-}
-function initWmWheel(){
-  const wheel=$("wm-wheel");
-  let startY=0, dragging=false, startVal=0;
-  const onStart=e=>{ dragging=true; startY=(e.touches?e.touches[0]:e).clientY; startVal=wmWheelVal; wheel.style.cursor="grabbing"; };
-  const onMove=e=>{ if(!dragging) return; e.preventDefault(); const y=(e.touches?e.touches[0]:e).clientY; const diff=(startY-y)/36; wmSetVal(Math.round((startVal+diff*WM_STEP*10)*10)/10); };
-  const onEnd=()=>{ dragging=false; wheel.style.cursor="grab"; };
-  wheel.addEventListener("mousedown",onStart); wheel.addEventListener("touchstart",onStart,{passive:true});
-  window.addEventListener("mousemove",onMove); window.addEventListener("touchmove",onMove,{passive:false});
-  window.addEventListener("mouseup",onEnd); window.addEventListener("touchend",onEnd);
-  wheel.addEventListener("wheel",e=>{ e.preventDefault(); wmSetVal(wmWheelVal+(e.deltaY>0?WM_STEP:-WM_STEP)); },{passive:false});
+function initWmButtons(){
   $("wm-minus").onclick=()=>wmSetVal(wmWheelVal-WM_STEP);
   $("wm-plus").onclick=()=>wmSetVal(wmWheelVal+WM_STEP);
+  document.querySelectorAll(".wm-time-btn").forEach(btn=>btn.onclick=()=>{
+    wmTiming=btn.dataset.timing;
+    document.querySelectorAll(".wm-time-btn").forEach(b=>{
+      b.className="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] "+(b.dataset.timing===wmTiming?"bg-[#eff4ff] text-[#003535]":"bg-white text-[#404848]");
+    });
+  });
 }
 function openWeightModal(){
   wmSetVal(S.profile.weight||80);
+  wmTiming="before";
+  document.querySelectorAll(".wm-time-btn").forEach(b=>{
+    b.className="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] "+(b.dataset.timing==="before"?"bg-[#eff4ff] text-[#003535]":"bg-white text-[#404848]");
+  });
   renderWeightHistoryModal();
   show($("weight-modal"));
-  initWmWheel();
 }
 function closeWeightModal(){ hide($("weight-modal")); }
 function saveWeightModal(){
@@ -1205,50 +1218,55 @@ function saveWeightModal(){
   if(isNaN(w)||w<=0){ toast("ערך לא תקין",true); return; }
   S.profile.weight = w;
   S.weights = S.weights||[];
-  S.weights.push({date:todayId(), kg:w});
+  const now=new Date();
+  S.weights.push({date:todayId(), kg:w, timing:wmTiming, time:now.getHours()+":"+String(now.getMinutes()).padStart(2,"0")});
   ensure(todayId()).weight = w;
   persist(); render(); closeWeightModal();
   toast("המשקל עודכן - היעדים חושבו מחדש");
 }
+function findWeightOnDate(dateId){
+  const dayData=S.days&&S.days[dateId];
+  if(dayData&&dayData.weight) return dayData.weight;
+  const ws=(S.weights||[]).filter(w=>w.date===dateId);
+  return ws.length?ws[ws.length-1].kg:null;
+}
 function findWeightWeekAgo(dateStr){
   const d=new Date(dateStr); d.setDate(d.getDate()-7);
-  const id=dateToId(d);
-  const dayData=S.days&&S.days[id];
-  if(dayData&&dayData.weight) return dayData.weight;
-  const ws=(S.weights||[]).filter(w=>w.date===id);
-  return ws.length?ws[ws.length-1].kg:null;
+  return findWeightOnDate(dateToId(d));
 }
 function renderWeightHistoryModal(){
   const box=$("wm-history"); box.innerHTML="";
-  const ws = (S.weights||[]).slice().reverse().slice(0,20);
+  const ws=S.weights||[];
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
-  // כותרת טבלה
+  const today=new Date();
+  const dayOfWeek=today.getDay(); // 0=Sun
+  const sun=new Date(today); sun.setDate(today.getDate()-dayOfWeek);
+  const days=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
   const hdr=document.createElement("div");
-  hdr.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 px-2 py-1 text-[9px] font-bold text-[#404848] border-b border-[#bfc8c8]/50";
-  hdr.innerHTML='<span>תאריך</span><span class="w-14 text-center">משקל</span><span class="w-14 text-center">שבוע קודם</span><span class="w-10 text-center">פער</span><span></span>';
+  hdr.className="grid grid-cols-[28px_36px_32px_32px_32px_32px_32px] gap-px px-1 py-1 text-[8px] font-bold text-[#404848] border-b border-[#bfc8c8]/50 text-center";
+  hdr.innerHTML='<span>יום</span><span>משקל</span><span>-שבוע</span><span>-2</span><span>-3</span><span>-חודש</span><span></span>';
   box.appendChild(hdr);
-  ws.forEach((w,i)=>{
-    const realIdx = S.weights.length-1-i;
-    const prevW = findWeightWeekAgo(w.date);
-    let diffHtml='<span class="w-10 text-center text-[10px] text-[#404848]">—</span>';
-    if(prevW){
-      const diff=Math.round((w.kg-prevW)*10)/10;
-      const color=diff<0?"#006c49":diff>0?"#ba1a1a":"#404848";
-      const txt=diff>0?"+"+diff.toFixed(1):diff.toFixed(1);
-      diffHtml='<span class="w-10 text-center text-[10px] font-extrabold" style="color:'+color+'">'+txt+'</span>';
-    }
-    const div=document.createElement("div");
-    div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#eff4ff] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
-    div.innerHTML='<span class="text-[11px]">'+fmtDate(w.date)+'</span>'
-      +'<span class="w-14 text-center font-bold text-[11px]">'+w.kg+'</span>'
-      +'<span class="w-14 text-center text-[10px] text-[#404848]">'+(prevW?prevW.toFixed(1):'—')+'</span>'
-      +diffHtml
-      +'<button class="del-wm material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button>';
-    box.appendChild(div);
-  });
-  box.querySelectorAll(".del-wm").forEach(btn=>{
-    btn.onclick=()=>{ if(!confirm("למחוק?")) return; S.weights.splice(+btn.dataset.idx,1); if(S.weights.length) S.profile.weight=S.weights[S.weights.length-1].kg; persist(); render(); renderWeightHistoryModal(); };
-  });
+  for(let i=0;i<7;i++){
+    const d=new Date(sun); d.setDate(sun.getDate()+i);
+    const id=dateToId(d);
+    const kg=findWeightOnDate(id);
+    const w1=findWeightOnDate(dateToId(new Date(d.getTime()-7*86400000)));
+    const w2=findWeightOnDate(dateToId(new Date(d.getTime()-14*86400000)));
+    const w3=findWeightOnDate(dateToId(new Date(d.getTime()-21*86400000)));
+    const wm=findWeightOnDate(dateToId(new Date(d.getTime()-30*86400000)));
+    const isToday=id===todayId();
+    const row=document.createElement("div");
+    row.className="grid grid-cols-[28px_36px_32px_32px_32px_32px_32px] gap-px px-1 py-0.5 text-[9px] text-center items-center "+(isToday?"bg-[#dce9ff] rounded":"");
+    const fmtKg=v=>v?v.toFixed(1):'—';
+    row.innerHTML='<span class="font-bold">'+days[i]+'</span>'
+      +'<span class="font-extrabold text-[#003535]">'+(kg?kg.toFixed(1):'—')+'</span>'
+      +'<span class="text-[#404848]">'+fmtKg(w1)+'</span>'
+      +'<span class="text-[#404848]">'+fmtKg(w2)+'</span>'
+      +'<span class="text-[#404848]">'+fmtKg(w3)+'</span>'
+      +'<span class="text-[#404848]">'+fmtKg(wm)+'</span>'
+      +'<span></span>';
+    box.appendChild(row);
+  }
 }
 
 // ===== מודאל גרף משקל =====
@@ -2197,6 +2215,7 @@ function start(){
   $("btn-weight").onclick=openWeightModal;
   $("close-weight-modal").onclick=closeWeightModal;
   $("wm-save").onclick=saveWeightModal;
+  initWmButtons();
   $("wm-graph").onclick=openWeightGraph;
   $("close-wg-modal").onclick=closeWeightGraph;
   $("weight-graph-modal").onclick=e=>{ if(e.target===$("weight-graph-modal")) closeWeightGraph(); };
@@ -2232,8 +2251,11 @@ function start(){
   $("fav-modal").onclick=e=>{ if(e.target===$("fav-modal")) closeFavModal(); };
   $("btn-add-fav-modal").onclick=()=>{
     const name=$("fav-modal-name").value.trim(); if(!name){ toast("הזן שם לפריט",true); return; }
-    saveItemFavorite({name, amount:$("fav-modal-amt").value.trim(), calories:Math.round(+$("fav-modal-cal").value||0), protein:Math.round(+$("fav-modal-prot").value||0), beefGrams:0});
-    $("fav-modal-name").value=""; $("fav-modal-amt").value=""; $("fav-modal-cal").value=""; $("fav-modal-prot").value="";
+    const qty=$("fav-modal-qty").value.trim()||"1";
+    const unit=$("fav-modal-unit").value.trim()||"יח׳";
+    const amt=qty+" "+unit;
+    saveItemFavorite({name, amount:amt, calories:Math.round(+$("fav-modal-cal").value||0), protein:Math.round(+$("fav-modal-prot").value||0), beefGrams:0});
+    $("fav-modal-name").value=""; $("fav-modal-qty").value="1"; $("fav-modal-unit").value="יח׳"; $("fav-modal-cal").value=""; $("fav-modal-prot").value="";
   };
 
   // דוח
