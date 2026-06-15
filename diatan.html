@@ -144,10 +144,7 @@
         <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border"></span>
         <div id="alerts" class="flex flex-wrap gap-1"></div>
       </div>
-      <div class="flex items-center gap-1">
-        <button id="btn-refresh" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="רענן סיכום">refresh</button>
-        <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="הפק דוח MD">description</button>
-      </div>
+      <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="הפק דוח MD">description</button>
     </div>
 
     <!-- יעדים חיטוב/איזון -->
@@ -228,9 +225,14 @@
   </div>
 
   <!-- סגירת יום -->
-  <button id="btn-close-day" class="hx w-full bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
-    <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
-  </button>
+  <div class="flex gap-2">
+    <button id="btn-close-day" class="hx flex-1 bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
+      <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
+    </button>
+    <button id="btn-refresh-summary" class="hx bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white px-3 rounded-xl active:scale-[0.98] flex items-center justify-center shadow-md" title="רענן סיכום">
+      <span class="material-symbols-outlined text-[20px]">refresh</span>
+    </button>
+  </div>
   <div id="close-day-summary" class="hx bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <div id="close-day-content" class="p-4 text-[13px] leading-relaxed text-[#0b1c30] space-y-2"></div>
     <div id="close-day-qa" class="hx px-4 pb-4 space-y-2">
@@ -607,7 +609,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.11";
+const APP_VERSION = "5.12";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -962,17 +964,18 @@ function render(){
 
   // סגירת יום — כפתור תמיד נראה אם יש ארוחות, toggle לסיכום
   const cdBtn=$("btn-close-day"), cdSum=$("close-day-summary");
+  const rfBtn=$("btn-refresh-summary");
   if(items.length){
     show(cdBtn);
     if(day.closeSummary){
       cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סיכום יום';
       $("close-day-content").innerHTML=day.closeSummary.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
-      show(cdSum); show($("close-day-qa"));
+      show(cdSum); show($("close-day-qa")); show(rfBtn);
     } else {
       cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI';
-      hide(cdSum);
+      hide(cdSum); hide(rfBtn);
     }
-  } else { hide(cdBtn); hide(cdSum); }
+  } else { hide(cdBtn); hide(cdSum); hide(rfBtn); }
 
   // רצף ימים
   const streak=calcStreak(); const sc=$("streak-chip");
@@ -2309,11 +2312,12 @@ function start(){
   $("steps-modal").onclick=e=>{ if(e.target===$("steps-modal")) closeStepsModal(); };
 
   $("strength").onchange=onStrength;
-  $("btn-strength").onclick=openStrengthModal;
+  $("btn-strength").onclick=e=>{ if(e.target.closest("label")||e.target.closest("input")) return; openStrengthModal(); };
   $("close-strength-modal").onclick=closeStrengthModal;
   $("strength-modal").onclick=e=>{ if(e.target===$("strength-modal")) closeStrengthModal(); };
   $("strength-modal-toggle").onchange=e=>{ ensure(viewDay).strength=e.target.checked; $("strength").checked=e.target.checked; persist(); render(); renderStrengthHistory(); };
   $("btn-close-day").onclick=onCloseDay;
+  $("btn-refresh-summary").onclick=()=>{ const day=ensure(viewDay); if(day.closeSummary){ delete day.closeSummary; persist(); hide($("close-day-summary")); hide($("close-day-qa")); hide($("btn-refresh-summary")); onCloseDay(); } };
   $("close-day-q-send").onclick=onCloseDayQ;
   $("close-day-q").onkeydown=e=>{ if(e.key==="Enter") onCloseDayQ(); };
 
@@ -2343,7 +2347,6 @@ function start(){
   };
 
   // דוח
-  $("btn-refresh").onclick=()=>{ render(); toast("הסיכום עודכן"); };
   $("btn-report").onclick=generateReport;
   $("close-report-modal").onclick=closeReportModal;
   $("report-download").onclick=downloadReport;
