@@ -361,6 +361,18 @@
   </div>
 </div>
 
+<!-- ===== מודאל טיפים לחלבון ===== -->
+<div id="prot-tips-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">lightbulb</span> טיפ חלבון</h2>
+      <button id="close-prot-tips" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
+    </div>
+    <div id="prot-tip-content" class="text-sm text-[#003535] leading-relaxed"></div>
+    <button id="prot-tip-next" class="w-full bg-[#0061a4] text-white font-bold py-2 rounded-xl text-sm active:scale-[0.98]">טיפ נוסף</button>
+  </div>
+</div>
+
 <!-- ===== מודאל אימון כוח ===== -->
 <div id="strength-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
   <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[70vh] overflow-y-auto">
@@ -592,7 +604,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.7";
+const APP_VERSION = "5.8";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1267,7 +1279,7 @@ function renderWeightHistoryModal(){
     let diffTag="";
     if(kg&&w1){ const diff=Math.round((kg-w1)*10)/10; const color=diff<0?"#006c49":"#ba1a1a"; diffTag='<span class="text-[8px] font-bold" style="color:'+color+'">('+( diff>0?"+":"")+diff.toFixed(1)+')</span>'; }
     const underline=timing==="after"?"border-bottom:2px solid #8B4513;padding-bottom:1px;":(timing==="half"?"border-bottom:2px solid #8B4513;padding-bottom:1px;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;":"");
-    const weightCell=kg?'<span class="wm-edit-cell cursor-pointer" data-date="'+id+'"><span class="font-extrabold text-[#003535] inline-block" style="'+underline+'">'+kg.toFixed(1)+'</span> '+diffTag+(timeStr?'<br><span class="text-[7px] font-normal text-[#404848] leading-none">'+timeStr+'</span>':'')+'</span>':'<span>—</span>';
+    const weightCell=kg?'<span class="wm-edit-cell cursor-pointer flex flex-col items-center leading-none" data-date="'+id+'"><span><span class="font-extrabold text-[#003535] inline-block" style="'+underline+'">'+kg.toFixed(1)+'</span> '+diffTag+'</span>'+(timeStr?'<span class="text-[7px] font-normal text-[#404848] -mt-0.5">'+timeStr+'</span>':'')+'</span>':'<span>—</span>';
     row.innerHTML='<span class="font-bold text-[9px]">'+dateLabel+'</span>'
       +weightCell
       +'<span class="text-[#404848]">'+fmtKg(w1)+'</span>'
@@ -1519,6 +1531,33 @@ function openNoteModal(){
   show($("note-modal"));
 }
 function closeNoteModal(){ hide($("note-modal")); }
+
+// ===== טיפים לחלבון =====
+const PROT_TIPS=[
+  {icon:"egg_alt",title:"ביצים — הלבן הוא הכוכב",tip:"לבן ביצה = 3.6 גרם חלבון ו-17 קלוריות בלבד. שתי ביצים שלמות + 3 לבנים = 28 גרם חלבון ב-210 קלוריות. יחס מנצח."},
+  {icon:"blender",title:"חלבון קזאין לפני שינה",tip:"קזאין נספג לאט (6-8 שעות). כוס קוטג' 5% לפני השינה מספקת ~14 גרם חלבון עם שחרור מתמשך שמגן על שריר בזמן צום הלילה."},
+  {icon:"water_drop",title:"לשתות מים מייד אחרי חלבון",tip:"מים מסייעים לכליות לסנן את תוצרי פירוק החלבון. כלל אצבע: 30 מ\"ל לכל גרם חלבון בארוחה. 30 גרם חלבון = כוס מים."},
+  {icon:"schedule",title:"חלון 3 השעות",tip:"הגוף מייעל סינתזת חלבון כשהמנה היא 25-40 גרם. אכילת 80 גרם בארוחה אחת לא מכפילה את הבנייה — פרוס ל-3 ארוחות ברווח של 3 שעות."},
+  {icon:"local_fire_department",title:"אפקט תרמי גבוה",tip:"חלבון שורף 20-30% מהקלוריות שלו בעיכול (לעומת 5-10% בפחמימות). 100 קלוריות מחלבון = 70-80 נטו. זה יתרון מובנה לדיאטה."},
+  {icon:"restaurant",title:"שילוב עם סיבים = שובע",tip:"חלבון + סיבים = השילוב שהכי מאט ריקון קיבה. גבינה לבנה + ירקות חתוכים, טונה + סלט — שובע של 4+ שעות."},
+  {icon:"fitness_center",title:"חלבון אחרי אימון — לא חייב מיידי",tip:"חלון ה-30 דקות הוא מיתוס. המחקר מראה שה-window הוא 2-3 שעות. אם אכלת ארוחה עשירה בחלבון לפני — אתה מכוסה."},
+  {icon:"trending_up",title:"לוצין — המפתח להפעלת mTOR",tip:"לוצין (חומצת אמינו) היא הטריגר לבניית שריר. מקורות עשירים: חזה עוף, טונה, ביצים, יוגורט יווני. סף מינימלי: 2.5 גרם לארוחה."},
+  {icon:"nights_stay",title:"שינה = בניית שריר",tip:"75% מהורמון הגדילה (GH) מופרש בשינה עמוקה. שינה מקוטעת = פחות סינתזת חלבון. 7-9 שעות שינה = מקסום ההשקעה בחלבון."},
+  {icon:"soup_kitchen",title:"מרק עצמות — חלבון נסתר",tip:"כוס מרק עצמות ביתי = 6-12 גרם חלבון (קולגן). מצוין כארוחת ביניים חמה, תורם גם למפרקים ולבריאות המעי."},
+  {icon:"science",title:"ויטמין D מגביר ספיגה",tip:"מחסור בוויטמין D (שכיח בישראל!) פוגע בסינתזת חלבון בשריר. 15 דקות שמש ביום או תוסף 1000IU = השקעה קטנה עם תשואה גדולה."},
+  {icon:"emoji_food_beverage",title:"קפה לפני ארוחת חלבון",tip:"קפאין מגביר חמצון שומן ומעלה מטבוליזם ב-3-11%. כוס קפה שחור 30 דקות לפני ארוחה עשירה בחלבון = שילוב חכם."},
+  {icon:"auto_awesome",title:"תבלינים שמגבירים ספיגה",tip:"כורכום + פלפל שחור (פיפרין) משפרים ספיגת חומרי מזון ב-2000%. הוסף לביצים, לעוף או לטחינה. טעים ובריא."},
+  {icon:"bolt",title:"40 גרם = תקרת ארוחה",tip:"מעל ~40 גרם חלבון בארוחה, חלק הולך לגלוקונאוגנזה (אנרגיה). לא מזיק, אבל לא בונה שריר נוסף. עדיף לפזר."},
+  {icon:"monitoring",title:"הזעה = אובדן חלבון",tip:"באימון אינטנסיבי מאבדים חומצות אמינו בזיעה. ביום אימון — הוסף 5-10 גרם חלבון מעבר לרגיל. שייק קטן מספיק."}
+];
+let protTipIdx=Math.floor(Math.random()*PROT_TIPS.length);
+function openProtTips(){
+  showProtTip(); show($("prot-tips-modal"));
+}
+function showProtTip(){
+  const t=PROT_TIPS[protTipIdx%PROT_TIPS.length];
+  $("prot-tip-content").innerHTML='<div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-[24px] text-[#0061a4]">'+t.icon+'</span><span class="font-bold text-base">'+t.title+'</span></div><p class="text-[13px] text-[#404848] leading-relaxed">'+t.tip+'</p>';
+}
 
 // ===== מודאל בקר שבועי =====
 function openBeefModal(){
@@ -2273,7 +2312,10 @@ function start(){
 
   // עריכת ארוחות שמורות (לחיצה על קלוריות/חלבון)
   $("cal-box").onclick=openMealsModal;
-  $("prot-box").onclick=openNoteModal;
+  $("prot-box").onclick=openProtTips;
+  $("close-prot-tips").onclick=()=>hide($("prot-tips-modal"));
+  $("prot-tips-modal").onclick=e=>{ if(e.target===$("prot-tips-modal")) hide($("prot-tips-modal")); };
+  $("prot-tip-next").onclick=()=>{ protTipIdx++; showProtTip(); };
   $("close-meals-modal").onclick=closeMealsModal;
   $("me-save").onclick=saveMealsEdit;
   $("meals-modal").onclick=e=>{ if(e.target===$("meals-modal")) closeMealsModal(); };
