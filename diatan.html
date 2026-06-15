@@ -604,7 +604,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.8";
+const APP_VERSION = "5.9";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1026,6 +1026,7 @@ function renderResults(){
   });
   box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
   box.querySelectorAll("input").forEach(inp=>{inp.addEventListener("input",updateResultsSum); inp.addEventListener("input",updateRecalcState);});
+  box.querySelectorAll(".r-amt,.r-cal,.r-prot").forEach(inp=>inp.addEventListener("focus",()=>inp.select()));
   box.querySelectorAll(".r-row").forEach(row=>{
     const amtInp=row.querySelector(".r-amt");
     const origAmt=parseFloat(amtInp.value)||0;
@@ -1488,6 +1489,7 @@ function renderMealsEdit(){
   box.querySelectorAll(".fav-meal").forEach(btn=>btn.onclick=()=>{ const mi=+btn.dataset.mi; applyMealsEdit(); recalcMeal(mi); saveFavorite(S.days[viewDay].meals[mi]); });
   box.querySelectorAll(".fav-item-me").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); const it=S.days[viewDay].meals[+btn.dataset.mi].items[+btn.dataset.ii]; saveItemFavorite(it); });
   box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ updateMealsEditSum(); setMealsDirty(true); }));
+  box.querySelectorAll(".me-amt,.me-cal,.me-prot").forEach(inp=>inp.addEventListener("focus",()=>inp.select()));
   box.querySelectorAll(".me-row").forEach(row=>{
     const amtInp=row.querySelector(".me-amt");
     const origAmt=parseFloat(amtInp.value)||0;
