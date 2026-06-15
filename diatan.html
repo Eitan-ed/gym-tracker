@@ -144,7 +144,10 @@
         <span id="streak-chip" class="hx flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border"></span>
         <div id="alerts" class="flex flex-wrap gap-1"></div>
       </div>
-      <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="הפק דוח MD">description</button>
+      <div class="flex items-center gap-1">
+        <button id="btn-refresh" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="רענן סיכום">refresh</button>
+        <button id="btn-report" class="material-symbols-outlined text-[#003535] text-[16px] p-1 bg-[#dce9ff] rounded-lg active:scale-90 shrink-0" title="הפק דוח MD">description</button>
+      </div>
     </div>
 
     <!-- יעדים חיטוב/איזון -->
@@ -604,7 +607,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.10";
+const APP_VERSION = "5.11";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2340,6 +2343,7 @@ function start(){
   };
 
   // דוח
+  $("btn-refresh").onclick=()=>{ render(); toast("הסיכום עודכן"); };
   $("btn-report").onclick=generateReport;
   $("close-report-modal").onclick=closeReportModal;
   $("report-download").onclick=downloadReport;
