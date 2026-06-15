@@ -592,7 +592,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.6";
+const APP_VERSION = "5.7";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1246,7 +1246,7 @@ function renderWeightHistoryModal(){
   const days=["א","ב","ג","ד","ה","ו","ש"];
   const hdr=document.createElement("div");
   hdr.className="grid grid-cols-6 gap-0 px-1 py-1 text-[9px] font-bold text-[#404848] border-b border-[#bfc8c8]/50 text-center";
-  hdr.innerHTML='<span>תאריך</span><span>משקל</span><span>שבוע</span><span>2 שב</span><span>3 שב</span><span>חודש</span>';
+  hdr.innerHTML='<span>תאריך</span><span>משקל</span><span>שבוע</span><span>-2</span><span>-3</span><span>חודש</span>';
   box.appendChild(hdr);
   for(let i=0;i<7;i++){
     const d=new Date(sun); d.setDate(sun.getDate()+i);
@@ -1265,10 +1265,9 @@ function renderWeightHistoryModal(){
     const fmtKg=v=>v?v.toFixed(1):'—';
     const dateLabel=days[i]+" "+d.getDate()+"/"+(d.getMonth()+1);
     let diffTag="";
-    if(kg&&w1){ const diff=Math.round((kg-w1)*10)/10; const color=diff<0?"#006c49":"#ba1a1a"; diffTag=' <span class="text-[8px] font-bold" style="color:'+color+'">('+( diff>0?"+":"")+diff.toFixed(1)+')</span>'; }
+    if(kg&&w1){ const diff=Math.round((kg-w1)*10)/10; const color=diff<0?"#006c49":"#ba1a1a"; diffTag='<span class="text-[8px] font-bold" style="color:'+color+'">('+( diff>0?"+":"")+diff.toFixed(1)+')</span>'; }
     const underline=timing==="after"?"border-bottom:2px solid #8B4513;padding-bottom:1px;":(timing==="half"?"border-bottom:2px solid #8B4513;padding-bottom:1px;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;":"");
-    const timeHtml=timeStr?'<span class="text-[7px] font-normal text-[#404848] leading-none wm-edit-time cursor-pointer" data-date="'+id+'" title="ערוך שעה">'+timeStr+'</span>':"";
-    const weightCell=kg?'<span class="font-extrabold text-[#003535] inline-block" style="'+underline+'">'+kg.toFixed(1)+'</span>'+diffTag+(timeHtml?' '+timeHtml:''):'<span>—</span>';
+    const weightCell=kg?'<span class="wm-edit-cell cursor-pointer" data-date="'+id+'"><span class="font-extrabold text-[#003535] inline-block" style="'+underline+'">'+kg.toFixed(1)+'</span> '+diffTag+(timeStr?'<br><span class="text-[7px] font-normal text-[#404848] leading-none">'+timeStr+'</span>':'')+'</span>':'<span>—</span>';
     row.innerHTML='<span class="font-bold text-[9px]">'+dateLabel+'</span>'
       +weightCell
       +'<span class="text-[#404848]">'+fmtKg(w1)+'</span>'
@@ -1277,19 +1276,31 @@ function renderWeightHistoryModal(){
       +'<span class="text-[#404848]">'+fmtKg(wm)+'</span>';
     box.appendChild(row);
   }
-  box.querySelectorAll(".wm-edit-time").forEach(btn=>{
+  box.querySelectorAll(".wm-edit-cell").forEach(btn=>{
     btn.onclick=e=>{
       e.stopPropagation();
       const dateId=btn.dataset.date;
-      const newTime=prompt("שעת שקילה (HH:MM):",btn.textContent);
-      if(newTime===null) return;
       const rec=(S.weights||[]).filter(w=>w.date===dateId);
-      if(rec.length){ rec[rec.length-1].time=newTime.trim(); persist(); renderWeightHistoryModal(); }
+      if(!rec.length) return;
+      const last=rec[rec.length-1];
+      const newKg=prompt("משקל:",last.kg);
+      if(newKg===null) return;
+      const kg=parseFloat(newKg); if(isNaN(kg)||kg<=0){ toast("ערך לא תקין",true); return; }
+      const newTime=prompt("שעה (HH:MM):",last.time||"");
+      if(newTime===null) return;
+      const curTiming=last.timing||"";
+      const timingLabels={"before":"לפני","half":"חצי","after":"אחרי"};
+      const newTiming=prompt("לפני / חצי / אחרי:",timingLabels[curTiming]||"");
+      if(newTiming===null) return;
+      const tMap={"לפני":"before","חצי":"half","אחרי":"after"};
+      last.kg=kg; last.time=newTime.trim(); last.timing=tMap[newTiming.trim()]||last.timing;
+      if(dateId===todayId()){ S.profile.weight=kg; ensure(todayId()).weight=kg; }
+      persist(); render(); renderWeightHistoryModal();
     };
   });
   const legend=document.createElement("div");
   legend.className="flex gap-3 justify-end pt-2 text-[10px] text-[#404848]";
-  legend.innerHTML='<span><span class="text-[#006c49] font-bold">(-)</span> ירידה</span><span><span class="text-[#ba1a1a] font-bold">(+)</span> עלייה</span><span><span style="border-bottom:2px solid #8B4513;padding-bottom:1px">__</span> אחרי</span><span><span style="border-bottom:2px solid #8B4513;padding-bottom:1px;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1">__</span> חצי</span>';
+  legend.innerHTML='<span><span class="text-[#006c49] font-bold">(-)</span> ירידה</span><span><span class="text-[#ba1a1a] font-bold">(+)</span> עלייה</span><span><span style="border-bottom:2px solid #8B4513;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> אחרי</span><span><span style="border-bottom:2px solid #8B4513;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> חצי</span>';
   box.appendChild(legend);
 }
 
