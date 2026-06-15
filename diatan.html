@@ -242,9 +242,9 @@
 
 <!-- ===== מודאל משקל ===== -->
 <div id="weight-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
-  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[70vh] overflow-y-auto">
+  <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[90vh] overflow-y-auto">
     <div class="flex justify-between items-center">
-      <h2 class="text-base font-bold text-[#003535]">עדכון משקל</h2>
+      <h2 class="text-sm font-bold text-[#003535]">עדכון משקל</h2>
       <button id="close-weight-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <!-- משקל +/- -->
@@ -258,8 +258,8 @@
         <button id="wm-plus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
       </div>
       <div id="wm-timing" class="flex gap-2 mt-1">
-        <button data-timing="before" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-[#eff4ff] text-[#003535]">לפני אכילה</button>
-        <button data-timing="after" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">אחרי אכילה</button>
+        <button data-timing="before" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-[#eff4ff] text-[#003535]">לפני</button>
+        <button data-timing="after" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">אחרי</button>
       </div>
       <input id="wm-value" type="hidden">
     </div>
@@ -268,7 +268,7 @@
       <button id="wm-graph" class="bg-[#0061a4] text-white font-bold px-4 rounded-xl text-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">show_chart</span>גרף</button>
     </div>
     <div class="border-t border-[#bfc8c8] pt-2">
-      <h4 class="text-sm font-bold text-[#404848] mb-1">היסטוריית משקל</h4>
+      <h4 class="text-sm font-bold text-[#003535] mb-1">היסטוריית משקל</h4>
       <div id="wm-history" class="space-y-1 text-sm"></div>
     </div>
   </div>
@@ -1239,32 +1239,35 @@ function renderWeightHistoryModal(){
   const ws=S.weights||[];
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
   const today=new Date();
-  const dayOfWeek=today.getDay(); // 0=Sun
+  const dayOfWeek=today.getDay();
   const sun=new Date(today); sun.setDate(today.getDate()-dayOfWeek);
-  const days=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
+  const days=["א","ב","ג","ד","ה","ו","ש"];
   const hdr=document.createElement("div");
-  hdr.className="grid grid-cols-[28px_36px_32px_32px_32px_32px_32px] gap-px px-1 py-1 text-[8px] font-bold text-[#404848] border-b border-[#bfc8c8]/50 text-center";
-  hdr.innerHTML='<span>יום</span><span>משקל</span><span>-שבוע</span><span>-2</span><span>-3</span><span>-חודש</span><span></span>';
+  hdr.className="grid grid-cols-6 gap-0 px-1 py-1 text-[9px] font-bold text-[#404848] border-b border-[#bfc8c8]/50 text-center";
+  hdr.innerHTML='<span>תאריך</span><span>משקל</span><span>שבוע</span><span>2 שב</span><span>3 שב</span><span>חודש</span>';
   box.appendChild(hdr);
   for(let i=0;i<7;i++){
     const d=new Date(sun); d.setDate(sun.getDate()+i);
     const id=dateToId(d);
     const kg=findWeightOnDate(id);
+    const wRec=(S.weights||[]).filter(w=>w.date===id); const lastRec=wRec.length?wRec[wRec.length-1]:null;
+    const timeStr=lastRec&&lastRec.time?lastRec.time:"";
     const w1=findWeightOnDate(dateToId(new Date(d.getTime()-7*86400000)));
     const w2=findWeightOnDate(dateToId(new Date(d.getTime()-14*86400000)));
     const w3=findWeightOnDate(dateToId(new Date(d.getTime()-21*86400000)));
     const wm=findWeightOnDate(dateToId(new Date(d.getTime()-30*86400000)));
     const isToday=id===todayId();
     const row=document.createElement("div");
-    row.className="grid grid-cols-[28px_36px_32px_32px_32px_32px_32px] gap-px px-1 py-0.5 text-[9px] text-center items-center "+(isToday?"bg-[#dce9ff] rounded":"");
+    row.className="grid grid-cols-6 gap-0 px-1 py-1 text-[10px] text-center items-center "+(isToday?"bg-[#dce9ff] rounded":"");
     const fmtKg=v=>v?v.toFixed(1):'—';
-    row.innerHTML='<span class="font-bold">'+days[i]+'</span>'
-      +'<span class="font-extrabold text-[#003535]">'+(kg?kg.toFixed(1):'—')+'</span>'
+    const dateLabel=days[i]+" "+d.getDate()+"/"+(d.getMonth()+1);
+    const weightCell=kg?'<span class="font-extrabold text-[#003535]">'+kg.toFixed(1)+(timeStr?'<br><span class="text-[7px] font-normal text-[#404848]">'+timeStr+'</span>':'')+'</span>':'<span>—</span>';
+    row.innerHTML='<span class="font-bold text-[9px]">'+dateLabel+'</span>'
+      +weightCell
       +'<span class="text-[#404848]">'+fmtKg(w1)+'</span>'
       +'<span class="text-[#404848]">'+fmtKg(w2)+'</span>'
       +'<span class="text-[#404848]">'+fmtKg(w3)+'</span>'
-      +'<span class="text-[#404848]">'+fmtKg(wm)+'</span>'
-      +'<span></span>';
+      +'<span class="text-[#404848]">'+fmtKg(wm)+'</span>';
     box.appendChild(row);
   }
 }
