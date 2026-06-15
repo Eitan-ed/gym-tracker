@@ -609,7 +609,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.13";
+const APP_VERSION = "5.14";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2072,7 +2072,7 @@ ${mealsDesc}
       resp=await callGemini(model,body,key);
       if(resp.ok) break;
     }
-    if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
+    if(!resp||!resp.ok){ let detail=""; try{const e=await resp.json();detail=e.error?.message||JSON.stringify(e).slice(0,200);}catch(x){} throw new Error("שגיאת Gemini ("+resp.status+"): "+detail); }
     const j=await resp.json();
     const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
     if(!answer) throw new Error("תשובה ריקה");
