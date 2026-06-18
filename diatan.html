@@ -304,12 +304,12 @@
       <h2 class="text-base font-bold text-[#003535]">עריכת ארוחות היום</h2>
       <button id="close-meals-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
+    <button id="me-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98]">שמור שינויים</button>
     <div id="meals-edit-list" class="space-y-3"></div>
     <div class="flex items-center justify-between border-t-2 border-[#003535] pt-2 font-bold text-[#003535]">
       <span>סה"כ</span>
       <span><span id="me-sum-cal">0</span> קל &middot; <span id="me-sum-prot">0</span> ג'</span>
     </div>
-    <button id="me-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98]">שמור שינויים</button>
   </div>
 </div>
 
@@ -593,7 +593,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.16";
+const APP_VERSION = "5.17";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1127,7 +1127,7 @@ function onSave(){
   applyResultsEdit();
   const day=ensure(viewDay);
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=(i.calories==="?"?0:+i.calories||0);p+=(i.protein==="?"?0:+i.protein||0);bg+=(+i.beefGrams||0);i.calories=(i.calories==="?"?0:+i.calories||0);i.protein=(i.protein==="?"?0:+i.protein||0);});
-  day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
+  day.meals.unshift({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
   persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("meal-refine").value="";
   hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
   render(); updateCalcState(); toast("הארוחה נשמרה");
