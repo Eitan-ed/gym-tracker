@@ -206,24 +206,6 @@
     </button>
   </div>
 
-  <!-- השוואת משקל שבועית -->
-  <div id="weight-compare-row" class="hx bg-white border border-[#bfc8c8] rounded-xl shadow-sm px-3 py-3">
-    <div class="grid grid-cols-3 text-center gap-2">
-      <div class="flex flex-col items-center">
-        <span class="text-[9px] font-bold text-[#404848]">היום</span>
-        <span id="wc-today" class="text-lg font-extrabold text-[#003535]">--</span>
-      </div>
-      <div class="flex flex-col items-center">
-        <span class="text-[9px] font-bold text-[#404848]">לפני שבוע</span>
-        <span id="wc-prev" class="text-sm font-medium text-[#404848]">--</span>
-      </div>
-      <div class="flex flex-col items-center">
-        <span class="text-[9px] font-bold text-[#404848]">פער</span>
-        <span id="wc-diff" class="text-sm font-extrabold">--</span>
-      </div>
-    </div>
-  </div>
-
   <!-- סגירת יום -->
   <div class="flex gap-2">
     <button id="btn-close-day" class="hx flex-1 bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
@@ -255,12 +237,12 @@
     <!-- משקל +/- -->
     <div class="flex flex-col items-center gap-2">
       <div class="flex items-center gap-4">
-        <button id="wm-minus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
+        <button id="wm-plus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
         <div class="flex items-baseline gap-1">
           <span id="wm-display" class="text-4xl font-extrabold text-[#003535]">0.0</span>
           <span class="text-sm font-bold text-[#404848]">ק"ג</span>
         </div>
-        <button id="wm-plus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
+        <button id="wm-minus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
       </div>
       <div id="wm-timing" class="flex gap-2 mt-1">
         <button data-timing="before" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">לפני</button>
@@ -339,19 +321,20 @@
       <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <p class="text-[11px] text-[#404848]">לחיצה על מועדף מוסיפה אותו ליום הנוכחי.</p>
+    <input id="fav-modal-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
+    <div id="fav-list" class="space-y-3"></div>
     <div class="bg-[#f8f9ff] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
       <div class="flex gap-1.5">
-        <input id="fav-modal-name" type="text" placeholder="שם פריט" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
-        <input id="fav-modal-qty" type="number" placeholder="כמות" class="w-14 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm text-center outline-none" value="1">
-        <input id="fav-modal-unit" type="text" placeholder="יח׳" class="w-16 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none" value="יח׳">
+        <input id="fav-modal-name" type="text" placeholder="שם פריט" class="flex-1 min-w-0 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <input id="fav-modal-qty" type="number" placeholder="כמות" class="w-12 bg-white border border-[#bfc8c8] rounded-lg px-1 py-1.5 text-sm text-center outline-none" value="1">
+        <input id="fav-modal-unit" type="text" placeholder="יח׳" class="w-12 bg-white border border-[#bfc8c8] rounded-lg px-1 py-1.5 text-sm outline-none" value="יח׳">
       </div>
       <div class="flex gap-1.5">
-        <input id="fav-modal-cal" type="number" placeholder="קלוריות" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
-        <input id="fav-modal-prot" type="number" placeholder="חלבון (ג')" class="flex-1 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
-        <button id="btn-add-fav-modal" class="bg-[#003535] text-white font-bold px-3 rounded-lg text-sm active:scale-[0.98] flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span></button>
+        <input id="fav-modal-cal" type="number" placeholder="קלוריות" class="flex-1 min-w-0 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <input id="fav-modal-prot" type="number" placeholder="חלבון (ג')" class="flex-1 min-w-0 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
+        <button id="btn-add-fav-modal" class="bg-[#003535] text-white font-bold px-3 shrink-0 rounded-lg text-sm active:scale-[0.98] flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span></button>
       </div>
     </div>
-    <div id="fav-list" class="space-y-3"></div>
   </div>
 </div>
 
@@ -553,14 +536,15 @@
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + טוענת לאזור הוספת ארוחה.</p>
+        <input id="fav-manage-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
         <div id="fav-manage-list" class="space-y-3"></div>
         <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
           <h4 class="text-xs font-bold text-[#404848]">הוספת מועדף ידנית</h4>
           <input id="new-fav-name" type="text" placeholder="שם הפריט" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           <div class="flex gap-2">
-            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           </div>
           <button id="btn-add-fav" class="w-full bg-[#003535] text-white font-bold py-2 rounded-xl text-sm active:scale-[0.98] flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span> הוסף למועדפים</button>
         </div>
@@ -609,7 +593,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.15";
+const APP_VERSION = "5.16";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -937,25 +921,6 @@ function render(){
   if(hasAny(items.map(i=>i.name).join(" "), SUGAR_KW)) addA("סוכר",false);
 
   $("weight-now").textContent = w||"--";
-  // השוואת משקל שבועית — שורה נפרדת
-  const compareRow=$("weight-compare-row");
-  const todayW = day.weight||0;
-  if(todayW>0){
-    const d7=new Date(viewDay); d7.setDate(d7.getDate()-7);
-    const d7id=d7.toISOString().slice(0,10);
-    const prevDay=S.days&&S.days[d7id];
-    const prevW=prevDay&&prevDay.weight;
-    if(prevW>0){
-      $("wc-today").textContent=todayW.toFixed(1);
-      $("wc-prev").textContent=prevW.toFixed(1);
-      const diff=Math.round((todayW-prevW)*10)/10;
-      const diffEl=$("wc-diff");
-      if(diff<0){ diffEl.textContent=diff.toFixed(1); diffEl.style.color="#006c49"; }
-      else if(diff>0){ diffEl.textContent="+"+diff.toFixed(1); diffEl.style.color="#ba1a1a"; }
-      else { diffEl.textContent="0.0"; diffEl.style.color="#404848"; }
-      show(compareRow);
-    } else { hide(compareRow); }
-  } else { hide(compareRow); }
   const stNow=day.steps||0; const sg=stepsGoal();
   $("steps-now").textContent = stNow.toLocaleString();
   $("steps-now").className = "text-base font-bold "+(stNow>=sg?"text-[#006c49]":"text-[#003535]");
@@ -1642,9 +1607,16 @@ function saveItemFavorite(item){
   });
   persist(); renderFavorites(); toast("הפריט נוסף למועדפים");
 }
-function openFavModal(){ renderFavorites(); show($("fav-modal")); }
+function openFavModal(){ $("fav-modal-search").value=""; renderFavorites(); show($("fav-modal")); }
 function closeFavModal(){ hide($("fav-modal")); }
 function renderFavorites(){ ["fav-list","fav-manage-list"].forEach(id=>{ const box=$(id); if(box) renderFavBox(box); }); }
+function filterFavList(searchId, listId){
+  const q=norm($(searchId).value);
+  $(listId).querySelectorAll(".fav-row").forEach(row=>{
+    const name=row.querySelector(".text-sm.font-bold")?.textContent||"";
+    row.style.display=(!q||norm(name).includes(q))?"":"none";
+  });
+}
 function renderFavBox(box){
   box.innerHTML="";
   const favs=S.favorites||[];
@@ -2336,6 +2308,8 @@ function start(){
   $("beef-modal").onclick=e=>{ if(e.target===$("beef-modal")) closeBeefModal(); };
   $("btn-fav").onclick=openFavModal;
   $("close-fav-modal").onclick=closeFavModal;
+  $("fav-modal-search").oninput=()=>filterFavList("fav-modal-search","fav-list");
+  $("fav-manage-search").oninput=()=>filterFavList("fav-manage-search","fav-manage-list");
   $("fav-modal").onclick=e=>{ if(e.target===$("fav-modal")) closeFavModal(); };
   $("btn-add-fav-modal").onclick=()=>{
     const name=$("fav-modal-name").value.trim(); if(!name){ toast("הזן שם לפריט",true); return; }
