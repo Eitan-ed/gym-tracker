@@ -593,7 +593,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.19";
+const APP_VERSION = "5.20";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1986,6 +1986,18 @@ function buildReportMD(){
   return md;
 }
 
+function getPrevTips(){
+  if(!S.days) return "";
+  const tips=[];
+  const days=Object.keys(S.days).sort().reverse().slice(0,14);
+  for(const id of days){
+    const d=S.days[id]; if(!d.closeSummary) continue;
+    const m=d.closeSummary.match(/\*\*טיפ[^*]*\*\*[:\s—\-]*([\s\S]*?)(?=\n\*\*|\n\n|$)/i);
+    if(m&&m[1].trim()) tips.push(m[1].trim().slice(0,120));
+    if(tips.length>=5) break;
+  }
+  return tips.length ? "\nטיפים קודמים (אסור לחזור עליהם!):\n"+tips.map((t,i)=>"- "+t).join("\n") : "";
+}
 // ===== סגירת יום =====
 async function onCloseDay(){
   const day=ensure(viewDay);
@@ -2037,8 +2049,8 @@ ${mealsDesc}
 2. **חלבון** — האם הגיע ליעד? אם לא, כמה חסר ומה היה אפשר להוסיף
 3. **צעדים** — ביחס ליעד ${sg.toLocaleString()}, תרומה לגרעון
 4. **הישגים** — מה היה טוב היום? ציין את שמות המזונות הספציפיים, לא "ארוחה 1/2/3"
-5. **טיפ יעיל** — רעיון אחד פרקטי לשילוב פעילות או שיפור תזונה בתוך השגרה היומית. למשל: הליכה תוך שיחת טלפון, החלפת חטיף בגזר, מדרגות במקום מעלית, תרגילי גוף בהפסקה. המטרה — דבר קטן שקל לשלב מחר בלי מאמץ מיוחד
-
+5. **טיפ יעיל** — רעיון אחד פרקטי לשילוב פעילות או שיפור תזונה בתוך השגרה היומית. המטרה — דבר קטן שקל לשלב מחר בלי מאמץ מיוחד. חובה: הטיפ חייב להיות שונה מהטיפים הקודמים שלהלן!
+${getPrevTips()}
 חשוב: התייחס לכל פריט מזון בשמו (חזה עוף, אורז, יוגורט וכו') ולא במספר ארוחה. כתוב בגוף שני ("עמדת", "הצלחת"). קצר — 2-3 משפטים לכל סעיף. אל תחזיר JSON.`;
 
     const parts=[{text:prompt}];
