@@ -593,7 +593,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.17";
+const APP_VERSION = "5.18";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1127,7 +1127,7 @@ function onSave(){
   applyResultsEdit();
   const day=ensure(viewDay);
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=(i.calories==="?"?0:+i.calories||0);p+=(i.protein==="?"?0:+i.protein||0);bg+=(+i.beefGrams||0);i.calories=(i.calories==="?"?0:+i.calories||0);i.protein=(i.protein==="?"?0:+i.protein||0);});
-  day.meals.unshift({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
+  day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
   persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("meal-refine").value="";
   hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
   render(); updateCalcState(); toast("הארוחה נשמרה");
@@ -1433,7 +1433,11 @@ function renderMealsEdit(){
   const box=$("meals-edit-list"); box.innerHTML="";
   const day=ensure(viewDay);
   if(!day.meals.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין ארוחות ביום זה</p>'; updateMealsEditSum(); setMealsDirty(false); return; }
-  day.meals.forEach((m,mi)=>{
+  const mealsOrder=day.meals.map((m,mi)=>({m,mi})).sort((a,b)=>{
+    const ta=a.m.time?new Date(a.m.time).getTime():0, tb=b.m.time?new Date(b.m.time).getTime():0;
+    return tb-ta;
+  });
+  mealsOrder.forEach(({m,mi})=>{
     const card=document.createElement("div");
     card.className="me-card border border-[#bfc8c8] rounded-xl p-2 space-y-1"; card.dataset.mi=mi;
     const mTime=m.time?new Date(m.time):null;
@@ -2088,7 +2092,11 @@ async function onCloseDayQ(){
 
 // ===== גיבוי/שחזור =====
 let lastBackupDirHandle=null;
+let lastBackupTime=0;
+const BACKUP_COOLDOWN=15*60*1000;
 async function onBackup(){
+  const now=Date.now();
+  if(now-lastBackupTime<BACKUP_COOLDOWN){ toast("גיבוי כבר בוצע ברבע שעה האחרונה",true); return; }
   try{
     const fname="diatan-backup-"+fmtDate(todayId())+".json";
     if(window.showSaveFilePicker){
@@ -2103,6 +2111,7 @@ async function onBackup(){
       const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
       const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; a.click(); URL.revokeObjectURL(a.href);
     }
+    lastBackupTime=Date.now();
     toast("הגיבוי נשמר");
   }catch(e){ if(e.name!=="AbortError") toast("שגיאה בגיבוי",true); }
 }
