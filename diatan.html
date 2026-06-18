@@ -593,7 +593,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.18";
+const APP_VERSION = "5.19";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2092,7 +2092,7 @@ async function onCloseDayQ(){
 
 // ===== גיבוי/שחזור =====
 let lastBackupDirHandle=null;
-let lastBackupTime=0;
+let lastBackupTime=+(localStorage.getItem("diatan_last_backup")||0);
 const BACKUP_COOLDOWN=15*60*1000;
 async function onBackup(){
   const now=Date.now();
@@ -2112,6 +2112,7 @@ async function onBackup(){
       const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; a.click(); URL.revokeObjectURL(a.href);
     }
     lastBackupTime=Date.now();
+    localStorage.setItem("diatan_last_backup",lastBackupTime);
     toast("הגיבוי נשמר");
   }catch(e){ if(e.name!=="AbortError") toast("שגיאה בגיבוי",true); }
 }
@@ -2362,6 +2363,7 @@ function start(){
 
 // ===== הצעת גיבוי בכניסה =====
 function promptBackup(){
+  if(Date.now()-lastBackupTime<BACKUP_COOLDOWN) return;
   const div = document.createElement("div");
   div.id = "backup-prompt";
   div.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#003535;color:white;padding:12px 18px;border-radius:14px;display:flex;align-items:center;gap:10px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);font-size:14px;direction:rtl;";
