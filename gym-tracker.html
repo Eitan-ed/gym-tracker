@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.25';
+const APP_VERSION = '9.26';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1425,7 +1425,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, initialOpenSection=null, onClearOpenSection=null }) => {
     const [open, setOpen] = useState(()=>{
-        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false};
+        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false};
         if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
         return base;
     });
@@ -1440,7 +1440,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const progressRef  = React.useRef(null);
     const instructorsRef = React.useRef(null);
     const gymInfoRef = React.useRef(null);
-    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef, gymInfo: gymInfoRef };
+    const reportsRef = React.useRef(null);
+    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef, gymInfo: gymInfoRef, reports: reportsRef };
     React.useEffect(()=>{
         if (initialOpenSection && sectionRefs[initialOpenSection]) {
             setOpen(p => ({...p, [initialOpenSection]: true}));
@@ -1452,7 +1453,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         }
     }, [initialOpenSection]);
     // ─── סידור אלפביתי (א"ב) של קטגוריות הניהול — אוטומטי בכל הוספת קטגוריה ───
-    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'מדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים', gymInfo:'שעות פתיחת מכון' };
+    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'מדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים', gymInfo:'שעות פתיחת מכון', reports:'דוחות' };
     const sectionOrder = Object.entries(SECTION_TITLES).sort((a,b)=>a[1].localeCompare(b[1],'he')).map(e=>e[0]);
     const ord = key => sectionOrder.indexOf(key);
     const toggleSection = key => {
@@ -1837,6 +1838,75 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         ))}
                     </div>}
                 </section>
+                {/* ── ד: דוחות ── */}
+                <section ref={reportsRef} style={{order:ord('reports')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0`}>
+                    <button onClick={()=>toggleSection('reports')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Download" size={20} className="text-cyan-500" /> דוחות</h3>
+                        <Icon name={open.reports?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.reports && <div className="px-5 pb-5 space-y-3">
+                        {(()=>{
+                            const generateReport = (period) => {
+                                const now = new Date();
+                                let fromDate;
+                                let periodLabel;
+                                if (period === 'day') { fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); periodLabel = `יומי — ${now.toLocaleDateString('he-IL')}`; }
+                                else if (period === 'week') { fromDate = new Date(now.getTime() - 7*86400000); periodLabel = `שבועי — ${fromDate.toLocaleDateString('he-IL')} עד ${now.toLocaleDateString('he-IL')}`; }
+                                else if (period === 'month') { fromDate = new Date(now.getFullYear(), now.getMonth()-1, now.getDate()); periodLabel = `חודשי — ${fromDate.toLocaleDateString('he-IL')} עד ${now.toLocaleDateString('he-IL')}`; }
+                                else { fromDate = new Date(0); periodLabel = 'כולל — כל הזמנים'; }
+                                const filtered = logs.filter(l => new Date(l.timestamp) >= fromDate).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                if (!filtered.length) { showToast('אין נתונים לתקופה זו', true); return; }
+                                const grouped = {};
+                                filtered.forEach(l => {
+                                    const d = new Date(l.timestamp).toLocaleDateString('he-IL');
+                                    if (!grouped[d]) grouped[d] = [];
+                                    grouped[d].push(l);
+                                });
+                                let txt = `דוח אימונים — ${periodLabel}\n`;
+                                txt += `${'═'.repeat(40)}\n\n`;
+                                txt += `סה"כ: ${filtered.length} סטים\n`;
+                                txt += `ימי אימון: ${Object.keys(grouped).length}\n\n`;
+                                Object.entries(grouped).forEach(([date, items]) => {
+                                    const dayName = getDayNameHe(items[0].timestamp);
+                                    const dur = Object.entries(sessionDurations||{}).find(([ts])=>new Date(Number(ts)).toLocaleDateString('he-IL')===date)?.[1];
+                                    txt += `── ${date} (יום ${dayName})${dur>0?' — '+Math.floor(dur/60)+' דק׳':''} ──\n`;
+                                    const byEx = {};
+                                    items.forEach(l => {
+                                        const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===l.exId);
+                                        const name = ex?.title || l.exId;
+                                        if (!byEx[name]) byEx[name] = [];
+                                        byEx[name].push(l);
+                                    });
+                                    Object.entries(byEx).forEach(([name, sets]) => {
+                                        txt += `  ${name}:\n`;
+                                        sets.forEach(s => { txt += `    סט ${s.setNum}: ${s.weight} kg × ${s.reps} חזרות\n`; });
+                                        const maxW = Math.max(...sets.map(s=>s.weight));
+                                        if (maxW > 0) txt += `    ◆ מקסימום: ${maxW} kg\n`;
+                                    });
+                                    txt += '\n';
+                                });
+                                const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                const fname = `gym-report-${period}-${now.toISOString().slice(0,10)}.txt`;
+                                a.href = url; a.download = fname; a.click();
+                                URL.revokeObjectURL(url);
+                                showToast(`דוח ${periodLabel.split('—')[0].trim()} נשמר`);
+                            };
+                            return [
+                                {period:'day', label:'דוח יומי', desc:'סטים ומשקלים של היום', color:'bg-cyan-50 border-cyan-100 text-cyan-700', iconBg:'bg-cyan-100'},
+                                {period:'week', label:'דוח שבועי', desc:'7 ימים אחרונים', color:'bg-blue-50 border-blue-100 text-blue-700', iconBg:'bg-blue-100'},
+                                {period:'month', label:'דוח חודשי', desc:'30 ימים אחרונים', color:'bg-indigo-50 border-indigo-100 text-indigo-700', iconBg:'bg-indigo-100'},
+                                {period:'all', label:'דוח כולל', desc:'כל הנתונים', color:'bg-purple-50 border-purple-100 text-purple-700', iconBg:'bg-purple-100'}
+                            ].map(({period,label,desc,color,iconBg}) => (
+                                <button key={period} onClick={()=>generateReport(period)} className={`w-full flex items-center gap-3 ${color} p-4 rounded-2xl border active:scale-[0.98]`}>
+                                    <div className={`${iconBg} p-2 rounded-xl`}><Icon name="Download" size={20} /></div>
+                                    <div><div className="font-black text-sm">{label}</div><div className="text-[10px] font-bold opacity-70">{desc}</div></div>
+                                </button>
+                            ));
+                        })()}
+                    </div>}
+                </section>
                 {/* ── ש: שעות פתיחת מכון ── */}
                 <section ref={gymInfoRef} style={{order:ord('gymInfo')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0`}>
                     <button onClick={()=>toggleSection('gymInfo')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
@@ -1903,7 +1973,8 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
         { key:'music',       label:'מוזיקה',             icon:'Music',        color:'text-purple-500' },
         { key:'progress',    label:'תדירות אימון',       icon:'CheckCircle2', color:'text-emerald-500' },
         { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
-        { key:'gymInfo',     label:'שעות פתיחת מכון',    icon:'Clock',        color:'text-blue-500' }
+        { key:'gymInfo',     label:'שעות פתיחת מכון',    icon:'Clock',        color:'text-blue-500' },
+        { key:'reports',     label:'דוחות',              icon:'Download',     color:'text-cyan-500' }
     ].sort((a,b)=>a.label.localeCompare(b.label,'he'));
     const topItems = [
         { key:'list',    label:'בית',      icon:'Home' },
@@ -2904,7 +2975,7 @@ function App() {
                                         {workoutSec > 0 && <circle cx="50" cy="50" r="46" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
                                             strokeDasharray={`${2*Math.PI*46}`} strokeDashoffset={`${2*Math.PI*46 * (1 - Math.min(1, workoutSec/3600))}`}
                                             transform="rotate(-90 50 50)" style={{transition:'stroke-dashoffset 1s linear'}} />}
-                                        <circle cx="50" cy="50" r="40" fill={isWorkoutComplete ? '#10b981' : '#0f172a'} />
+                                        <circle cx="50" cy="50" r="40" fill={isWorkoutComplete ? '#10b981' : '#2d4a6f'} />
                                     </svg>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
                                         <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
@@ -2937,14 +3008,14 @@ function App() {
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <button onClick={e=>{e.stopPropagation();setMusicPanelOpen(o=>!o)}}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${musicList.length > 0 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
-                                        <Icon name="Music" size={15} />
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 shrink-0
+                                            ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : musicList.length > 0 ? 'bg-purple-100 text-purple-500' : 'bg-slate-100 text-slate-400'}`}>
+                                        <Icon name="Music" size={18} />
                                     </button>
                                     {end ? (
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[15px] font-black text-blue-700">{daysPassed}</span>
-                                            <span className="text-[11px] font-bold text-blue-500">ימים עברו</span>
+                                            <span className="text-[15px] font-black" style={{color:'#2d4a6f'}}>{daysPassed}</span>
+                                            <span className="text-[11px] font-bold" style={{color:'#3b5998'}}>ימים עברו</span>
                                             <span className="text-slate-300 font-bold">·</span>
                                             <span className="text-[15px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
                                             <span className="text-[11px] font-bold text-orange-400">ימים נותרו</span>
@@ -2991,8 +3062,9 @@ function App() {
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':isNext?'text-white':'text-slate-800'}`}>
                                             {group.title}
                                         </div>
-                                            <div className="flex items-center gap-2 mt-1.5">
-                                                <div className={`px-2.5 py-1 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':group.badgeColor}`}>{group.category}</div>
+                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                <div className={`px-2.5 py-1 rounded-md text-[12px] font-black ${isDone?'bg-slate-200 text-slate-400':isNext?'bg-white/20 text-white/90':group.badgeColor}`}>{group.category}</div>
+                                                {(()=>{ const lastW = logs.filter(l=>group.exercises.some(e=>e.id===l.exId)&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lastW ? <span className={`text-[11px] font-black ${isNext?'text-orange-300':'text-orange-500'}`}>{lastW.weight} kg</span> : null; })()}
                                             </div>
                                         </div>
                                     </div>
@@ -3035,12 +3107,12 @@ function App() {
             </main>
 
             <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t border-white/30 px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'linear-gradient(180deg, #d0d5db 0%, #b8bec6 100%)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
-                <button onClick={()=>navigateTo('exercises')} className="flex flex-col items-center gap-1 text-slate-500 active:text-blue-600">
+                <button onClick={()=>{setManageOpenSection('exercises');navigateTo('manage');}} className="flex flex-col items-center gap-1 text-slate-500 active:text-blue-600">
                     <Icon name="Dumbbell" size={24} /><span className="text-[11px] font-black">תרגילים</span>
                 </button>
                 <button onClick={()=>setShowNewWorkoutModal(true)}
                     className="flex flex-col items-center gap-1 -mt-14 p-3 rounded-full active:scale-90" style={{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'4px 4px 10px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'}}>
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-white" style={{background:'linear-gradient(145deg, #1e3a5f, #0f172a)', boxShadow:'0 4px 12px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'}}><Icon name="Plus" size={36} /></div>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-white" style={{background:'linear-gradient(145deg, #3b5998, #2d4a6f)', boxShadow:'0 4px 12px rgba(45,74,111,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'}}><Icon name="Plus" size={36} /></div>
                     <span className="text-[11px] font-black mt-1 text-slate-600">אימון חדש</span>
                 </button>
                 <button onClick={()=>navigateTo('manage')} className="flex flex-col items-center gap-1 text-slate-500 active:text-blue-600">
