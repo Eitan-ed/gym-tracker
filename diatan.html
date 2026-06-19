@@ -23,7 +23,7 @@
   .acc-open .acc-arrow { transform:rotate(180deg); }
 </style>
 </head>
-<body class="bg-[#f8f9ff] text-[#0b1c30] min-h-screen pb-24">
+<body class="bg-[#d5dde6] text-[#0b1c30] min-h-screen pb-24">
 
 <!-- כותרת -->
 <header class="relative bg-[#003535] shadow-xl sticky top-0 z-50 cursor-pointer">
@@ -41,17 +41,17 @@
     <div class="relative">
       <button id="btn-menu" class="material-symbols-outlined text-white bg-black/20 p-2 rounded-xl border border-white/10 text-[24px]">menu</button>
       <div id="hamburger-menu" class="hx fixed bg-white rounded-2xl shadow-2xl border border-[#bfc8c8] w-60 max-w-[88vw] max-h-[80vh] overflow-y-auto z-[95]" style="top:58px;right:10px">
-        <button data-nav="home" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right">
+        <button data-nav="home" class="hmenu-item w-full flex items-center gap-3 px-4 py-3 hover:bg-[#e3eaf2] active:bg-[#dce9ff] text-right">
           <span class="material-symbols-outlined text-[#003535] text-[20px]">home</span><span class="font-bold text-[#003535]">בית</span>
         </button>
 
         <!-- ניהול + תת-תפריט -->
         <div class="border-t border-[#bfc8c8]/30">
-          <button id="hmenu-manage-toggle" class="w-full flex items-center justify-between px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right">
+          <button id="hmenu-manage-toggle" class="w-full flex items-center justify-between px-4 py-3 hover:bg-[#e3eaf2] active:bg-[#dce9ff] text-right">
             <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[#003535] text-[20px]">settings</span><span class="font-bold text-[#003535]">ניהול והגדרות</span></span>
             <span id="hmenu-manage-arrow" class="material-symbols-outlined text-[#404848] text-[18px] transition-transform">expand_more</span>
           </button>
-          <div id="hmenu-manage-sub" class="hx bg-[#f8f9ff]">
+          <div id="hmenu-manage-sub" class="hx bg-[#d5dde6]">
             <button data-sec="acc-key" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">key</span>מפתח Gemini</button>
             <button data-sec="acc-backup" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">cloud_sync</span>גיבוי ושחזור</button>
             <button data-sec="acc-weight" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">monitor_weight</span>משקל ומגמה</button>
@@ -61,13 +61,13 @@
           </div>
         </div>
 
-        <button id="hmenu-fav" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+        <button id="hmenu-fav" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#e3eaf2] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
           <span class="material-symbols-outlined text-[#e6a700] text-[20px]">star</span><span class="font-bold text-[#003535]">מועדפים</span>
         </button>
-        <button id="hmenu-report" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+        <button id="hmenu-report" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#e3eaf2] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
           <span class="material-symbols-outlined text-[#003535] text-[20px]">description</span><span class="font-bold text-[#003535]">דוח יומי</span>
         </button>
-        <button id="hmenu-backup" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
+        <button id="hmenu-backup" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#e3eaf2] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
           <span class="material-symbols-outlined text-[#006c49] text-[20px]">download</span><span class="font-bold text-[#003535]">גיבוי מהיר</span>
         </button>
       </div>
@@ -90,11 +90,11 @@
     <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
     <input type="file" id="gallery-input" accept="image/*" multiple class="hx">
     <div class="flex gap-2">
-      <button id="btn-cam" class="flex-1 h-11 border-2 border-dashed border-[#bfc8c8] rounded-xl flex items-center justify-center gap-1.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
+      <button id="btn-cam" class="flex-1 h-11 border-2 border-dashed border-[#bfc8c8] rounded-xl flex items-center justify-center gap-1.5 hover:border-[#003535] bg-[#e3eaf2]/50 active:scale-[0.98]">
         <span class="material-symbols-outlined text-[#003535] text-[18px]">photo_camera</span>
         <span class="text-[11px] font-medium text-[#404848]">צלם</span>
       </button>
-      <button id="btn-gallery" class="flex-1 h-11 border-2 border-dashed border-[#bfc8c8] rounded-xl flex items-center justify-center gap-1.5 hover:border-[#003535] bg-[#eff4ff]/50 active:scale-[0.98]">
+      <button id="btn-gallery" class="flex-1 h-11 border-2 border-dashed border-[#bfc8c8] rounded-xl flex items-center justify-center gap-1.5 hover:border-[#003535] bg-[#e3eaf2]/50 active:scale-[0.98]">
         <span class="material-symbols-outlined text-[#003535] text-[18px]">image</span>
         <span class="text-[11px] font-medium text-[#404848]">העלה תמונות</span>
       </button>
@@ -105,7 +105,7 @@
     </div>
     <div id="photo-previews" class="hx flex gap-2 flex-wrap"></div>
     <div class="flex gap-2 items-stretch">
-      <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ואורז מלא..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] resize-none text-sm"></textarea>
+      <textarea id="meal-desc" rows="2" placeholder="מה אכלת? לדוגמה: חזה עוף ואורז מלא..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] resize-none text-sm"></textarea>
       <button id="btn-calc" disabled class="w-16 shrink-0 bg-[#1565C0] text-white rounded-xl flex flex-col items-center justify-center gap-0.5 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none shadow-md">
         <span class="material-symbols-outlined text-[20px]" id="calc-icon">calculate</span>
         <span class="text-[11px] font-bold" id="calc-text">חשב</span>
@@ -118,14 +118,14 @@
       <div class="flex items-center justify-between border-t-2 border-[#003535] pt-1 font-bold text-[#003535] text-sm">
         <span>סה"כ</span><span><span id="sum-cal">0</span> קל &middot; <span id="sum-prot">0</span> ג'</span>
       </div>
-      <div id="ai-note" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#eff4ff] border border-[#bfc8c8]/40 rounded-xl p-2.5"></div>
+      <div id="ai-note" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e3eaf2] border border-[#bfc8c8]/40 rounded-xl p-2.5"></div>
       <div class="flex gap-2">
-        <input id="meal-refine" type="text" placeholder="הבהרה לדיוק או שאלת המשך..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
+        <input id="meal-refine" type="text" placeholder="הבהרה לדיוק או שאלת המשך..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
         <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
       </div>
       <div id="chat-answer" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e8f0fe] border border-[#0061a4]/30 rounded-xl p-2.5"></div>
       <div id="chat-followup" class="hx flex gap-2">
-        <input id="chat-followup-q" type="text" placeholder="שאלת המשך..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
+        <input id="chat-followup-q" type="text" placeholder="שאלת המשך..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
         <button id="btn-followup" class="shrink-0 bg-[#0061a4] text-white px-4 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98]"><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
       </div>
       <div class="flex gap-2">
@@ -161,7 +161,7 @@
 
     <!-- קלוריות + חלבון זה לצד זה (קומפקטי) -->
     <div class="grid grid-cols-2 gap-2.5">
-      <div id="cal-box" class="bg-[#eff4ff] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
+      <div id="cal-box" class="bg-[#e3eaf2] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-bold text-[#003535] flex items-center gap-0.5">קלוריות <span class="material-symbols-outlined text-[12px] text-[#404848]/60">edit</span></span>
           <span id="cal-def" class="text-[11px] font-bold text-[#006c49]">—</span>
@@ -170,9 +170,9 @@
           <span id="cal-now" class="text-xl font-extrabold text-[#0d4d4d]">0</span>
           <span class="text-xs font-bold text-[#404848]">/<span id="cal-target">0</span></span>
         </div>
-        <div class="h-2.5 w-full bg-[#e5eeff] rounded-full overflow-hidden mt-1"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
+        <div class="h-2.5 w-full bg-[#cdd8e4] rounded-full overflow-hidden mt-1"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
-      <div id="prot-box" class="bg-[#eff4ff] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
+      <div id="prot-box" class="bg-[#e3eaf2] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-bold text-[#003535] flex items-center gap-0.5">חלבון <span class="material-symbols-outlined text-[12px] text-[#404848]/60">stethoscope</span></span>
           <span id="prot-remaining" class="text-[11px] font-bold text-[#404848]">—</span>
@@ -181,7 +181,7 @@
           <span id="prot-now" class="text-xl font-extrabold text-[#0d4d4d]">0</span>
           <span class="text-xs font-bold text-[#404848]">/<span id="prot-target">0</span></span>
         </div>
-        <div class="h-2.5 w-full bg-[#e5eeff] rounded-full overflow-hidden mt-1"><div id="prot-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
+        <div class="h-2.5 w-full bg-[#cdd8e4] rounded-full overflow-hidden mt-1"><div id="prot-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
     </div>
   </section>
@@ -220,7 +220,7 @@
     <div id="close-day-qa" class="hx px-4 pb-4 space-y-2">
       <div id="close-day-qa-history"></div>
       <div class="flex gap-2">
-        <input id="close-day-q" type="text" placeholder="שאל שאלה על הניתוח..." class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm" dir="rtl">
+        <input id="close-day-q" type="text" placeholder="שאל שאלה על הניתוח..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm" dir="rtl">
         <button id="close-day-q-send" class="bg-[#006c49] text-white font-bold px-4 rounded-xl text-sm">שלח</button>
       </div>
     </div>
@@ -237,12 +237,12 @@
     <!-- משקל +/- -->
     <div class="flex flex-col items-center gap-2">
       <div class="flex items-center gap-4">
-        <button id="wm-plus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
+        <button id="wm-plus" class="w-12 h-12 rounded-full bg-[#e3eaf2] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">+</button>
         <div class="flex items-baseline gap-1">
           <span id="wm-display" class="text-4xl font-extrabold text-[#003535]">0.0</span>
           <span class="text-sm font-bold text-[#404848]">ק"ג</span>
         </div>
-        <button id="wm-minus" class="w-12 h-12 rounded-full bg-[#eff4ff] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
+        <button id="wm-minus" class="w-12 h-12 rounded-full bg-[#e3eaf2] border border-[#bfc8c8] text-2xl font-bold text-[#003535] active:scale-90 flex items-center justify-center">−</button>
       </div>
       <div id="wm-timing" class="flex gap-2 mt-1">
         <button data-timing="before" class="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">לפני</button>
@@ -287,7 +287,7 @@
       <button id="close-steps-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <div class="flex gap-2">
-      <input id="sm-value" type="number" placeholder="מספר צעדים" class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+      <input id="sm-value" type="number" placeholder="מספר צעדים" class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
       <button id="sm-save" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
     </div>
     <div class="border-t border-[#bfc8c8] pt-2">
@@ -321,9 +321,9 @@
       <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <p class="text-[11px] text-[#404848]">לחיצה על מועדף מוסיפה אותו ליום הנוכחי.</p>
-    <input id="fav-modal-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
+    <input id="fav-modal-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
     <div id="fav-list" class="space-y-3"></div>
-    <div class="bg-[#f8f9ff] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
+    <div class="bg-[#d5dde6] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
       <div class="flex gap-1.5">
         <input id="fav-modal-name" type="text" placeholder="שם פריט" class="flex-1 min-w-0 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
         <input id="fav-modal-qty" type="number" placeholder="כמות" class="w-12 bg-white border border-[#bfc8c8] rounded-lg px-1 py-1.5 text-sm text-center outline-none" value="1">
@@ -368,7 +368,7 @@
       <h2 class="text-base font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[18px] text-[#006c49]">fitness_center</span> אימון כוח</h2>
       <button id="close-strength-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <div class="flex items-center justify-between bg-[#eff4ff] rounded-xl px-3 py-2 border border-[#bfc8c8]/40">
+    <div class="flex items-center justify-between bg-[#e3eaf2] rounded-xl px-3 py-2 border border-[#bfc8c8]/40">
       <span class="text-sm font-bold text-[#003535]">אימנת היום?</span>
       <label class="relative inline-flex items-center cursor-pointer"><input id="strength-modal-toggle" type="checkbox" class="sr-only peer">
         <div class="w-10 h-5 bg-[#bfc8c8] rounded-full peer peer-checked:bg-[#006c49] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all rtl:peer-checked:after:-translate-x-full"></div></label>
@@ -399,7 +399,7 @@
       <h2 class="text-base font-bold text-[#003535]">דוח תזונה יומי</h2>
       <button id="close-report-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <textarea id="report-content" dir="rtl" rows="16" class="w-full text-[12px] leading-snug bg-[#f8f9ff] border border-[#bfc8c8] rounded-xl p-3 font-sans outline-none focus:border-[#003535] resize-y"></textarea>
+    <textarea id="report-content" dir="rtl" rows="16" class="w-full text-[12px] leading-snug bg-[#d5dde6] border border-[#bfc8c8] rounded-xl p-3 font-sans outline-none focus:border-[#003535] resize-y"></textarea>
     <button id="report-download" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
       <span class="material-symbols-outlined text-[18px]">download</span> הורד דוח (MD)
     </button>
@@ -411,13 +411,13 @@
 
   <!-- מפתח -->
   <section id="acc-key" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">key</span> מפתח Gemini</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
-        <input id="api-key" type="password" placeholder="מדביק כאן את המפתח" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-left text-sm" dir="ltr">
+        <input id="api-key" type="password" placeholder="מדביק כאן את המפתח" class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-left text-sm" dir="ltr">
         <p class="text-[11px] text-[#404848]">המפתח נשמר רק במכשיר. השג מפתח חינמי ב-aistudio.google.com.</p>
         <button id="btn-save-key" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm">שמור מפתח</button>
       </div>
@@ -426,7 +426,7 @@
 
   <!-- גיבוי -->
   <section id="acc-backup" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">cloud_sync</span> גיבוי ושחזור</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
@@ -448,14 +448,14 @@
 
   <!-- יעד צעדים -->
   <section id="acc-steps-goal" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">steps</span> יעד צעדים</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <div class="flex gap-2">
-          <input id="set-steps-goal" type="number" placeholder="יעד צעדים יומי" class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <input id="set-steps-goal" type="number" placeholder="יעד צעדים יומי" class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           <button id="btn-save-steps-goal" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
         </div>
         <p class="text-[11px] text-[#404848]">ברירת מחדל: 8,000 צעדים.</p>
@@ -465,15 +465,15 @@
 
   <!-- משקל -->
   <section id="acc-weight" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">monitor_weight</span> משקל</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-3">
         <div class="flex gap-2">
-          <input id="set-weight" type="number" step="0.1" placeholder='משקל (ק"ג)' class="flex-1 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-          <input id="set-weight-date" type="date" class="bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <input id="set-weight" type="number" step="0.1" placeholder='משקל (ק"ג)' class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <input id="set-weight-date" type="date" class="bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
         </div>
         <button id="btn-save-weight-manage" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm">שמור משקל</button>
         <div class="border-t border-[#bfc8c8] pt-2">
@@ -493,7 +493,7 @@
 
   <!-- היסטוריית מדדים -->
   <section id="acc-metrics" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">timeline</span> היסטוריית מדדים</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
@@ -506,7 +506,7 @@
 
   <!-- עקרונות -->
   <section id="acc-principles" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">rule</span> עקרונות</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
@@ -515,8 +515,8 @@
         <p class="text-[11px] text-[#404848]">עקרונות שמשפיעים על הערכת Gemini (מוזרקים אוטומטית לפרומפט).</p>
         <div id="principles-list" class="space-y-1"></div>
         <div class="flex gap-2 flex-wrap">
-          <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-          <select id="new-principle-cat" class="bg-[#eff4ff] border border-[#bfc8c8] rounded-xl px-2 py-1 text-[11px] outline-none">
+          <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <select id="new-principle-cat" class="bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-2 py-1 text-[11px] outline-none">
             <option value="assumptions">הנחות</option>
             <option value="sizes">גדלים</option>
             <option value="foods">מאכלים</option>
@@ -529,22 +529,22 @@
 
   <!-- מועדפים -->
   <section id="acc-favorites" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
-    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#eff4ff]">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#e6a700]">star</span> מועדפים</h3>
       <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
     </button>
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + טוענת לאזור הוספת ארוחה.</p>
-        <input id="fav-manage-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
+        <input id="fav-manage-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
         <div id="fav-manage-list" class="space-y-3"></div>
         <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
           <h4 class="text-xs font-bold text-[#404848]">הוספת מועדף ידנית</h4>
-          <input id="new-fav-name" type="text" placeholder="שם הפריט" class="w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <input id="new-fav-name" type="text" placeholder="שם הפריט" class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           <div class="flex gap-2">
-            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           </div>
           <button id="btn-add-fav" class="w-full bg-[#003535] text-white font-bold py-2 rounded-xl text-sm active:scale-[0.98] flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span> הוסף למועדפים</button>
         </div>
@@ -583,7 +583,7 @@
       <div>א</div><div>ב</div><div>ג</div><div>ד</div><div>ה</div><div>ו</div><div>ש</div>
     </div>
     <div id="cal-grid" class="grid grid-cols-7 gap-1"></div>
-    <button id="cal-close" class="w-full mt-3 bg-[#e5eeff] text-[#003535] font-bold py-2 rounded-xl text-sm">סגור</button>
+    <button id="cal-close" class="w-full mt-3 bg-[#cdd8e4] text-[#003535] font-bold py-2 rounded-xl text-sm">סגור</button>
   </div>
 </div>
 
@@ -599,7 +599,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.21";
+const APP_VERSION = "5.22";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -860,7 +860,7 @@ function render(){
   const label = $("day-label");
   const bar = $("day-bar");
   if(isToday){
-    bar.className="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm bg-[#1565C0]";
+    bar.className="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm bg-[#1255a8]";
     label.innerHTML='היום  '+fmtDate(viewDay)+' <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
     label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-white active:scale-95 flex items-center gap-1";
     $("day-prev").className="material-symbols-outlined text-white p-1 active:scale-90 text-[22px]";
@@ -987,14 +987,14 @@ function renderResults(){
     row.innerHTML=
        '<div class="flex items-center gap-1">'
       +'<button class="r-fav material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isItemFav(it.name)?'1':'0')+'" data-i="'+i+'" title="'+(isItemFav(it.name)?'במועדפים':'הוסף למועדפים')+'">star</button>'
-      +'<input class="r-name flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
+      +'<input class="r-name flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
       +'<button class="r-del material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-i="'+i+'">close</button>'
       +'</div>'
       +'<div class="flex gap-1.5 items-center pr-7">'
       +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="r-amt w-12 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] font-bold text-[#ba1a1a] text-center" placeholder="—" value="'+esc(parseAmtNum(it.amount||(it.beefGrams?String(it.beefGrams):"")))+'"></div>'
       +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">יח׳</span><input class="r-unit w-14 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-[#ba1a1a]" placeholder="—" value="'+esc(parseAmtUnit(it.amount||(it.beefGrams?"גרם":"")))+'"></div>'
-      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="r-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" placeholder="?" value="'+(it.calories==="?"?"?":((+it.calories||0)))+'"></div>'
-      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="r-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" placeholder="?" value="'+(it.protein==="?"?"?":((+it.protein||0)))+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="r-cal w-14 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" placeholder="?" value="'+(it.calories==="?"?"?":((+it.calories||0)))+'"></div>'
+      +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="r-prot w-12 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" placeholder="?" value="'+(it.protein==="?"?"?":((+it.protein||0)))+'"></div>'
       +'</div>';
     box.appendChild(row);
   });
@@ -1192,7 +1192,7 @@ function initWmButtons(){
   document.querySelectorAll(".wm-time-btn").forEach(btn=>btn.onclick=()=>{
     wmTiming=btn.dataset.timing;
     document.querySelectorAll(".wm-time-btn").forEach(b=>{
-      b.className="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] "+(b.dataset.timing===wmTiming?"bg-[#eff4ff] text-[#003535]":"bg-white text-[#404848]");
+      b.className="wm-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] "+(b.dataset.timing===wmTiming?"bg-[#e3eaf2] text-[#003535]":"bg-white text-[#404848]");
     });
   });
 }
@@ -1305,7 +1305,7 @@ function closeWeightGraph(){ hide($("weight-graph-modal")); }
 function renderWeightGraphModal(){
   document.querySelectorAll(".wg-range-btn").forEach(b=>{
     const active=b.dataset.range===wgRange;
-    b.className="wg-range-btn px-3 py-1 rounded-lg text-xs font-bold active:scale-95 "+(active?"bg-[#0061a4] text-white":"bg-[#eff4ff] text-[#003535] border border-[#bfc8c8]");
+    b.className="wg-range-btn px-3 py-1 rounded-lg text-xs font-bold active:scale-95 "+(active?"bg-[#0061a4] text-white":"bg-[#e3eaf2] text-[#003535] border border-[#bfc8c8]");
   });
   const ws=(S.weights||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
   const now=new Date();
@@ -1364,7 +1364,7 @@ function renderStepsHistoryModal(){
   days.forEach(id=>{
     const d=S.days[id]; if(!d.steps) return;
     const div=document.createElement("div");
-    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.className="flex justify-between bg-[#e3eaf2] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
     div.innerHTML='<span>'+fmtDate(id)+'</span><span class="font-bold">'+d.steps.toLocaleString()+'</span>';
     box.appendChild(div);
   });
@@ -1386,7 +1386,7 @@ function renderStrengthHistory(){
   days.forEach(id=>{
     const d=S.days[id]; if(!d.strength) return; count++;
     const div=document.createElement("div");
-    div.className="flex justify-between bg-[#eff4ff] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
+    div.className="flex justify-between bg-[#e3eaf2] rounded-lg px-3 py-1 border border-[#bfc8c8]/30";
     div.innerHTML='<span>'+fmtDate(id)+'</span><span class="material-symbols-outlined text-[#006c49] text-[16px]">check_circle</span>';
     box.appendChild(div);
   });
@@ -1453,14 +1453,14 @@ function renderMealsEdit(){
       html+='<div class="me-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white" data-mi="'+mi+'" data-ii="'+ii+'">'
         +'<div class="flex items-center gap-1">'
         +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isItemFav(it.name)?'1':'0')+'" data-mi="'+mi+'" data-ii="'+ii+'" title="'+(isItemFav(it.name)?'במועדפים':'הוסף למועדפים')+'">star</button>'
-        +'<input class="me-name flex-1 min-w-0 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
+        +'<input class="me-name flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'">close</button>'
         +'</div>'
         +'<div class="flex gap-1.5 items-center pr-7">'
         +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">כמות</span><input class="me-amt w-12 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] font-bold text-[#ba1a1a] text-center" placeholder="—" value="'+esc(parseAmtNum(it.amount||(it.beefGrams?String(it.beefGrams):"")))+'"></div>'
         +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848] shrink-0">יח׳</span><input class="me-unit w-14 bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-1 py-1 text-[11px] text-[#ba1a1a]" placeholder="—" value="'+esc(parseAmtUnit(it.amount||(it.beefGrams?"גרם":"")))+'"></div>'
-        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="me-cal w-14 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
-        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="me-prot w-12 bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
+        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">קל</span><input class="me-cal w-14 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.calories||0)+'"></div>'
+        +'<div class="flex items-center gap-1"><span class="text-[9px] text-[#404848]">חלבון</span><input class="me-prot w-12 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-1 py-1 text-sm text-center" type="number" value="'+(+it.protein||0)+'"></div>'
         +'</div></div>';
     });
     html+='<div class="me-subtotal text-[11px] font-bold text-[#003535] text-left border-t border-[#bfc8c8]/40 pt-1 mt-1"></div>';
@@ -1509,7 +1509,7 @@ function openNoteModal(){
   if(!withNotes.length){ box.innerHTML='<p class="text-sm text-[#404848] text-center py-4">אין הערות תזונתיות ליום זה</p>'; }
   else withNotes.forEach((m,i)=>{
     const div=document.createElement("div");
-    div.className="text-[13px] leading-snug text-[#0d4d4d] bg-[#eff4ff] border border-[#bfc8c8]/40 rounded-xl p-3";
+    div.className="text-[13px] leading-snug text-[#0d4d4d] bg-[#e3eaf2] border border-[#bfc8c8]/40 rounded-xl p-3";
     div.innerHTML=(m.desc?'<div class="text-[11px] font-bold text-[#404848] mb-1">'+esc(m.desc)+'</div>':'')+esc(m.note);
     box.appendChild(div);
   });
@@ -1564,7 +1564,7 @@ function openBeefModal(){
   }
   entries.forEach((e,idx)=>{
     const div=document.createElement("div");
-    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+    div.className="flex justify-between items-center bg-[#e3eaf2] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
     div.innerHTML='<span class="text-sm">'+esc(e.name)+'</span><span class="flex items-center gap-2 text-sm"><span class="font-bold">'+e.grams+' גר\'</span> &middot; '+fmtDate(e.id)
       +'<button class="del-beef material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+idx+'">close</button></span>';
     box.appendChild(div);
@@ -1640,7 +1640,7 @@ function renderFavBox(box){
       ? ((f.amount?esc(f.amount)+' &middot; ':'')+'<b>'+(f.calories||0)+'</b> קל &middot; <b>'+(f.protein||0)+'</b> ג\' חל\'')
       : ('<b>'+(f.calories||0)+'</b> קל &middot; <b>'+(f.protein||0)+'</b> ג\' חל\'');
     const div=document.createElement("div");
-    div.className="fav-row flex items-center gap-2.5 bg-[#eff4ff] rounded-xl px-3 py-2.5 border border-[#bfc8c8]/40 cursor-pointer active:bg-[#dce9ff]";
+    div.className="fav-row flex items-center gap-2.5 bg-[#e3eaf2] rounded-xl px-3 py-2.5 border border-[#bfc8c8]/40 cursor-pointer active:bg-[#dce9ff]";
     div.dataset.idx=i;
     div.innerHTML='<span class="material-symbols-outlined text-[18px] '+(isItem?'text-[#0061a4]':'text-[#e6a700]')+'">'+icon+'</span>'
       +'<div class="flex-1 min-w-0"><div class="text-sm font-bold text-[#003535] truncate">'+esc(favLabel(f))+'</div>'
@@ -1683,11 +1683,11 @@ function editFavorite(idx, box){
   const amtParts=isItem?parseAmtNum(f.amount||""):"";
   const amtUnit=isItem?parseAmtUnit(f.amount||""):"";
   targetRow.innerHTML=
-    '<div><span class="text-[10px] text-[#404848]">שם</span><input class="fe-name w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm font-bold" value="'+esc(favLabel(f))+'"></div>'
+    '<div><span class="text-[10px] text-[#404848]">שם</span><input class="fe-name w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm font-bold" value="'+esc(favLabel(f))+'"></div>'
     +(isItem?'<div class="flex gap-1.5"><div class="flex-1"><span class="text-[10px] text-[#404848]">כמות</span><input class="fe-amt w-full bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+esc(amtParts)+'"></div><div class="w-20"><span class="text-[10px] text-[#404848]">יח׳</span><input class="fe-unit w-full bg-[#fff0f0] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm" value="'+esc(amtUnit||"יח׳")+'"></div></div>':'')
     +'<div class="flex gap-1.5">'
-    +'<div class="flex-1"><span class="text-[10px] text-[#404848]">קלוריות</span><input class="fe-cal w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+(f.calories||0)+'"></div>'
-    +'<div class="flex-1"><span class="text-[10px] text-[#404848]">חלבון (ג׳)</span><input class="fe-prot w-full bg-[#eff4ff] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+(f.protein||0)+'"></div>'
+    +'<div class="flex-1"><span class="text-[10px] text-[#404848]">קלוריות</span><input class="fe-cal w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+(f.calories||0)+'"></div>'
+    +'<div class="flex-1"><span class="text-[10px] text-[#404848]">חלבון (ג׳)</span><input class="fe-prot w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm text-center" type="number" value="'+(f.protein||0)+'"></div>'
     +'</div>'
     +'<div class="flex gap-2 justify-end">'
     +'<button class="fe-cancel material-symbols-outlined text-[#404848] text-[20px] p-1">close</button>'
@@ -1748,7 +1748,7 @@ function renderPrinciples(){
     sec.innerHTML='<div class="flex items-center gap-1.5 pt-2 pb-1 border-b border-[#bfc8c8]/40"><span class="material-symbols-outlined text-[16px]" style="color:'+cat.color+'">'+cat.icon+'</span><span class="text-[12px] font-bold" style="color:'+cat.color+'">'+cat.label+' ('+items.length+')</span></div>';
     items.forEach(({p,i})=>{
       const div=document.createElement("div");
-      div.className="pr-item flex items-start gap-1.5 bg-[#eff4ff] rounded-lg px-2.5 py-1.5 border border-[#bfc8c8]/30";
+      div.className="pr-item flex items-start gap-1.5 bg-[#e3eaf2] rounded-lg px-2.5 py-1.5 border border-[#bfc8c8]/30";
       div.dataset.idx=i;
       const catIdx=PRINCIPLE_CATS.findIndex(c=>c.id===cat.id);
       const prevCat=catIdx>0?PRINCIPLE_CATS[catIdx-1]:null;
@@ -1822,7 +1822,7 @@ function renderWeightHistoryManage(){
       diffHtml='<span class="w-10 text-center text-[10px] font-extrabold" style="color:'+color+'">'+txt+'</span>';
     }
     const div=document.createElement("div");
-    div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#eff4ff] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
+    div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#e3eaf2] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
     div.innerHTML='<span class="text-[11px]">'+fmtDate(w.date)+'</span>'
       +'<span class="w-14 text-center font-bold text-[11px]">'+w.kg+'</span>'
       +'<span class="w-14 text-center text-[10px] text-[#404848]">'+(prevW?prevW.toFixed(1):'—')+'</span>'
@@ -1891,7 +1891,7 @@ function renderMetricsHistory(){
     const defColor = deficit >= 0 ? "#006c49" : "#ba1a1a";
     const defText = deficit >= 0 ? "+"+deficit : ""+deficit;
     const div=document.createElement("div");
-    div.className="flex justify-between items-center bg-[#eff4ff] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
+    div.className="flex justify-between items-center bg-[#e3eaf2] rounded-lg px-3 py-1.5 border border-[#bfc8c8]/30";
     div.innerHTML='<span>'+fmtDate(id)+'</span><span class="flex items-center gap-2"><span><b>'+c+'</b> קל &middot; <b>'+p+'</b> ג\'</span><span class="font-extrabold text-sm" style="color:'+defColor+'">'+defText+'</span><button class="del-day material-symbols-outlined text-[#93000a] text-[14px]" data-id="'+id+'">close</button></span>';
     box.appendChild(div);
   });
@@ -2094,7 +2094,7 @@ async function onCloseDayQ(){
   $("close-day-q").value="";
   const hist=$("close-day-qa-history");
   const qDiv=document.createElement("div");
-  qDiv.className="bg-[#eff4ff] rounded-xl p-2.5 text-sm text-[#003535] font-bold"; qDiv.textContent=q;
+  qDiv.className="bg-[#e3eaf2] rounded-xl p-2.5 text-sm text-[#003535] font-bold"; qDiv.textContent=q;
   hist.appendChild(qDiv);
   const aDiv=document.createElement("div");
   aDiv.className="text-[13px] text-[#0b1c30] leading-relaxed py-1";
@@ -2212,7 +2212,7 @@ function renderCalendar(){
     if(isViewed) cell.className += "bg-[#1565C0] text-white ";
     else if(isToday) cell.className += "bg-[#1565C0]/10 text-[#1565C0] ";
     else if(isFuture) cell.className += "text-[#bfc8c8] ";
-    else cell.className += "bg-[#f8f9ff] hover:bg-[#e5eeff] ";
+    else cell.className += "bg-[#d5dde6] hover:bg-[#cdd8e4] ";
 
     let inner = '<span class="text-sm font-bold">'+d+'</span>';
     if(!isFuture && cal>0 && ct>0){
