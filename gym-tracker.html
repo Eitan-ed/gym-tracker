@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.26';
+const APP_VERSION = '9.27';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1802,6 +1802,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                 <div className="flex-1 min-w-0 text-right">
                                                     <div className={`text-[13px] font-black truncate ${isHidden ? 'text-indigo-700' : 'text-slate-700'}`}>{ex.title}</div>
                                                     <div className="text-[10px] font-bold text-slate-400 mt-0.5">{g.category} · {g.machine}</div>
+                                                    {(()=>{ const lw = logs.filter(l=>l.exId===ex.id&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lw ? <div className="text-[14px] font-black text-orange-500 mt-0.5">{lw.weight} kg</div> : null; })()}
                                                     {g.exercises.length === 2 && (
                                                         <span className="text-[9px] font-black text-indigo-300 uppercase tracking-tight">סופרסט</span>
                                                     )}
@@ -1869,19 +1870,27 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 Object.entries(grouped).forEach(([date, items]) => {
                                     const dayName = getDayNameHe(items[0].timestamp);
                                     const dur = Object.entries(sessionDurations||{}).find(([ts])=>new Date(Number(ts)).toLocaleDateString('he-IL')===date)?.[1];
+                                    const wst = Object.keys(sessionDurations||{}).find(ts=>new Date(Number(ts)).toLocaleDateString('he-IL')===date);
+                                    const wn = wst ? (workoutNotes||{})[wst] : null;
+                                    const bwEnt = (bodyweightLog||[]).find(b=>new Date(b.timestamp).toLocaleDateString('he-IL')===date);
+                                    const bwVal = wn?.bw || bwEnt?.weight;
                                     txt += `── ${date} (יום ${dayName})${dur>0?' — '+Math.floor(dur/60)+' דק׳':''} ──\n`;
+                                    if (bwVal > 0) txt += `  ⚖️ משקל גוף: ${bwVal} ק״ג\n`;
+                                    if (wn?.note) txt += `  📝 הערת אימון: ${wn.note}\n`;
                                     const byEx = {};
                                     items.forEach(l => {
                                         const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===l.exId);
                                         const name = ex?.title || l.exId;
-                                        if (!byEx[name]) byEx[name] = [];
-                                        byEx[name].push(l);
+                                        if (!byEx[l.exId]) byEx[l.exId] = {name, sets:[]};
+                                        byEx[l.exId].sets.push(l);
                                     });
-                                    Object.entries(byEx).forEach(([name, sets]) => {
+                                    Object.values(byEx).forEach(({name, sets}) => {
                                         txt += `  ${name}:\n`;
                                         sets.forEach(s => { txt += `    סט ${s.setNum}: ${s.weight} kg × ${s.reps} חזרות\n`; });
                                         const maxW = Math.max(...sets.map(s=>s.weight));
                                         if (maxW > 0) txt += `    ◆ מקסימום: ${maxW} kg\n`;
+                                        const exNote = (notes||{})[sets[0]?.exId];
+                                        if (exNote) txt += `    📋 הערה: ${exNote}\n`;
                                     });
                                     txt += '\n';
                                 });
