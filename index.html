@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.24';
+const APP_VERSION = '9.25';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2896,6 +2896,27 @@ function App() {
 
                     return (
                         <div className="px-4 mb-2 mt-2 flex items-stretch gap-3">
+                            {/* שעון עגול — מימין */}
+                            <div className="flex flex-col items-center justify-center shrink-0">
+                                <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative active:scale-95 transition-transform" style={{width:'6.5rem', height:'6.5rem'}}>
+                                    <svg viewBox="0 0 100 100" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
+                                        <circle cx="50" cy="50" r="46" fill="none" stroke="#cbd5e1" strokeWidth="4" />
+                                        {workoutSec > 0 && <circle cx="50" cy="50" r="46" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
+                                            strokeDasharray={`${2*Math.PI*46}`} strokeDashoffset={`${2*Math.PI*46 * (1 - Math.min(1, workoutSec/3600))}`}
+                                            transform="rotate(-90 50 50)" style={{transition:'stroke-dashoffset 1s linear'}} />}
+                                        <circle cx="50" cy="50" r="40" fill={isWorkoutComplete ? '#10b981' : '#0f172a'} />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                        <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
+                                        <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
+                                    </div>
+                                </button>
+                                <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
+                                    className="text-[10px] font-bold flex items-center gap-0.5 mt-1 text-slate-400 active:text-slate-600">
+                                    <Icon name="RotateCcw" size={9} /> אפס
+                                </button>
+                            </div>
+
                             {/* תאריכים + מד — משמאל */}
                             <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime})}
                                 className="flex-1 rounded-2xl bg-white border border-slate-200 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
@@ -2933,27 +2954,6 @@ function App() {
                                     )}
                                 </div>
                             </div>
-
-                            {/* שעון עגול — מימין */}
-                            <div className="flex flex-col items-center justify-center shrink-0">
-                                <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative active:scale-95 transition-transform" style={{width:'6.5rem', height:'6.5rem'}}>
-                                    <svg viewBox="0 0 100 100" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
-                                        <circle cx="50" cy="50" r="46" fill="none" stroke="#cbd5e1" strokeWidth="4" />
-                                        {workoutSec > 0 && <circle cx="50" cy="50" r="46" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
-                                            strokeDasharray={`${2*Math.PI*46}`} strokeDashoffset={`${2*Math.PI*46 * (1 - Math.min(1, workoutSec/3600))}`}
-                                            transform="rotate(-90 50 50)" style={{transition:'stroke-dashoffset 1s linear'}} />}
-                                        <circle cx="50" cy="50" r="40" fill={isWorkoutComplete ? '#10b981' : '#0f172a'} />
-                                    </svg>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                                        <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
-                                        <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
-                                    </div>
-                                </button>
-                                <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
-                                    className="text-[10px] font-bold flex items-center gap-0.5 mt-1 text-slate-400 active:text-slate-600">
-                                    <Icon name="RotateCcw" size={9} /> אפס
-                                </button>
-                            </div>
                         </div>
                     );
                 })()}
@@ -2980,15 +2980,15 @@ function App() {
                             <div onClick={()=>handleOpenExercise(group)}
                                 className={`flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer
                                     ${isDoneReal?'opacity-70':isSkipped?'opacity-70':isNext?'scale-[1.02]':''}`}
-                                style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : isNext ? 'linear-gradient(145deg, #1e293b, #334155)' : 'linear-gradient(145deg, #d4d8de, #e8eaee)', boxShadow: isNext ? '0 8px 24px rgba(0,0,0,0.3)' : '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)'}}>
-                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : isNext ? 'linear-gradient(145deg, #1e293b, #0f172a)' : 'linear-gradient(145deg, #dde0e5, #c8cdd3)'}}>
+                                style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : isNext ? 'linear-gradient(145deg, #2d4a6f, #3b5998)' : 'linear-gradient(145deg, #d4d8de, #e8eaee)', boxShadow: isNext ? '0 8px 24px rgba(45,74,111,0.35)' : '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)'}}>
+                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : isNext ? 'linear-gradient(145deg, #34567a, #2d4a6f)' : 'linear-gradient(145deg, #dde0e5, #c8cdd3)'}}>
                                     <div className="flex items-start gap-4">
                                         <div className="flex flex-col items-center gap-0.5 shrink-0">
                                             {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); return src ? <img src={src} className={`w-12 h-12 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
-                                            <span className={`text-[10px] font-black ${isNext?'text-slate-300':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{visibleGroups.length}</span>
+                                            <span className={`text-[10px] font-black ${isNext?'text-white/70':isDone?'text-slate-400':'text-slate-400'}`}>{idx+1}/{visibleGroups.length}</span>
                                         </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
-                                            <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
+                                            <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':isNext?'text-white':'text-slate-800'}`}>
                                             {group.title}
                                         </div>
                                             <div className="flex items-center gap-2 mt-1.5">
@@ -3040,7 +3040,7 @@ function App() {
                 </button>
                 <button onClick={()=>setShowNewWorkoutModal(true)}
                     className="flex flex-col items-center gap-1 -mt-14 p-3 rounded-full active:scale-90" style={{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'4px 4px 10px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'}}>
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-white" style={{background:'linear-gradient(145deg, #4a9eff, #2563eb)', boxShadow:'0 4px 12px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'}}><Icon name="Plus" size={36} /></div>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-white" style={{background:'linear-gradient(145deg, #1e3a5f, #0f172a)', boxShadow:'0 4px 12px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'}}><Icon name="Plus" size={36} /></div>
                     <span className="text-[11px] font-black mt-1 text-slate-600">אימון חדש</span>
                 </button>
                 <button onClick={()=>navigateTo('manage')} className="flex flex-col items-center gap-1 text-slate-500 active:text-blue-600">
