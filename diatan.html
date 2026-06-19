@@ -321,7 +321,10 @@
       <button id="close-fav-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
     <p class="text-[11px] text-[#404848]">לחיצה על מועדף מוסיפה אותו ליום הנוכחי.</p>
-    <input id="fav-modal-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
+    <div class="relative">
+      <input id="fav-modal-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 pl-8 outline-none text-sm" dir="rtl">
+      <button id="fav-modal-search-clear" class="hx absolute left-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-[#404848] text-[18px] active:scale-90">close</button>
+    </div>
     <div id="fav-list" class="space-y-3"></div>
     <div class="bg-[#d5dde6] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
       <div class="flex gap-1.5">
@@ -513,7 +516,10 @@
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">עקרונות שמשפיעים על הערכת Gemini (מוזרקים אוטומטית לפרומפט).</p>
-        <input id="principles-search" type="text" placeholder="חיפוש בעקרונות..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
+        <div class="relative">
+          <input id="principles-search" type="text" placeholder="חיפוש בעקרונות..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 pl-8 outline-none text-sm" dir="rtl">
+          <button id="principles-search-clear" class="hx absolute left-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-[#404848] text-[18px] active:scale-90">close</button>
+        </div>
         <div id="principles-list" class="space-y-1"></div>
         <div class="flex gap-2 flex-wrap">
           <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
@@ -538,7 +544,10 @@
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">ארוחות ופריטים שמורים. לחיצה על + טוענת לאזור הוספת ארוחה.</p>
-        <input id="fav-manage-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
+        <div class="relative">
+          <input id="fav-manage-search" type="text" placeholder="חיפוש מועדפים..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 pl-8 outline-none text-sm" dir="rtl">
+          <button id="fav-manage-search-clear" class="hx absolute left-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-[#404848] text-[18px] active:scale-90">close</button>
+        </div>
         <div id="fav-manage-list" class="space-y-3"></div>
         <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
           <h4 class="text-xs font-bold text-[#404848]">הוספת מועדף ידנית</h4>
@@ -601,7 +610,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.24";
+const APP_VERSION = "5.25";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1756,13 +1765,13 @@ function renderPrinciples(){
       wrapper.className="pr-swipe-wrap relative overflow-hidden rounded-lg";
       wrapper.dataset.idx=i;
       const delBg=document.createElement("div");
-      delBg.className="absolute inset-0 bg-[#ba1a1a] flex items-center px-3 rounded-lg";
-      delBg.style.justifyContent="flex-end";
+      delBg.className="pr-bg-del absolute inset-0 bg-[#ba1a1a] flex items-center px-3 rounded-lg";
+      delBg.style.cssText="justify-content:flex-start;display:none;";
       delBg.innerHTML='<span class="material-symbols-outlined text-white text-[20px]">delete</span>';
       wrapper.appendChild(delBg);
       const actBg=document.createElement("div");
-      actBg.className="pr-actions absolute inset-0 bg-[#003535] flex items-center gap-2 px-3 rounded-lg";
-      actBg.style.justifyContent="flex-start";
+      actBg.className="pr-actions pr-bg-act absolute inset-0 bg-[#003535] flex items-center gap-2 px-3 rounded-lg";
+      actBg.style.cssText="justify-content:flex-end;display:none;";
       actBg.innerHTML='<button class="pr-act-edit flex flex-col items-center gap-0.5 text-white active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">edit</span><span class="text-[9px]">עריכה</span></button>'
         +'<button class="pr-act-move flex flex-col items-center gap-0.5 text-white active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">drive_file_move</span><span class="text-[9px]">העברה</span></button>'
         +'<button class="pr-act-fav flex flex-col items-center gap-0.5 text-[#ffd700] active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">star</span><span class="text-[9px]">מועדפים</span></button>';
@@ -1793,6 +1802,8 @@ function closePrSwipes(){
 }
 function initPrSwipe(wrapper, content, idx){
   let startX=0, startY=0, dx=0, swiping=false, locked=false;
+  const delBg=wrapper.querySelector(".pr-bg-del");
+  const actBg=wrapper.querySelector(".pr-bg-act");
   content.addEventListener("touchstart",e=>{
     const t=e.touches[0]; startX=t.clientX; startY=t.clientY; dx=0; swiping=false; locked=false;
     content.style.transition="none";
@@ -1802,22 +1813,32 @@ function initPrSwipe(wrapper, content, idx){
     const t=e.touches[0]; const mx=t.clientX-startX; const my=t.clientY-startY;
     if(!swiping && Math.abs(my)>Math.abs(mx)){ locked=true; return; }
     swiping=true; dx=mx;
+    if(dx>0){ delBg.style.display="flex"; actBg.style.display="none"; }
+    else { actBg.style.display="flex"; delBg.style.display="none"; }
     content.style.transform="translateX("+dx+"px)";
   },{passive:true});
   content.addEventListener("touchend",()=>{
-    if(!swiping){ return; }
+    if(!swiping) return;
     content.style.transition="transform 0.25s";
     if(dx>80){
       content.style.transform="translateX(100%)";
       setTimeout(()=>{
         if(confirm("למחוק את העיקרון?")){
           S.principles.splice(idx,1); persist(); renderPrinciples(); toast("נמחק");
-        } else { content.style.transform="translateX(0)"; }
+        } else { content.style.transform="translateX(0)"; delBg.style.display="none"; }
       },200);
     } else if(dx<-80){
       content.style.transform="translateX(-140px)";
     } else {
       content.style.transform="translateX(0)";
+      delBg.style.display="none"; actBg.style.display="none";
+    }
+  });
+  content.addEventListener("click",()=>{
+    if(content.style.transform && content.style.transform!=="translateX(0px)" && content.style.transform!=="translateX(0)"){
+      content.style.transition="transform 0.25s";
+      content.style.transform="translateX(0)";
+      delBg.style.display="none"; actBg.style.display="none";
     }
   });
 }
@@ -2399,8 +2420,10 @@ function start(){
   $("beef-modal").onclick=e=>{ if(e.target===$("beef-modal")) closeBeefModal(); };
   $("btn-fav").onclick=openFavModal;
   $("close-fav-modal").onclick=closeFavModal;
-  $("fav-modal-search").oninput=()=>filterFavList("fav-modal-search","fav-list");
-  $("fav-manage-search").oninput=()=>filterFavList("fav-manage-search","fav-manage-list");
+  $("fav-modal-search").oninput=()=>{ const v=$("fav-modal-search").value; (v?show:hide)($("fav-modal-search-clear")); filterFavList("fav-modal-search","fav-list"); };
+  $("fav-modal-search-clear").onclick=()=>{ $("fav-modal-search").value=""; hide($("fav-modal-search-clear")); filterFavList("fav-modal-search","fav-list"); };
+  $("fav-manage-search").oninput=()=>{ const v=$("fav-manage-search").value; (v?show:hide)($("fav-manage-search-clear")); filterFavList("fav-manage-search","fav-manage-list"); };
+  $("fav-manage-search-clear").onclick=()=>{ $("fav-manage-search").value=""; hide($("fav-manage-search-clear")); filterFavList("fav-manage-search","fav-manage-list"); };
   $("fav-modal").onclick=e=>{ if(e.target===$("fav-modal")) closeFavModal(); };
   $("btn-add-fav-modal").onclick=()=>{
     const name=$("fav-modal-name").value.trim(); if(!name){ toast("הזן שם לפריט",true); return; }
@@ -2433,7 +2456,8 @@ function start(){
   $("btn-save-steps-goal").onclick=()=>{ const v=parseInt($("set-steps-goal").value,10); if(isNaN(v)||v<100){toast("ערך לא תקין",true);return;} S.stepsGoal=v; persist(); render(); toast("יעד הצעדים עודכן"); };
   $("btn-add-principle").onclick=addPrinciple;
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
-  $("principles-search").addEventListener("input", ()=>renderPrinciples());
+  $("principles-search").addEventListener("input", ()=>{ const v=$("principles-search").value; (v?show:hide)($("principles-search-clear")); renderPrinciples(); });
+  $("principles-search-clear").onclick=()=>{ $("principles-search").value=""; hide($("principles-search-clear")); renderPrinciples(); };
   $("btn-add-fav").onclick=addManualFavorite;
 
   document.addEventListener("keydown", e=>{
