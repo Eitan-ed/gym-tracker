@@ -513,6 +513,7 @@
     <div class="acc-body">
       <div class="px-4 pb-4 space-y-2">
         <p class="text-[11px] text-[#404848]">עקרונות שמשפיעים על הערכת Gemini (מוזרקים אוטומטית לפרומפט).</p>
+        <input id="principles-search" type="text" placeholder="חיפוש בעקרונות..." class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2 outline-none text-sm" dir="rtl">
         <div id="principles-list" class="space-y-1"></div>
         <div class="flex gap-2 flex-wrap">
           <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
@@ -599,7 +600,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.22";
+const APP_VERSION = "5.23";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1741,8 +1742,9 @@ function prCat(p){ return (p&&p.cat)||"assumptions"; }
 function renderPrinciples(){
   const box=$("principles-list"); box.innerHTML="";
   const all=S.principles||[];
+  const q=norm($("principles-search")?$("principles-search").value:"");
   PRINCIPLE_CATS.forEach(cat=>{
-    const items=all.map((p,i)=>({p,i})).filter(({p})=>prCat(p)===cat.id);
+    const items=all.map((p,i)=>({p,i})).filter(({p})=>prCat(p)===cat.id && (!q || norm(prText(p)).includes(q)));
     const sec=document.createElement("div");
     sec.className="space-y-1.5";
     sec.innerHTML='<div class="flex items-center gap-1.5 pt-2 pb-1 border-b border-[#bfc8c8]/40"><span class="material-symbols-outlined text-[16px]" style="color:'+cat.color+'">'+cat.icon+'</span><span class="text-[12px] font-bold" style="color:'+cat.color+'">'+cat.label+' ('+items.length+')</span></div>';
@@ -2375,6 +2377,7 @@ function start(){
   $("btn-save-steps-goal").onclick=()=>{ const v=parseInt($("set-steps-goal").value,10); if(isNaN(v)||v<100){toast("ערך לא תקין",true);return;} S.stepsGoal=v; persist(); render(); toast("יעד הצעדים עודכן"); };
   $("btn-add-principle").onclick=addPrinciple;
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
+  $("principles-search").addEventListener("input", ()=>renderPrinciples());
   $("btn-add-fav").onclick=addManualFavorite;
 
   document.addEventListener("keydown", e=>{
