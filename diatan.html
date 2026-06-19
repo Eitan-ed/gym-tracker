@@ -62,7 +62,7 @@
         </div>
 
         <button id="hmenu-fav" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
-          <span class="material-symbols-outlined text-[#e6a700] text-[20px]">star</span><span class="font-bold text-[#003535]">מאכלים מועדפים</span>
+          <span class="material-symbols-outlined text-[#e6a700] text-[20px]">star</span><span class="font-bold text-[#003535]">מועדפים</span>
         </button>
         <button id="hmenu-report" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eff4ff] active:bg-[#dce9ff] text-right border-t border-[#bfc8c8]/30">
           <span class="material-symbols-outlined text-[#003535] text-[20px]">description</span><span class="font-bold text-[#003535]">דוח יומי</span>
@@ -556,9 +556,15 @@
 </main>
 
 <!-- סרגל ניווט תחתון -->
-<nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white/95 backdrop-blur-md border-t border-[#bfc8c8] px-8 pt-2.5 flex justify-around items-center z-50 rounded-t-2xl shadow-xl" style="padding-bottom:calc(0.5rem + env(safe-area-inset-bottom))">
+<nav class="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto bg-white/95 backdrop-blur-md border-t border-[#bfc8c8] px-4 pt-2.5 flex justify-around items-center z-50 rounded-t-2xl shadow-xl" style="padding-bottom:calc(0.5rem + env(safe-area-inset-bottom))">
   <button id="nav-home" class="flex flex-col items-center gap-0.5 text-[#003535]">
     <span class="material-symbols-outlined text-[22px]">home</span><span class="text-[10px] font-bold">בית</span>
+  </button>
+  <button id="nav-favorites" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
+    <span class="material-symbols-outlined text-[22px]">star</span><span class="text-[10px] font-bold">מועדפים</span>
+  </button>
+  <button id="nav-principles" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
+    <span class="material-symbols-outlined text-[22px]">rule</span><span class="text-[10px] font-bold">עקרונות</span>
   </button>
   <button id="nav-manage" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
     <span class="material-symbols-outlined text-[22px]">settings</span><span class="text-[10px] font-bold">ניהול</span>
@@ -593,7 +599,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.20";
+const APP_VERSION = "5.21";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1908,11 +1914,14 @@ function openManageSection(secId){
 
 // ===== ניווט מסכים =====
 function showView(name){
-  const manage = name==="manage";
+  const manage = name==="manage" || name==="favorites" || name==="principles";
   (manage?show:hide)($("manage-view"));
   (manage?hide:show)($("home-view"));
-  $("nav-manage").className="flex flex-col items-center gap-0.5 "+(manage?"text-[#003535]":"text-[#404848]/60");
-  $("nav-home").className  ="flex flex-col items-center gap-0.5 "+(manage?"text-[#404848]/60":"text-[#003535]");
+  const active="text-[#003535]", inactive="text-[#404848]/60";
+  $("nav-home").className      ="flex flex-col items-center gap-0.5 "+(name==="home"?active:inactive);
+  $("nav-favorites").className ="flex flex-col items-center gap-0.5 "+(name==="favorites"?active:inactive);
+  $("nav-principles").className="flex flex-col items-center gap-0.5 "+(name==="principles"?active:inactive);
+  $("nav-manage").className    ="flex flex-col items-center gap-0.5 "+(name==="manage"?active:inactive);
   if(manage){
     $("api-key").value=S.apiKey||"";
     $("set-steps-goal").value=stepsGoal();
@@ -1922,6 +1931,8 @@ function showView(name){
   }
   window.scrollTo(0,0);
   closeMenu();
+  if(name==="favorites") openManageSection("acc-favorites");
+  if(name==="principles") openManageSection("acc-principles");
 }
 
 // ===== דוח ניתוח (MD) =====
@@ -2350,6 +2361,8 @@ function start(){
 
   // ניווט תחתון
   $("nav-home").onclick=()=>showView("home");
+  $("nav-favorites").onclick=()=>showView("favorites");
+  $("nav-principles").onclick=()=>showView("principles");
   $("nav-manage").onclick=()=>showView("manage");
 
   // ניהול
