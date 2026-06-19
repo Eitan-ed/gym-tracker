@@ -518,6 +518,7 @@
         <div class="flex gap-2 flex-wrap">
           <input id="new-principle" type="text" placeholder="הוסף עיקרון חדש..." class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           <select id="new-principle-cat" class="bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-2 py-1 text-[11px] outline-none">
+            <option value="">בחר קטגוריה</option>
             <option value="assumptions">הנחות</option>
             <option value="sizes">גדלים</option>
             <option value="foods">מאכלים</option>
@@ -600,7 +601,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.23";
+const APP_VERSION = "5.24";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -941,10 +942,12 @@ function render(){
     show(cdBtn);
     if(day.closeSummary){
       cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סיכום יום';
+      cdBtn.className="flex-1 bg-[#9e9e9e] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md";
       $("close-day-content").innerHTML=day.closeSummary.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
       show(cdSum); show($("close-day-qa")); show(rfBtn);
     } else {
       cdBtn.innerHTML='<span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI';
+      cdBtn.className="flex-1 bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md";
       hide(cdSum); hide(rfBtn);
     }
   } else { hide(cdBtn); hide(cdSum); hide(rfBtn); }
@@ -1749,42 +1752,94 @@ function renderPrinciples(){
     sec.className="space-y-1.5";
     sec.innerHTML='<div class="flex items-center gap-1.5 pt-2 pb-1 border-b border-[#bfc8c8]/40"><span class="material-symbols-outlined text-[16px]" style="color:'+cat.color+'">'+cat.icon+'</span><span class="text-[12px] font-bold" style="color:'+cat.color+'">'+cat.label+' ('+items.length+')</span></div>';
     items.forEach(({p,i})=>{
+      const wrapper=document.createElement("div");
+      wrapper.className="pr-swipe-wrap relative overflow-hidden rounded-lg";
+      wrapper.dataset.idx=i;
+      const delBg=document.createElement("div");
+      delBg.className="absolute inset-0 bg-[#ba1a1a] flex items-center px-3 rounded-lg";
+      delBg.style.justifyContent="flex-end";
+      delBg.innerHTML='<span class="material-symbols-outlined text-white text-[20px]">delete</span>';
+      wrapper.appendChild(delBg);
+      const actBg=document.createElement("div");
+      actBg.className="pr-actions absolute inset-0 bg-[#003535] flex items-center gap-2 px-3 rounded-lg";
+      actBg.style.justifyContent="flex-start";
+      actBg.innerHTML='<button class="pr-act-edit flex flex-col items-center gap-0.5 text-white active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">edit</span><span class="text-[9px]">עריכה</span></button>'
+        +'<button class="pr-act-move flex flex-col items-center gap-0.5 text-white active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">drive_file_move</span><span class="text-[9px]">העברה</span></button>'
+        +'<button class="pr-act-fav flex flex-col items-center gap-0.5 text-[#ffd700] active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">star</span><span class="text-[9px]">מועדפים</span></button>';
+      wrapper.appendChild(actBg);
       const div=document.createElement("div");
-      div.className="pr-item flex items-start gap-1.5 bg-[#e3eaf2] rounded-lg px-2.5 py-1.5 border border-[#bfc8c8]/30";
+      div.className="pr-item relative flex items-start gap-1.5 bg-[#e3eaf2] rounded-lg px-2.5 py-1.5 border border-[#bfc8c8]/30 transition-transform";
       div.dataset.idx=i;
-      const catIdx=PRINCIPLE_CATS.findIndex(c=>c.id===cat.id);
-      const prevCat=catIdx>0?PRINCIPLE_CATS[catIdx-1]:null;
-      const nextCat=catIdx<PRINCIPLE_CATS.length-1?PRINCIPLE_CATS[catIdx+1]:null;
-      div.innerHTML='<div class="flex flex-col shrink-0">'
-        +'<button class="pr-up material-symbols-outlined text-[#404848] text-[20px] leading-none p-0.5" data-idx="'+i+'" title="הזז למעלה">expand_less</button>'
-        +'<button class="pr-down material-symbols-outlined text-[#404848] text-[20px] leading-none p-0.5" data-idx="'+i+'" title="הזז למטה">expand_more</button>'
-        +'</div>'
-        +'<div class="flex flex-col shrink-0">'
-        +(prevCat?'<button class="pr-cat-prev material-symbols-outlined text-[18px] leading-none p-0.5" style="color:'+prevCat.color+'" data-idx="'+i+'" data-cat="'+prevCat.id+'" title="העבר ל'+prevCat.label+'">arrow_back</button>':'')
-        +(nextCat?'<button class="pr-cat-next material-symbols-outlined text-[18px] leading-none p-0.5" style="color:'+nextCat.color+'" data-idx="'+i+'" data-cat="'+nextCat.id+'" title="העבר ל'+nextCat.label+'">arrow_forward</button>':'')
-        +'</div>'
-        +'<span class="flex-1 text-[12px] leading-snug">'+esc(prText(p))+'</span>'
-        +'<button class="edit-pr material-symbols-outlined text-[#0061a4] text-[15px] shrink-0" data-idx="'+i+'">edit</button>'
-        +'<button class="del-pr material-symbols-outlined text-[#93000a] text-[15px] shrink-0" data-idx="'+i+'">close</button>';
-      sec.appendChild(div);
+      div.style.touchAction="pan-y";
+      div.innerHTML='<span class="flex-1 text-[12px] leading-snug">'+esc(prText(p))+'</span>';
+      wrapper.appendChild(div);
+      initPrSwipe(wrapper, div, i);
+      sec.appendChild(wrapper);
     });
     box.appendChild(sec);
   });
-  box.querySelectorAll(".pr-up").forEach(btn=>{
-    btn.onclick=()=>{ const i=+btn.dataset.idx; const cat=prCat(S.principles[i]); const same=(S.principles||[]).map((p,j)=>({p,j})).filter(({p})=>prCat(p)===cat); const pos=same.findIndex(x=>x.j===i); if(pos<=0) return; const prev=same[pos-1].j; [S.principles[prev],S.principles[i]]=[S.principles[i],S.principles[prev]]; persist(); renderPrinciples(); };
+  box.querySelectorAll(".pr-act-edit").forEach(btn=>{
+    btn.onclick=()=>{ closePrSwipes(); editPrinciple(+btn.dataset.idx); };
   });
-  box.querySelectorAll(".pr-down").forEach(btn=>{
-    btn.onclick=()=>{ const i=+btn.dataset.idx; const cat=prCat(S.principles[i]); const same=(S.principles||[]).map((p,j)=>({p,j})).filter(({p})=>prCat(p)===cat); const pos=same.findIndex(x=>x.j===i); if(pos>=same.length-1) return; const next=same[pos+1].j; [S.principles[i],S.principles[next]]=[S.principles[next],S.principles[i]]; persist(); renderPrinciples(); };
+  box.querySelectorAll(".pr-act-move").forEach(btn=>{
+    btn.onclick=()=>{ closePrSwipes(); showPrMoveMenu(+btn.dataset.idx); };
   });
-  box.querySelectorAll(".pr-cat-prev,.pr-cat-next").forEach(btn=>{
-    btn.onclick=()=>{ const i=+btn.dataset.idx; S.principles[i].cat=btn.dataset.cat; persist(); renderPrinciples(); toast("הועבר"); };
+  box.querySelectorAll(".pr-act-fav").forEach(btn=>{
+    btn.onclick=()=>{ closePrSwipes(); prToFavorite(+btn.dataset.idx); };
   });
-  box.querySelectorAll(".del-pr").forEach(btn=>{
-    btn.onclick=()=>{ if(!confirm("למחוק?")) return; S.principles.splice(+btn.dataset.idx,1); persist(); renderPrinciples(); toast("נמחק"); };
+}
+function closePrSwipes(){
+  document.querySelectorAll(".pr-swipe-wrap .pr-item").forEach(el=>{ el.style.transition="transform 0.25s"; el.style.transform="translateX(0)"; });
+}
+function initPrSwipe(wrapper, content, idx){
+  let startX=0, startY=0, dx=0, swiping=false, locked=false;
+  content.addEventListener("touchstart",e=>{
+    const t=e.touches[0]; startX=t.clientX; startY=t.clientY; dx=0; swiping=false; locked=false;
+    content.style.transition="none";
+  },{passive:true});
+  content.addEventListener("touchmove",e=>{
+    if(locked) return;
+    const t=e.touches[0]; const mx=t.clientX-startX; const my=t.clientY-startY;
+    if(!swiping && Math.abs(my)>Math.abs(mx)){ locked=true; return; }
+    swiping=true; dx=mx;
+    content.style.transform="translateX("+dx+"px)";
+  },{passive:true});
+  content.addEventListener("touchend",()=>{
+    if(!swiping){ return; }
+    content.style.transition="transform 0.25s";
+    if(dx>80){
+      content.style.transform="translateX(100%)";
+      setTimeout(()=>{
+        if(confirm("למחוק את העיקרון?")){
+          S.principles.splice(idx,1); persist(); renderPrinciples(); toast("נמחק");
+        } else { content.style.transform="translateX(0)"; }
+      },200);
+    } else if(dx<-80){
+      content.style.transform="translateX(-140px)";
+    } else {
+      content.style.transform="translateX(0)";
+    }
   });
-  box.querySelectorAll(".edit-pr").forEach(btn=>{
-    btn.onclick=()=>editPrinciple(+btn.dataset.idx);
-  });
+}
+function showPrMoveMenu(idx){
+  const item=S.principles[idx]; if(!item) return;
+  const curCat=prCat(item);
+  const others=PRINCIPLE_CATS.filter(c=>c.id!==curCat);
+  const msg="העבר לקטגוריה:\n"+others.map((c,i)=>(i+1)+". "+c.label).join("\n");
+  const choice=prompt(msg);
+  if(!choice) return;
+  const n=parseInt(choice);
+  if(n>=1 && n<=others.length){
+    item.cat=others[n-1].id; persist(); renderPrinciples(); toast("הועבר ל"+others[n-1].label);
+  } else { toast("בחירה לא תקינה",true); }
+}
+function prToFavorite(idx){
+  const item=S.principles[idx]; if(!item) return;
+  const text=prText(item);
+  S.favorites=S.favorites||[];
+  if(S.favorites.some(f=>f.type==="item"&&f.name===text)){ toast("כבר קיים במועדפים",true); return; }
+  S.favorites.push({type:"item", name:text, calories:0, protein:0, amount:""});
+  persist(); toast("נוסף למועדפים");
 }
 function editPrinciple(i){
   const item=S.principles[i]; if(!item) return;
@@ -1799,9 +1854,10 @@ function editPrinciple(i){
 function addPrinciple(){
   const inp=$("new-principle"); const v=inp.value.trim();
   if(!v) return;
-  const cat=$("new-principle-cat")?$("new-principle-cat").value:"assumptions";
+  const catSel=$("new-principle-cat"); const cat=catSel?catSel.value:"";
+  if(!cat){ toast("יש לבחור קטגוריה",true); catSel.focus(); return; }
   S.principles=S.principles||[]; S.principles.push({text:v,cat});
-  persist(); inp.value=""; renderPrinciples(); toast("נוסף");
+  persist(); inp.value=""; catSel.value=""; renderPrinciples(); toast("נוסף");
 }
 
 // ===== ניהול — משקל =====
