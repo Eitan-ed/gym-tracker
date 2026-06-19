@@ -89,6 +89,13 @@
   <section class="bg-white border border-[#bfc8c8] p-4 rounded-2xl shadow-sm space-y-3">
     <input type="file" id="cam-input" accept="image/*" capture="environment" class="hx">
     <input type="file" id="gallery-input" accept="image/*" multiple class="hx">
+    <div id="backup-reminder" class="hx flex items-center justify-between bg-[#ffdad6] border border-[#ba1a1a]/30 rounded-xl px-3 py-1.5 cursor-pointer active:scale-[0.98]">
+      <div class="flex items-center gap-1.5" id="backup-reminder-click">
+        <span class="material-symbols-outlined text-[#ba1a1a] text-[16px]">cloud_download</span>
+        <span class="text-[12px] font-bold text-[#ba1a1a]">גיבוי</span>
+      </div>
+      <button id="backup-reminder-x" class="material-symbols-outlined text-[#ba1a1a] text-[16px] active:scale-90">close</button>
+    </div>
     <div class="flex gap-2">
       <button id="btn-cam" class="flex-1 h-11 border-2 border-dashed border-[#bfc8c8] rounded-xl flex items-center justify-center gap-1.5 hover:border-[#003535] bg-[#e3eaf2]/50 active:scale-[0.98]">
         <span class="material-symbols-outlined text-[#003535] text-[18px]">photo_camera</span>
@@ -610,7 +617,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.25";
+const APP_VERSION = "5.26";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -967,6 +974,14 @@ function render(){
   sc.className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer active:scale-95 "+(streakOk?"bg-[#e6f4ea] text-[#006c49] border-[#006c49]/30":"bg-[#ffdad6] text-[#93000a] border-[#93000a]/30");
   sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף';
   sc.onclick=openCalendar; show(sc);
+
+  // תזכורת גיבוי — פעם ביום מ-20:00
+  const br=$("backup-reminder");
+  if(isToday){
+    const lastBackupRemind=S.backupRemindDismissed||"";
+    const now=new Date(); const hour=now.getHours();
+    if(hour>=20 && lastBackupRemind!==todayId()) show(br); else hide(br);
+  } else hide(br);
 }
 
 function applyResultsEdit(){
@@ -1766,12 +1781,12 @@ function renderPrinciples(){
       wrapper.dataset.idx=i;
       const delBg=document.createElement("div");
       delBg.className="pr-bg-del absolute inset-0 bg-[#ba1a1a] flex items-center px-3 rounded-lg";
-      delBg.style.cssText="justify-content:flex-start;display:none;";
+      delBg.style.cssText="justify-content:flex-end;display:none;";
       delBg.innerHTML='<span class="material-symbols-outlined text-white text-[20px]">delete</span>';
       wrapper.appendChild(delBg);
       const actBg=document.createElement("div");
       actBg.className="pr-actions pr-bg-act absolute inset-0 bg-[#003535] flex items-center gap-2 px-3 rounded-lg";
-      actBg.style.cssText="justify-content:flex-end;display:none;";
+      actBg.style.cssText="justify-content:flex-start;display:none;";
       actBg.innerHTML='<button class="pr-act-edit flex flex-col items-center gap-0.5 text-white active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">edit</span><span class="text-[9px]">עריכה</span></button>'
         +'<button class="pr-act-move flex flex-col items-center gap-0.5 text-white active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">drive_file_move</span><span class="text-[9px]">העברה</span></button>'
         +'<button class="pr-act-fav flex flex-col items-center gap-0.5 text-[#ffd700] active:scale-90" data-idx="'+i+'"><span class="material-symbols-outlined text-[18px]">star</span><span class="text-[9px]">מועדפים</span></button>';
@@ -2450,6 +2465,8 @@ function start(){
   initAccordions();
   $("btn-save-key").onclick=()=>{ S.apiKey=$("api-key").value.trim(); persist(); toast("המפתח נשמר"); };
   $("btn-backup").onclick=onBackup;
+  $("backup-reminder-click").onclick=()=>{ S.backupRemindDismissed=todayId(); persist(); hide($("backup-reminder")); onBackup(); };
+  $("backup-reminder-x").onclick=e=>{ e.stopPropagation(); S.backupRemindDismissed=todayId(); persist(); hide($("backup-reminder")); };
   $("btn-restore").onclick=onRestoreClick;
   $("restore-input").onchange=onRestore;
   $("btn-save-weight-manage").onclick=saveWeightManage;
