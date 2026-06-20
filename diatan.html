@@ -120,27 +120,19 @@
     </div>
 
     <div id="results" class="hx space-y-2 pt-1">
-      <p class="text-[10px] text-[#404848]">אפשר לערוך כל שדה, להוסיף פריט למועדפים (כוכב), או להוסיף הבהרה ולחשב מחדש.</p>
       <div id="results-edit" class="space-y-3"></div>
       <div class="flex items-center justify-between border-t-2 border-[#003535] pt-1 font-bold text-[#003535] text-sm">
         <span>סה"כ</span><span><span id="sum-cal">0</span> קל &middot; <span id="sum-prot">0</span> ג'</span>
       </div>
       <div id="ai-note" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e3eaf2] border border-[#bfc8c8]/40 rounded-xl p-2.5"></div>
-      <div class="flex gap-2">
-        <input id="meal-refine" type="text" placeholder="הבהרה לדיוק או שאלת המשך..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
-        <button id="btn-recalc" class="shrink-0 bg-[#1565C0] text-white px-3 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:bg-[#9e9e9e] disabled:shadow-none"><span class="material-symbols-outlined text-[16px]" id="recalc-icon">refresh</span><span id="recalc-text">חשב מחדש</span></button>
-      </div>
       <div id="chat-answer" class="hx text-[12px] leading-snug text-[#0d4d4d] bg-[#e8f0fe] border border-[#0061a4]/30 rounded-xl p-2.5"></div>
-      <div id="chat-followup" class="hx flex gap-2">
-        <input id="chat-followup-q" type="text" placeholder="שאלת המשך..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
-        <button id="btn-followup" class="shrink-0 bg-[#0061a4] text-white px-4 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98]"><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
-      </div>
       <div class="flex gap-2">
-        <button id="btn-save" class="flex-1 bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
-          <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
-        </button>
-        <button id="btn-ask" class="shrink-0 bg-[#0061a4] text-white px-4 rounded-xl text-sm font-bold flex items-center gap-1 active:scale-[0.98] disabled:opacity-50" disabled><span class="material-symbols-outlined text-[16px]">chat</span><span>שאל</span></button>
+        <input id="unified-input" type="text" placeholder="הבהרה, שאלה, או הוספת פריט..." class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-sm">
+        <button id="btn-unified-send" class="shrink-0 bg-[#1565C0] text-white w-10 rounded-xl flex items-center justify-center active:scale-[0.98] disabled:bg-[#9e9e9e]" disabled><span class="material-symbols-outlined text-[18px]">send</span></button>
       </div>
+      <button id="btn-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span> שמור ארוחה
+      </button>
     </div>
   </section>
 
@@ -559,10 +551,10 @@
         <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
           <h4 class="text-xs font-bold text-[#404848]">הוספת מועדף ידנית</h4>
           <input id="new-fav-name" type="text" placeholder="שם הפריט" class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-          <div class="flex gap-2">
-            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
-            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <div class="flex gap-2 overflow-hidden">
+            <input id="new-fav-cal" type="number" placeholder='קלוריות' class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-prot" type="number" placeholder='חלבון (ג)' class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <input id="new-fav-amt" type="text" placeholder='כמות' class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           </div>
           <button id="btn-add-fav" class="w-full bg-[#003535] text-white font-bold py-2 rounded-xl text-sm active:scale-[0.98] flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span> הוסף למועדפים</button>
         </div>
@@ -617,7 +609,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.27";
+const APP_VERSION = "5.28";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -790,7 +782,7 @@ function buildPrompt(){
 אם פריט הוא בקר שומני (סטייק/אנטריקוט/המבורגר בקר/אסאדו/צלי בקר) אמוד משקל בגרמים ב-beefGrams. נתחים רזים כמו שייטל או כתף ללא שומן — beefGrams=0 (לא נספרים במגבלת הבקר השבועית).
 לכל פריט הוסף שדה amount — הכמות במונחים אנושיים מתאימים לסוג המזון: גרמים לבשר/דג ("220 גרם"), כפות לאורז/קטניות/דגנים ("3 כפות"), יחידות לפריכיות/ביצים ("2 יח'"), כוסות/קערות לנוזלים. תמיד ציין amount.
 אם זוהה כלי מהרשימה שלמעלה (צלחת/קערה/קופסה בגודל מסוים) ציין זאת בקצרה בשדה note.
-הוסף שדה note: 2 שורות קצרות בלבד, כתזונאי בכיר, על מה שעלה בארוחה וההיבט התזונתי הרלוונטי לרקע של איתן (כבד שומני/טרום-סוכרת/כולסטרול).
+הוסף שדה note: 2-3 שורות קצרות בלבד. שורה ראשונה: שיטת החישוב — פרט בקצרה איך חישבת את הקלוריות (לפי מאגר USDA, לפי תווית, לפי הערכת צלחת וכו'). אם זוהתה צלחת בתמונה — ציין שבוצעה הפחתה ממה ופרט את סוג הכלי שזוהה. שורות נוספות: הערה תזונתית קצרה כתזונאי בכיר הרלוונטית לרקע של איתן (כבד שומני/טרום-סוכרת/כולסטרול).
 אם אתה לא בטוח במשהו (כמות, סוג מאכל, שיטת בישול) — הוסף שדה "questions" עם מערך של שאלות קצרות בעברית לאיתן כדי לדייק. אם הכל ברור, לא צריך את השדה.
 החזר אך ורק JSON: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה קצרה","questions":["שאלה1"]}`;
   if(S.principles && S.principles.length){
@@ -1028,12 +1020,12 @@ function renderResults(){
   });
   box.querySelectorAll(".r-del").forEach(btn=>btn.onclick=()=>{
     applyResultsEdit(); pending.splice(+btn.dataset.i,1);
-    if(!pending.length){ hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); pendingNote=""; $("meal-refine").value=""; $("meal-desc").value=""; recalcBaseline=null; return; }
+    if(!pending.length){ hide($("results")); hide($("ai-note")); hide($("chat-answer")); pendingNote=""; $("unified-input").value=""; $("meal-desc").value=""; recalcBaseline=null; setPostCalcMode(false); return; }
     renderResults();
   });
   box.querySelectorAll(".r-fav").forEach(btn=>btn.onclick=()=>{ applyResultsEdit(); saveItemFavorite(pending[+btn.dataset.i]); });
   box.querySelectorAll("input").forEach(inp=>{inp.addEventListener("input",updateResultsSum); inp.addEventListener("input",updateRecalcState);});
-  box.querySelectorAll(".r-amt,.r-cal,.r-prot").forEach(inp=>inp.addEventListener("focus",()=>inp.select()));
+  box.querySelectorAll(".r-amt,.r-unit,.r-cal,.r-prot").forEach(inp=>inp.addEventListener("focus",()=>inp.select()));
   box.querySelectorAll(".r-row").forEach(row=>{
     const amtInp=row.querySelector(".r-amt");
     const origAmt=parseFloat(amtInp.value)||0;
@@ -1055,23 +1047,27 @@ function renderResults(){
   const noteEl=$("ai-note");
   if(pendingNote){ noteEl.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#006c49]">stethoscope</span> '+esc(pendingNote); show(noteEl); }
   else hide(noteEl);
-  hide($("chat-answer")); hide($("chat-followup"));
+  hide($("chat-answer"));
   show($("results"));
   snapshotRecalcBaseline();
-  $("btn-recalc").disabled=true;
 }
-async function onAsk(){
-  const q=$("meal-refine").value.trim();
-  if(!q){ toast("כתוב שאלה",true); return; }
+async function onUnifiedSend(){
+  const q=$("unified-input").value.trim();
+  if(!q){ toast("כתוב משהו",true); return; }
   applyResultsEdit();
-  const itemsCtx=pending.length ? pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קל, '+it.protein+" ג' חלבון").join("\n") : "";
+  const itemsCtx=pending.length ? pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+(it.calories==="?"?"? (חשב)":it.calories)+' קל, '+(it.protein==="?"?"? (חשב)":it.protein)+" ג' חלבון").join("\n") : "";
   const key=S.apiKey;
   if(!key){ toast("חסר מפתח Gemini",true); return; }
-  $("btn-ask").disabled=true;
+  const prevCtx=$("chat-answer").textContent||"";
+  $("btn-unified-send").disabled=true;
   try{
-    const prompt='אתה תזונאי בכיר. הנה הארוחה הנוכחית של איתן:\n'+itemsCtx+'\n\nשאלת המשך מאיתן: '+q+'\n\nענה בקצרה בעברית (2-3 משפטים). אל תחזיר JSON.';
+    const favMatch=matchFavorites(q);
+    if(favMatch){ pending=pending.concat(favMatch); renderResults(); $("unified-input").value=""; $("btn-unified-send").disabled=true; toast("נטען ממועדפים"); return; }
+    const baseText=$("meal-desc").value.trim();
+    const fullCtx = [baseText, itemsCtx, prevCtx?("הקשר קודם:\n"+prevCtx):"", "בקשה/שאלה/הבהרה מאיתן: "+q].filter(Boolean).join("\n");
+    const prompt='אתה תזונאי בכיר שמנתח ארוחות עבור איתן.\n'+fullCtx+'\n\nאם הבקשה היא הבהרה/תיקון/הוספה שדורש חישוב מחדש — החזר JSON בפורמט: {"items":[{"name":"שם","amount":"כמות","calories":מספר,"protein":גרם,"beefGrams":מספר}],"note":"הערה","questions":[]}\nאם זו שאלה כללית — החזר JSON: {"answer":"תשובה קצרה בעברית"}\nהחזר אך ורק JSON.';
     const parts=[{text:prompt}];
-    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.3,thinkingConfig:{thinkingBudget:0}}});
+    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.3,responseMimeType:"application/json",thinkingConfig:{thinkingBudget:0}}});
     let resp;
     for(const model of GEMINI_MODELS){
       resp=await callGemini(model,body,key);
@@ -1079,56 +1075,24 @@ async function onAsk(){
     }
     if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
     const j=await resp.json();
-    const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
-    if(!answer) throw new Error("תשובה ריקה");
-    const el=$("chat-answer");
-    el.innerHTML='<span class="material-symbols-outlined text-[13px] align-middle text-[#0061a4]">chat</span> <b>שאלה:</b> '+esc(q)+'<br><b>תשובה:</b> '+esc(answer);
-    show(el);
-    $("meal-refine").value="";
-    show($("chat-followup")); $("chat-followup-q").value=""; $("chat-followup-q").focus();
-  }catch(e){ toast(e.message||String(e),true); }
-  finally{ $("btn-ask").disabled=false; }
-}
-async function onFollowup(){
-  const q=$("chat-followup-q").value.trim(); if(!q) return;
-  applyResultsEdit();
-  const itemsCtx=pending.length ? pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+it.calories+' קל, '+it.protein+" ג' חלבון").join("\n") : "";
-  const prevQ=$("chat-answer").textContent||"";
-  const key=S.apiKey;
-  if(!key){ toast("חסר מפתח Gemini",true); return; }
-  $("btn-followup").disabled=true;
-  try{
-    const prompt='אתה תזונאי בכיר. הנה הארוחה הנוכחית של איתן:\n'+itemsCtx+'\n\nהקשר קודם:\n'+prevQ+'\n\nשאלת המשך: '+q+'\n\nענה בקצרה בעברית (2-3 משפטים). אל תחזיר JSON.';
-    const parts=[{text:prompt}];
-    const body=JSON.stringify({contents:[{role:"user",parts}],generationConfig:{temperature:0.3,thinkingConfig:{thinkingBudget:0}}});
-    let resp;
-    for(const model of GEMINI_MODELS){
-      resp=await callGemini(model,body,key);
-      if(resp.ok) break;
+    const raw=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    if(!raw) throw new Error("תשובה ריקה");
+    let parsed; try{parsed=JSON.parse(raw);}catch(e){throw new Error("JSON לא תקין");}
+    if(parsed.answer){
+      const el=$("chat-answer");
+      const prev=el.innerHTML;
+      el.innerHTML=(prev?prev+'<hr class="my-1.5 border-[#0061a4]/20">':'')+'<span class="material-symbols-outlined text-[13px] align-middle text-[#0061a4]">chat</span> <b>שאלה:</b> '+esc(q)+'<br><b>תשובה:</b> '+esc(parsed.answer);
+      show(el);
+    } else if(parsed.items){
+      pending=(parsed.items||[]).map(it=>applyRef({name:String(it.name||"").trim(),amount:String(it.amount||"").trim(),calories:Math.round(+it.calories||0),protein:Math.round(+it.protein||0),beefGrams:Math.round(+it.beefGrams||0)}));
+      pending.forEach(o=>{if(o.beefGrams>0&&hasAny(o.name,BEEF_EXEMPT))o.beefGrams=0;});
+      pendingNote=String(parsed.note||"").trim();
+      renderResults();
+      toast("עודכן");
     }
-    if(!resp||!resp.ok) throw new Error("שגיאת Gemini");
-    const j=await resp.json();
-    const answer=j.candidates?.[0]?.content?.parts?.[0]?.text||"";
-    if(!answer) throw new Error("תשובה ריקה");
-    const el=$("chat-answer");
-    el.innerHTML+='<hr class="my-1.5 border-[#0061a4]/20"><span class="material-symbols-outlined text-[13px] align-middle text-[#0061a4]">chat</span> <b>שאלה:</b> '+esc(q)+'<br><b>תשובה:</b> '+esc(answer);
-    $("chat-followup-q").value="";
+    $("unified-input").value=""; $("btn-unified-send").disabled=true;
   }catch(e){ toast(e.message||String(e),true); }
-  finally{ $("btn-followup").disabled=false; }
-}
-async function onRecalc(){
-  applyResultsEdit();
-  const refine=$("meal-refine").value.trim();
-  const baseText=$("meal-desc").value.trim();
-  const itemsCtx = pending.length ? ("הטבלה הנוכחית כולל תיקונים ידניים שלי (כבד אותם כנקודת מוצא ועדכן רק את מה שצריך). ערכים עם ? הם לא ידועים לי — חשב אותם בעצמך:\n"
-    + pending.map(it=>"- "+it.name+(it.amount?" ["+it.amount+"]":"")+": "+(it.calories==="?"?"? (חשב)":it.calories)+' קל, '+(it.protein==="?"?"? (חשב)":it.protein)+" ג' חלבון").join("\n")) : "";
-  const combined = [baseText, itemsCtx, refine?("הבהרות/תיקונים נוספים מאיתן לדייק לפיהם: "+refine):""].filter(Boolean).join("\n");
-  if(!combined && !pendingFiles.length){ toast("אין מה לחשב מחדש", true); return; }
-  $("btn-recalc").disabled=true; $("recalc-text").textContent="..."; $("recalc-icon").textContent="hourglass_top";
-  try { const res=await analyze(combined, pendingFiles); pending=res.items; pendingNote=res.note;
-    if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); toast("חושב מחדש"); }
-  } catch(e){ toast(e.message||String(e), true); }
-  finally { $("btn-recalc").disabled=false; $("recalc-text").textContent="חשב מחדש"; $("recalc-icon").textContent="refresh"; }
+  finally{ $("btn-unified-send").disabled=!$("unified-input").value.trim(); }
 }
 
 // ===== פעולות ארוחה =====
@@ -1147,12 +1111,12 @@ async function onCalc(){
   if(!text && !pendingFiles.length){ toast("הזן תיאור או צרף תמונה", true); return; }
   if(text && !pendingFiles.length){
     const favMatch=matchFavorites(text);
-    if(favMatch){ applyResultsEdit(); pending=pending.concat(favMatch); renderResults(); $("meal-desc").value=""; updateCalcState(); toast("נטען ממועדפים"); return; }
+    if(favMatch){ applyResultsEdit(); pending=pending.concat(favMatch); renderResults(); $("meal-desc").value=""; updateCalcState(); setPostCalcMode(true); toast("נטען ממועדפים"); return; }
   }
   $("btn-calc").disabled=true; $("calc-text").textContent="..."; $("calc-icon").textContent="hourglass_top";
   try { applyResultsEdit(); const res=await analyze(text, pendingFiles); pending=pending.concat(res.items); pendingNote=res.note;
-    if(res.questions&&res.questions.length){ pendingNote=(pendingNote?pendingNote+"\n":"")+"שאלות לדיוק: "+res.questions.join(" | "); $("meal-refine").placeholder="ענה כאן על השאלות לדיוק..."; }
-    if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); $("meal-desc").value=""; pendingFiles=[]; $("photo-previews").innerHTML=""; hide($("photo-previews")); }
+    if(res.questions&&res.questions.length){ pendingNote=(pendingNote?pendingNote+"\n":"")+"שאלות לדיוק: "+res.questions.join(" | "); $("unified-input").placeholder="ענה כאן על השאלות לדיוק..."; }
+    if(!pending.length) toast("לא זוהו פריטים", true); else { renderResults(); $("meal-desc").value=""; pendingFiles=[]; $("photo-previews").innerHTML=""; hide($("photo-previews")); setPostCalcMode(true); }
   } catch(e){ toast(e.message||String(e), true); }
   finally { $("calc-text").textContent="חשב"; $("calc-icon").textContent="calculate"; updateCalcState(); }
 }
@@ -1162,8 +1126,9 @@ function onSave(){
   const day=ensure(viewDay);
   let c=0,p=0,bg=0; pending.forEach(i=>{c+=(i.calories==="?"?0:+i.calories||0);p+=(i.protein==="?"?0:+i.protein||0);bg+=(+i.beefGrams||0);i.calories=(i.calories==="?"?0:+i.calories||0);i.protein=(i.protein==="?"?0:+i.protein||0);});
   day.meals.push({ time:new Date().toISOString(), desc:$("meal-desc").value.trim(), items:pending, calories:c, protein:p, beefGrams:bg, note:pendingNote });
-  persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("meal-refine").value="";
-  hide($("results")); hide($("ai-note")); hide($("chat-answer")); hide($("chat-followup")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
+  persist(); pending=[]; pendingFiles=[]; pendingNote=""; recalcBaseline=null; $("meal-desc").value=""; $("unified-input").value="";
+  hide($("results")); hide($("ai-note")); hide($("chat-answer")); $("photo-previews").innerHTML=""; hide($("photo-previews"));
+  setPostCalcMode(false);
   render(); updateCalcState(); toast("הארוחה נשמרה");
 }
 function onPhoto(e){
@@ -1191,18 +1156,27 @@ let recalcBaseline=null;
 function snapshotRecalcBaseline(){
   recalcBaseline={refine:"", values:pending.map(it=>it.name+"|"+it.calories+"|"+it.protein+"|"+(it.amount||"")).join(",")};
 }
-function updateRecalcState(){
-  if(!recalcBaseline){ $("btn-recalc").disabled=true; return; }
-  const refine=$("meal-refine").value.trim();
-  let vals="";
-  $("results-edit").querySelectorAll(".r-row").forEach(row=>{
-    const num=row.querySelector(".r-amt").value.trim();
-    const unit=row.querySelector(".r-unit").value.trim();
-    const amt=(num&&unit)?num+" "+unit:(num||unit||"");
-    vals+=(vals?",":"")+row.querySelector(".r-name").value.trim()+"|"+Math.round(+row.querySelector(".r-cal").value||0)+"|"+Math.round(+row.querySelector(".r-prot").value||0)+"|"+amt;
-  });
-  const changed=refine!==recalcBaseline.refine||vals!==recalcBaseline.values;
-  $("btn-recalc").disabled=!changed;
+function updateRecalcState(){}
+function setPostCalcMode(on){
+  const desc=$("meal-desc"), calc=$("btn-calc");
+  if(on){
+    desc.classList.add("hx"); calc.classList.add("hx");
+    const wrap=desc.parentElement;
+    let saveBtn=wrap.querySelector("#btn-save-changes");
+    if(!saveBtn){
+      saveBtn=document.createElement("button");
+      saveBtn.id="btn-save-changes";
+      saveBtn.className="flex-1 bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2";
+      saveBtn.innerHTML='<span class="material-symbols-outlined text-[18px]">check_circle</span> שמור שינויים';
+      saveBtn.onclick=onSave;
+      wrap.appendChild(saveBtn);
+    }
+    show(saveBtn);
+  } else {
+    desc.classList.remove("hx"); calc.classList.remove("hx");
+    const saveBtn=document.querySelector("#btn-save-changes");
+    if(saveBtn) saveBtn.remove();
+  }
 }
 
 // ===== מודאל משקל =====
@@ -1686,16 +1660,17 @@ function addFavToDay(idx){
   closeFavModal();
   showView("home");
   if(f.type==="item"){
-    $("meal-desc").value=f.name;
+    $("meal-desc").value="";
     pending=[{name:f.name, amount:f.amount||"", calories:f.calories||0, protein:f.protein||0, beefGrams:f.beefGrams||0}];
     pendingNote="";
   } else {
-    $("meal-desc").value=f.desc||favLabel(f);
+    $("meal-desc").value="";
     pending=(f.items||[]).map(it=>Object.assign({},it));
     pendingNote=f.note||"";
   }
   renderResults();
   updateCalcState();
+  setPostCalcMode(true);
   toast("נטען מהמועדפים — בדוק ושמור");
 }
 
@@ -2387,12 +2362,11 @@ function start(){
   $("cam-input").onchange=onPhoto;
   $("gallery-input").onchange=onPhoto;
   $("btn-calc").onclick=onCalc;
-  $("btn-recalc").onclick=onRecalc;
-  $("btn-ask").onclick=onAsk;
-  $("btn-followup").onclick=onFollowup;
   $("btn-save").onclick=onSave;
   $("meal-desc").addEventListener("input",updateCalcState);
-  $("meal-refine").addEventListener("input",()=>{ updateRecalcState(); $("btn-ask").disabled=!$("meal-refine").value.trim(); });
+  $("btn-unified-send").onclick=onUnifiedSend;
+  $("unified-input").addEventListener("input",()=>{ $("btn-unified-send").disabled=!$("unified-input").value.trim(); });
+  $("unified-input").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!$("btn-unified-send").disabled) onUnifiedSend(); });
 
   // משקל + צעדים (מודאלים)
   $("btn-weight").onclick=openWeightModal;
