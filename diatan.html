@@ -56,6 +56,7 @@
             <button data-sec="acc-key" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">key</span>מפתח Gemini</button>
             <button data-sec="acc-backup" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">cloud_sync</span>גיבוי ושחזור</button>
             <button data-sec="acc-weight" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">monitor_weight</span>משקל ומגמה</button>
+            <button data-sec="acc-measurements" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">straighten</span>מדידות</button>
             <button data-sec="acc-metrics" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">timeline</span>היסטוריית מדדים</button>
             <button data-sec="acc-principles" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">rule</span>עקרונות</button>
             <button data-sec="acc-favorites" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#e6a700]">star</span>מועדפים</button>
@@ -149,13 +150,15 @@
 
     <!-- יעדים חיטוב/איזון -->
     <div class="grid grid-cols-2 gap-2.5">
-      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2.5 flex flex-col items-center border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד חיטוב</span>
         <span class="text-lg font-extrabold" id="goal-cut" style="color:#006c49">0</span>
+        <span id="goalcut-remaining" class="text-[10px] font-bold text-[#006c49]">—</span>
       </div>
-      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2.5 flex flex-col items-center border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד איזון</span>
         <span class="text-lg font-extrabold" id="goal-bal" style="color:#4CAF50">0</span>
+        <span id="goalbal-remaining" class="text-[10px] font-bold text-[#4CAF50]">—</span>
       </div>
     </div>
 
@@ -170,7 +173,6 @@
           <span id="cal-now" class="text-xl font-extrabold text-[#0d4d4d]">0</span>
           <span class="text-xs font-bold text-[#404848]">/<span id="cal-target">0</span></span>
         </div>
-        <div class="h-2.5 w-full bg-[#cdd8e4] rounded-full overflow-hidden mt-1"><div id="cal-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
       <div id="prot-box" class="bg-[#e3eaf2] rounded-xl px-3 py-3 border border-[#bfc8c8]/40 cursor-pointer active:scale-[0.98]">
         <div class="flex items-center justify-between mb-1">
@@ -181,7 +183,6 @@
           <span id="prot-now" class="text-xl font-extrabold text-[#0d4d4d]">0</span>
           <span class="text-xs font-bold text-[#404848]">/<span id="prot-target">0</span></span>
         </div>
-        <div class="h-2.5 w-full bg-[#cdd8e4] rounded-full overflow-hidden mt-1"><div id="prot-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#0d4d4d"></div></div>
       </div>
     </div>
   </section>
@@ -531,6 +532,52 @@
     </div>
   </section>
 
+  <!-- מדידות היקפי גוף -->
+  <section id="acc-measurements" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">straighten</span> מדידות היקפי גוף</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-3">
+        <p class="text-[11px] text-[#404848]">מדידה בסרט מדידה גמיש. מומלץ למדוד פעם בשבוע-שבועיים, באותו זמן ביום (בוקר לפני אכילה).</p>
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">info</span> מדריך מדידה</h4>
+          <div class="space-y-1.5 text-[11px] text-[#404848] bg-[#e3eaf2] rounded-xl p-2.5 border border-[#bfc8c8]/40">
+            <div><b class="text-[#003535]">צוואר:</b> במקום הצר ביותר, מתחת לגרון. סרט אופקי, לא לחצני.</div>
+            <div><b class="text-[#003535]">חזה:</b> בגובה הפטמות, סרט אופקי מסביב לגוף. מודדים בנשיפה רגילה.</div>
+            <div><b class="text-[#003535]">מותניים (טבור):</b> בגובה הטבור, סרט אופקי. עמידה רפויה, ללא כיווץ בטן.</div>
+            <div><b class="text-[#003535]">בטן:</b> 2-3 ס"מ מתחת לטבור, החלק הבולט ביותר של הבטן. סרט אופקי.</div>
+            <div><b class="text-[#003535]">ירכיים (אגן):</b> בגובה הנקודה הרחבה ביותר של העכוז/אגן. סרט אופקי.</div>
+            <div><b class="text-[#003535]">זרוע:</b> באמצע הזרוע, בין הכתף למרפק. יד רפויה בצד הגוף.</div>
+            <div><b class="text-[#003535]">ירך:</b> בחלק הרחב ביותר של הירך, מתחת לקו המפשעה.</div>
+          </div>
+          <div class="text-[10px] text-[#404848] bg-[#fff7e0] rounded-lg p-2 border border-[#e6c200]/30">
+            <b>טיפים:</b> מדוד גוף נקי, בבוקר. עמידה זקופה, גוף רפוי. סרט צמוד אך לא לחוץ. מדוד 2 פעמים ולקח ממוצע.
+          </div>
+        </div>
+        <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
+          <h4 class="text-xs font-bold text-[#003535]">הזנת מדידה חדשה</h4>
+          <input id="meas-date" type="date" class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">צוואר</span><input id="meas-neck" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">חזה</span><input id="meas-chest" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">מותניים</span><input id="meas-waist" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">בטן</span><input id="meas-belly" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">ירכיים</span><input id="meas-hips" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">זרוע</span><input id="meas-arm" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+            <div class="flex items-center gap-1"><span class="text-[10px] text-[#404848] w-12 shrink-0">ירך</span><input id="meas-thigh" type="number" step="0.1" placeholder="ס״מ" class="flex-1 min-w-0 w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2 outline-none text-sm text-center"></div>
+          </div>
+          <button id="btn-save-meas" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm active:scale-[0.98] flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[16px]">save</span> שמור מדידה</button>
+        </div>
+        <div class="border-t border-[#bfc8c8] pt-2">
+          <h4 class="text-xs font-bold text-[#404848] mb-1">היסטוריית מדידות</h4>
+          <div id="meas-history" class="space-y-1.5 max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- היסטוריית מדדים -->
   <section id="acc-metrics" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
@@ -647,7 +694,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.30";
+const APP_VERSION = "5.31";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -927,6 +974,14 @@ function render(){
   $("goal-bal").innerHTML = (baseCt+BALANCE_EXTRA).toLocaleString() + addTag;
   $("goal-cut").style.color=PAL.cut;
   $("goal-bal").style.color=PAL.bal;
+  // remaining under goals
+  const cutRemain=ct-cal, balRemain=balance-cal;
+  const gcr=$("goalcut-remaining");
+  if(cutRemain>=0){ gcr.innerHTML='עוד <b>'+cutRemain.toLocaleString()+'</b>'; gcr.style.color=PAL.cut; }
+  else { gcr.innerHTML='<b>+'+Math.abs(cutRemain).toLocaleString()+'</b>'; gcr.style.color=cal>balance?"#ba1a1a":PAL.light; }
+  const gbr=$("goalbal-remaining");
+  if(balRemain>=0){ gbr.innerHTML='עוד <b>'+balRemain.toLocaleString()+'</b>'; gbr.style.color=PAL.bal; }
+  else { gbr.innerHTML='<b>+'+Math.abs(balRemain).toLocaleString()+'</b>'; gbr.style.color="#ba1a1a"; }
 
   // קלוריות — לוגיקת צבעים: חיטוב ≤, איזון ≤, אדום > איזון
   let calColor = PAL.cut;
@@ -936,8 +991,6 @@ function render(){
   $("cal-now").textContent=cal.toLocaleString();
   $("cal-target").textContent=ct.toLocaleString();
   $("cal-now").style.color = calColor;
-  $("cal-bar").style.width=Math.min(100, ct?Math.round(cal/ct*100):0)+"%";
-  $("cal-bar").style.background = calColor;
 
   const def=$("cal-def"); const d=ct-cal;
   if(d>=0){ def.innerHTML='עוד <b>'+d.toLocaleString()+'</b>'; def.style.color=PAL.cut; }
@@ -947,10 +1000,7 @@ function render(){
   // חלבון
   $("prot-now").textContent=prot.toLocaleString();
   $("prot-target").textContent=pt.toLocaleString();
-  const protPct = Math.min(100, pt?Math.round(prot/pt*100):0);
-  $("prot-bar").style.width=protPct+"%";
   const protDone = prot>=pt;
-  $("prot-bar").style.background = protDone?PAL.cut:PAL.dark;
   const protLeft = Math.max(0, pt-prot);
   if(protLeft>0){
     $("prot-remaining").innerHTML='עוד <b>'+protLeft+'</b> ג\'';
@@ -1978,6 +2028,46 @@ function saveWeightManage(){
 }
 
 // ===== ניהול — היסטוריית מדדים =====
+// ===== מדידות היקפי גוף =====
+const MEAS_FIELDS=[{id:"neck",label:"צוואר"},{id:"chest",label:"חזה"},{id:"waist",label:"מותניים"},{id:"belly",label:"בטן"},{id:"hips",label:"ירכיים"},{id:"arm",label:"זרוע"},{id:"thigh",label:"ירך"}];
+function saveMeasurement(){
+  const date=$("meas-date").value;
+  if(!date){toast("בחר תאריך",true);return;}
+  const m={date};
+  let hasVal=false;
+  MEAS_FIELDS.forEach(f=>{const v=parseFloat($("meas-"+f.id).value);if(v>0){m[f.id]=v;hasVal=true;}});
+  if(!hasVal){toast("הזן לפחות מדידה אחת",true);return;}
+  S.measurements=S.measurements||[];
+  const existIdx=S.measurements.findIndex(x=>x.date===date);
+  if(existIdx>=0) S.measurements[existIdx]=m; else S.measurements.push(m);
+  S.measurements.sort((a,b)=>b.date.localeCompare(a.date));
+  persist();
+  MEAS_FIELDS.forEach(f=>{$("meas-"+f.id).value="";});
+  renderMeasHistory();
+  toast("המדידה נשמרה");
+}
+function renderMeasHistory(){
+  const box=$("meas-history");
+  const arr=S.measurements||[];
+  if(!arr.length){box.innerHTML='<p class="text-[11px] text-[#404848]">אין מדידות עדיין</p>';return;}
+  let html="";
+  arr.forEach((m,i)=>{
+    const prev=arr[i+1];
+    html+='<div class="bg-[#e3eaf2] rounded-xl p-2.5 border border-[#bfc8c8]/40 space-y-1">';
+    html+='<div class="flex items-center justify-between"><span class="text-xs font-bold text-[#003535]">'+fmtDate(m.date)+'</span><button class="del-meas material-symbols-outlined text-[#93000a] text-[14px]" data-i="'+i+'">close</button></div>';
+    html+='<div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">';
+    MEAS_FIELDS.forEach(f=>{
+      if(!m[f.id]) return;
+      let diff="";
+      if(prev&&prev[f.id]){const d=(m[f.id]-prev[f.id]).toFixed(1);diff=' <span class="font-bold '+(d<0?"text-[#006c49]":d>0?"text-[#ba1a1a]":"text-[#404848]")+'">'+(d>0?"+":"")+d+'</span>';}
+      html+='<div class="flex justify-between"><span class="text-[#404848]">'+f.label+'</span><span class="font-bold text-[#003535]">'+m[f.id]+diff+'</span></div>';
+    });
+    html+='</div></div>';
+  });
+  box.innerHTML=html;
+  box.querySelectorAll(".del-meas").forEach(btn=>btn.onclick=()=>{if(!confirm("למחוק מדידה?"))return;S.measurements.splice(+btn.dataset.i,1);persist();renderMeasHistory();});
+}
+
 function renderMetricsHistory(){
   const box=$("metrics-history"); box.innerHTML="";
   if(!S.days){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>'; return; }
@@ -2111,6 +2201,15 @@ function buildNutritionReportMD(period){
       md+="- שינוי: "+(diff>0?"+":"")+diff+" ק\"ג\n";
     }
     md+="\n";
+  }
+  const periodMeas=(S.measurements||[]).filter(m=>{ const d=new Date(m.date); return d>=fromDate && d<=toDate; }).sort((a,b)=>a.date.localeCompare(b.date));
+  if(periodMeas.length){
+    md+="## מדידות היקפי גוף (ס\"מ)\n";
+    periodMeas.forEach(m=>{
+      md+="### "+fmtDate(m.date)+"\n";
+      MEAS_FIELDS.forEach(f=>{ if(m[f.id]) md+="- "+f.label+": "+m[f.id]+"\n"; });
+      md+="\n";
+    });
   }
   const principles=(S.principles||[]).filter(p=>p.text);
   if(principles.length){
@@ -2620,6 +2719,10 @@ function start(){
   preambleEl.addEventListener("input",()=>{ S.reportPreamble=preambleEl.value; persist(); });
   $("btn-reset-preamble").onclick=()=>{ preambleEl.value=DEFAULT_REPORT_PREAMBLE; S.reportPreamble=DEFAULT_REPORT_PREAMBLE; persist(); toast("ההנחיות אופסו"); };
   document.querySelectorAll(".rpt-btn").forEach(btn=>{ btn.onclick=()=>generateNutritionReport(btn.dataset.report); });
+  // מדידות
+  $("meas-date").value=todayId();
+  $("btn-save-meas").onclick=saveMeasurement;
+  renderMeasHistory();
 
   document.addEventListener("keydown", e=>{
     if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeWeightGraph(); closeStepsModal(); closeStrengthModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
