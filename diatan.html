@@ -150,13 +150,13 @@
 
     <!-- יעדים חיטוב/איזון -->
     <div class="grid grid-cols-2 gap-2.5">
-      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד חיטוב</span>
-        <div class="flex items-baseline gap-1.5"><span class="text-lg font-extrabold" id="goal-cut" style="color:#006c49">0</span><span id="goalcut-remaining" class="text-[10px] font-bold text-[#006c49]">—</span></div>
+        <span class="text-lg font-extrabold" id="goal-cut" style="color:#006c49">0</span>
       </div>
-      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2.5 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד איזון</span>
-        <div class="flex items-baseline gap-1.5"><span class="text-lg font-extrabold" id="goal-bal" style="color:#4CAF50">0</span><span id="goalbal-remaining" class="text-[10px] font-bold text-[#4CAF50]">—</span></div>
+        <span class="text-lg font-extrabold" id="goal-bal" style="color:#4CAF50">0</span>
       </div>
     </div>
 
@@ -659,6 +659,9 @@
   <button id="nav-principles" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
     <span class="material-symbols-outlined text-[22px]">rule</span><span class="text-[10px] font-bold">עקרונות</span>
   </button>
+  <button id="nav-reports" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
+    <span class="material-symbols-outlined text-[22px]">assessment</span><span class="text-[10px] font-bold">דוחות</span>
+  </button>
   <button id="nav-manage" class="flex flex-col items-center gap-0.5 text-[#404848]/60">
     <span class="material-symbols-outlined text-[22px]">settings</span><span class="text-[10px] font-bold">ניהול</span>
   </button>
@@ -692,7 +695,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.32";
+const APP_VERSION = "5.33";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -972,14 +975,6 @@ function render(){
   $("goal-bal").innerHTML = (baseCt+BALANCE_EXTRA).toLocaleString() + addTag;
   $("goal-cut").style.color=PAL.cut;
   $("goal-bal").style.color=PAL.bal;
-  // remaining under goals
-  const cutRemain=ct-cal, balRemain=balance-cal;
-  const gcr=$("goalcut-remaining");
-  if(cutRemain>=0){ gcr.innerHTML='עוד <b>'+cutRemain.toLocaleString()+'</b>'; gcr.style.color=PAL.cut; }
-  else { gcr.innerHTML='<b>+'+Math.abs(cutRemain).toLocaleString()+'</b>'; gcr.style.color=cal>balance?"#ba1a1a":PAL.light; }
-  const gbr=$("goalbal-remaining");
-  if(balRemain>=0){ gbr.innerHTML='עוד <b>'+balRemain.toLocaleString()+'</b>'; gbr.style.color=PAL.bal; }
-  else { gbr.innerHTML='<b>+'+Math.abs(balRemain).toLocaleString()+'</b>'; gbr.style.color="#ba1a1a"; }
 
   // קלוריות — לוגיקת צבעים: חיטוב ≤, איזון ≤, אדום > איזון
   let calColor = PAL.cut;
@@ -2251,6 +2246,7 @@ function showView(name){
   $("nav-home").className      ="flex flex-col items-center gap-0.5 "+(name==="home"?active:inactive);
   $("nav-favorites").className ="flex flex-col items-center gap-0.5 "+(name==="favorites"?active:inactive);
   $("nav-principles").className="flex flex-col items-center gap-0.5 "+(name==="principles"?active:inactive);
+  $("nav-reports").className   ="flex flex-col items-center gap-0.5 "+inactive;
   $("nav-manage").className    ="flex flex-col items-center gap-0.5 "+(name==="manage"?active:inactive);
   if(manage){
     $("api-key").value=S.apiKey||"";
@@ -2694,6 +2690,7 @@ function start(){
   $("nav-home").onclick=()=>showView("home");
   $("nav-favorites").onclick=()=>showView("favorites");
   $("nav-principles").onclick=()=>showView("principles");
+  $("nav-reports").onclick=()=>{ showView("manage"); openManageSection("acc-reports"); };
   $("nav-manage").onclick=()=>showView("manage");
 
   // ניהול
