@@ -52,6 +52,7 @@
             <span id="hmenu-manage-arrow" class="material-symbols-outlined text-[#404848] text-[18px] transition-transform">expand_more</span>
           </button>
           <div id="hmenu-manage-sub" class="hx bg-[#b3bfcc]">
+            <button data-sec="acc-reports" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">assessment</span>דוחות</button>
             <button data-sec="acc-key" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">key</span>מפתח Gemini</button>
             <button data-sec="acc-backup" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">cloud_sync</span>גיבוי ושחזור</button>
             <button data-sec="acc-weight" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">monitor_weight</span>משקל ומגמה</button>
@@ -412,6 +413,43 @@
 <main id="manage-view" class="hx max-w-2xl mx-auto px-4 py-4 space-y-3 pb-28">
 
   <!-- מפתח -->
+  <section id="acc-reports" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
+    <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
+      <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">assessment</span> דוחות</h3>
+      <span class="material-symbols-outlined text-[#404848] text-[18px] acc-arrow">expand_more</span>
+    </button>
+    <div class="acc-body">
+      <div class="px-4 pb-4 space-y-3">
+        <p class="text-[11px] text-[#404848]">הורדת דוח תזונה לתקופה נבחרת. הדוח כולל את כל הנתונים + הנחיות לבינה מלאכותית לניתוח.</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="generateNutritionReport('day')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+            <span class="material-symbols-outlined text-[#0061a4] text-[18px]">today</span>
+            <div class="text-right"><div class="text-sm font-bold text-[#003535]">יומי</div><div class="text-[10px] text-[#404848]">היום בלבד</div></div>
+          </button>
+          <button onclick="generateNutritionReport('week')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+            <span class="material-symbols-outlined text-[#0061a4] text-[18px]">date_range</span>
+            <div class="text-right"><div class="text-sm font-bold text-[#003535]">שבועי</div><div class="text-[10px] text-[#404848]">7 ימים אחרונים</div></div>
+          </button>
+          <button onclick="generateNutritionReport('month')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+            <span class="material-symbols-outlined text-[#0061a4] text-[18px]">calendar_month</span>
+            <div class="text-right"><div class="text-sm font-bold text-[#003535]">חודשי</div><div class="text-[10px] text-[#404848]">30 ימים אחרונים</div></div>
+          </button>
+          <button onclick="generateNutritionReport('all')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+            <span class="material-symbols-outlined text-[#0061a4] text-[18px]">inventory</span>
+            <div class="text-right"><div class="text-sm font-bold text-[#003535]">הכל</div><div class="text-[10px] text-[#404848]">כל הנתונים</div></div>
+          </button>
+        </div>
+        <div class="border-t border-[#bfc8c8] pt-2 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-[#404848]">הנחיות מקדימות לבינה</h4>
+            <button id="btn-reset-preamble" class="text-[10px] text-[#0061a4] font-bold active:scale-95">אפס לברירת מחדל</button>
+          </div>
+          <textarea id="report-preamble" rows="6" class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none focus:border-[#003535] text-[11px] leading-relaxed resize-y" dir="rtl"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="acc-key" class="acc bg-white border border-[#bfc8c8] rounded-2xl shadow-sm overflow-hidden">
     <button class="acc-toggle w-full flex items-center justify-between px-4 py-3 active:bg-[#e3eaf2]">
       <h3 class="text-sm font-bold text-[#003535] flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-[#0061a4]">key</span> מפתח Gemini</h3>
@@ -609,7 +647,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.28";
+const APP_VERSION = "5.29";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -774,7 +812,7 @@ function downscaleImage(file, maxDim){
 function buildPrompt(){
   let p = `אתה דיאטן/תזונאי בכיר שמנתח ארוחות עבור איתן (גובה 180, רקע: כבד שומני, טרום-סוכרת, LDL גבוה).
 מהתמונה ו/או הטקסט זהה כל פריט מזון והערך קלוריות וחלבון.
-בסיס הערכים: הסתמך על מאגרי התזונה המקובלים (USDA / משרד הבריאות) שבידיעתך כדי לדייק קלוריות וחלבון לכל פריט. אל תנחש — אמוד לפי ערכים תזונתיים מקובלים.
+בסיס הערכים: הסתמך על מאגרי התזונה המקובלים (USDA / משרד הבריאות) שבידיעתך כדי לדייק קלוריות וחלבון לכל פריט. מאגר תזונה ישראלי רשמי לעיון: https://data.gov.il/he/datasets/ministry-health/nutrition-database/c3cb0630-0650-46c1-a068-82d575c094b2 . אל תנחש — אמוד לפי ערכים תזונתיים מקובלים.
 כללים: "ללא עור"=עוף רזה; "דג לבן"=לברק/אמנון; הערך כמויות לפי הצלחת/קופסה.
 הערכת כמויות לפי כלים בבית של איתן: צלחות בקוטר 220 / 263 / 268 מ"מ; קערות בנפח 0.6 ל' ו-0.4 ל'; קופסאות בנפח 120 מ"ל / 300 מ"ל / 700 מ"ל / 1.1 ל' / 2.3 ל'. נצל את הגדלים האלה כדי לאמוד מנות בצורה מדויקת.
 ערכי ייחוס מחייבים (גוברים על כל הערכה): יוגורט פרו בטעמים=130 קל; יוגורט פרו רגיל=171; גו תות=108; יוגורט וניל=123 קל ו-20 גרם חלבון; גלידונית=32 ליח'; קריספית=18; דנונה 1.7=112 קל ו-10.6 גרם חלבון; שייטל/בקר רזה=140 ל-100 גרם.
@@ -967,13 +1005,8 @@ function render(){
   sc.innerHTML='<span class="material-symbols-outlined text-[12px]">local_fire_department</span>'+streak+' ימים ברצף';
   sc.onclick=openCalendar; show(sc);
 
-  // תזכורת גיבוי — פעם ביום מ-20:00
-  const br=$("backup-reminder");
-  if(isToday){
-    const lastBackupRemind=S.backupRemindDismissed||"";
-    const now=new Date(); const hour=now.getHours();
-    if(hour>=20 && lastBackupRemind!==todayId()) show(br); else hide(br);
-  } else hide(br);
+  // תזכורת גיבוי — מנוהלת ב-init בלבד
+  hide($("backup-reminder"));
 }
 
 function applyResultsEdit(){
@@ -1970,6 +2003,128 @@ function renderMetricsHistory(){
   if(!found) box.innerHTML='<p class="text-[11px] text-[#404848]">אין נתונים</p>';
 }
 
+// ===== דוחות תזונה =====
+const DEFAULT_REPORT_PREAMBLE = `פרוטוקול ניתוח תזונה ובריאות אופטימלית – הנחיות לבינה המלאכותית
+
+1. הגדרת התפקיד והמומחיות
+אתה משמש כמערכת מומחית בעלת בינה מלאכותית, בתפקיד דיאטן קליני מוסמך, מומחה לתזונת מבוגרים וספורטאים בגילאי 50 ומעלה, ובעל ניסיון מקצועי קליני מצטבר של 50 שנה.
+עליך לגשת לניתוח הנתונים בעיניים מקצועיות, ביקורתיות, חדות וספקניות, תוך זיהוי רכיבים סמויים או מגמות תזונתיות שעלולות להשפיע על המדדים הרפואיים של המשתמש.
+
+2. רקע רפואי ונתוני פתיחה (קבועים)
+גיל המשתמש: סף גיל 50 (יליד 1976).
+מטרה מרכזית: חיטוב הגוף (ירידה באחוז השומן תוך שימור מרבי של מסת השריר).
+דגשים בריאותיים קריטיים ומניעתיים: למשתמש יש היסטוריה רפואית של כבד שומני, ערכי טריגליצרידים גבוהים, כולסטרול, ומצב של טרום סוכרת (סוכר גבוה). כל המלצה או תובנה חייבת להינתן מבעד לפריזמה הרפואית הזו.
+
+3. אופי ומבנה קובץ הקלט
+הקלט יוזן כקובץ Markdown (.md) המכיל רשימות מאכלים מפורטות, פירוט קלורי יבש ונתוני צריכת חלבון (יומיים או שבועיים, לפי בחירת המשתמש).
+הקובץ אינו מכיל מדדי מיקרו (נתרן/סיבים) או סנכרון אוטומטי עם שעוני כושר, ולכן יש להסתמך על רשימות המאכלים והערכים היבשים בלבד.
+
+4. דרישות הניתוח והתפוקה (הפלט המבוקש)
+בכל ניתוח של דוח תזונה, עליך לפעול באופן אחיד, חד, תמציתי ולספק את הסעיפים הבאים בשורות נפרדות ומרווחות:
+ציון חוזק כללי: תן ציון מספרי מ-1 עד 10 למידת העמידה ביעדי החיטוב והבריאות בשבוע/ימים החולפים.
+ציון שגיאות נקודתיות לתיקון (כירורגי): סרוק את רשימות המאכלים. אם זיהית מאכלים מעובדים, סוכרים מוספים, שומני טראנס או רכיבים שמחמירים כבד שומני וטרום סוכרת – ציין אותם באופן ממוקד והסבר את השפעתם.
+בקרה קלורית וחלבון: נתח האם המשתמש נמצא בגרעון קלורי מבוקר והאם צריכת החלבון מספקת לשימור השריר בגיל 50.
+התרעות בריאותיות ותמרורי אזהרה: הצג תמרור אזהרה ברור במידה וזוהתה חריגה או מגמה תזונתית שעלולה להקפיץ את ערכי הטריגליצרידים או הסוכר.
+המלצות חכמות ותחליפי מזון: הצע אלטרנטיבות בריאות, חכמות ויעילות למאכלים הבעייתיים שנמצאו בדוח (ללא רשימת משימות, אלא כהמלצות יישומיות לשדרוג התפריט).
+ניתוח מגמות ארוך טווח: במידה וקיימים נתוני עבר בקונטקסט, השווה את הדוח הנוכחי לדוחות קודמים והצבע על מגמות שיפור או נסיגה במדדי המשקל והתזונה.
+
+5. סגנון ותצוגה (חובה)
+שפה וכיווניות: עברית בלבד, יישור ימני מלא (RTL).
+ניסוח: תמציתי, ישיר, מקצועי ויסודי, ללא פלפולים או הצהרות מיותרות.
+מבנה: חלוקה לסעיפים רצים (1, 2, 3), שימוש בפסקאות מופרדות וברווחי שורות כדי לאפשר סריקה מהירה וקלה של העיניים.`;
+
+function buildNutritionReportMD(period){
+  const now=new Date();
+  let fromDate, periodLabel;
+  if(period==="day"){ fromDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()); periodLabel="יומי — "+fmtDate(todayId()); }
+  else if(period==="week"){ fromDate=new Date(now.getTime()-7*86400000); periodLabel="שבועי — 7 ימים אחרונים"; }
+  else if(period==="month"){ fromDate=new Date(now.getTime()-30*86400000); periodLabel="חודשי — 30 ימים אחרונים"; }
+  else { fromDate=new Date(0); periodLabel="כל הנתונים"; }
+  const toDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),23,59,59);
+  const w=S.profile.weight||0;
+  const ct=calTarget(w), pt=protTarget(w);
+  let md="# דוח תזונה — דיאטן\n";
+  md+="## תקופה: "+periodLabel+"\n";
+  md+="## תאריך הפקה: "+now.toLocaleDateString("he-IL")+"\n\n";
+  md+="## פרופיל\n";
+  md+="- משקל: "+(w||"לא הוגדר")+" ק\"ג\n";
+  md+="- גובה: 180 ס\"מ\n";
+  md+="- רקע רפואי: כבד שומני, טריגליצרידים גבוהים, כולסטרול, טרום סוכרת\n\n";
+  md+="## יעדים יומיים\n";
+  md+="- קלוריות (בסיס): "+ct+" קל\n";
+  md+="- חלבון: "+pt+" ג'\n\n";
+  const dayIds=Object.keys(S.days||{}).filter(id=>{
+    const d=idToDate(id);
+    return d>=fromDate && d<=toDate;
+  }).sort();
+  let totalCal=0, totalProt=0, totalBeef=0, daysWithMeals=0, daysStrength=0, totalSteps=0, daysWithSteps=0;
+  if(dayIds.length){
+    md+="## ארוחות לפי ימים\n\n";
+    dayIds.forEach(id=>{
+      const day=S.days[id];
+      const meals=day.meals||[];
+      if(!meals.length) return;
+      daysWithMeals++;
+      let dayCal=0, dayProt=0, dayBeef=0;
+      md+="### "+fmtDate(id)+"\n";
+      meals.forEach((m,mi)=>{
+        const time=m.time?new Date(m.time).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"}):"";
+        md+="**ארוחה "+(mi+1)+(time?" ("+time+")":"")+"**\n";
+        (m.items||[]).forEach(it=>{
+          md+="- "+it.name+(it.amount?" ["+it.amount+"]":"")+" — "+(it.calories||0)+" קל, "+(it.protein||0)+" ג' חלבון"+(it.beefGrams>0?" (בקר: "+it.beefGrams+" ג')":"")+"\n";
+        });
+        md+="- סה\"כ ארוחה: "+(m.calories||0)+" קל, "+(m.protein||0)+" ג' חלבון\n";
+        if(m.note) md+="- הערת תזונאי: "+m.note+"\n";
+        md+="\n";
+        dayCal+=(+m.calories||0); dayProt+=(+m.protein||0); dayBeef+=(+m.beefGrams||0);
+      });
+      const deficit=ct-dayCal;
+      md+="**סיכום יום:** "+dayCal+" קל ("+( deficit>0?"גרעון "+deficit:"עודף "+Math.abs(deficit))+"), "+dayProt+" ג' חלבון"+(dayProt>=pt?" ✔":" (חסר "+(pt-dayProt)+")")+"\n";
+      if(day.steps) { md+="- צעדים: "+day.steps+"\n"; totalSteps+=day.steps; daysWithSteps++; }
+      if(day.strength) { md+="- אימון כוח: כן\n"; daysStrength++; }
+      if(day.closeSummary) md+="- סיכום סגירת יום: "+day.closeSummary+"\n";
+      md+="\n";
+      totalCal+=dayCal; totalProt+=dayProt; totalBeef+=dayBeef;
+    });
+  } else {
+    md+="## אין נתוני ארוחות בתקופה זו\n\n";
+  }
+  if(daysWithMeals>1){
+    md+="## סיכום תקופה\n";
+    md+="- ימים עם ארוחות: "+daysWithMeals+"\n";
+    md+="- ממוצע קלוריות יומי: "+Math.round(totalCal/daysWithMeals)+" קל\n";
+    md+="- ממוצע חלבון יומי: "+Math.round(totalProt/daysWithMeals)+" ג'\n";
+    md+="- סה\"כ בקר שומני: "+totalBeef+" ג'\n";
+    md+="- ימי אימון כוח: "+daysStrength+"\n";
+    if(daysWithSteps) md+="- ממוצע צעדים: "+Math.round(totalSteps/daysWithSteps)+"\n";
+    md+="\n";
+  }
+  const periodWeights=(S.weights||[]).filter(w=>{ const d=new Date(w.date); return d>=fromDate && d<=toDate; }).sort((a,b)=>a.date.localeCompare(b.date));
+  if(periodWeights.length){
+    md+="## משקלים בתקופה\n";
+    periodWeights.forEach(w=>{ md+="- "+fmtDate(w.date)+": "+w.kg+" ק\"ג"+(w.timing?" ("+w.timing+")":"")+"\n"; });
+    if(periodWeights.length>=2){
+      const diff=(periodWeights[periodWeights.length-1].kg-periodWeights[0].kg).toFixed(1);
+      md+="- שינוי: "+(diff>0?"+":"")+diff+" ק\"ג\n";
+    }
+    md+="\n";
+  }
+  const preamble=S.reportPreamble||DEFAULT_REPORT_PREAMBLE;
+  md+="---\n\n## הנחיות לניתוח בינה מלאכותית\n\n"+preamble+"\n";
+  return md;
+}
+
+function generateNutritionReport(period){
+  const md=buildNutritionReportMD(period);
+  const blob=new Blob(["﻿"+md],{type:"text/markdown;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="diatan-report-"+period+"-"+todayId()+".md";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("הדוח הורד");
+}
+
 // ===== תפריט המבורגר =====
 function toggleMenu(){ $("hamburger-menu").classList.toggle("hx"); }
 function closeMenu(){ hide($("hamburger-menu")); const sub=$("hmenu-manage-sub"); if(sub){ sub.classList.add("hx"); const ar=$("hmenu-manage-arrow"); if(ar) ar.style.transform=""; } }
@@ -2450,12 +2605,22 @@ function start(){
   $("principles-search").addEventListener("input", ()=>{ const v=$("principles-search").value; (v?show:hide)($("principles-search-clear")); renderPrinciples(); });
   $("principles-search-clear").onclick=()=>{ $("principles-search").value=""; hide($("principles-search-clear")); renderPrinciples(); };
   $("btn-add-fav").onclick=addManualFavorite;
+  // דוחות — preamble
+  const preambleEl=$("report-preamble");
+  preambleEl.value=S.reportPreamble||DEFAULT_REPORT_PREAMBLE;
+  preambleEl.addEventListener("input",()=>{ S.reportPreamble=preambleEl.value; persist(); });
+  $("btn-reset-preamble").onclick=()=>{ preambleEl.value=DEFAULT_REPORT_PREAMBLE; S.reportPreamble=DEFAULT_REPORT_PREAMBLE; persist(); toast("ההנחיות אופסו"); };
 
   document.addEventListener("keydown", e=>{
     if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeWeightGraph(); closeStepsModal(); closeStrengthModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
   });
 
   render();
+  // תזכורת גיבוי — פעם ביום מ-20:00, רק בעליית הדף
+  (function(){
+    const hour=new Date().getHours();
+    if(hour>=20 && (S.backupRemindDismissed||"")!==todayId()) show($("backup-reminder"));
+  })();
   if(!S.apiKey || !S.profile.weight){ showView("manage"); toast("הגדר מפתח Gemini ומשקל כדי להתחיל"); }
   else { promptBackup(); }
 }
