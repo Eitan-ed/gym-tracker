@@ -150,15 +150,13 @@
 
     <!-- יעדים חיטוב/איזון -->
     <div class="grid grid-cols-2 gap-2.5">
-      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2.5 flex flex-col items-center border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalcut-box" class="bg-white rounded-xl px-3 py-2 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד חיטוב</span>
-        <span class="text-lg font-extrabold" id="goal-cut" style="color:#006c49">0</span>
-        <span id="goalcut-remaining" class="text-[10px] font-bold text-[#006c49]">—</span>
+        <div class="flex items-baseline gap-1.5"><span class="text-lg font-extrabold" id="goal-cut" style="color:#006c49">0</span><span id="goalcut-remaining" class="text-[10px] font-bold text-[#006c49]">—</span></div>
       </div>
-      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2.5 flex flex-col items-center border border-[#bfc8c8]/50 shadow-sm">
+      <div id="goalbal-box" class="bg-white rounded-xl px-3 py-2 flex items-center justify-between border border-[#bfc8c8]/50 shadow-sm">
         <span class="text-[11px] font-bold text-[#404848]">יעד איזון</span>
-        <span class="text-lg font-extrabold" id="goal-bal" style="color:#4CAF50">0</span>
-        <span id="goalbal-remaining" class="text-[10px] font-bold text-[#4CAF50]">—</span>
+        <div class="flex items-baseline gap-1.5"><span class="text-lg font-extrabold" id="goal-bal" style="color:#4CAF50">0</span><span id="goalbal-remaining" class="text-[10px] font-bold text-[#4CAF50]">—</span></div>
       </div>
     </div>
 
@@ -694,7 +692,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.31";
+const APP_VERSION = "5.32";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
