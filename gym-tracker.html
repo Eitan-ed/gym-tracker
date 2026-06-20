@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.27';
+const APP_VERSION = '9.28';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -531,7 +531,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 await onSave(ex.id, num, state.w, state.r, isSuperset);
                 if (!isDoneSet) {
                     if (num===1 && !done.s2) setS2(p=>({...p, w: state.w}));
-                    if (num===2 && isLast) setTimeout(onFinish, 800);
+                    if (num===2 && isLast) setTimeout(()=>onFinish(true), 800);
                 }
                 if (num===1) setS1(p=>({...p,wC:false,rC:false}));
                 else setS2(p=>({...p,wC:false,rC:false}));
@@ -549,7 +549,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         try {
             await onSave(ex.id, num, 0, 0, isSuperset);
             if (num === 1) setS2({w:0, r:0, wC:false, rC:false});
-            if (num===2 && isLast) setTimeout(onFinish, 800);
+            if (num===2 && isLast) setTimeout(()=>onFinish(true), 800);
         } finally { setIsSaving(false); }
     };
 
@@ -805,7 +805,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const skipActiveNum = !doneS1Ex ? 1 : !doneS2Ex ? 2 : null;
         const handleHowToSkip = skipActiveNum ? () => {
             onSave(ex.id, skipActiveNum, 0, 0, exIsSuperset);
-            if (skipActiveNum===2 && isLast) setTimeout(onFinish, 800);
+            if (skipActiveNum===2 && isLast) setTimeout(()=>onFinish(true), 800);
         } : null;
 
         const videoBtn = (full) => youtubeId ? (
@@ -1117,6 +1117,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     className="flex-1 flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
                                     {nImg && <img src={nImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={nDone?{filter:'grayscale(100%)',opacity:0.55}:undefined} />}
                                     <div className="flex-1 min-w-0">
+                                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">הבא</div>
                                         <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
                                         <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
                                     </div>
@@ -1863,10 +1864,25 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     if (!grouped[d]) grouped[d] = [];
                                     grouped[d].push(l);
                                 });
+                                const planStart = new Date(sessionStartTime).toLocaleDateString('he-IL');
+                                const planEnd = sessionEndTime ? new Date(sessionEndTime).toLocaleDateString('he-IL') : 'לא נקבע';
+                                const totalDays = Object.keys(grouped).length;
+                                const totalSets = filtered.length;
+                                const totalExercises = new Set(filtered.map(l=>l.exId)).size;
+                                const totalDurSec = Object.entries(sessionDurations||{}).filter(([ts])=>{
+                                    const d = new Date(Number(ts));
+                                    return d >= fromDate && d <= now;
+                                }).reduce((s,[,v])=>s+v, 0);
+                                const avgDurMin = totalDays > 0 ? Math.round(totalDurSec / totalDays / 60) : 0;
+                                const daysInPeriod = Math.max(1, Math.ceil((now - fromDate) / 86400000));
+                                const freqPerWeek = totalDays > 0 ? (totalDays / daysInPeriod * 7).toFixed(1) : '0';
+
                                 let txt = `דוח אימונים — ${periodLabel}\n`;
                                 txt += `${'═'.repeat(40)}\n\n`;
-                                txt += `סה"כ: ${filtered.length} סטים\n`;
-                                txt += `ימי אימון: ${Object.keys(grouped).length}\n\n`;
+                                txt += `תקופת תוכנית: ${planStart} — ${planEnd}\n`;
+                                txt += `סה"כ: ${totalSets} סטים | ${totalExercises} תרגילים\n`;
+                                txt += `ימי אימון: ${totalDays} | תדירות: ${freqPerWeek} אימונים/שבוע\n`;
+                                txt += `ממוצע זמן אימון: ${avgDurMin} דק׳\n\n`;
                                 Object.entries(grouped).forEach(([date, items]) => {
                                     const dayName = getDayNameHe(items[0].timestamp);
                                     const dur = Object.entries(sessionDurations||{}).find(([ts])=>new Date(Number(ts)).toLocaleDateString('he-IL')===date)?.[1];
@@ -1894,6 +1910,18 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     });
                                     txt += '\n';
                                 });
+                                txt += `${'═'.repeat(40)}\n`;
+                                txt += `הנחיות לניתוח AI\n`;
+                                txt += `${'─'.repeat(40)}\n`;
+                                txt += `נא לנתח את הדוח ולספק:\n`;
+                                txt += `1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק\n`;
+                                txt += `2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n`;
+                                txt += `3. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n`;
+                                txt += `4. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n`;
+                                txt += `5. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון\n`;
+                                txt += `6. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה\n`;
+                                txt += `\nשים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.\n`;
+
                                 const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement('a');
@@ -2158,6 +2186,7 @@ function App() {
     const [isWorkoutComplete,setIsWorkoutComplete]= useState(false);
     const [toast,            setToast]            = useState(null);
     const [workoutDecisionMade, setWorkoutDecisionMade] = useState(false);
+    const [autoTransitionSplash, setAutoTransitionSplash] = useState(null);
     const [summaryNote,      setSummaryNote]      = useState('');
     const [summaryBW,        setSummaryBW]        = useState('');
     const [bodyweightLog,    setBodyweightLog]    = useState(()=>LS.get('gym-bodyweight-log', []));
@@ -2380,7 +2409,15 @@ function App() {
                 clearTimeout(_muteTimeout);
                 _muteTimeout = setTimeout(() => { if (audioRef.current) audioRef.current.volume = 1; }, 2400);
             }
-            if (doCountdown)   playCountdownBeep();
+            if (doCountdown) {
+                playCountdownBeep();
+                const spokenSec = Object.values(next).find(v => v >= 1 && v <= 3);
+                if (spokenSec && window.speechSynthesis) {
+                    const u = new SpeechSynthesisUtterance(String(spokenSec));
+                    u.lang = 'he-IL'; u.rate = 1.2; u.volume = 0.8;
+                    window.speechSynthesis.speak(u);
+                }
+            }
             if (doWarning)     playWarningBeep();
             if (completedExId) {
                 playPhoneRingSound();
@@ -2628,8 +2665,7 @@ function App() {
         });
     },[visibleGroups,logs,workoutStartTime,workoutSec]);
 
-    const handleExerciseComplete = useCallback(()=>{
-        // קריאה ישירה מ-refs כדי להימנע מ-stale closure אחרי setLogs
+    const handleExerciseComplete = useCallback((isAutoTransition=false)=>{
         const curLogs = logsRef.current;
         const curWst  = sstRef.current;
         const curSkip = skippedRef.current;
@@ -2639,6 +2675,19 @@ function App() {
         });
         const nextGroup = visibleGroups.find(g=>!isDone(g));
         if (nextGroup) {
+            if (isAutoTransition) {
+                const prevGroup = visibleGroups.find(g => g.id === activeGroupRef.current?.id);
+                if (prevGroup) {
+                    const ex = prevGroup.exercises[0];
+                    const exLogs = curLogs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>curWst && l.weight>0);
+                    if (exLogs.length > 0) {
+                        const sets = exLogs.length;
+                        const weight = Math.max(...exLogs.map(l=>l.weight));
+                        setAutoTransitionSplash({ title: prevGroup.title, sets, weight, nextTitle: nextGroup.title });
+                        setTimeout(()=>setAutoTransitionSplash(null), 10000);
+                    }
+                }
+            }
             setActiveGroup(nextGroup); setView('detail');
             setScrollToExId(nextGroup.exercises[0].id);
         } else {
@@ -2673,6 +2722,18 @@ function App() {
     const overlays = (
         <>
             <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} />
+            {autoTransitionSplash && (
+                <div className="fixed inset-0 z-[900] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={()=>setAutoTransitionSplash(null)}>
+                    <div className="text-center animate-pulse">
+                        <div className="text-white/60 text-lg font-bold mb-2">{autoTransitionSplash.title}</div>
+                        <div className="text-white text-7xl font-black tracking-wider" style={{textShadow:'0 0 30px rgba(45,74,111,0.8)'}}>
+                            {autoTransitionSplash.sets} × {autoTransitionSplash.weight}
+                        </div>
+                        <div className="text-white/40 text-sm font-bold mt-4">הבא: {autoTransitionSplash.nextTitle}</div>
+                        <div className="text-white/30 text-xs mt-6">לחץ לסגירה</div>
+                    </div>
+                </div>
+            )}
             <HamburgerMenu currentView={view} hasActiveRest={hasActiveRest} onNavigate={(v)=>{
                 if (v==='list') { navigateTo('list'); setActiveGroup(null); }
                 else if (v.startsWith('manage:')) { const sec=v.split(':')[1]; setManageOpenSection(sec); navigateTo('manage'); }
@@ -2699,16 +2760,15 @@ function App() {
                 style={{display:'none'}} />
             {/* פאנל מוזיקה — מוצג בכל view */}
             {musicPanelOpen && (
-                <div className={`fixed inset-x-0 z-[700] px-3 ${view==='detail' ? 'top-20' : 'top-1/2 -translate-y-1/2'}`} dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
+                <div className={`fixed inset-x-0 z-[700] px-3 ${view==='detail' ? 'top-20' : 'top-36'}`} dir="rtl" style={{maxWidth:'28rem',margin:'0 auto'}}>
                     <div className="bg-slate-900 rounded-2xl px-4 py-3 space-y-2 shadow-2xl border border-slate-700">
                         {musicList.length > 0 && (
                             <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
                                 {musicList.map((t,i) => (
-                                    <div key={t.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-xl ${i===musicIndex?'bg-purple-800/60':'bg-slate-800/50'}`}>
-                                        <button onClick={()=>{ const a=audioRef.current; if(a){ a.src=t.url; a.load(); a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } setMusicIndex(i); }}
-                                            className={`text-[11px] shrink-0 ${i===musicIndex&&musicPlaying?'text-green-400':'text-slate-400'}`}>
-                                            {i===musicIndex&&musicPlaying?'▶':'○'}
-                                        </button>
+                                    <div key={t.id} onClick={()=>setMusicIndex(i)} className={`flex items-center gap-2 px-2 py-1.5 rounded-xl cursor-pointer active:scale-[0.98] ${i===musicIndex?'bg-purple-800/60 ring-1 ring-purple-500':'bg-slate-800/50'}`}>
+                                        <span className={`text-[11px] shrink-0 ${i===musicIndex&&musicPlaying?'text-green-400':i===musicIndex?'text-purple-400':'text-slate-500'}`}>
+                                            {i===musicIndex&&musicPlaying?'▶':i===musicIndex?'●':'○'}
+                                        </span>
                                         <span className="text-[11px] font-bold text-white flex-1 truncate">{t.name}</span>
                                         <button onClick={()=>handleMusicRemoveOne(t.id)} className="text-slate-500 active:text-red-400 shrink-0">
                                             <Icon name="Trash2" size={11}/>
