@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.33';
+const APP_VERSION = '9.34';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1430,6 +1430,10 @@ const WorkoutProgressCalendar = ({ logs }) => {
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, initialOpenSection=null, onClearOpenSection=null }) => {
+    const DEFAULT_REPORT_PREAMBLE = `נא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
+    const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
+    useEffect(()=>{ LS.set('gym-report-preamble', reportPreamble); },[reportPreamble]);
+
     const [open, setOpen] = useState(()=>{
         const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false};
         if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
@@ -1873,6 +1877,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 const planEnd = sessionEndTime ? new Date(sessionEndTime).toLocaleDateString('he-IL') : 'לא נקבע';
                                 const totalDays = Object.keys(grouped).length;
                                 const totalSets = filtered.length;
+                                const visibleCount = exerciseGroups.filter(g=>!hiddenExercises.has(g.id)).length;
                                 const totalExercises = new Set(filtered.map(l=>l.exId)).size;
                                 const totalDurSec = Object.entries(sessionDurations||{}).filter(([ts])=>{
                                     const d = new Date(Number(ts));
@@ -1885,9 +1890,13 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 let txt = `דוח אימונים — ${periodLabel}\n`;
                                 txt += `${'═'.repeat(40)}\n\n`;
                                 txt += `תקופת תוכנית: ${planStart} — ${planEnd}\n`;
-                                txt += `סה"כ: ${totalSets} סטים | ${totalExercises} תרגילים\n`;
-                                txt += `ימי אימון: ${totalDays} | תדירות: ${freqPerWeek} אימונים/שבוע\n`;
-                                txt += `ממוצע זמן אימון: ${avgDurMin} דק׳\n\n`;
+                                txt += `סה"כ: ${totalSets} סטים | ${totalExercises} תרגילים (${visibleCount} גלויים מתוך ${exerciseGroups.length})\n`;
+                                txt += `ימי אימון: ${totalDays} | תדירות: ${freqPerWeek} אימונים/שבוע | ממוצע זמן אימון: ${avgDurMin} דק׳\n\n`;
+                                const orderedNames = groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean).map(g=>g.title);
+                                txt += `סדר תרגילים: ${orderedNames.join(' → ')}\n`;
+                                const hiddenNames = exerciseGroups.filter(g=>hiddenExercises.has(g.id)).map(g=>g.title);
+                                if (hiddenNames.length > 0) txt += `תרגילים מוסתרים: ${hiddenNames.join(', ')}\n`;
+                                txt += '\n';
                                 Object.entries(grouped).forEach(([date, items]) => {
                                     const dayName = getDayNameHe(items[0].timestamp);
                                     const dur = Object.entries(sessionDurations||{}).find(([ts])=>new Date(Number(ts)).toLocaleDateString('he-IL')===date)?.[1];
@@ -1920,23 +1929,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 txt += `${'═'.repeat(40)}\n`;
                                 txt += `הנחיות לניתוח AI\n`;
                                 txt += `${'─'.repeat(40)}\n`;
-                                txt += `נא לנתח את הדוח ולספק:\n\n`;
-                                txt += `1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n`;
-                                txt += `   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n`;
-                                txt += `2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n`;
-                                txt += `   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n`;
-                                txt += `3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n`;
-                                txt += `   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n`;
-                                txt += `4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n`;
-                                txt += `   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n`;
-                                txt += `5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n`;
-                                txt += `6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n`;
-                                txt += `   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n`;
-                                txt += `7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\n`;
-                                txt += `עקרונות מנחים:\n`;
-                                txt += `• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n`;
-                                txt += `• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n`;
-                                txt += `• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.\n`;
+                                txt += reportPreamble + '\n';
 
                                 const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
                                 const url = URL.createObjectURL(blob);
@@ -1946,17 +1939,26 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 URL.revokeObjectURL(url);
                                 showToast(`דוח ${periodLabel.split('—')[0].trim()} נשמר`);
                             };
-                            return [
-                                {period:'day', label:'דוח יומי', desc:'סטים ומשקלים של היום', color:'bg-cyan-50 border-cyan-100 text-cyan-700', iconBg:'bg-cyan-100'},
-                                {period:'week', label:'דוח שבועי', desc:'7 ימים אחרונים', color:'bg-blue-50 border-blue-100 text-blue-700', iconBg:'bg-blue-100'},
-                                {period:'month', label:'דוח חודשי', desc:'30 ימים אחרונים', color:'bg-indigo-50 border-indigo-100 text-indigo-700', iconBg:'bg-indigo-100'},
-                                {period:'all', label:'דוח כולל', desc:'כל הנתונים', color:'bg-purple-50 border-purple-100 text-purple-700', iconBg:'bg-purple-100'}
-                            ].map(({period,label,desc,color,iconBg}) => (
-                                <button key={period} onClick={()=>generateReport(period)} className={`w-full flex items-center gap-3 ${color} p-4 rounded-2xl border active:scale-[0.98]`}>
-                                    <div className={`${iconBg} p-2 rounded-xl`}><Icon name="Download" size={20} /></div>
-                                    <div><div className="font-black text-sm">{label}</div><div className="text-[10px] font-bold opacity-70">{desc}</div></div>
-                                </button>
-                            ));
+                            return (<>
+                                <div className="mb-3">
+                                    <div className="text-sm font-black text-slate-600 mb-2">הנחיות מקדימות לדוח</div>
+                                    <textarea value={reportPreamble} onChange={e=>setReportPreamble(e.target.value)}
+                                        className="w-full h-40 p-3 text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl resize-y" dir="rtl" />
+                                    <button onClick={()=>{setReportPreamble(DEFAULT_REPORT_PREAMBLE);showToast('הנחיות אופסו לברירת מחדל');}}
+                                        className="text-[10px] font-bold text-slate-400 mt-1 active:text-slate-600">איפוס לברירת מחדל</button>
+                                </div>
+                                {[
+                                    {period:'day', label:'דוח יומי', desc:'סטים ומשקלים של היום'},
+                                    {period:'week', label:'דוח שבועי', desc:'7 ימים אחרונים'},
+                                    {period:'month', label:'דוח חודשי', desc:'30 ימים אחרונים'},
+                                    {period:'all', label:'דוח כולל', desc:'כל הנתונים'}
+                                ].map(({period,label,desc}) => (
+                                    <button key={period} onClick={()=>generateReport(period)} className="w-full flex items-center gap-3 bg-slate-50 border-slate-200 text-slate-700 p-4 rounded-2xl border active:scale-[0.98]">
+                                        <div className="bg-slate-200 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
+                                        <div><div className="font-black text-sm">{label}</div><div className="text-[10px] font-bold opacity-70">{desc}</div></div>
+                                    </button>
+                                ))}
+                            </>);
                         })()}
                     </div>}
                 </section>
