@@ -422,19 +422,19 @@
       <div class="px-4 pb-4 space-y-3">
         <p class="text-[11px] text-[#404848]">הורדת דוח תזונה לתקופה נבחרת. הדוח כולל את כל הנתונים + הנחיות לבינה מלאכותית לניתוח.</p>
         <div class="grid grid-cols-2 gap-2">
-          <button onclick="generateNutritionReport('day')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+          <button data-report="day" class="rpt-btn flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
             <span class="material-symbols-outlined text-[#0061a4] text-[18px]">today</span>
             <div class="text-right"><div class="text-sm font-bold text-[#003535]">יומי</div><div class="text-[10px] text-[#404848]">היום בלבד</div></div>
           </button>
-          <button onclick="generateNutritionReport('week')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+          <button data-report="week" class="rpt-btn flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
             <span class="material-symbols-outlined text-[#0061a4] text-[18px]">date_range</span>
             <div class="text-right"><div class="text-sm font-bold text-[#003535]">שבועי</div><div class="text-[10px] text-[#404848]">7 ימים אחרונים</div></div>
           </button>
-          <button onclick="generateNutritionReport('month')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+          <button data-report="month" class="rpt-btn flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
             <span class="material-symbols-outlined text-[#0061a4] text-[18px]">calendar_month</span>
             <div class="text-right"><div class="text-sm font-bold text-[#003535]">חודשי</div><div class="text-[10px] text-[#404848]">30 ימים אחרונים</div></div>
           </button>
-          <button onclick="generateNutritionReport('all')" class="flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
+          <button data-report="all" class="rpt-btn flex items-center gap-2 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl px-3 py-2.5 active:scale-[0.98]">
             <span class="material-symbols-outlined text-[#0061a4] text-[18px]">inventory</span>
             <div class="text-right"><div class="text-sm font-bold text-[#003535]">הכל</div><div class="text-[10px] text-[#404848]">כל הנתונים</div></div>
           </button>
@@ -647,7 +647,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.29";
+const APP_VERSION = "5.30";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2052,7 +2052,8 @@ function buildNutritionReportMD(period){
   md+="- רקע רפואי: כבד שומני, טריגליצרידים גבוהים, כולסטרול, טרום סוכרת\n\n";
   md+="## יעדים יומיים\n";
   md+="- קלוריות (בסיס): "+ct+" קל\n";
-  md+="- חלבון: "+pt+" ג'\n\n";
+  md+="- חלבון: "+pt+" ג'\n";
+  md+="- יעד צעדים: "+stepsGoal()+"\n\n";
   const dayIds=Object.keys(S.days||{}).filter(id=>{
     const d=idToDate(id);
     return d>=fromDate && d<=toDate;
@@ -2078,10 +2079,12 @@ function buildNutritionReportMD(period){
         md+="\n";
         dayCal+=(+m.calories||0); dayProt+=(+m.protein||0); dayBeef+=(+m.beefGrams||0);
       });
-      const deficit=ct-dayCal;
-      md+="**סיכום יום:** "+dayCal+" קל ("+( deficit>0?"גרעון "+deficit:"עודף "+Math.abs(deficit))+"), "+dayProt+" ג' חלבון"+(dayProt>=pt?" ✔":" (חסר "+(pt-dayProt)+")")+"\n";
-      if(day.steps) { md+="- צעדים: "+day.steps+"\n"; totalSteps+=day.steps; daysWithSteps++; }
-      if(day.strength) { md+="- אימון כוח: כן\n"; daysStrength++; }
+      const burn=activityBurn(day);
+      const effectiveCt=ct+burn;
+      const deficit=effectiveCt-dayCal;
+      md+="**סיכום יום:** "+dayCal+" קל"+(burn>0?" (יעד אפקטיבי כולל פעילות: "+effectiveCt+")":"")+" — "+( deficit>0?"גרעון "+deficit:"עודף "+Math.abs(deficit))+", "+dayProt+" ג' חלבון"+(dayProt>=pt?" ✔":" (חסר "+(pt-dayProt)+")")+"\n";
+      if(day.steps) { md+="- צעדים: "+day.steps+" (שריפה: ~"+Math.round(+day.steps/1000*STEP_CAL_PER_1000)+" קל)\n"; totalSteps+=day.steps; daysWithSteps++; }
+      if(day.strength) { md+="- אימון כוח: כן (שריפה: ~"+STRENGTH_CAL+" קל)\n"; daysStrength++; }
       if(day.closeSummary) md+="- סיכום סגירת יום: "+day.closeSummary+"\n";
       md+="\n";
       totalCal+=dayCal; totalProt+=dayProt; totalBeef+=dayBeef;
@@ -2107,6 +2110,12 @@ function buildNutritionReportMD(period){
       const diff=(periodWeights[periodWeights.length-1].kg-periodWeights[0].kg).toFixed(1);
       md+="- שינוי: "+(diff>0?"+":"")+diff+" ק\"ג\n";
     }
+    md+="\n";
+  }
+  const principles=(S.principles||[]).filter(p=>p.text);
+  if(principles.length){
+    md+="## עקרונות תזונה אישיים\n";
+    principles.forEach((p,i)=>{ md+=(i+1)+". "+p.text+(p.cat?" ("+p.cat+")":"")+"\n"; });
     md+="\n";
   }
   const preamble=S.reportPreamble||DEFAULT_REPORT_PREAMBLE;
@@ -2610,6 +2619,7 @@ function start(){
   preambleEl.value=S.reportPreamble||DEFAULT_REPORT_PREAMBLE;
   preambleEl.addEventListener("input",()=>{ S.reportPreamble=preambleEl.value; persist(); });
   $("btn-reset-preamble").onclick=()=>{ preambleEl.value=DEFAULT_REPORT_PREAMBLE; S.reportPreamble=DEFAULT_REPORT_PREAMBLE; persist(); toast("ההנחיות אופסו"); };
+  document.querySelectorAll(".rpt-btn").forEach(btn=>{ btn.onclick=()=>generateNutritionReport(btn.dataset.report); });
 
   document.addEventListener("keydown", e=>{
     if(e.key==="Escape"){ closeMenu(); closeWeightModal(); closeWeightGraph(); closeStepsModal(); closeStrengthModal(); closeCalendar(); closeMealsModal(); closeReportModal(); closeNoteModal(); closeFavModal(); closeBeefModal(); }
