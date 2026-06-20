@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.29';
+const APP_VERSION = '9.30';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2723,14 +2723,15 @@ function App() {
         <>
             <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} />
             {autoTransitionSplash && (
-                <div className="fixed inset-0 z-[900] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={()=>setAutoTransitionSplash(null)}>
-                    <div className="text-center animate-pulse">
-                        <div className="text-white/60 text-lg font-bold mb-2">{autoTransitionSplash.title}</div>
-                        <div className="text-white text-7xl font-black tracking-wider" style={{textShadow:'0 0 30px rgba(45,74,111,0.8)'}}>
-                            {autoTransitionSplash.sets} × {autoTransitionSplash.weight}
+                <div className="fixed inset-x-0 bottom-0 z-[900] flex items-center justify-center bg-black/60 backdrop-blur-sm" style={{top:'220px',maxWidth:'28rem',margin:'0 auto'}} onClick={()=>setAutoTransitionSplash(null)}>
+                    <div className="text-center">
+                        <div className="text-orange-400 font-black" style={{fontSize:'5rem',lineHeight:1.1}}>
+                            {autoTransitionSplash.sets} סטים
                         </div>
-                        <div className="text-white/40 text-sm font-bold mt-4">הבא: {autoTransitionSplash.nextTitle}</div>
-                        <div className="text-white/30 text-xs mt-6">לחץ לסגירה</div>
+                        <div className="text-orange-300 font-black mt-2" style={{fontSize:'3.5rem',lineHeight:1.1}}>
+                            משקל {autoTransitionSplash.weight}
+                        </div>
+                        <div className="text-white/40 text-sm font-bold mt-6">לחץ לסגירה</div>
                     </div>
                 </div>
             )}
