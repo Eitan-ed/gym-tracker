@@ -23,7 +23,7 @@
   .acc-open .acc-arrow { transform:rotate(180deg); }
 </style>
 </head>
-<body class="bg-[#d5dde6] text-[#0b1c30] min-h-screen pb-24">
+<body class="bg-[#b3bfcc] text-[#0b1c30] min-h-screen pb-24">
 
 <!-- כותרת -->
 <header class="relative bg-[#003535] shadow-xl sticky top-0 z-50 cursor-pointer">
@@ -51,7 +51,7 @@
             <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[#003535] text-[20px]">settings</span><span class="font-bold text-[#003535]">ניהול והגדרות</span></span>
             <span id="hmenu-manage-arrow" class="material-symbols-outlined text-[#404848] text-[18px] transition-transform">expand_more</span>
           </button>
-          <div id="hmenu-manage-sub" class="hx bg-[#d5dde6]">
+          <div id="hmenu-manage-sub" class="hx bg-[#b3bfcc]">
             <button data-sec="acc-key" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">key</span>מפתח Gemini</button>
             <button data-sec="acc-backup" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">cloud_sync</span>גיבוי ושחזור</button>
             <button data-sec="acc-weight" class="hsub-item w-full flex items-center gap-2 pr-9 pl-4 py-2.5 hover:bg-[#dce9ff] text-right text-sm font-medium text-[#003535]"><span class="material-symbols-outlined text-[16px] text-[#0061a4]">monitor_weight</span>משקל ומגמה</button>
@@ -333,7 +333,7 @@
       <button id="fav-modal-search-clear" class="hx absolute left-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-[#404848] text-[18px] active:scale-90">close</button>
     </div>
     <div id="fav-list" class="space-y-3"></div>
-    <div class="bg-[#d5dde6] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
+    <div class="bg-[#b3bfcc] border border-[#bfc8c8]/50 rounded-xl p-2.5 space-y-2">
       <div class="flex gap-1.5">
         <input id="fav-modal-name" type="text" placeholder="שם פריט" class="flex-1 min-w-0 bg-white border border-[#bfc8c8] rounded-lg px-2 py-1.5 text-sm outline-none">
         <input id="fav-modal-qty" type="number" placeholder="כמות" class="w-12 bg-white border border-[#bfc8c8] rounded-lg px-1 py-1.5 text-sm text-center outline-none" value="1">
@@ -409,7 +409,7 @@
       <h2 class="text-base font-bold text-[#003535]">דוח תזונה יומי</h2>
       <button id="close-report-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <textarea id="report-content" dir="rtl" rows="16" class="w-full text-[12px] leading-snug bg-[#d5dde6] border border-[#bfc8c8] rounded-xl p-3 font-sans outline-none focus:border-[#003535] resize-y"></textarea>
+    <textarea id="report-content" dir="rtl" rows="16" class="w-full text-[12px] leading-snug bg-[#b3bfcc] border border-[#bfc8c8] rounded-xl p-3 font-sans outline-none focus:border-[#003535] resize-y"></textarea>
     <button id="report-download" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2">
       <span class="material-symbols-outlined text-[18px]">download</span> הורד דוח (MD)
     </button>
@@ -617,7 +617,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.26";
+const APP_VERSION = "5.27";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2306,7 +2306,7 @@ function renderCalendar(){
     if(isViewed) cell.className += "bg-[#1565C0] text-white ";
     else if(isToday) cell.className += "bg-[#1565C0]/10 text-[#1565C0] ";
     else if(isFuture) cell.className += "text-[#bfc8c8] ";
-    else cell.className += "bg-[#d5dde6] hover:bg-[#cdd8e4] ";
+    else cell.className += "bg-[#b3bfcc] hover:bg-[#cdd8e4] ";
 
     let inner = '<span class="text-sm font-bold">'+d+'</span>';
     if(!isFuture && cal>0 && ct>0){
