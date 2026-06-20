@@ -312,6 +312,18 @@
   </div>
 </div>
 
+<!-- ===== בורר שעת ארוחה ===== -->
+<div id="time-picker-overlay" class="hx fixed inset-0 z-[80] bg-black/40 flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-5 w-64 shadow-2xl text-center space-y-4" dir="rtl">
+    <h3 class="text-sm font-bold text-[#003535]">שעת ארוחה</h3>
+    <input id="tp-input" type="time" class="w-full text-3xl text-center border border-[#bfc8c8] rounded-xl p-3 font-bold text-[#003535]">
+    <div class="flex gap-2">
+      <button id="tp-ok" class="flex-1 bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl">אישור</button>
+      <button id="tp-cancel" class="flex-1 bg-[#e0e0e0] text-[#404848] text-sm font-bold py-2.5 rounded-xl">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== מודאל מאכלים מועדפים ===== -->
 <div id="fav-modal" class="hx fixed inset-0 z-[70] bg-black/40 flex items-end justify-center">
   <div class="bg-white rounded-t-2xl p-4 w-full max-w-md space-y-3 shadow-2xl max-h-[80vh] overflow-y-auto">
@@ -695,7 +707,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.33";
+const APP_VERSION = "5.34";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1471,6 +1483,27 @@ function renderStrengthHistory(){
   if(!count) box.innerHTML='<p class="text-[11px] text-[#404848]">אין אימונים ב-30 ימים אחרונים</p>';
 }
 
+// ===== בורר שעת ארוחה =====
+let tpMealIdx=null;
+function openTimePicker(mi, curTime){
+  tpMealIdx=mi;
+  $("tp-input").value=curTime||new Date().toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"});
+  show($("time-picker-overlay"));
+}
+function closeTimePicker(){ hide($("time-picker-overlay")); tpMealIdx=null; }
+function applyTimePick(){
+  if(tpMealIdx===null) return;
+  const val=$("tp-input").value;
+  if(!val){ closeTimePicker(); return; }
+  const [h,m]=val.split(":").map(Number);
+  const meal=S.days[viewDay].meals[tpMealIdx];
+  const d=meal.time?new Date(meal.time):new Date();
+  d.setHours(h,m,0,0);
+  meal.time=d.toISOString();
+  persist(); renderMealsEdit(); setMealsDirty(true);
+  closeTimePicker();
+}
+
 // ===== מודאל עריכת ארוחות שמורות =====
 let mealsDirty=false;
 function setMealsDirty(v){
@@ -1525,8 +1558,9 @@ function renderMealsEdit(){
     const card=document.createElement("div");
     card.className="me-card border border-[#bfc8c8] rounded-xl p-2 space-y-1"; card.dataset.mi=mi;
     const mTime=m.time?new Date(m.time):null;
-    const mTimeStr=mTime?(' ('+String(mTime.getHours()).padStart(2,"0")+':'+String(mTime.getMinutes()).padStart(2,"0")+')'):'';
-    let html='<div class="flex justify-between items-center mb-1"><span class="flex items-center gap-1"><button class="fav-meal material-symbols-outlined text-[#e6a700] text-[17px]" data-mi="'+mi+'" title="שמור כמועדפת">star</button><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+mTimeStr+'</span></span><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></div>';
+    const mTimeStr=mTime?(String(mTime.getHours()).padStart(2,"0")+':'+String(mTime.getMinutes()).padStart(2,"0")):'';
+    const timeEl=mTimeStr?' <span class="edit-time underline text-[#006c49] cursor-pointer" data-mi="'+mi+'" data-time="'+mTimeStr+'">('+mTimeStr+')</span>':' <span class="edit-time text-[#006c49] underline cursor-pointer text-[10px]" data-mi="'+mi+'" data-time="">+ שעה</span>';
+    let html='<div class="flex justify-between items-center mb-1"><span class="flex items-center gap-1"><button class="fav-meal material-symbols-outlined text-[#e6a700] text-[17px]" data-mi="'+mi+'" title="שמור כמועדפת">star</button><span class="text-[11px] font-bold text-[#404848]">ארוחה '+(mi+1)+(m.desc?' — '+esc(m.desc):'')+timeEl+'</span></span><button class="del-meal material-symbols-outlined text-[#93000a] text-[16px]" data-mi="'+mi+'">delete</button></div>';
     (m.items||[]).forEach((it,ii)=>{
       html+='<div class="me-row border border-[#bfc8c8]/50 rounded-xl p-2 space-y-1.5 bg-white" data-mi="'+mi+'" data-ii="'+ii+'">'
         +'<div class="flex items-center gap-1">'
@@ -1549,6 +1583,7 @@ function renderMealsEdit(){
   box.querySelectorAll(".del-meal").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק את הארוחה?")) return; applyMealsEdit(); S.days[viewDay].meals.splice(+btn.dataset.mi,1); renderMealsEdit(); setMealsDirty(true); });
   box.querySelectorAll(".fav-meal").forEach(btn=>btn.onclick=()=>{ const mi=+btn.dataset.mi; applyMealsEdit(); recalcMeal(mi); saveFavorite(S.days[viewDay].meals[mi]); });
   box.querySelectorAll(".fav-item-me").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); const it=S.days[viewDay].meals[+btn.dataset.mi].items[+btn.dataset.ii]; saveItemFavorite(it); });
+  box.querySelectorAll(".edit-time").forEach(btn=>btn.onclick=()=>{ openTimePicker(+btn.dataset.mi, btn.dataset.time); });
   box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ updateMealsEditSum(); setMealsDirty(true); }));
   box.querySelectorAll(".me-amt,.me-cal,.me-prot").forEach(inp=>inp.addEventListener("focus",()=>inp.select()));
   box.querySelectorAll(".me-row").forEach(row=>{
@@ -2660,6 +2695,9 @@ function start(){
   $("close-meals-modal").onclick=closeMealsModal;
   $("me-save").onclick=saveMealsEdit;
   $("meals-modal").onclick=e=>{ if(e.target===$("meals-modal")) closeMealsModal(); };
+  $("tp-ok").onclick=applyTimePick;
+  $("tp-cancel").onclick=closeTimePicker;
+  $("time-picker-overlay").onclick=e=>{ if(e.target===$("time-picker-overlay")) closeTimePicker(); };
   $("close-note-modal").onclick=closeNoteModal;
   $("note-modal").onclick=e=>{ if(e.target===$("note-modal")) closeNoteModal(); };
   $("close-beef-modal").onclick=closeBeefModal;
