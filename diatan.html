@@ -515,6 +515,14 @@
           <p class="text-[11px] text-[#404848]">יעד חלבון יומי = משקל יעד × 2 גרם. נוכחי: <b id="target-weight-display">—</b> ק"ג → <b id="target-prot-display">—</b> ג' חלבון.</p>
         </div>
         <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
+          <h4 class="text-xs font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-[#0061a4]">cake</span> גיל</h4>
+          <div class="flex gap-2">
+            <input id="set-age" type="number" placeholder="גיל" class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
+            <button id="btn-save-age" class="bg-[#006c49] text-white font-bold px-5 rounded-xl text-sm">שמור</button>
+          </div>
+          <p class="text-[11px] text-[#404848]">נדרש לחישוב שומן ויסרלי (VAT).</p>
+        </div>
+        <div class="border-t border-[#bfc8c8] pt-2 space-y-2">
           <h4 class="text-xs font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-[#0061a4]">steps</span> יעד צעדים</h4>
           <div class="flex gap-2">
             <input id="set-steps-goal" type="number" placeholder="יעד צעדים יומי" class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
@@ -606,6 +614,11 @@
             </select>
           </div>
           <div id="meas-chart"></div>
+        </div>
+        <div id="vat-section" class="hx border-t border-[#bfc8c8] pt-2 space-y-1">
+          <h4 class="text-xs font-bold text-[#003535] flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-[#0061a4]">monitor_heart</span> שומן ויסרלי (VAT) — Samouda 2013</h4>
+          <div id="vat-result" class="text-sm"></div>
+          <div id="vat-chart"></div>
         </div>
         <div class="border-t border-[#bfc8c8] pt-2">
           <h4 class="text-xs font-bold text-[#404848] mb-1">היסטוריית מדידות</h4>
@@ -734,7 +747,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.38";
+const APP_VERSION = "5.39";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2114,7 +2127,7 @@ function saveMeasurement(){
   S.measurements.sort((a,b)=>b.date.localeCompare(a.date));
   persist();
   MEAS_FIELDS.forEach(f=>{$("meas-"+f.id).value="";});
-  renderMeasHistory(); renderMeasChart();
+  renderMeasHistory(); renderMeasChart(); renderVAT();
   toast("המדידה נשמרה");
 }
 function renderMeasHistory(){
@@ -2137,6 +2150,52 @@ function renderMeasHistory(){
   });
   box.innerHTML=html;
   box.querySelectorAll(".del-meas").forEach(btn=>btn.onclick=()=>{if(!confirm("למחוק מדידה?"))return;S.measurements.splice(+btn.dataset.i,1);persist();renderMeasHistory();renderMeasChart();});
+}
+function calcVAT(waist, thigh, age, weight, height){
+  if(!waist||!thigh||!age) return null;
+  const bmi=weight/((height/100)**2);
+  return Math.round(6*waist - 4.41*thigh + 1.19*age - 213.65);
+}
+function vatLevel(v){
+  if(v<=130) return {label:"תקין", color:"#006c49", icon:"check_circle"};
+  if(v<=150) return {label:"סף מסוכן — חוסר איזון", color:"#e6a700", icon:"warning"};
+  return {label:"סיכון גבוה — תנגודת לאינסולין", color:"#ba1a1a", icon:"emergency"};
+}
+function renderVAT(){
+  const sec=$("vat-section"), res=$("vat-result"), chart=$("vat-chart");
+  const age=+(S.age||0), w=+(S.profile.weight||0), h=180;
+  const arr=(S.measurements||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const withVAT=arr.filter(m=>m.waist&&m.thigh).map(m=>({date:m.date, vat:calcVAT(m.waist, m.thigh, age, w, h)}));
+  if(!withVAT.length||!age){ hide(sec); return; }
+  show(sec);
+  const last=withVAT[withVAT.length-1];
+  const lv=vatLevel(last.vat);
+  let html='<div class="flex items-center gap-2 bg-[#e3eaf2] rounded-xl p-2.5 border border-[#bfc8c8]/40">';
+  html+='<span class="material-symbols-outlined text-[20px]" style="color:'+lv.color+'">'+lv.icon+'</span>';
+  html+='<div><span class="text-base font-extrabold" style="color:'+lv.color+'">'+last.vat+' סמ"ר</span>';
+  html+=' <span class="text-[11px] font-bold" style="color:'+lv.color+'">'+lv.label+'</span>';
+  html+='<div class="text-[10px] text-[#404848]">מדידה אחרונה: '+fmtDate(last.date)+'</div></div></div>';
+  html+='<div class="text-[10px] text-[#404848] mt-1">סף תקין: עד 130 סמ"ר | סף מסוכן: 130–150 | סיכון גבוה: מעל 150</div>';
+  res.innerHTML=html;
+  if(withVAT.length>=2){
+    const W=300,H=90,pad=18;
+    const xs=withVAT.map(m=>new Date(m.date).getTime());
+    const vals=withVAT.map(m=>m.vat);
+    const allVals=vals.concat([130,150]);
+    const minV=Math.min(...allVals), maxV=Math.max(...allVals), rangeV=(maxV-minV)||1;
+    const minX=xs[0], maxX=xs[xs.length-1], rangeX=(maxX-minX)||1;
+    const px=t=>pad+(t-minX)/rangeX*(W-2*pad);
+    const py=v=>pad+(1-(v-minV)/rangeV)*(H-2*pad);
+    const pts=withVAT.map((m,i)=>px(xs[i]).toFixed(1)+","+py(vals[i]).toFixed(1)).join(" ");
+    const dots=withVAT.map((m,i)=>{const c=vatLevel(m.vat).color;return '<circle cx="'+px(xs[i]).toFixed(1)+'" cy="'+py(vals[i]).toFixed(1)+'" r="2.5" fill="'+c+'"/>';}).join("");
+    const y130=py(130).toFixed(1), y150=py(150).toFixed(1);
+    chart.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" class="w-full" style="height:90px">'
+      +'<line x1="'+pad+'" y1="'+y130+'" x2="'+(W-pad)+'" y2="'+y130+'" stroke="#e6a700" stroke-width="1" stroke-dasharray="4"/>'
+      +'<text x="'+(pad-1)+'" y="'+(+y130-2)+'" font-size="8" fill="#e6a700">130</text>'
+      +'<line x1="'+pad+'" y1="'+y150+'" x2="'+(W-pad)+'" y2="'+y150+'" stroke="#ba1a1a" stroke-width="1" stroke-dasharray="4"/>'
+      +'<text x="'+(pad-1)+'" y="'+(+y150-2)+'" font-size="8" fill="#ba1a1a">150</text>'
+      +'<polyline points="'+pts+'" fill="none" stroke="#0061a4" stroke-width="2" stroke-linejoin="round"/>'+dots+'</svg>';
+  } else { chart.innerHTML=""; }
 }
 function renderMeasChart(){
   const wrap=$("meas-chart"); if(!wrap) return;
@@ -2308,6 +2367,15 @@ function buildNutritionReportMD(period){
     principles.forEach((p,i)=>{ md+=(i+1)+". "+p.text+(p.cat?" ("+p.cat+")":"")+"\n"; });
     md+="\n";
   }
+  const age=+(S.age||0);
+  if(age && periodMeas.length){
+    const vatArr=periodMeas.filter(m=>m.waist&&m.thigh).map(m=>({date:m.date, vat:calcVAT(m.waist, m.thigh, age, w, 180)}));
+    if(vatArr.length){
+      md+="## שומן ויסרלי (VAT — Samouda 2013)\n";
+      vatArr.forEach(v=>{ md+="- "+fmtDate(v.date)+": "+v.vat+' סמ"ר'+(v.vat<=130?" (תקין)":v.vat<=150?" (סף מסוכן)":" (סיכון גבוה)")+"\n"; });
+      md+="\n";
+    }
+  }
   const preamble=S.reportPreamble||DEFAULT_REPORT_PREAMBLE;
   md+="---\n\n## הנחיות לניתוח בינה מלאכותית\n\n"+preamble+"\n";
   return md;
@@ -2350,10 +2418,11 @@ function showView(name){
     $("api-key").value=S.apiKey||"";
     $("set-steps-goal").value=stepsGoal();
     $("set-target-weight").value=S.targetWeight||"";
+    $("set-age").value=S.age||"";
     renderGoalsDisplay();
     $("set-weight").value=S.profile&&S.profile.weight||"";
     $("set-weight-date").value=todayId();
-    renderWeightHistoryManage(); renderWeightChart(); renderMeasChart(); renderMetricsHistory(); renderPrinciples(); renderFavorites();
+    renderWeightHistoryManage(); renderWeightChart(); renderMeasChart(); renderVAT(); renderMetricsHistory(); renderPrinciples(); renderFavorites();
   }
   window.scrollTo(0,0);
   closeMenu();
@@ -2414,7 +2483,13 @@ function buildReportMD(){
   md += "- חלבון: "+prot+"/"+pt+" גר'"+(prot<pt?" (חסרים "+(pt-prot)+" גר')":"")+"\n";
   md += "- בקר: "+beef+" גר' (מגבלה שבועית "+BEEF_LIMIT+" גר')\n";
   md += "- צעדים: "+(day.steps||0)+" (יעד "+stepsGoal().toLocaleString()+")\n";
-  md += "- אימון כוח: "+(day.strength?"כן":"לא")+"\n\n";
+  md += "- אימון כוח: "+(day.strength?"כן":"לא")+"\n";
+  const rAge=+(S.age||0);
+  if(rAge){
+    const lastMeas=(S.measurements||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).find(m=>m.waist&&m.thigh);
+    if(lastMeas){ const vat=calcVAT(lastMeas.waist, lastMeas.thigh, rAge, w, 180); md+="- שומן ויסרלי (VAT): "+vat+' סמ"ר'+(vat<=130?" (תקין)":vat<=150?" (סף מסוכן)":" (סיכון גבוה)")+"\n"; }
+  }
+  md+="\n";
   if(S.principles && S.principles.length){
     md += "## עקרונות\n";
     S.principles.forEach((p,i)=>{ md += (i+1)+". "+(p.text||p)+"\n"; });
@@ -2479,6 +2554,7 @@ ${mealsDesc}
 צעדים: ${steps} (יעד ${sg.toLocaleString()})
 אימון כוח: ${strength?"כן":"לא"}
 רצף ימים בחיטוב: ${streak}
+${(()=>{const a=+(S.age||0);if(!a)return "";const lm=(S.measurements||[]).slice().sort((x,y)=>y.date.localeCompare(x.date)).find(m=>m.waist&&m.thigh);if(!lm)return "";const v=calcVAT(lm.waist,lm.thigh,a,w,180);return "שומן ויסרלי (VAT): "+v+' סמ"ר ('+( v<=130?"תקין":v<=150?"סף מסוכן":"סיכון גבוה")+") — מדידה מ-"+fmtDate(lm.date);})()}
 
 כתוב סיכום יום קצר ומעשי בעברית. מבנה:
 
@@ -2807,6 +2883,7 @@ function start(){
   $("restore-input").onchange=onRestore;
   $("btn-save-weight-manage").onclick=saveWeightManage;
   $("btn-save-target-weight").onclick=()=>{ const v=parseFloat($("set-target-weight").value); if(isNaN(v)||v<30||v>300){toast("ערך לא תקין",true);return;} S.targetWeight=v; persist(); render(); renderGoalsDisplay(); toast("משקל היעד עודכן"); };
+  $("btn-save-age").onclick=()=>{ const v=parseInt($("set-age").value,10); if(isNaN(v)||v<10||v>120){toast("ערך לא תקין",true);return;} S.age=v; persist(); renderVAT(); toast("הגיל עודכן"); };
   $("btn-save-steps-goal").onclick=()=>{ const v=parseInt($("set-steps-goal").value,10); if(isNaN(v)||v<100){toast("ערך לא תקין",true);return;} S.stepsGoal=v; persist(); render(); toast("יעד הצעדים עודכן"); };
   $("btn-add-principle").onclick=addPrinciple;
   $("new-principle").addEventListener("keydown", e=>{ if(e.key==="Enter") addPrinciple(); });
