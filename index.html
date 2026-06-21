@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.35';
+const APP_VERSION = '9.36';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2805,7 +2805,7 @@ function App() {
                         )}
                         <div className="flex gap-2 items-center">
                             {musicList.length > 0 && (
-                                <button onClick={()=>{ const a=audioRef.current; if(!a)return; if(musicPlaying){a.pause();}else{ if(!a.src&&musicList[musicIndex]?.url){a.src=musicList[musicIndex].url; a.load();} a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } }}
+                                <button onClick={()=>{ const a=audioRef.current; if(!a)return; if(musicPlaying){a.pause();}else{ const sel=musicList[musicIndex]; if(sel){a.src=sel.url; a.load(); a.play().catch(e=>showToast(e.message||'שגיאת פליי',true)); } } }}
                                     className={`px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 shrink-0 ${musicPlaying?'bg-rose-500 text-white':'bg-emerald-500 text-white'}`}>
                                     {musicPlaying?'⏸':'▶'}
                                 </button>
@@ -3107,11 +3107,11 @@ function App() {
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
                             <div className="flex flex-col gap-1 shrink-0">
                                 <button onClick={()=>{ if(idx===0) return; requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,-1)); }} disabled={idx===0}
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'2px 2px 4px rgba(0,0,0,0.1), -1px -1px 3px rgba(255,255,255,0.6)'}}>
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 active:scale-90 disabled:opacity-20" style={{background:'rgba(90,105,120,0.6)', boxShadow:'1px 1px 3px rgba(0,0,0,0.15)'}}>
                                     <Icon name="ChevronUp" size={14} />
                                 </button>
                                 <button onClick={()=>{ if(idx===visibleGroups.length-1) return; requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,1)); }} disabled={idx===visibleGroups.length-1}
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'2px 2px 4px rgba(0,0,0,0.1), -1px -1px 3px rgba(255,255,255,0.6)'}}>
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 active:scale-90 disabled:opacity-20" style={{background:'rgba(90,105,120,0.6)', boxShadow:'1px 1px 3px rgba(0,0,0,0.15)'}}>
                                     <Icon name="ChevronDown" size={14} />
                                 </button>
                             </div>
