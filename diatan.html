@@ -707,7 +707,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.35";
+const APP_VERSION = "5.36";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 1.6, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2008,7 +2008,9 @@ function renderWeightHistoryManage(){
     }
     const div=document.createElement("div");
     div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#e3eaf2] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
-    div.innerHTML='<span class="text-[11px]">'+fmtDate(w.date)+'</span>'
+    const tL={"before":"לפני","half":"חצי","after":"אחרי"};
+    const timeInfo=(w.time?" "+w.time:"")+(w.timing?" ("+( tL[w.timing]||"")+")" :"");
+    div.innerHTML='<span class="text-[11px]">'+fmtDate(w.date)+'<span class="text-[9px] text-[#606868]">'+timeInfo+'</span></span>'
       +'<span class="w-14 text-center font-bold text-[11px]">'+w.kg+'</span>'
       +'<span class="w-14 text-center text-[10px] text-[#404848]">'+(prevW?prevW.toFixed(1):'—')+'</span>'
       +diffHtml
@@ -2228,7 +2230,8 @@ function buildNutritionReportMD(period){
   const periodWeights=(S.weights||[]).filter(w=>{ const d=new Date(w.date); return d>=fromDate && d<=toDate; }).sort((a,b)=>a.date.localeCompare(b.date));
   if(periodWeights.length){
     md+="## משקלים בתקופה\n";
-    periodWeights.forEach(w=>{ md+="- "+fmtDate(w.date)+": "+w.kg+" ק\"ג"+(w.timing?" ("+w.timing+")":"")+"\n"; });
+    const tLabels={"before":"לפני","half":"חצי","after":"אחרי"};
+    periodWeights.forEach(w=>{ md+="- "+fmtDate(w.date)+(w.time?" "+w.time:"")+": "+w.kg+" ק\"ג"+(w.timing?" ("+( tLabels[w.timing]||w.timing)+")":"")+"\n"; });
     if(periodWeights.length>=2){
       const diff=(periodWeights[periodWeights.length-1].kg-periodWeights[0].kg).toFixed(1);
       md+="- שינוי: "+(diff>0?"+":"")+diff+" ק\"ג\n";
