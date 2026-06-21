@@ -734,7 +734,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.37";
+const APP_VERSION = "5.38";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -2836,24 +2836,9 @@ function start(){
     if(hour>=20 && (S.backupRemindDismissed||"")!==todayId()) show($("backup-reminder"));
   })();
   if(!S.apiKey || !S.profile.weight){ showView("manage"); toast("הגדר מפתח Gemini ומשקל כדי להתחיל"); }
-  else { promptBackup(); }
 }
 
-// ===== הצעת גיבוי בכניסה =====
-function promptBackup(){
-  if(Date.now()-lastBackupTime<BACKUP_COOLDOWN) return;
-  const div = document.createElement("div");
-  div.id = "backup-prompt";
-  div.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#003535;color:white;padding:12px 18px;border-radius:14px;display:flex;align-items:center;gap:10px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);font-size:14px;direction:rtl;";
-  div.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px">cloud_sync</span>
-    <span>לגבות נתונים?</span>
-    <button id="bp-yes" style="background:#4CAF50;color:white;border:none;padding:6px 14px;border-radius:8px;font-weight:bold;cursor:pointer">גיבוי</button>
-    <button id="bp-no" style="background:transparent;color:#aaa;border:1px solid #666;padding:6px 10px;border-radius:8px;cursor:pointer">✕</button>`;
-  document.body.appendChild(div);
-  $("bp-yes").onclick=()=>{ div.remove(); onBackup(); };
-  $("bp-no").onclick=()=>{ div.remove(); };
-  setTimeout(()=>{ if(div.parentNode) div.remove(); }, 8000);
-}
+
 document.addEventListener("DOMContentLoaded", start);
 })();
 </script>
