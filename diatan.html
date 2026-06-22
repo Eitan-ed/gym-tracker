@@ -745,7 +745,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.44";
+const APP_VERSION = "5.45";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1362,8 +1362,10 @@ function findWeightWeekAgo(dateStr){
   const d=new Date(dateStr); d.setDate(d.getDate()-7);
   return findWeightOnDate(dateToId(d));
 }
-function renderWeightHistoryModal(){
-  const box=$("wm-history"); box.innerHTML="";
+function renderWeightHistoryModal(){ renderWeightTable("wm-history"); }
+function renderWeightHistoryManage(){ renderWeightTable("weight-history-manage"); }
+function renderWeightTable(boxId){
+  const box=$(boxId); box.innerHTML="";
   const ws=S.weights||[];
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
   const today=new Date();
@@ -1421,7 +1423,7 @@ function renderWeightHistoryModal(){
       const tMap={"לפני":"before","חצי":"half","אחרי":"after"};
       last.kg=kg; last.time=newTime.trim(); last.timing=tMap[newTiming.trim()]||last.timing;
       if(dateId===todayId()){ S.profile.weight=kg; ensure(todayId()).weight=kg; }
-      persist(); render(); renderWeightHistoryModal();
+      persist(); render(); renderWeightTable(boxId);
     };
   });
   const legend=document.createElement("div");
@@ -2032,51 +2034,6 @@ function addPrinciple(){
 }
 
 // ===== ניהול — משקל =====
-function renderWeightHistoryManage(){
-  const box=$("weight-history-manage"); box.innerHTML="";
-  const ws = (S.weights||[]).slice().reverse();
-  if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
-  const tL={"before":"לפני","half":"חצי","after":"אחרי"};
-  const groups={};
-  ws.forEach((w,origRevIdx)=>{
-    const d=idToDate(w.date);
-    const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if(!groups[key]) groups[key]=[];
-    groups[key].push({w, realIdx: S.weights.length-1-origRevIdx});
-  });
-  Object.keys(groups).sort().reverse().forEach(key=>{
-    const [y,m]=key.split("-");
-    const hdr=document.createElement("div");
-    hdr.className="text-xs font-bold text-[#003535] mt-2 mb-0.5 border-b border-[#bfc8c8]/50 pb-0.5";
-    hdr.textContent=HEB_MONTHS[+m-1]+" "+y;
-    box.appendChild(hdr);
-    groups[key].forEach(({w, realIdx})=>{
-      const d=idToDate(w.date);
-      const dayNum=d.getDate();
-      const dow=HEB_DAYS[d.getDay()];
-      const prevW = findWeightWeekAgo(w.date);
-      let diffHtml='<span class="w-10 text-center text-[10px] text-[#404848]">—</span>';
-      if(prevW){
-        const diff=Math.round((w.kg-prevW)*10)/10;
-        const color=diff<0?"#006c49":diff>0?"#ba1a1a":"#404848";
-        const txt=diff>0?"+"+diff.toFixed(1):diff.toFixed(1);
-        diffHtml='<span class="w-10 text-center text-[10px] font-extrabold" style="color:'+color+'">'+txt+'</span>';
-      }
-      const timeInfo=(w.time?" "+w.time:"")+(w.timing?" ("+(tL[w.timing]||"")+")" :"");
-      const div=document.createElement("div");
-      div.className="grid grid-cols-[1fr_auto_auto_auto_24px] gap-1 items-center bg-[#e3eaf2] rounded-lg px-2 py-1 border border-[#bfc8c8]/30";
-      div.innerHTML='<span class="text-[11px]">'+dayNum+' '+dow+'<span class="text-[9px] text-[#606868]">'+timeInfo+'</span></span>'
-        +'<span class="w-14 text-center font-bold text-[11px]">'+w.kg+'</span>'
-        +'<span class="w-14 text-center text-[10px] text-[#404848]">'+(prevW?prevW.toFixed(1):'—')+'</span>'
-        +diffHtml
-        +'<button class="del-w material-symbols-outlined text-[#93000a] text-[14px]" data-idx="'+realIdx+'">close</button>';
-      box.appendChild(div);
-    });
-  });
-  box.querySelectorAll(".del-w").forEach(btn=>{
-    btn.onclick=()=>{ if(!confirm("למחוק רשומת משקל?")) return; S.weights.splice(+btn.dataset.idx,1); if(S.weights.length) S.profile.weight=S.weights[S.weights.length-1].kg; persist(); render(); renderWeightHistoryManage(); renderWeightChart(); toast("נמחק"); };
-  });
-}
 function renderWeightChart(){
   const wrap=$("weight-chart"), trendEl=$("weight-trend");
   if(!wrap) return;
