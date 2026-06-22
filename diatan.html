@@ -745,7 +745,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.46";
+const APP_VERSION = "5.47";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1368,7 +1368,12 @@ function renderWeightTable(boxId){
   const box=$(boxId); box.innerHTML="";
   const ws=S.weights||[];
   if(!ws.length){ box.innerHTML='<p class="text-[11px] text-[#404848]">אין היסטוריה</p>'; return; }
-  const bestKg=ws.length?Math.min(...ws.map(w=>+w.kg)):0;
+  const bestKg=Math.min(...ws.map(w=>+w.kg));
+  const bestRec=ws.find(w=>+w.kg===bestKg);
+  const bestTop=document.createElement("div");
+  bestTop.className="flex justify-between items-center mb-1";
+  bestTop.innerHTML='<span class="text-[10px] text-[#404848]" style="background:#fff3b0;padding:1px 6px;border-radius:4px">שיא: <b>'+bestKg.toFixed(1)+'</b> ק"ג'+(bestRec?' ('+fmtDate(bestRec.date)+')':'')+'</span>';
+  box.appendChild(bestTop);
   const today=new Date();
   const dayOfWeek=today.getDay();
   const sun=new Date(today); sun.setDate(today.getDate()-dayOfWeek);
@@ -1430,7 +1435,7 @@ function renderWeightTable(boxId){
   });
   const legend=document.createElement("div");
   legend.className="flex gap-3 justify-end pt-2 text-[10px] text-[#404848]";
-  legend.innerHTML='<span><span style="background:#fff3b0;padding:1px 4px;border-radius:3px;font-size:9px">שיא</span></span><span><span class="text-[#006c49] font-bold">(-)</span> ירידה</span><span><span class="text-[#ba1a1a] font-bold">(+)</span> עלייה</span><span><span style="border-bottom:2px solid #8B4513;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> אחרי</span><span><span style="border-bottom:2px solid #8B4513;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> חצי</span>';
+  legend.innerHTML='<span><span class="text-[#006c49] font-bold">(-)</span> ירידה</span><span><span class="text-[#ba1a1a] font-bold">(+)</span> עלייה</span><span><span style="border-bottom:2px solid #8B4513;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> אחרי</span><span><span style="border-bottom:2px solid #8B4513;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> חצי</span>';
   box.appendChild(legend);
 }
 
