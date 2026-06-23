@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.37';
+const APP_VERSION = '9.38';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -169,6 +169,7 @@ const THIGH_VALUES = [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95
 const CUSTOM_WEIGHT_VALUES = {
     'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
     'ex7c': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פולי גב — רצף 4-5 מ-5
+    'ex6':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // חתירה — רצף 4-5 מ-5
     'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
     'ex3':  THIGH_VALUES,   // פולי יד אחורית
     'ex15': THIGH_VALUES,   // יד קדמית במכונה
@@ -2437,7 +2438,14 @@ function App() {
                     window.speechSynthesis.speak(u);
                 }
             }
-            if (doWarning)     playWarningBeep();
+            if (doWarning) {
+                playWarningBeep();
+                if (window.speechSynthesis) {
+                    const u = new SpeechSynthesisUtterance('עשרים');
+                    u.lang = 'he-IL'; u.rate = 1.2; u.volume = 1.0;
+                    window.speechSynthesis.speak(u);
+                }
+            }
             if (completedExId) {
                 playPhoneRingSound();
                 const curLogs = logsRef.current;
