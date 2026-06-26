@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.40';
+const APP_VERSION = '9.41';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1599,17 +1599,20 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </button>
                     {open.settings && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
                         {[
-                            {label:'מנוחה בין סטים',      key:'normalRest',   opts:[60,75,90,105,120,150,180]},
-                            {label:'מנוחה בין תרגילים',   key:'exerciseRest', opts:[60,90,120,150,180,210,240]},
-                            {label:'מנוחה לסופר-סט',      key:'supersetRest', opts:[30,45,60,75,90,120]},
-                            {label:'מנוחה לתרגיל חימום',  key:'warmupRest',   opts:[30,45,60,75,90]}
-                        ].map(({label,key,opts})=>(
+                            {label:'מנוחה בין סטים',      key:'normalRest',   min:30, max:300},
+                            {label:'מנוחה בין תרגילים',   key:'exerciseRest', min:30, max:300},
+                            {label:'מנוחה לסופר-סט',      key:'supersetRest', min:20, max:180},
+                            {label:'מנוחה לתרגיל חימום',  key:'warmupRest',   min:20, max:180}
+                        ].map(({label,key,min,max})=>(
                             <div key={key} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                 <span className="font-bold text-sm text-slate-700">{label}</span>
-                                <select className="bg-white border border-slate-200 rounded-xl px-3 py-1 font-black text-blue-600 outline-none"
-                                    value={settings[key]} onChange={e=>onUpdateSettings(key,Number(e.target.value))}>
-                                    {opts.map(o=> <option key={o} value={o}>{o} שנ׳</option>)}
-                                </select>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={()=>onUpdateSettings(key,Math.max(min,(settings[key]||90)-10))}
+                                        className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-lg active:scale-90 flex items-center justify-center">−</button>
+                                    <span className="w-12 text-center font-black text-blue-600 text-sm">{settings[key]||90} שנ׳</span>
+                                    <button onClick={()=>onUpdateSettings(key,Math.min(max,(settings[key]||90)+10))}
+                                        className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-lg active:scale-90 flex items-center justify-center">+</button>
+                                </div>
                             </div>
                         ))}
                     </div>}
@@ -2224,7 +2227,7 @@ function App() {
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
     const [customNames,      setCustomNames]      = useState(()=>LS.get('gym-custom-names',{}));
-    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,exerciseRest:120,supersetRest:60,warmupRest:60,weightSteps:{}}));
+    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,exerciseRest:70,supersetRest:60,warmupRest:60,weightSteps:{}}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
     const [instructors,      setInstructors]      = useState(()=>LS.get('gym-instructors', []));
     useEffect(()=>{ LS.set('gym-instructors', instructors); },[instructors]);
@@ -2354,7 +2357,7 @@ function App() {
                 notes:         LS.get('gym-notes',          {}),
                 images:        LS.get('gym-images',         {}),
                 videos:        LS.get('gym-videos',         {}),
-                settings:      LS.get('gym-settings',       {normalRest:90,exerciseRest:120,supersetRest:60,warmupRest:60}),
+                settings:      LS.get('gym-settings',       {normalRest:90,exerciseRest:70,supersetRest:60,warmupRest:60}),
                 sessionStart:  LS.get('gym-session-start',  null),
                 sessionEnd:    LS.get('gym-session-end',    null),
                 groupOrder:    LS.get('gym-group-order',    null),
