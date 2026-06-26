@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.38';
+const APP_VERSION = '9.39';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -170,6 +170,7 @@ const CUSTOM_WEIGHT_VALUES = {
     'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
     'ex7c': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פולי גב — רצף 4-5 מ-5
     'ex6':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // חתירה — רצף 4-5 מ-5
+    'ex2':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פרפר חזה — רצף 4-5 מ-5
     'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
     'ex3':  THIGH_VALUES,   // פולי יד אחורית
     'ex15': THIGH_VALUES,   // יד קדמית במכונה
@@ -1597,18 +1598,16 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </button>
                     {open.settings && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
                         {[
-                            {label:'מנוחה לסט רגיל',  key:'normalRest',   opts:[60,90,120,150,180]},
-                            {label:'מנוחה לסופר-סט',  key:'supersetRest', opts:[30,45,60,90,120]}
+                            {label:'מנוחה בין סטים',      key:'normalRest',   opts:[60,75,90,105,120,150,180]},
+                            {label:'מנוחה בין תרגילים',   key:'exerciseRest', opts:[60,90,120,150,180,210,240]},
+                            {label:'מנוחה לסופר-סט',      key:'supersetRest', opts:[30,45,60,75,90,120]},
+                            {label:'מנוחה לתרגיל חימום',  key:'warmupRest',   opts:[30,45,60,75,90]}
                         ].map(({label,key,opts})=>(
                             <div key={key} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                 <span className="font-bold text-sm text-slate-700">{label}</span>
                                 <select className="bg-white border border-slate-200 rounded-xl px-3 py-1 font-black text-blue-600 outline-none"
                                     value={settings[key]} onChange={e=>onUpdateSettings(key,Number(e.target.value))}>
-                                    {opts.map(o=>{
-                                        const m = Math.floor(o/60), s = o%60;
-                                        const label = s===0 ? `${m} דק'` : m>0 ? `${m}:${String(s).padStart(2,'0')} דק'` : `${s} שנ'`;
-                                        return <option key={o} value={o}>{label}</option>;
-                                    })}
+                                    {opts.map(o=> <option key={o} value={o}>{o} שנ׳</option>)}
                                 </select>
                             </div>
                         ))}
@@ -2218,7 +2217,7 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
-    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,supersetRest:60,weightSteps:{}}));
+    const [settings,         setSettings]         = useState(()=>LS.get('gym-settings',{normalRest:90,exerciseRest:120,supersetRest:60,warmupRest:60,weightSteps:{}}));
     const [sessionDurations, setSessionDurations] = useState(()=>LS.get('gym-session-durations',{}));
     const [instructors,      setInstructors]      = useState(()=>LS.get('gym-instructors', []));
     useEffect(()=>{ LS.set('gym-instructors', instructors); },[instructors]);
@@ -2347,7 +2346,7 @@ function App() {
                 notes:         LS.get('gym-notes',          {}),
                 images:        LS.get('gym-images',         {}),
                 videos:        LS.get('gym-videos',         {}),
-                settings:      LS.get('gym-settings',       {normalRest:90,supersetRest:60}),
+                settings:      LS.get('gym-settings',       {normalRest:90,exerciseRest:120,supersetRest:60,warmupRest:60}),
                 sessionStart:  LS.get('gym-session-start',  null),
                 sessionEnd:    LS.get('gym-session-end',    null),
                 groupOrder:    LS.get('gym-group-order',    null),
@@ -2517,7 +2516,9 @@ function App() {
             return;
         }
         setLogs(prev=>[...prev, newLog]);
-        const dur = isSuperset ? settings.supersetRest : settings.normalRest;
+        const dur = isSuperset ? (settings.supersetRest||60)
+            : setNum === 2 ? (settings.exerciseRest||120)
+            : (settings.normalRest||90);
         setRestTimers({[exId]: dur});
         setRestTimerTotals(prev => ({...prev, [exId]: dur}));
         // סופרסט: קפיצה מיידית לתרגיל הבא בסדר A1→B1→A2→B2
@@ -2735,7 +2736,7 @@ function App() {
     },[workoutSec, workoutNotes, sortedGroups]);
 
     const handleOpenExercise = group=>{
-        if (!workoutDecisionMade && workoutSec===0 && !isWorkoutActive) {
+        if (!isWorkoutActive) {
             requestConfirm('להפעיל טיימר?',
                 ()=>{ const wst=Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); },
                 ()=>{ setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); }
