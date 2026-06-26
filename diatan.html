@@ -221,7 +221,7 @@
   <!-- סגירת יום -->
   <div class="flex gap-2">
     <button id="btn-skip-day" class="bg-[#e3eaf2] border border-[#bfc8c8] text-[#404848] text-sm font-bold px-3 py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-1 shadow-sm">
-      <span class="material-symbols-outlined text-[16px]">skip_next</span>דלג
+      <span class="material-symbols-outlined text-[16px]">skip_next</span>דלג היום
     </button>
     <button id="btn-close-day" class="hx flex-1 bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
       <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
@@ -770,7 +770,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.49";
+const APP_VERSION = "5.50";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1031,7 +1031,14 @@ function render(){
   // ניווט ימים — פס כחול להיום, אפור לימים קודמים
   const label = $("day-label");
   const bar = $("day-bar");
-  if(isToday){
+  const daySkipped=day.skipped;
+  if(daySkipped){
+    bar.className="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm bg-[#ba1a1a]";
+    label.innerHTML=(isToday?'היום  ':'')+fmtDate(viewDay)+' (דלג) <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
+    label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-white active:scale-95 flex items-center gap-1";
+    $("day-prev").className="material-symbols-outlined text-white p-1 active:scale-90 text-[22px]";
+    $("day-next").className="material-symbols-outlined "+(isToday?"text-white/30":"text-white")+" p-1 "+(isToday?"":"active:scale-90")+" text-[22px]";
+  } else if(isToday){
     bar.className="flex items-center justify-between rounded-2xl px-3 py-2 shadow-sm bg-[#1255a8]";
     label.innerHTML='היום  '+fmtDate(viewDay)+' <span class="material-symbols-outlined text-[16px]">calendar_month</span>';
     label.className="text-base font-extrabold px-3 py-0.5 rounded-lg text-white active:scale-95 flex items-center gap-1";
@@ -1127,7 +1134,7 @@ function render(){
     $("btn-skip-day").innerHTML='<span class="material-symbols-outlined text-[16px]">undo</span>בטל דלג';
     $("btn-skip-day").className="bg-[#ffdad6] border border-[#93000a]/30 text-[#93000a] text-sm font-bold px-3 py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-1 shadow-sm";
   } else {
-    $("btn-skip-day").innerHTML='<span class="material-symbols-outlined text-[16px]">skip_next</span>דלג';
+    $("btn-skip-day").innerHTML='<span class="material-symbols-outlined text-[16px]">skip_next</span>דלג היום';
     $("btn-skip-day").className="bg-[#e3eaf2] border border-[#bfc8c8] text-[#404848] text-sm font-bold px-3 py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-1 shadow-sm";
   }
 
@@ -1713,7 +1720,7 @@ function onSkipDay(){
     delete day.skipped;
     persist(); render(); toast("הדלגה בוטלה");
   } else {
-    if(!confirm("לסמן את היום כ״דלג״?\nהיום לא ייכלל בדוחות.")) return;
+    if(!confirm("לסמן את היום כ״דלג היום״?\nיום זה יסומן כיום ללא תיעוד מסודר ולא ייכלל בדוחות.")) return;
     day.skipped=true;
     persist(); render(); toast("היום סומן כדלג");
   }
