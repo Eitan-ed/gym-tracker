@@ -205,8 +205,24 @@
     </button>
   </div>
 
+  <!-- הערות יום -->
+  <div class="bg-white border border-[#bfc8c8] rounded-2xl shadow-sm p-3">
+    <div class="flex items-center gap-1 mb-1 cursor-pointer" id="day-note-toggle">
+      <span class="material-symbols-outlined text-[16px] text-[#0061a4]" id="day-note-arrow">expand_more</span>
+      <h4 class="text-xs font-bold text-[#404848]">הערות יום</h4>
+      <span id="day-note-indicator" class="hx text-[9px] text-[#006c49] font-bold mr-1">יש הערה</span>
+    </div>
+    <div id="day-note-body" class="hx">
+      <textarea id="day-note-text" class="w-full bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm resize-none" rows="3" dir="rtl" placeholder="הערות חופשיות לסוף היום..."></textarea>
+      <button id="day-note-save" class="mt-1 bg-[#006c49] text-white text-xs font-bold px-4 py-1.5 rounded-xl">שמור הערה</button>
+    </div>
+  </div>
+
   <!-- סגירת יום -->
   <div class="flex gap-2">
+    <button id="btn-skip-day" class="bg-[#e3eaf2] border border-[#bfc8c8] text-[#404848] text-sm font-bold px-3 py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-1 shadow-sm">
+      <span class="material-symbols-outlined text-[16px]">skip_next</span>דלג
+    </button>
     <button id="btn-close-day" class="hx flex-1 bg-gradient-to-l from-[#0d47a1] to-[#1565c0] text-white text-sm font-bold py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-2 shadow-md">
       <span class="material-symbols-outlined text-[20px]">nightlight</span> סגירת יום — סיכום AI
     </button>
@@ -303,7 +319,10 @@
       <h2 class="text-base font-bold text-[#003535]">עריכת ארוחות היום</h2>
       <button id="close-meals-modal" class="material-symbols-outlined text-[#404848] text-[20px]">close</button>
     </div>
-    <button id="me-save" class="w-full bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98]">שמור שינויים</button>
+    <div class="flex gap-2">
+      <button id="me-save" class="flex-1 bg-[#006c49] text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98]">שמור שינויים</button>
+      <button id="me-add-meal" class="bg-[#0061a4] text-white text-sm font-bold px-4 py-2.5 rounded-xl active:scale-[0.98] flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span>ארוחה</button>
+    </div>
     <div id="meals-edit-list" class="space-y-3"></div>
     <div class="flex items-center justify-between border-t-2 border-[#003535] pt-2 font-bold text-[#003535]">
       <span>סה"כ</span>
@@ -751,7 +770,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.48";
+const APP_VERSION = "5.49";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1102,6 +1121,17 @@ function render(){
       hide(cdSum); hide(rfBtn);
     }
   } else { hide(cdBtn); hide(cdSum); hide(rfBtn); }
+
+  // דלג על יום
+  if(day.skipped){
+    $("btn-skip-day").innerHTML='<span class="material-symbols-outlined text-[16px]">undo</span>בטל דלג';
+    $("btn-skip-day").className="bg-[#ffdad6] border border-[#93000a]/30 text-[#93000a] text-sm font-bold px-3 py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-1 shadow-sm";
+  } else {
+    $("btn-skip-day").innerHTML='<span class="material-symbols-outlined text-[16px]">skip_next</span>דלג';
+    $("btn-skip-day").className="bg-[#e3eaf2] border border-[#bfc8c8] text-[#404848] text-sm font-bold px-3 py-3 rounded-xl active:scale-[0.98] flex items-center justify-center gap-1 shadow-sm";
+  }
+
+  renderDayNote();
 
   // רצף ימים
   const streak=calcStreak(); const sc=$("streak-chip");
@@ -1667,6 +1697,44 @@ function saveMealsEdit(){
   const day=S.days[viewDay];
   if(day){ day.meals.forEach((m,mi)=>recalcMeal(mi)); day.meals=day.meals.filter(m=>m.items&&m.items.length); }
   persist(); setMealsDirty(false); closeMealsModal(); render(); toast("הארוחות עודכנו");
+}
+
+function addMealInModal(){
+  applyMealsEdit();
+  const day=ensure(viewDay);
+  day.meals.push({desc:"",time:new Date().toISOString(),calories:0,protein:0,beefGrams:0,items:[{name:"",amount:"",calories:0,protein:0}]});
+  renderMealsEdit(); setMealsDirty(true);
+  const list=$("meals-edit-list");
+  list.lastElementChild&&list.lastElementChild.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function onSkipDay(){
+  const day=ensure(viewDay);
+  if(day.skipped){
+    delete day.skipped;
+    persist(); render(); toast("הדלגה בוטלה");
+  } else {
+    if(!confirm("לסמן את היום כ״דלג״?\nהיום לא ייכלל בדוחות.")) return;
+    day.skipped=true;
+    persist(); render(); toast("היום סומן כדלג");
+  }
+}
+function toggleDayNote(){
+  const body=$("day-note-body"), arrow=$("day-note-arrow");
+  const open=!body.classList.contains("hx");
+  body.classList.toggle("hx",open);
+  arrow.textContent=open?"expand_more":"expand_less";
+}
+function saveDayNote(){
+  const day=ensure(viewDay);
+  day.note=$("day-note-text").value.trim();
+  persist(); renderDayNote(); toast("ההערה נשמרה");
+}
+function renderDayNote(){
+  const day=S.days&&S.days[viewDay];
+  const note=day&&day.note||"";
+  $("day-note-text").value=note;
+  const ind=$("day-note-indicator");
+  if(note){ show(ind); } else { hide(ind); }
 }
 
 // ===== מודאל הערות תזונתיות (לחיצה על חלבון) =====
@@ -2290,7 +2358,7 @@ function buildNutritionReportMD(period){
   md+="- יעד צעדים: "+stepsGoal()+"\n\n";
   const dayIds=Object.keys(S.days||{}).filter(id=>{
     const d=idToDate(id);
-    return d>=fromDate && d<=toDate;
+    return d>=fromDate && d<=toDate && !S.days[id].skipped;
   }).sort();
   let totalCal=0, totalProt=0, totalBeef=0, daysWithMeals=0, daysStrength=0, totalSteps=0, daysWithSteps=0;
   if(dayIds.length){
@@ -2319,6 +2387,7 @@ function buildNutritionReportMD(period){
       md+="**סיכום יום:** "+dayCal+" קל"+(burn>0?" (יעד אפקטיבי כולל פעילות: "+effectiveCt+")":"")+" — "+( deficit>0?"גרעון "+deficit:"עודף "+Math.abs(deficit))+", "+dayProt+" ג' חלבון"+(dayProt>=pt?" ✔":" (חסר "+(pt-dayProt)+")")+"\n";
       if(day.steps) { md+="- צעדים: "+day.steps+" (שריפה: ~"+Math.round(+day.steps/1000*STEP_CAL_PER_1000)+" קל)\n"; totalSteps+=day.steps; daysWithSteps++; }
       if(day.strength) { md+="- אימון כוח: כן (שריפה: ~"+STRENGTH_CAL+" קל)\n"; daysStrength++; }
+      if(day.note) md+="- הערות אישיות: "+day.note+"\n";
       if(day.closeSummary) md+="- סיכום סגירת יום: "+day.closeSummary+"\n";
       md+="\n";
       totalCal+=dayCal; totalProt+=dayProt; totalBeef+=dayBeef;
@@ -2481,6 +2550,10 @@ function buildReportMD(){
   const lastMeas=(S.measurements||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).find(m=>m.waist&&m.thigh);
   if(lastMeas){ const rAge=calcAge(); const vat=calcVAT(lastMeas.waist, lastMeas.thigh, rAge, w, 180); md+="- שומן ויסרלי (VAT): "+vat+' סמ"ר'+(vat<=130?" (תקין)":vat<=150?" (סף מסוכן)":" (סיכון גבוה)")+"\n"; }
   md+="\n";
+  if(day.note){
+    md += "## הערות אישיות\n";
+    md += day.note+"\n\n";
+  }
   if(S.principles && S.principles.length){
     md += "## עקרונות\n";
     S.principles.forEach((p,i)=>{ md += (i+1)+". "+(p.text||p)+"\n"; });
@@ -2819,6 +2892,9 @@ function start(){
   $("close-strength-modal").onclick=closeStrengthModal;
   $("strength-modal").onclick=e=>{ if(e.target===$("strength-modal")) closeStrengthModal(); };
   $("strength-modal-toggle").onchange=e=>{ ensure(viewDay).strength=e.target.checked; $("strength").checked=e.target.checked; persist(); render(); renderStrengthHistory(); };
+  $("btn-skip-day").onclick=onSkipDay;
+  $("day-note-toggle").onclick=toggleDayNote;
+  $("day-note-save").onclick=saveDayNote;
   $("btn-close-day").onclick=onCloseDay;
   $("btn-refresh-summary").onclick=()=>{ const day=ensure(viewDay); if(day.closeSummary){ delete day.closeSummary; persist(); hide($("close-day-summary")); hide($("close-day-qa")); hide($("btn-refresh-summary")); onCloseDay(); } };
   $("close-day-q-send").onclick=onCloseDayQ;
@@ -2833,6 +2909,7 @@ function start(){
   $("close-meals-modal").onclick=closeMealsModal;
   $("me-save").onclick=saveMealsEdit;
   $("me-save-bottom").onclick=saveMealsEdit;
+  $("me-add-meal").onclick=addMealInModal;
   $("meals-modal").onclick=e=>{ if(e.target===$("meals-modal")) closeMealsModal(); };
   $("tp-ok").onclick=applyTimePick;
   $("tp-cancel").onclick=closeTimePicker;
