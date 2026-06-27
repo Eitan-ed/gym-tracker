@@ -770,7 +770,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.50";
+const APP_VERSION = "5.51";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1657,6 +1657,7 @@ function renderMealsEdit(){
         +'<div class="flex items-center gap-1">'
         +'<button class="fav-item-me material-symbols-outlined text-[#e6a700] text-[18px] shrink-0" style="font-variation-settings:\'FILL\' '+(isItemFav(it.name)?'1':'0')+'" data-mi="'+mi+'" data-ii="'+ii+'" title="'+(isItemFav(it.name)?'במועדפים':'הוסף למועדפים')+'">star</button>'
         +'<input class="me-name flex-1 min-w-0 bg-[#e3eaf2] border border-[#bfc8c8] rounded-lg px-2 py-1 text-sm font-medium" value="'+esc(it.name)+'">'
+        +'<button class="recalc-item material-symbols-outlined text-[#1565C0] text-[16px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'" title="חשב מחדש">calculate</button>'
         +'<button class="del-item material-symbols-outlined text-[#93000a] text-[16px] shrink-0" data-mi="'+mi+'" data-ii="'+ii+'">close</button>'
         +'</div>'
         +'<div class="flex gap-1.5 items-center pr-7">'
@@ -1671,6 +1672,7 @@ function renderMealsEdit(){
     card.innerHTML=html;
     box.appendChild(card);
   });
+  box.querySelectorAll(".recalc-item").forEach(btn=>btn.onclick=()=>recalcItemInModal(+btn.dataset.mi, +btn.dataset.ii, btn.closest(".me-row")));
   box.querySelectorAll(".del-item").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); S.days[viewDay].meals[+btn.dataset.mi].items.splice(+btn.dataset.ii,1); renderMealsEdit(); setMealsDirty(true); });
   box.querySelectorAll(".del-meal").forEach(btn=>btn.onclick=()=>{ if(!confirm("למחוק את הארוחה?")) return; applyMealsEdit(); S.days[viewDay].meals.splice(+btn.dataset.mi,1); renderMealsEdit(); setMealsDirty(true); });
   box.querySelectorAll(".fav-meal").forEach(btn=>btn.onclick=()=>{ const mi=+btn.dataset.mi; applyMealsEdit(); recalcMeal(mi); saveFavorite(S.days[viewDay].meals[mi]); });
@@ -1697,6 +1699,26 @@ function renderMealsEdit(){
   });
   updateMealsEditSum();
   setMealsDirty(false);
+}
+async function recalcItemInModal(mi, ii, row){
+  const nameInp=row.querySelector(".me-name"), amtInp=row.querySelector(".me-amt"), unitInp=row.querySelector(".me-unit");
+  const calInp=row.querySelector(".me-cal"), protInp=row.querySelector(".me-prot");
+  const name=nameInp.value.trim(); if(!name){ toast("אין שם פריט",true); return; }
+  const amt=amtInp.value.trim(), unit=unitInp.value.trim();
+  const desc=name+(amt?" "+amt:"")+(unit?" "+unit:"");
+  const btn=row.querySelector(".recalc-item");
+  btn.textContent="hourglass_top"; btn.disabled=true;
+  try {
+    const res=await analyze(desc, []);
+    if(!res.items.length){ toast("לא זוהה פריט",true); return; }
+    const it=res.items[0];
+    calInp.value=Math.round(+it.calories||0);
+    protInp.value=Math.round(+it.protein||0);
+    if(it.amount){ const n=parseAmtNum(it.amount), u=parseAmtUnit(it.amount); if(n) amtInp.value=n; if(u) unitInp.value=u; }
+    updateMealsEditSum(); setMealsDirty(true);
+    toast("עודכן: "+it.name);
+  } catch(e){ toast(e.message||String(e),true); }
+  finally { btn.textContent="calculate"; btn.disabled=false; }
 }
 function saveMealsEdit(){
   if(!mealsDirty){ closeMealsModal(); return; }
