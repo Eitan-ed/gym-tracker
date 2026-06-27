@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.44';
+const APP_VERSION = '9.45';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -605,8 +605,9 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     <React.Fragment>
                         <div style={isDoneW ? {border:'2px solid #d97706', borderRadius:'1.6rem', opacity:0.7} : {border:'2px dashed #f59e0b', borderRadius:'1.6rem', boxShadow:'0 2px 8px rgba(245,158,11,0.15)'}}
                             className={`p-3 rounded-[1.6rem] flex items-center gap-2 transition-all ${isDoneW ? 'bg-amber-50' : 'bg-amber-50/70'}`}>
-                            <div className="w-8 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
-                                style={{background: isDoneW ? '#92400e' : '#f59e0b'}}>
+                            <div className="w-8 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg cursor-pointer"
+                                style={{background: isDoneW ? '#92400e' : '#f59e0b'}}
+                                onClick={()=>{if(!isDoneW) setWarmupOpen(false);}}>
                                 <span className="text-[6px] font-black uppercase tracking-tighter text-white/80">WARM</span>
                                 <span className="text-xs font-black leading-none text-white">🔥</span>
                             </div>
@@ -1080,7 +1081,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         })}
                                         <button onClick={()=>{const nt=[...(customTips[ex.id]||ex.tips),''];updateTips(nt);setEditingTipKey(`${ex.id}:${(customTips[ex.id]||ex.tips).length}`);setTipEditVal('');}}
                                             className="bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-[11px] text-emerald-600 font-black flex items-center gap-1 active:scale-95">
-                                            <Icon name="Plus" size={12}/> הוסף דגש
+                                            <Icon name="Plus" size={12}/>
                                         </button>
                                     </>);
                                 })()}
@@ -2501,11 +2502,11 @@ function App() {
         }
     },[workoutSec, workoutStartTime]);
 
-    // גיבוי יומי אוטומטי
+    // גיבוי יומי אוטומטי — הורדה שקטה בלי דיאלוג
     useEffect(()=>{
         const last = LS.get('gym-last-backup', 0);
         if (Date.now() - last > 86400000) {
-            triggerBackupDownload({
+            const data = {
                 logs:          LS.get('gym-logs',           []),
                 notes:         LS.get('gym-notes',          {}),
                 images:        LS.get('gym-images',         {}),
@@ -2524,7 +2525,15 @@ function App() {
                 lastSummary:     LS.get('gym-last-summary',     null),
                 customNames:     LS.get('gym-custom-names',     {}),
                 customHowTo:     LS.get('gym-custom-howto',     {})
-            });
+            };
+            const payload = { ...data, _all: collectAllGymData() };
+            const json = JSON.stringify(payload, null, 2);
+            const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fname; a.click();
+            URL.revokeObjectURL(url);
             LS.set('gym-last-backup', Date.now());
         }
     },[]);
