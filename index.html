@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.42';
+const APP_VERSION = '9.43';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -825,6 +825,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     });
     const [historyOpen, setHistoryOpen] = useState(()=>LS.get('gym-hist-open', {}));
     useEffect(()=>{ LS.set('gym-hist-open', historyOpen); },[historyOpen]);
+    const [editingHowToId, setEditingHowToId] = useState(null);
+    const [howToEditVal, setHowToEditVal] = useState('');
     const scrollRef = React.useRef(null);
     useEffect(()=>{ LS.set('gym-show-details', showDetails); },[showDetails]);
 
@@ -1014,38 +1016,37 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </div>
                     {showDetails[ex.id] && (
                         <div className="px-4 pb-4">
-                            {(()=>{
-                                const howToText = customHowTo[ex.id] || ex.howTo;
-                                const [editingHowTo, setEditingHowTo] = React.useState(false);
-                                const [howToVal, setHowToVal] = React.useState(howToText);
-                                return editingHowTo ? (
-                                    <div className="mb-3">
-                                        <textarea value={howToVal} onChange={e=>setHowToVal(e.target.value)} autoFocus
-                                            rows={3}
-                                            onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
-                                            ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
-                                            className="w-full bg-white border border-blue-200 rounded-2xl p-3 text-[13px] font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-400 resize-none overflow-hidden mb-2" />
-                                        <div className="flex gap-2">
-                                            <button onClick={()=>{
-                                                if (howToVal.trim() && howToVal.trim() !== ex.howTo) setCustomHowTo(prev=>({...prev,[ex.id]:howToVal.trim()}));
-                                                else { setCustomHowTo(prev=>{const c={...prev}; delete c[ex.id]; return c;}); }
-                                                setEditingHowTo(false);
-                                            }} className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-[12px] font-black active:scale-95">שמור</button>
-                                            <button onClick={()=>{setHowToVal(howToText);setEditingHowTo(false);}} className="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-[12px] font-black active:scale-95">ביטול</button>
-                                            {customHowTo[ex.id] && (
-                                                <button onClick={()=>{setCustomHowTo(prev=>{const c={...prev};delete c[ex.id];return c;});setHowToVal(ex.howTo);setEditingHowTo(false);}}
-                                                    className="px-3 py-2 bg-rose-50 text-rose-500 rounded-xl text-[11px] font-black active:scale-95">איפוס</button>
-                                            )}
-                                        </div>
+                            {editingHowToId === ex.id ? (
+                                <div className="mb-3">
+                                    <textarea value={howToEditVal} onChange={e=>setHowToEditVal(e.target.value)} autoFocus
+                                        rows={3}
+                                        onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
+                                        ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
+                                        className="w-full bg-white border border-blue-200 rounded-2xl p-3 text-[13px] font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-400 resize-none overflow-hidden mb-2" />
+                                    <div className="flex gap-2">
+                                        <button onClick={()=>{
+                                            if (howToEditVal.trim() && howToEditVal.trim() !== ex.howTo) setCustomHowTo(prev=>({...prev,[ex.id]:howToEditVal.trim()}));
+                                            else { setCustomHowTo(prev=>{const c={...prev}; delete c[ex.id]; return c;}); }
+                                            setEditingHowToId(null);
+                                        }} className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-[12px] font-black active:scale-95">שמור</button>
+                                        <button onClick={()=>setEditingHowToId(null)} className="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-[12px] font-black active:scale-95">ביטול</button>
+                                        {customHowTo[ex.id] && (
+                                            <button onClick={()=>{setCustomHowTo(prev=>{const c={...prev};delete c[ex.id];return c;});setEditingHowToId(null);}}
+                                                className="px-3 py-2 bg-rose-50 text-rose-500 rounded-xl text-[11px] font-black active:scale-95">איפוס</button>
+                                        )}
                                     </div>
-                                ) : (
-                                    <p onClick={()=>setEditingHowTo(true)}
-                                        className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 mb-3 font-medium cursor-pointer active:bg-blue-50/50 transition-colors">
-                                        {howToText}
-                                        <span className="text-[10px] text-blue-400 font-black mr-2">✏️</span>
+                                </div>
+                            ) : (
+                                <div className="relative mb-3">
+                                    <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 font-medium">
+                                        {customHowTo[ex.id] || ex.howTo}
                                     </p>
-                                );
-                            })()}
+                                    <button onClick={()=>{setEditingHowToId(ex.id);setHowToEditVal(customHowTo[ex.id]||ex.howTo);}}
+                                        className="absolute top-2 left-2 w-7 h-7 bg-white/90 border border-slate-200 rounded-full flex items-center justify-center text-blue-400 active:scale-90 shadow-sm">
+                                        <span className="text-[12px]">✏️</span>
+                                    </button>
+                                </div>
+                            )}
                             <div className="flex flex-wrap gap-2 mb-3">
                                 {ex.tips.map((t,i)=>(
                                     <div key={i} className="bg-white p-2 rounded-xl border border-slate-100 text-[11px] text-slate-600 flex items-start gap-2 shadow-sm">
