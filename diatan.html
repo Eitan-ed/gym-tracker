@@ -563,6 +563,11 @@
           <input id="set-weight" type="number" step="0.1" placeholder='משקל (ק"ג)' class="flex-1 bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
           <input id="set-weight-date" type="date" class="bg-[#e3eaf2] border border-[#bfc8c8] rounded-xl p-2.5 outline-none text-sm">
         </div>
+        <div id="manage-timing" class="flex gap-2 justify-center">
+          <button data-timing="before" class="mng-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">לפני</button>
+          <button data-timing="half" class="mng-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">חצי</button>
+          <button data-timing="after" class="mng-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]">אחרי</button>
+        </div>
         <button id="btn-save-weight-manage" class="w-full bg-[#006c49] text-white font-bold py-2 rounded-xl text-sm">שמור משקל</button>
         <div class="border-t border-[#bfc8c8] pt-2">
           <div id="manage-chart-fold" class="cursor-pointer flex items-center gap-1 mb-1">
@@ -770,7 +775,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.51";
+const APP_VERSION = "5.52";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -865,6 +870,7 @@ function ensure(dayId){
   if(!S.profile) S.profile = { weight:0 };
   if(!S.days) S.days = {};
   if(!S.weights) S.weights = [];
+  S.weights.forEach(w=>{ if(!w.timing) w.timing="before"; });
   if(!S.favorites) S.favorites = [];
   if(!S.principles){ S.principles = DEFAULT_PRINCIPLES.map(p=>Object.assign({},p)); }
   if(S.principles.length && typeof S.principles[0]==="string"){ S.principles=S.principles.map(t=>({text:t,cat:"assumptions"})); }
@@ -1442,7 +1448,7 @@ function renderWeightTable(boxId){
     const dateLabel=days[i]+" "+d.getDate()+"/"+(d.getMonth()+1);
     let diffTag="";
     if(kg&&w1){ const diff=Math.round((kg-w1)*10)/10; const color=diff<0?"#006c49":"#ba1a1a"; diffTag='<span class="text-[8px] font-bold" style="color:'+color+'">('+( diff>0?"+":"")+diff.toFixed(1)+')</span>'; }
-    const underline=timing==="after"?"border-bottom:2px solid #8B4513;padding-bottom:1px;":(timing==="half"?"border-bottom:2px solid #8B4513;padding-bottom:1px;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;":"");
+    const underline=timing==="after"?"border-bottom:2px solid #8B4513;padding-bottom:1px;":(timing==="half"?"border-bottom:2px solid #8B4513;padding-bottom:1px;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;":(timing==="before"?"border-bottom:2px dashed #8B4513;padding-bottom:1px;":""));
     const weightCell=kg?'<span class="wm-edit-cell cursor-pointer flex flex-col items-center leading-none" data-date="'+id+'"><span><span class="font-extrabold text-[#003535] inline-block" style="'+underline+'">'+kg.toFixed(1)+'</span> '+diffTag+'</span>'+(timeStr?'<span class="text-[7px] font-normal text-[#404848] -mt-0.5">'+timeStr+'</span>':'')+'</span>':'<span>—</span>';
     row.innerHTML='<span class="font-bold text-[9px]">'+dateLabel+'</span>'
       +weightCell
@@ -1476,7 +1482,7 @@ function renderWeightTable(boxId){
   });
   const legend=document.createElement("div");
   legend.className="flex gap-3 justify-end pt-2 text-[10px] text-[#404848]";
-  legend.innerHTML='<span><span class="text-[#006c49] font-bold">(-)</span> ירידה</span><span><span class="text-[#ba1a1a] font-bold">(+)</span> עלייה</span><span><span style="border-bottom:2px solid #8B4513;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> אחרי</span><span><span style="border-bottom:2px solid #8B4513;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> חצי</span>';
+  legend.innerHTML='<span><span class="text-[#006c49] font-bold">(-)</span> ירידה</span><span><span class="text-[#ba1a1a] font-bold">(+)</span> עלייה</span><span><span style="border-bottom:2px solid #8B4513;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> אחרי</span><span><span style="border-bottom:2px solid #8B4513;border-image:linear-gradient(to left,#8B4513 50%,transparent 50%) 1;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> חצי</span><span><span style="border-bottom:2px dashed #8B4513;display:inline-block;width:16px;height:2px;vertical-align:middle"></span> לפני</span>';
   box.appendChild(legend);
 }
 
@@ -2166,16 +2172,28 @@ function renderWeightChart(){
   else if(perWeek<0){ trendEl.innerHTML='ירידה '+abs+' ק"ג/שבוע'; trendEl.style.color='#006c49'; }
   else { trendEl.innerHTML='עלייה '+abs+' ק"ג/שבוע'; trendEl.style.color='#ba1a1a'; }
 }
+let mngTiming="";
+function initMngTimingButtons(){
+  document.querySelectorAll(".mng-time-btn").forEach(btn=>btn.onclick=()=>{
+    mngTiming=btn.dataset.timing;
+    document.querySelectorAll(".mng-time-btn").forEach(b=>{
+      b.className="mng-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] "+(b.dataset.timing===mngTiming?"bg-[#e3eaf2] text-[#003535]":"bg-white text-[#404848]");
+    });
+  });
+}
 function saveWeightManage(){
   const w=parseFloat($("set-weight").value);
   const d=$("set-weight-date").value;
   if(isNaN(w)||w<=0){toast("ערך לא תקין",true);return;}
+  if(!mngTiming){toast("יש לבחור לפני / חצי / אחרי",true);return;}
   const dateId = d || todayId();
+  const now=new Date();
   S.profile.weight=w;
   S.weights=S.weights||[];
-  S.weights.push({date:dateId, kg:w});
+  S.weights.push({date:dateId, kg:w, timing:mngTiming, time:now.getHours()+":"+String(now.getMinutes()).padStart(2,"0")});
   ensure(dateId).weight=w;
   persist(); render(); renderWeightHistoryManage(); renderWeightChart();
+  mngTiming=""; document.querySelectorAll(".mng-time-btn").forEach(b=>{b.className="mng-time-btn px-3 py-1 rounded-lg text-xs font-bold border border-[#bfc8c8] bg-white text-[#404848]";});
   toast("המשקל נשמר");
 }
 
@@ -2899,6 +2917,7 @@ function start(){
   $("close-weight-modal").onclick=closeWeightModal;
   $("wm-save").onclick=saveWeightModal;
   initWmButtons();
+  initMngTimingButtons();
   function toggleChartFold(bodyId,arrowClass,renderFn){
     const body=$(bodyId), arrow=document.querySelector("."+arrowClass);
     const open=!body.classList.contains("hx");
