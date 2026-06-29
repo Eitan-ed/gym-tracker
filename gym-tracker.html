@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.50';
+const APP_VERSION = '9.51';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1938,8 +1938,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     return (
                                         <div key={ex.id} className="flex items-center gap-2">
                                             <button onClick={()=>onNavigateToGroup && onNavigateToGroup(g)}
-                                                className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-2xl border transition-all active:scale-[0.98]
-                                                    ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
+                                                className={`flex-1 flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 shadow-sm transition-all active:scale-[0.98]
+                                                    ${isHidden ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white'}`}>
                                                 {img
                                                     ? <img src={img} className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm" />
                                                     : <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ${g.color} shrink-0 shadow-sm`}>{g.icon}</div>
@@ -2174,23 +2174,10 @@ const FloatingRestTimer = memo(({ restTimers, restTimerTotals, logs, visibleGrou
     if (!active) return null;
     const pct = (active.rt / active.tot) * 100;
     return (
-        <div className="fixed left-0 right-0 z-[700] pointer-events-none" dir="rtl"
+        <div className="fixed left-0 right-0 z-[700] pointer-events-none"
              style={{top:'env(safe-area-inset-top)'}}>
-            <div style={{maxWidth:'28rem',margin:'0 auto'}}>
-                <div className="h-2.5 bg-slate-200/50 overflow-hidden rounded-b-xl">
-                    <div className="h-full bg-orange-500 transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
-                </div>
-                {nextInfo && nextInfo.weight > 0 && (
-                    <div className="flex flex-col items-center mt-2 pointer-events-auto">
-                        <div className="bg-slate-900/90 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-2xl border border-slate-700/50 text-center">
-                            <span className="text-3xl font-black text-orange-400 leading-none">{nextInfo.weight}</span>
-                            <span className="text-sm font-black text-orange-400/70 mr-1">ק״ג</span>
-                            {nextInfo.warmupWeight > 0 && (
-                                <div className="text-sm font-bold text-slate-400 mt-0.5">({nextInfo.warmupWeight} ק״ג)</div>
-                            )}
-                        </div>
-                    </div>
-                )}
+            <div className="h-3 bg-slate-200/50 overflow-hidden">
+                <div className="h-full bg-orange-500 transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
             </div>
         </div>
     );
