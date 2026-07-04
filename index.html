@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.45';
+const APP_VERSION = '9.52';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -137,6 +137,9 @@ const Icon = ({ name, size=24, className="" }) => {
         </svg>
     );
 };
+
+// ─── תרגילי גרויטון (משקל נמוך = חזק יותר) ────────────────
+const GRAVITRON_EXERCISES = new Set(['ex7b']);
 
 // ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
 const DEFAULT_WEIGHT_STEPS = {
@@ -450,13 +453,13 @@ function VideoInput({ exId, onSave }) {
 // ─── ExerciseEntryRow ──────────────────────────────────────
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
-    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null }) {
+    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
     const defW = DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
     const defR = DEFAULT_STARTING_REPS[ex.id] ?? 10;
     const [s1, setS1] = useState({ w:defW, r:defR, wC:false, rC:false });
     const [s2, setS2] = useState({ w:defW, r:defR, wC:false, rC:false });
-    const [warmupOpen, setWarmupOpen] = useState(false);
+    const [warmupOpen, setWarmupOpen] = useState(warmupEmbed);
     const [sW, setSW] = useState({ w:defW, r:10, wC:false, rC:false });
 
     const weightPresets = useMemo(() => [...new Set(
@@ -815,7 +818,7 @@ const VideoModal = ({ src, onClose }) => {
 
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false,
-    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null }) {
+    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={} }) {
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -872,14 +875,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const youtubeId  = videos?.[ex.id];
         const localVid   = EXERCISE_VIDEOS[ex.id];
         const hasVideo   = youtubeId || localVid;
-        // משקל + חזרות של הסט עם המשקל הגבוה ביותר — מוצג בכתום ליד התמונה
-        const exHistSorted = [...logs].filter(l=>l.exId===ex.id && l.setNum > 0)
+        // משקל הטוב ביותר — מוצג בכתום ליד התמונה (גרויטון: נמוך=טוב)
+        const isGravitron = GRAVITRON_EXERCISES.has(ex.id);
+        const exHistSorted = [...logs].filter(l=>l.exId===ex.id && l.setNum > 0 && l.weight > 0)
             .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
         const bestWeightLog = exHistSorted.length > 0
-            ? exHistSorted.reduce((best,l)=>l.weight>best.weight?l:best, exHistSorted[0])
+            ? exHistSorted.reduce((best,l)=> isGravitron ? (l.weight<best.weight?l:best) : (l.weight>best.weight?l:best), exHistSorted[0])
             : null;
         const lastW = bestWeightLog?.weight ?? 0;
-        const lastR = bestWeightLog?.reps ?? 0;
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
         let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
@@ -962,30 +965,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
                                     </div>
                                 )}
-                                {(
-                                    <div className={`flex flex-col gap-2 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'9rem'}}>
-                                        <div className="flex-1 min-h-0 flex gap-1.5">
-                                            {hasVideo && <div className="flex-1 min-w-0 flex flex-col">{videoBtn(false)}</div>}
-                                            <div className="flex-1 min-w-0 flex flex-col">{miniTimer}</div>
+                                <div className={`grid grid-cols-2 grid-rows-2 gap-1.5 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'9rem'}}>
+                                    <div className="min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : <div className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl" />}</div>
+                                    <div className="min-w-0 flex flex-col">{miniTimer}</div>
+                                    {lastW>0 ? (
+                                        <div className="bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
+                                            <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
+                                            <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
                                         </div>
-                                        {(lastW>0 || lastR>0) && (
-                                            <div className="flex-1 min-h-0 flex gap-1.5">
-                                                {lastW>0 && (
-                                                    <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-                                                        <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
-                                                        <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
-                                                    </div>
-                                                )}
-                                                {lastR>0 && (
-                                                    <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-                                                        <span className="text-3xl font-black text-orange-500 leading-none">{lastR}</span>
-                                                        <span className="text-[10px] font-black text-orange-400 mt-0.5">{isTimerEx ? 'שניות' : 'חזרות'}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                    ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
+                                    <div className="bg-slate-50 border border-slate-100 rounded-2xl" />
+                                </div>
                             </div>
                         )}
                         {!dispImgSrc && (
@@ -1175,7 +1165,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     accentColor={accentHex} requestConfirm={requestConfirm}
                     weightStep={_ws} weightValues={_wv}
                     weightJumpSteps={_wv ? [1,2,3] : [_ws, _ws*2, _ws*4]}
-                    repsStep={1} repsJumpSteps={[1,2,3,5]} />
+                    repsStep={1} repsJumpSteps={[1,2,3,5]} warmupEmbed={!!warmupEmbed[ex.id]} />
                     );
                 })()}
             </div>
@@ -1414,10 +1404,45 @@ const collectAllGymData = () => {
 let _backupDirHandle = null;
 const getBackupDirName = () => _backupDirHandle?.name || null;
 
-const triggerBackupDownload = async (data) => {
+const loadBackupDirHandle = async () => {
+    try {
+        const h = await IDB.get('backup-dir-handle');
+        if (h) { _backupDirHandle = h; }
+    } catch {}
+};
+const saveBackupDirHandle = async (h) => {
+    _backupDirHandle = h;
+    await IDB.set('backup-dir-handle', h);
+};
+
+const writeToDir = async (dirHandle, json, fname) => {
+    const perm = await dirHandle.queryPermission({mode:'readwrite'});
+    if (perm !== 'granted') {
+        const req = await dirHandle.requestPermission({mode:'readwrite'});
+        if (req !== 'granted') return false;
+    }
+    const fh = await dirHandle.getFileHandle(fname, {create:true});
+    const writable = await fh.createWritable();
+    await writable.write(json);
+    await writable.close();
+    return true;
+};
+
+const triggerBackupDownload = async (data, silent) => {
     const payload = { ...data, _all: collectAllGymData() };
     const json = JSON.stringify(payload, null, 2);
     const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+    if (_backupDirHandle) {
+        try { if (await writeToDir(_backupDirHandle, json, fname)) return true; } catch {}
+    }
+    if (silent) {
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fname; a.click();
+        URL.revokeObjectURL(url);
+        return true;
+    }
     if (window.showSaveFilePicker) {
         try {
             const opts = { suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] };
@@ -1426,7 +1451,7 @@ const triggerBackupDownload = async (data) => {
             const writable = await fh.createWritable();
             await writable.write(json);
             await writable.close();
-            try { _backupDirHandle = await fh.getParent?.(); } catch {}
+            try { const parent = await fh.getParent?.(); if (parent) await saveBackupDirHandle(parent); } catch {}
             return true;
         } catch (e) { if (e.name === 'AbortError') return false; }
     }
@@ -1633,7 +1658,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             bodyweightLog:    LS.get('gym-bodyweight-log',     []),
             lastSummary:      LS.get('gym-last-summary',       null),
             customHowTo:      LS.get('gym-custom-howto',       {})
-        });
+        }, false);
         if (ok) { showToast('הגיבוי נשמר בהצלחה'); setBackupDir(getBackupDirName()); }
     };
 
@@ -1707,15 +1732,17 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.backup && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
-                        {backupDir && (
-                            <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100">
-                                <Icon name="Folder" size={16} className="text-slate-400 shrink-0" />
-                                <span className="text-[12px] font-bold text-slate-500 truncate flex-1" dir="ltr">{backupDir}</span>
+                        <button onClick={async()=>{try{const h=await window.showDirectoryPicker();await saveBackupDirHandle(h);setBackupDir(h.name);showToast('ספריית גיבוי נשמרה');}catch{}}}
+                            className="w-full flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]">
+                            <div className="bg-slate-200 p-2 rounded-xl"><Icon name="FolderOpen" size={20} /></div>
+                            <div className="flex-1 text-right">
+                                <div className="font-black text-sm">ספריית גיבוי</div>
+                                <div className="text-[10px] font-bold opacity-70">{backupDir || 'לחץ לבחירת ספרייה'}</div>
                             </div>
-                        )}
+                        </button>
                         <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
-                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">שמירת קובץ לספרייה</div></div>
+                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">{backupDir ? 'שמירה לספרייה' : 'שמירת קובץ'}</div></div>
                         </button>
                         {window.showOpenFilePicker ? (
                             <button onClick={handleRestore} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
@@ -1948,8 +1975,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     return (
                                         <div key={ex.id} className="flex items-center gap-2">
                                             <button onClick={()=>onNavigateToGroup && onNavigateToGroup(g)}
-                                                className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-2xl border transition-all active:scale-[0.98]
-                                                    ${isHidden ? 'border-indigo-200 bg-indigo-50' : 'border-slate-100 bg-slate-50'}`}>
+                                                className={`flex-1 flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 shadow-sm transition-all active:scale-[0.98]
+                                                    ${isHidden ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white'}`}>
                                                 {img
                                                     ? <img src={img} className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm" />
                                                     : <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ${g.color} shrink-0 shadow-sm`}>{g.icon}</div>
@@ -1985,6 +2012,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                     <option value="4-5">4-5</option>
                                                     <option value="10">10</option>
                                                 </select>
+                                                <button
+                                                    onClick={() => { const cur = settings.warmupEmbed || {}; onUpdateSettings('warmupEmbed', {...cur, [ex.id]: !cur[ex.id]}); }}
+                                                    className={`shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center
+                                                        ${settings.warmupEmbed?.[ex.id] ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-400 border border-amber-200'}`}>
+                                                    {settings.warmupEmbed?.[ex.id] ? '🔥 פתוח' : '🔥 סגור'}
+                                                </button>
                                                 <button
                                                     onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
                                                     className={`shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center
@@ -2144,7 +2177,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
 
 
 // ─── FloatingRestTimer ─────────────────────────────────────
-const FloatingRestTimer = memo(({ restTimers, restTimerTotals }) => {
+const FloatingRestTimer = memo(({ restTimers, restTimerTotals, logs, visibleGroups, activeGroup }) => {
     const active = useMemo(() => {
         let best = null;
         for (const id in restTimers) {
@@ -2154,8 +2187,29 @@ const FloatingRestTimer = memo(({ restTimers, restTimerTotals }) => {
         }
         return best;
     }, [restTimers, restTimerTotals]);
+    const nextInfo = useMemo(() => {
+        if (!active || !visibleGroups || !logs) return null;
+        const curGroup = activeGroup || visibleGroups.find(g => g.exercises.some(e => e.id === active.id));
+        if (!curGroup) return null;
+        let nextEx = null;
+        if (curGroup.exercises.length === 2) {
+            nextEx = curGroup.exercises.find(e => e.id !== active.id) || curGroup.exercises[0];
+        } else {
+            nextEx = curGroup.exercises[0];
+        }
+        if (!nextEx) return null;
+        const isGrav = GRAVITRON_EXERCISES.has(nextEx.id);
+        const exLogs = logs.filter(l => l.exId === nextEx.id && l.setNum > 0 && l.weight > 0)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const bestLog = exLogs.length > 0
+            ? exLogs.reduce((best, l) => isGrav ? (l.weight < best.weight ? l : best) : (l.weight > best.weight ? l : best), exLogs[0])
+            : null;
+        const warmupLogs = logs.filter(l => l.exId === nextEx.id && l.setNum === 0 && l.weight > 0)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return { weight: bestLog?.weight || 0, warmupWeight: warmupLogs[0]?.weight || 0 };
+    }, [active, visibleGroups, activeGroup, logs]);
     if (!active) return null;
-    const pct = (active.rt / active.tot) * 100; // מלא ויתרוקן
+    const pct = (active.rt / active.tot) * 100;
     return (
         <div className="fixed left-0 right-0 z-[700] pointer-events-none"
              style={{top:'env(safe-area-inset-top)'}}>
@@ -2502,10 +2556,15 @@ function App() {
         }
     },[workoutSec, workoutStartTime]);
 
-    // גיבוי יומי אוטומטי — הורדה שקטה בלי דיאלוג
+    // טעינת ספריית גיבוי שמורה + גיבוי אוטומטי בשעה 20:00
     useEffect(()=>{
-        const last = LS.get('gym-last-backup', 0);
-        if (Date.now() - last > 86400000) {
+        loadBackupDirHandle().then(()=>setBackupDir(getBackupDirName()));
+        const doAutoBackup = () => {
+            const now = new Date();
+            const today = now.toDateString();
+            const lastDate = LS.get('gym-last-backup-date', '');
+            if (lastDate === today) return;
+            if (now.getHours() < 20) return;
             const data = {
                 logs:          LS.get('gym-logs',           []),
                 notes:         LS.get('gym-notes',          {}),
@@ -2526,16 +2585,12 @@ function App() {
                 customNames:     LS.get('gym-custom-names',     {}),
                 customHowTo:     LS.get('gym-custom-howto',     {})
             };
-            const payload = { ...data, _all: collectAllGymData() };
-            const json = JSON.stringify(payload, null, 2);
-            const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fname; a.click();
-            URL.revokeObjectURL(url);
-            LS.set('gym-last-backup', Date.now());
-        }
+            triggerBackupDownload(data, true);
+            LS.set('gym-last-backup-date', today);
+        };
+        doAutoBackup();
+        const interval = setInterval(doAutoBackup, 60000);
+        return ()=>clearInterval(interval);
     },[]);
 
     // מיגרציה: הרמות רגליים (ex10b) עברו מטיימר לחזרות — ערכי "שניות" ישנים (≥40) הם בעצם 21 חזרות
@@ -2622,6 +2677,33 @@ function App() {
             }
             if (completedExId) {
                 playPhoneRingSound();
+                // TTS — הכרז משקל התרגיל הבא
+                if (window.speechSynthesis) {
+                    const curLogsT = logsRef.current;
+                    const curVisT = visibleGroupsRef.current;
+                    const curActiveT = activeGroupRef.current;
+                    const curGroupT = curActiveT || curVisT.find(g => g.exercises.some(e => e.id === completedExId));
+                    if (curGroupT) {
+                        let nextExT = null;
+                        if (curGroupT.exercises.length === 2) {
+                            nextExT = curGroupT.exercises.find(e => e.id !== completedExId) || curGroupT.exercises[0];
+                        } else {
+                            nextExT = curGroupT.exercises[0];
+                        }
+                        if (nextExT) {
+                            const isGravT = GRAVITRON_EXERCISES.has(nextExT.id);
+                            const exLogsT = curLogsT.filter(l => l.exId === nextExT.id && l.setNum > 0 && l.weight > 0);
+                            if (exLogsT.length > 0) {
+                                const bestT = exLogsT.reduce((b, l) => isGravT ? (l.weight < b.weight ? l : b) : (l.weight > b.weight ? l : b), exLogsT[0]);
+                                setTimeout(() => {
+                                    const u = new SpeechSynthesisUtterance(String(bestT.weight));
+                                    u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0;
+                                    window.speechSynthesis.speak(u);
+                                }, 1200);
+                            }
+                        }
+                    }
+                }
                 const curLogs = logsRef.current;
                 const curSst  = sstRef.current;
                 const curSkip = skippedRef.current;
@@ -2881,14 +2963,14 @@ function App() {
         if (nextGroup) {
             if (isAutoTransition) {
                 const nextEx = nextGroup.exercises[0];
-                const nextExLogs = curLogs.filter(l=>l.exId===nextEx.id && l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+                const isGrav = GRAVITRON_EXERCISES.has(nextEx.id);
+                const nextExLogs = curLogs.filter(l=>l.exId===nextEx.id && l.setNum > 0 && l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
                 if (nextExLogs.length > 0) {
-                    const sessionDates = [...new Set(nextExLogs.map(l=>new Date(l.timestamp).toLocaleDateString()))].slice(0,2);
-                    const last2Logs = nextExLogs.filter(l=>sessionDates.includes(new Date(l.timestamp).toLocaleDateString()));
-                    const bestLog = last2Logs.reduce((best,l)=>l.weight>best.weight?l:best, last2Logs[0]);
-                    const reps = bestLog?.reps || 0;
+                    const bestLog = nextExLogs.reduce((best,l)=> isGrav ? (l.weight<best.weight?l:best) : (l.weight>best.weight?l:best), nextExLogs[0]);
                     const weight = bestLog?.weight || 0;
-                    setAutoTransitionSplash({ title: nextGroup.title, reps, weight });
+                    const warmupLogs = curLogs.filter(l=>l.exId===nextEx.id && l.setNum===0 && l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+                    const warmupWeight = warmupLogs[0]?.weight || 0;
+                    setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight });
                 }
             }
             setActiveGroup(nextGroup); setView('detail');
@@ -2924,16 +3006,18 @@ function App() {
     const hasActiveRest = Object.keys(restTimers).some(id => (restTimers[id]||0) > 0 && (restTimerTotals[id]||0) > 0);
     const overlays = (
         <>
-            <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} />
+            <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} logs={logs} visibleGroups={visibleGroups} activeGroup={activeGroup} />
             {autoTransitionSplash && (
                 <div className="fixed inset-x-0 bottom-0 z-[900] flex items-center justify-center bg-black/60 backdrop-blur-sm" style={{top:'50%',maxWidth:'28rem',margin:'0 auto'}} onClick={()=>setAutoTransitionSplash(null)}>
                     <div className="text-center">
                         <div className="text-orange-400 font-black" style={{fontSize:'3.5rem',lineHeight:1.2}}>
-                            {autoTransitionSplash.reps} חזרות
-                        </div>
-                        <div className="text-orange-400 font-black" style={{fontSize:'3.5rem',lineHeight:1.2}}>
                             משקל {autoTransitionSplash.weight}
                         </div>
+                        {autoTransitionSplash.warmupWeight > 0 && (
+                            <div className="text-orange-300/70 font-bold text-xl mt-1">
+                                ({autoTransitionSplash.warmupWeight} ק״ג)
+                            </div>
+                        )}
                         <div className="text-white/40 text-sm font-bold mt-4">לחץ לסגירה</div>
                     </div>
                 </div>
@@ -3197,7 +3281,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} /></div>;

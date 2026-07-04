@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.51';
+const APP_VERSION = '9.52';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1404,10 +1404,45 @@ const collectAllGymData = () => {
 let _backupDirHandle = null;
 const getBackupDirName = () => _backupDirHandle?.name || null;
 
-const triggerBackupDownload = async (data) => {
+const loadBackupDirHandle = async () => {
+    try {
+        const h = await IDB.get('backup-dir-handle');
+        if (h) { _backupDirHandle = h; }
+    } catch {}
+};
+const saveBackupDirHandle = async (h) => {
+    _backupDirHandle = h;
+    await IDB.set('backup-dir-handle', h);
+};
+
+const writeToDir = async (dirHandle, json, fname) => {
+    const perm = await dirHandle.queryPermission({mode:'readwrite'});
+    if (perm !== 'granted') {
+        const req = await dirHandle.requestPermission({mode:'readwrite'});
+        if (req !== 'granted') return false;
+    }
+    const fh = await dirHandle.getFileHandle(fname, {create:true});
+    const writable = await fh.createWritable();
+    await writable.write(json);
+    await writable.close();
+    return true;
+};
+
+const triggerBackupDownload = async (data, silent) => {
     const payload = { ...data, _all: collectAllGymData() };
     const json = JSON.stringify(payload, null, 2);
     const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+    if (_backupDirHandle) {
+        try { if (await writeToDir(_backupDirHandle, json, fname)) return true; } catch {}
+    }
+    if (silent) {
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fname; a.click();
+        URL.revokeObjectURL(url);
+        return true;
+    }
     if (window.showSaveFilePicker) {
         try {
             const opts = { suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] };
@@ -1416,7 +1451,7 @@ const triggerBackupDownload = async (data) => {
             const writable = await fh.createWritable();
             await writable.write(json);
             await writable.close();
-            try { _backupDirHandle = await fh.getParent?.(); } catch {}
+            try { const parent = await fh.getParent?.(); if (parent) await saveBackupDirHandle(parent); } catch {}
             return true;
         } catch (e) { if (e.name === 'AbortError') return false; }
     }
@@ -1623,7 +1658,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             bodyweightLog:    LS.get('gym-bodyweight-log',     []),
             lastSummary:      LS.get('gym-last-summary',       null),
             customHowTo:      LS.get('gym-custom-howto',       {})
-        });
+        }, false);
         if (ok) { showToast('הגיבוי נשמר בהצלחה'); setBackupDir(getBackupDirName()); }
     };
 
@@ -1697,15 +1732,17 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.backup && <div className="px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1">
-                        {backupDir && (
-                            <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100">
-                                <Icon name="Folder" size={16} className="text-slate-400 shrink-0" />
-                                <span className="text-[12px] font-bold text-slate-500 truncate flex-1" dir="ltr">{backupDir}</span>
+                        <button onClick={async()=>{try{const h=await window.showDirectoryPicker();await saveBackupDirHandle(h);setBackupDir(h.name);showToast('ספריית גיבוי נשמרה');}catch{}}}
+                            className="w-full flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]">
+                            <div className="bg-slate-200 p-2 rounded-xl"><Icon name="FolderOpen" size={20} /></div>
+                            <div className="flex-1 text-right">
+                                <div className="font-black text-sm">ספריית גיבוי</div>
+                                <div className="text-[10px] font-bold opacity-70">{backupDir || 'לחץ לבחירת ספרייה'}</div>
                             </div>
-                        )}
+                        </button>
                         <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
-                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">שמירת קובץ לספרייה</div></div>
+                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">{backupDir ? 'שמירה לספרייה' : 'שמירת קובץ'}</div></div>
                         </button>
                         {window.showOpenFilePicker ? (
                             <button onClick={handleRestore} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
@@ -2519,10 +2556,15 @@ function App() {
         }
     },[workoutSec, workoutStartTime]);
 
-    // גיבוי יומי אוטומטי — הורדה שקטה בלי דיאלוג
+    // טעינת ספריית גיבוי שמורה + גיבוי אוטומטי בשעה 20:00
     useEffect(()=>{
-        const last = LS.get('gym-last-backup', 0);
-        if (Date.now() - last > 86400000) {
+        loadBackupDirHandle().then(()=>setBackupDir(getBackupDirName()));
+        const doAutoBackup = () => {
+            const now = new Date();
+            const today = now.toDateString();
+            const lastDate = LS.get('gym-last-backup-date', '');
+            if (lastDate === today) return;
+            if (now.getHours() < 20) return;
             const data = {
                 logs:          LS.get('gym-logs',           []),
                 notes:         LS.get('gym-notes',          {}),
@@ -2543,16 +2585,12 @@ function App() {
                 customNames:     LS.get('gym-custom-names',     {}),
                 customHowTo:     LS.get('gym-custom-howto',     {})
             };
-            const payload = { ...data, _all: collectAllGymData() };
-            const json = JSON.stringify(payload, null, 2);
-            const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fname; a.click();
-            URL.revokeObjectURL(url);
-            LS.set('gym-last-backup', Date.now());
-        }
+            triggerBackupDownload(data, true);
+            LS.set('gym-last-backup-date', today);
+        };
+        doAutoBackup();
+        const interval = setInterval(doAutoBackup, 60000);
+        return ()=>clearInterval(interval);
     },[]);
 
     // מיגרציה: הרמות רגליים (ex10b) עברו מטיימר לחזרות — ערכי "שניות" ישנים (≥40) הם בעצם 21 חזרות
