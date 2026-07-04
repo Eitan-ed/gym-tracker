@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.52';
+const APP_VERSION = '9.53';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2567,6 +2567,7 @@ function App() {
             const lastDate = LS.get('gym-last-backup-date', '');
             if (lastDate === today) return;
             if (now.getHours() < 20) return;
+            if (!_backupDirHandle) return;
             const data = {
                 logs:          LS.get('gym-logs',           []),
                 notes:         LS.get('gym-notes',          {}),
