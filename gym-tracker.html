@@ -2411,6 +2411,8 @@ function App() {
     const [autoTransitionSplash, setAutoTransitionSplash] = useState(null);
     const [summaryNote,      setSummaryNote]      = useState('');
     const [summaryBW,        setSummaryBW]        = useState('');
+    const [summarySaved,     setSummarySaved]     = useState(false);
+    const [summaryBackedUp,  setSummaryBackedUp]  = useState(false);
     const [bodyweightLog,    setBodyweightLog]    = useState(()=>LS.get('gym-bodyweight-log', []));
     useEffect(()=>{ LS.set('gym-bodyweight-log', bodyweightLog); },[bodyweightLog]);
     const [workoutNotes,     setWorkoutNotes]     = useState(()=>LS.get('gym-workout-notes', {}));
@@ -2558,7 +2560,7 @@ function App() {
 
     // טעינת ספריית גיבוי שמורה + גיבוי אוטומטי בשעה 20:00
     useEffect(()=>{
-        loadBackupDirHandle().then(()=>setBackupDir(getBackupDirName()));
+        loadBackupDirHandle();
         const doAutoBackup = () => {
             const now = new Date();
             const today = now.toDateString();
@@ -2846,7 +2848,7 @@ function App() {
         const wst = Date.now();
         setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
         setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
-        setWorkoutDecisionMade(false); setSummaryNote(''); setSummaryBW('');
+        setWorkoutDecisionMade(false); setSummaryNote(''); setSummaryBW(''); setSummarySaved(false); setSummaryBackedUp(false);
         setWorkoutStartTime(wst); setView('list'); setActiveGroup(null);
         LS.set('gym-last-workout-sec', 0); // איפוס טיימר כללי
     };
@@ -2918,6 +2920,7 @@ function App() {
         const wn = workoutNotes[snap.workoutStart] || {};
         setSummaryNote(wn.note || '');
         setSummaryBW(wn.bw ? String(wn.bw) : '');
+        setSummarySaved(false); setSummaryBackedUp(false);
         setShowSummary(true);
     };
 
@@ -3171,7 +3174,7 @@ function App() {
                             </div>
                             <textarea
                                 value={summaryNote}
-                                onChange={e=>setSummaryNote(e.target.value)}
+                                onChange={e=>{setSummaryNote(e.target.value);setSummarySaved(false);}}
                                 placeholder="הערות לאימון זה..."
                                 rows={3}
                                 className="w-full bg-amber-50/70 border border-amber-200 rounded-2xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
@@ -3180,7 +3183,7 @@ function App() {
                                 <label className="text-[12px] font-black text-slate-700 shrink-0">משקל גוף:</label>
                                 <input type="number" step="0.1" min="0" max="300" inputMode="decimal"
                                     value={summaryBW}
-                                    onChange={e=>setSummaryBW(e.target.value)}
+                                    onChange={e=>{setSummaryBW(e.target.value);setSummarySaved(false);}}
                                     placeholder="0.0"
                                     className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-[14px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-sky-400 text-center" />
                                 <span className="text-[11px] font-bold text-slate-400 shrink-0">ק״ג</span>
@@ -3192,8 +3195,9 @@ function App() {
                                     sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
                                     workoutNote:summaryNote});
                                 showToast('הגיבוי הורד');
-                            }} className="w-full p-3 rounded-xl font-bold text-blue-700 bg-blue-50 border border-blue-200 active:scale-95 flex items-center justify-center gap-2">
-                                <Icon name="Download" size={16}/> גיבוי אימון
+                                setSummaryBackedUp(true);
+                            }} className={`w-full p-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 ${summaryBackedUp ? 'text-slate-400 bg-slate-100 border border-slate-200' : 'text-blue-700 bg-blue-50 border border-blue-200'}`}>
+                                <Icon name="Download" size={16}/> {summaryBackedUp ? 'גובה' : 'גיבוי אימון'}
                             </button>
                             <button onClick={()=>{
                                 const bw = parseFloat(summaryBW);
@@ -3202,14 +3206,16 @@ function App() {
                                         ...prev.filter(b=>b.workoutStart!==sumWst),
                                         { id: crypto.randomUUID(), weight: bw, timestamp: new Date().toISOString(), workoutStart: sumWst }
                                     ]);
-                                    showToast(`משקל גוף ${bw} ק״ג נשמר`);
                                 }
-                                // שמירת סיכום אימון
                                 if (summaryNote || (!isNaN(bw) && bw > 0)) {
                                     setWorkoutNotes(prev=>({...prev, [sumWst]:{note:summaryNote, bw:(!isNaN(bw)&&bw>0)?bw:null}}));
                                 }
-                                setShowSummary(false);
-                            }} className="w-full p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95">סגור</button>
+                                showToast('נשמר');
+                                setSummarySaved(true);
+                            }} className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600'}`}>
+                                {summarySaved ? 'נשמר' : 'שמור'}
+                            </button>
+                            <button onClick={()=>setShowSummary(false)} className="w-full p-3 rounded-xl font-bold text-slate-500 bg-slate-50 border border-slate-200 active:scale-95">סגור</button>
                         </div>
                     </div>
                 );
