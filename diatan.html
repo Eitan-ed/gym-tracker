@@ -775,7 +775,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.53";
+const APP_VERSION = "5.54";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1683,7 +1683,11 @@ function renderMealsEdit(){
   box.querySelectorAll(".fav-meal").forEach(btn=>btn.onclick=()=>{ const mi=+btn.dataset.mi; applyMealsEdit(); recalcMeal(mi); saveFavorite(S.days[viewDay].meals[mi]); });
   box.querySelectorAll(".fav-item-me").forEach(btn=>btn.onclick=()=>{ applyMealsEdit(); const it=S.days[viewDay].meals[+btn.dataset.mi].items[+btn.dataset.ii]; saveItemFavorite(it); });
   box.querySelectorAll(".edit-time").forEach(btn=>btn.onclick=()=>{ openTimePicker(+btn.dataset.mi, btn.dataset.time); });
-  box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ updateMealsEditSum(); setMealsDirty(true); }));
+  box.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{
+    updateMealsEditSum(); setMealsDirty(true);
+    const rBtn=inp.closest(".me-row").querySelector(".recalc-item");
+    if(rBtn){ rBtn.classList.remove("text-[#5b6565]"); rBtn.classList.add("text-[#1565C0]"); }
+  }));
   box.querySelectorAll(".me-amt,.me-cal,.me-prot").forEach(inp=>inp.addEventListener("focus",()=>inp.select()));
   box.querySelectorAll(".me-row").forEach(row=>{
     const amtInp=row.querySelector(".me-amt");
@@ -1720,8 +1724,20 @@ async function recalcItemInModal(mi, ii, row){
     calInp.value=Math.round(+it.calories||0);
     protInp.value=Math.round(+it.protein||0);
     if(it.amount){ const n=parseAmtNum(it.amount), u=parseAmtUnit(it.amount); if(n) amtInp.value=n; if(u) unitInp.value=u; }
-    updateMealsEditSum(); setMealsDirty(true);
-    toast("עודכן: "+it.name);
+    updateMealsEditSum();
+    const m=S.days[viewDay]&&S.days[viewDay].meals[mi];
+    const itm=m&&m.items&&m.items[ii];
+    if(itm){
+      itm.name=nameInp.value.trim();
+      const num=amtInp.value.trim(), unt=unitInp.value.trim();
+      itm.amount=(num&&unt)?num+" "+unt:(num||unt||"");
+      itm.calories=Math.round(+calInp.value||0);
+      itm.protein=Math.round(+protInp.value||0);
+      recalcMeal(mi);
+      persist();
+    }
+    btn.classList.remove("text-[#1565C0]"); btn.classList.add("text-[#5b6565]");
+    toast("עודכן ונשמר: "+it.name);
   } catch(e){ toast(e.message||String(e),true); }
   finally { btn.textContent="calculate"; btn.disabled=false; }
 }
@@ -1737,9 +1753,12 @@ function addMealInModal(){
   applyMealsEdit();
   const day=ensure(viewDay);
   day.meals.push({desc:"",time:new Date().toISOString(),calories:0,protein:0,beefGrams:0,items:[{name:"",amount:"",calories:0,protein:0}]});
+  const newMi=day.meals.length-1;
   renderMealsEdit(); setMealsDirty(true);
-  const list=$("meals-edit-list");
-  list.lastElementChild&&list.lastElementChild.scrollIntoView({behavior:"smooth",block:"center"});
+  const newCard=$("meals-edit-list").querySelector('.me-card[data-mi="'+newMi+'"]');
+  newCard&&newCard.scrollIntoView({behavior:"smooth",block:"center"});
+  const newNameInp=newCard&&newCard.querySelector(".me-name");
+  if(newNameInp) newNameInp.focus();
 }
 function onSkipDay(){
   const day=ensure(viewDay);
