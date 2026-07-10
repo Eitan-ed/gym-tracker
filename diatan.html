@@ -775,7 +775,7 @@
 "use strict";
 
 // ===== גרסה =====
-const APP_VERSION = "5.54";
+const APP_VERSION = "5.55";
 
 // ===== מנוע חישוב (לפי הסוכן — נעול) =====
 const CAL_PER_KG = 21, PROT_PER_KG = 2, BEEF_LIMIT = 300, BALANCE_EXTRA = 500;
@@ -1020,7 +1020,7 @@ function shiftDay(delta){
 function render(){
   const isToday = viewDay === todayId();
   const day = ensure(viewDay);
-  const w = S.profile.weight||0;
+  const w = weightForDay(viewDay)||0;
   const items = day.meals||[];
   let cal=0, prot=0;
   items.forEach(m=>{cal+=(+m.calories||0); prot+=(+m.protein||0);});
@@ -1405,6 +1405,16 @@ function findWeightOnDate(dateId){
   if(dayData&&dayData.weight) return dayData.weight;
   const ws=(S.weights||[]).filter(w=>w.date===dateId);
   return ws.length?ws[ws.length-1].kg:null;
+}
+// משקל רלוונטי ליום ספציפי: משקל שנמדד באותו יום, אחרת המשקל האחרון הידוע לפניו, אחרת הנפילה למשקל הגלובלי
+function weightForDay(dateId){
+  const exact=findWeightOnDate(dateId);
+  if(exact) return exact;
+  const sorted=(S.weights||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const prior=sorted.filter(w=>w.date<=dateId);
+  if(prior.length) return prior[prior.length-1].kg;
+  if(sorted.length) return sorted[0].kg;
+  return S.profile.weight||0;
 }
 function findWeightWeekAgo(dateStr){
   const d=new Date(dateStr); d.setDate(d.getDate()-7);
