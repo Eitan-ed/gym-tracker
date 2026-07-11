@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.53';
+const APP_VERSION = '9.54';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -183,6 +183,23 @@ const CUSTOM_WEIGHT_VALUES = {
 
 // ─── תרגילי טיימר (בטן) ─────────────────────────────────────
 const TIMER_EXERCISES = new Set(['ex10a']);
+
+// ─── משקל הסט הבא — המשקל האחרון בפועל (לא השיא ההיסטורי) ───
+// doneS1/doneS2: האם כבר בוצע באימון הנוכחי (undefined = לא ידוע, מתייחסים כלא בוצע)
+function getNextSetWeight(exId, logs, doneS1=false, doneS2=false) {
+    const lastOfSet = (setNum) => logs.filter(l => l.exId===exId && l.setNum===setNum && l.weight>0)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+    const last1 = lastOfSet(1), last2 = lastOfSet(2);
+    if (!doneS1) return last1?.weight ?? last2?.weight ?? 0;
+    if (!doneS2) return last2?.weight ?? last1?.weight ?? 0;
+    const latest = [last1,last2].filter(Boolean).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+    return latest?.weight ?? 0;
+}
+function getLastWarmupWeight(exId, logs) {
+    const w = logs.filter(l => l.exId===exId && l.setNum===0 && l.weight>0)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+    return w?.weight ?? 0;
+}
 
 // --- מאגר תרגילים ---
 const exerciseGroups = [
@@ -451,7 +468,7 @@ function VideoInput({ exId, onSave }) {
 }
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
-function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal,
+function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal, onWarmupOpened=null,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
     weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
@@ -596,7 +613,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         <div className="space-y-0" dir="rtl">
             {/* כפתור חימום */}
             {!warmupOpen && !done.sW && (
-                <button onClick={()=>setWarmupOpen(true)}
+                <button onClick={()=>{setWarmupOpen(true); onWarmupOpened?.(ex.id);}}
                     className="mb-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black bg-amber-50 border border-amber-200 text-amber-600 active:scale-95 transition-all">
                     🔥 הוסף סט חימום
                 </button>
@@ -818,7 +835,11 @@ const VideoModal = ({ src, onClose }) => {
 
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false,
-    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={} }) {
+    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null }) {
+    const handleWarmupOpened = (exId) => {
+        if (!onUpdateSettings || warmupEmbed[exId]) return;
+        onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: true});
+    };
     const [lightbox,      setLightbox]     = useState(null);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
@@ -875,21 +896,16 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const youtubeId  = videos?.[ex.id];
         const localVid   = EXERCISE_VIDEOS[ex.id];
         const hasVideo   = youtubeId || localVid;
-        // משקל הטוב ביותר — מוצג בכתום ליד התמונה (גרויטון: נמוך=טוב)
-        const isGravitron = GRAVITRON_EXERCISES.has(ex.id);
-        const exHistSorted = [...logs].filter(l=>l.exId===ex.id && l.setNum > 0 && l.weight > 0)
-            .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-        const bestWeightLog = exHistSorted.length > 0
-            ? exHistSorted.reduce((best,l)=> isGravitron ? (l.weight<best.weight?l:best) : (l.weight>best.weight?l:best), exHistSorted[0])
-            : null;
-        const lastW = bestWeightLog?.weight ?? 0;
+        // skip active set
+        const doneS1Ex = logs.some(l=>l.exId===ex.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
+        const doneS2Ex = logs.some(l=>l.exId===ex.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
+        // משקל הסט הבא שטרם בוצע — מוצג בכתום ליד התמונה, ובסוגריים משקל החימום (אם קיים)
+        const lastW = getNextSetWeight(ex.id, logs, doneS1Ex, doneS2Ex);
+        const warmupW = getLastWarmupWeight(ex.id, logs);
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
         let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
 
-        // skip active set
-        const doneS1Ex = logs.some(l=>l.exId===ex.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
-        const doneS2Ex = logs.some(l=>l.exId===ex.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
         const skipActiveNum = !doneS1Ex ? 1 : !doneS2Ex ? 2 : null;
         const handleHowToSkip = skipActiveNum ? () => {
             onSave(ex.id, skipActiveNum, 0, 0, exIsSuperset);
@@ -971,6 +987,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     {lastW>0 ? (
                                         <div className="bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
                                             <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
+                                            {warmupW>0 && <span className="text-[10px] font-black text-orange-300 leading-none mt-0.5">({warmupW})</span>}
                                             <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
                                         </div>
                                     ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
@@ -1009,7 +1026,16 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </div>
                     {showDetails[ex.id] && (
                         <div className="px-4 pb-4">
-                            {editingHowToId === ex.id ? (
+                            {(()=>{
+                                const tips = customTips[ex.id] || ex.tips;
+                                const updateTips = (newTips) => setCustomTips(prev=>({...prev,[ex.id]:newTips}));
+                                const addTip = () => {
+                                    const nt = [...tips, ''];
+                                    updateTips(nt);
+                                    setEditingTipKey(`${ex.id}:${tips.length}`);
+                                    setTipEditVal('');
+                                };
+                                return editingHowToId === ex.id ? (
                                 <div className="mb-3">
                                     <textarea value={howToEditVal} onChange={e=>setHowToEditVal(e.target.value)} autoFocus
                                         rows={3}
@@ -1034,12 +1060,18 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 font-medium">
                                         {customHowTo[ex.id] || ex.howTo}
                                     </p>
-                                    <button onClick={()=>{setEditingHowToId(ex.id);setHowToEditVal(customHowTo[ex.id]||ex.howTo);}}
-                                        className="absolute top-2 left-2 w-7 h-7 bg-white/90 border border-slate-200 rounded-full flex items-center justify-center text-blue-400 active:scale-90 shadow-sm">
-                                        <span className="text-[12px]">✏️</span>
-                                    </button>
+                                    <div className="absolute top-2 left-2 flex items-center gap-2.5">
+                                        <button onClick={addTip}
+                                            className="w-7 h-7 bg-white/90 border border-emerald-200 rounded-full flex items-center justify-center text-emerald-500 active:scale-90 shadow-sm">
+                                            <Icon name="Plus" size={13} />
+                                        </button>
+                                        <button onClick={()=>{setEditingHowToId(ex.id);setHowToEditVal(customHowTo[ex.id]||ex.howTo);}}
+                                            className="w-7 h-7 bg-white/90 border border-slate-200 rounded-full flex items-center justify-center text-blue-400 active:scale-90 shadow-sm">
+                                            <span className="text-[12px]">✏️</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            )}
+                            );})()}
                             <div className="flex flex-wrap gap-2 mb-3">
                                 {(()=>{
                                     const tips = customTips[ex.id] || ex.tips;
@@ -1069,10 +1101,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                 </div>
                                             );
                                         })}
-                                        <button onClick={()=>{const nt=[...(customTips[ex.id]||ex.tips),''];updateTips(nt);setEditingTipKey(`${ex.id}:${(customTips[ex.id]||ex.tips).length}`);setTipEditVal('');}}
-                                            className="bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-[11px] text-emerald-600 font-black flex items-center gap-1 active:scale-95">
-                                            <Icon name="Plus" size={12}/>
-                                        </button>
                                     </>);
                                 })()}
                             </div>
@@ -1159,6 +1187,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     return (
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
+                    onWarmupOpened={handleWarmupOpened}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
@@ -2694,12 +2723,13 @@ function App() {
                             nextExT = curGroupT.exercises[0];
                         }
                         if (nextExT) {
-                            const isGravT = GRAVITRON_EXERCISES.has(nextExT.id);
-                            const exLogsT = curLogsT.filter(l => l.exId === nextExT.id && l.setNum > 0 && l.weight > 0);
-                            if (exLogsT.length > 0) {
-                                const bestT = exLogsT.reduce((b, l) => isGravT ? (l.weight < b.weight ? l : b) : (l.weight > b.weight ? l : b), exLogsT[0]);
+                            const curSstT = sstRef.current;
+                            const doneS1T = curLogsT.some(l => l.exId===nextExT.id && l.setNum===1 && new Date(l.timestamp).getTime()>curSstT);
+                            const doneS2T = curLogsT.some(l => l.exId===nextExT.id && l.setNum===2 && new Date(l.timestamp).getTime()>curSstT);
+                            const nextW = getNextSetWeight(nextExT.id, curLogsT, doneS1T, doneS2T);
+                            if (nextW > 0) {
                                 setTimeout(() => {
-                                    const u = new SpeechSynthesisUtterance(String(bestT.weight));
+                                    const u = new SpeechSynthesisUtterance(String(nextW));
                                     u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0;
                                     window.speechSynthesis.speak(u);
                                 }, 1200);
@@ -2967,13 +2997,11 @@ function App() {
         if (nextGroup) {
             if (isAutoTransition) {
                 const nextEx = nextGroup.exercises[0];
-                const isGrav = GRAVITRON_EXERCISES.has(nextEx.id);
-                const nextExLogs = curLogs.filter(l=>l.exId===nextEx.id && l.setNum > 0 && l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-                if (nextExLogs.length > 0) {
-                    const bestLog = nextExLogs.reduce((best,l)=> isGrav ? (l.weight<best.weight?l:best) : (l.weight>best.weight?l:best), nextExLogs[0]);
-                    const weight = bestLog?.weight || 0;
-                    const warmupLogs = curLogs.filter(l=>l.exId===nextEx.id && l.setNum===0 && l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-                    const warmupWeight = warmupLogs[0]?.weight || 0;
+                const doneS1N = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===1&&new Date(l.timestamp).getTime()>curWst);
+                const doneS2N = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===2&&new Date(l.timestamp).getTime()>curWst);
+                const weight = getNextSetWeight(nextEx.id, curLogs, doneS1N, doneS2N);
+                if (weight > 0) {
+                    const warmupWeight = getLastWarmupWeight(nextEx.id, curLogs);
                     setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight });
                 }
             }
@@ -3288,7 +3316,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} /></div>;
