@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.55';
+const APP_VERSION = '9.56';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -671,7 +671,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const isDoneW = done.sW;
                 return (
                     <React.Fragment>
-                        <div style={isDoneW ? {border:'2px solid #d97706', borderRadius:'1.6rem', opacity:0.7} : {border:'2px dashed #f59e0b', borderRadius:'1.6rem', boxShadow:'0 2px 8px rgba(245,158,11,0.15)'}}
+                        <div style={isDoneW ? {border:'2px solid #d97706', borderRadius:'1.6rem', filter:'grayscale(0.85) opacity(0.65)'} : {border:'2px dashed #f59e0b', borderRadius:'1.6rem', boxShadow:'0 2px 8px rgba(245,158,11,0.15)'}}
                             className={`p-3 rounded-[1.6rem] flex items-center gap-2 transition-all ${isDoneW ? 'bg-amber-50' : 'bg-amber-50/70'}`}>
                             <div className="w-8 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg cursor-pointer"
                                 style={{background: isDoneW ? '#92400e' : '#f59e0b'}}
