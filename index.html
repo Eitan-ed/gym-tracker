@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.54';
+const APP_VERSION = '9.55';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -172,7 +172,7 @@ const THIGH_VALUES = [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95
 const CUSTOM_WEIGHT_VALUES = {
     'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
     'ex7c': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פולי גב — רצף 4-5 מ-5
-    'ex6':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // חתירה — רצף 4-5 מ-5
+    'ex6':  [5,9,14,18,23,27,32,36,41,45,50,54,59,64,68,73,77,82,86,91],  // חתירה — רצף מדויק לפי המכונה בפועל
     'ex2':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פרפר חזה — רצף 4-5 מ-5
     'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
     'ex3':  THIGH_VALUES,   // פולי יד אחורית
@@ -199,6 +199,17 @@ function getLastWarmupWeight(exId, logs) {
     const w = logs.filter(l => l.exId===exId && l.setNum===0 && l.weight>0)
         .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
     return w?.weight ?? 0;
+}
+// ─── משקל להצגה ליד התמונה — המשקל הגבוה מבין הסטים באימון האחרון,
+// ובלבד שבוצעו בו יותר מ-7 חזרות לסט ───────────────────────────
+function getLastDisplayWeight(exId, logs) {
+    const exLogs = logs.filter(l => l.exId===exId && (l.setNum===1 || l.setNum===2) && l.weight>0)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+    if (!exLogs.length) return 0;
+    const lastDate = new Date(exLogs[0].timestamp).toDateString();
+    const sameSession = exLogs.filter(l => new Date(l.timestamp).toDateString()===lastDate && l.reps>7);
+    if (!sameSession.length) return 0;
+    return Math.max(...sameSession.map(l=>l.weight));
 }
 
 // --- מאגר תרגילים ---
@@ -470,7 +481,8 @@ function VideoInput({ exId, onSave }) {
 // ─── ExerciseEntryRow ──────────────────────────────────────
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal, onWarmupOpened=null,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
-    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false }) {
+    weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false,
+    historyOpen=false, onToggleHistory=null, onDeleteLog=null }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
     const defW = DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
     const defR = DEFAULT_STARTING_REPS[ex.id] ?? 10;
@@ -609,14 +621,50 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         } finally { setIsSaving(false); }
     };
 
+    const hist10 = useMemo(() => [...logs].filter(l=>l.exId===ex.id)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,10), [logs, ex.id]);
+    const histDateKeys = useMemo(() => [...new Set(hist10.map(h=>new Date(h.timestamp).toLocaleDateString('he-IL')))], [hist10]);
+    const histPalettes = ['bg-indigo-50 border-indigo-200 text-indigo-700','bg-violet-50 border-violet-200 text-violet-700','bg-sky-50 border-sky-200 text-sky-700','bg-teal-50 border-teal-200 text-teal-700'];
+
     return (
         <div className="space-y-0" dir="rtl">
-            {/* כפתור חימום */}
-            {!warmupOpen && !done.sW && (
-                <button onClick={()=>{setWarmupOpen(true); onWarmupOpened?.(ex.id);}}
-                    className="mb-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black bg-amber-50 border border-amber-200 text-amber-600 active:scale-95 transition-all">
-                    🔥 הוסף סט חימום
-                </button>
+            {/* שורה משולבת: היסטוריה (ימין) + חימום (שמאל) — לחיסכון במקום */}
+            <div className="flex items-center gap-1.5 mb-1.5">
+                {hist10.length > 0 && (
+                    <button onClick={onToggleHistory}
+                        className="flex-1 flex items-center justify-between px-3 py-1.5 rounded-xl text-[11px] font-black bg-indigo-50 border border-indigo-200 text-indigo-600 active:scale-95 transition-all min-w-0">
+                        <span className="flex items-center gap-1 truncate"><Icon name="History" size={13} className="text-indigo-400 shrink-0" /> היסטוריה ({hist10.length})</span>
+                        {hist10[0]?.weight > 0 && <span className="text-orange-500 shrink-0">{hist10[0].weight} kg</span>}
+                    </button>
+                )}
+                {!warmupOpen && !done.sW && (
+                    <button onClick={()=>{setWarmupOpen(true); onWarmupOpened?.(ex.id);}}
+                        className="px-3 py-1.5 rounded-xl text-[11px] font-black bg-amber-50 border border-amber-200 text-amber-600 active:scale-95 transition-all shrink-0">
+                        🔥 חימום
+                    </button>
+                )}
+            </div>
+            {historyOpen && hist10.length > 0 && (
+                <div className="mb-3 bg-slate-50 rounded-2xl border border-slate-100 p-3 space-y-1.5">
+                    {hist10.map((h,i)=>{
+                        const dateStr = new Date(h.timestamp).toLocaleDateString('he-IL');
+                        const pal = histPalettes[histDateKeys.indexOf(dateStr) % histPalettes.length];
+                        return (
+                            <div key={h.id||i} className={`flex items-center justify-between px-3 py-2 rounded-2xl border text-[11px] ${pal}`}>
+                                <div className="flex items-center gap-2">
+                                    {onDeleteLog && requestConfirm && (
+                                        <button onClick={()=>requestConfirm('למחוק סט זה?',()=>onDeleteLog(h.id))}
+                                            className="text-red-300 active:text-red-500 shrink-0">
+                                            <Icon name="Trash2" size={12} />
+                                        </button>
+                                    )}
+                                    <span className="font-bold opacity-70">{getDayNameHe(h.timestamp)} {dateStr}</span>
+                                </div>
+                                <span className="font-black">סט {h.setNum}: {h.weight}kg × {h.reps}</span>
+                            </div>
+                        );
+                    })}
+                </div>
             )}
             {/* סט חימום */}
             {(warmupOpen || done.sW) && (()=>{
@@ -671,24 +719,29 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 const canAct   = !isSaving && (isDone ? true : (num===1 ? !forceSet1Disabled : (done.s1 && !forceSet2Disabled)));
                 // סופרסט: Set2 ממתין לטיימר של התרגיל האחר — מציג ספירה לאחור
                 const isCrossTimerSet2 = num===2 && !isDone && done.s1 && forceSet2Disabled && prevRestTimerTotal > 0 && prevRestTimer > 0;
-                const hasConic1 = num===1 && !done.s1 && prevRestTimerTotal > 0;
+                // מנוחה בין חימום לסט 1: משתמשת באותו טיימר (restTimer/restTimerTotal) של התרגיל עצמו
+                const warmupToS1 = done.sW && !done.s1 && restTimerTotal > 0;
+                const hasConic1  = num===1 && !done.s1 && (prevRestTimerTotal > 0 || warmupToS1);
+                const conic1Rt   = prevRestTimerTotal > 0 ? prevRestTimer      : restTimer;
+                const conic1Tot  = prevRestTimerTotal > 0 ? prevRestTimerTotal : restTimerTotal;
                 const hasConic2 = num===2 && (betweenTimer || isCrossTimerSet2);
                 const conicRt   = hasConic2 ? (betweenTimer ? restTimer        : prevRestTimer)        : 0;
                 const conicTot  = hasConic2 ? (betweenTimer ? restTimerTotal   : prevRestTimerTotal)   : 0;
-                const conic     = hasConic1 ? conicStyle(prevRestTimer, prevRestTimerTotal)
+                const conic     = hasConic1 ? conicStyle(conic1Rt, conic1Tot)
                                 : hasConic2 ? conicStyle(conicRt, conicTot)
                                 : null;
-                const countdown  = hasConic1 ? prevRestTimer : hasConic2 ? conicRt : 0;
+                const countdown  = hasConic1 ? conic1Rt : hasConic2 ? conicRt : 0;
                 const showCDown  = !isDone && countdown > 0;
                 const timerDone  = !isDone && !conic && (
-                    (hasConic1 && prevRestTimer===0 && prevRestTimerTotal>0) ||
+                    (hasConic1 && conic1Rt===0 && conic1Tot>0) ||
                     (num===2 && betweenTimer && restTimer===0)
                 );
                 const isActive    = !conic && canAct;
                 const canActFinal = canAct || showCDown;
                 return (
                     <React.Fragment key={num}>
-                        <div style={conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : isDone ? {border:'2px solid #94a3b8', borderRadius:'1.6rem'} : undefined)}
+                        <div style={{...(conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : isDone ? {border:'2px solid #94a3b8', borderRadius:'1.6rem'} : undefined)),
+                                ...(isDone ? {filter:'grayscale(0.85) opacity(0.65)'} : {})}}
                             className={`p-3 rounded-[1.6rem] flex items-center gap-2 transition-all
                                 ${isDone   ? 'bg-slate-300' : 'bg-white'}
                                 ${conic    ? ''
@@ -834,13 +887,14 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false,
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, onSaveDevNote=null,
     workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null }) {
     const handleWarmupOpened = (exId) => {
         if (!onUpdateSettings || warmupEmbed[exId]) return;
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: true});
     };
     const [lightbox,      setLightbox]     = useState(null);
+    const [devNoteOpen,   setDevNoteOpen]  = useState(false);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
     const [showDetails,   setShowDetails]  = useState(()=>{
@@ -900,7 +954,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const doneS1Ex = logs.some(l=>l.exId===ex.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
         const doneS2Ex = logs.some(l=>l.exId===ex.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
         // משקל הסט הבא שטרם בוצע — מוצג בכתום ליד התמונה, ובסוגריים משקל החימום (אם קיים)
-        const lastW = getNextSetWeight(ex.id, logs, doneS1Ex, doneS2Ex);
+        const lastW = getLastDisplayWeight(ex.id, logs);
         const warmupW = getLastWarmupWeight(ex.id, logs);
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
@@ -941,7 +995,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         );
 
         return (
-            <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-4 last:border-0">
+            <div key={ex.id} id={`ex-row-${ex.id}`} className="border-b border-slate-100 pb-2 last:border-0">
                 {/* תמונה + וידאו */}
                 {exIsSuperset ? (
                     /* סופרסט: שמאל = כותרת + תמונה, ימין = וידאו */
@@ -1122,58 +1176,6 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         </div>
                     )}
                 </section>
-                {/* היסטוריה — collapsible */}
-                {(()=>{
-                    const hist10 = [...logs].filter(l=>l.exId===ex.id)
-                        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,10);
-                    if (hist10.length===0) return null;
-                    const dateKeys = [...new Set(hist10.map(h=>new Date(h.timestamp).toLocaleDateString('he-IL')))];
-                    const palettes = [
-                        'bg-indigo-50 border-indigo-200 text-indigo-700',
-                        'bg-violet-50 border-violet-200 text-violet-700',
-                        'bg-sky-50 border-sky-200 text-sky-700',
-                        'bg-teal-50 border-teal-200 text-teal-700',
-                    ];
-                    const isOpen = !!historyOpen[ex.id];
-                    return (
-                        <section className="mb-4 bg-slate-50 rounded-3xl border border-slate-100 overflow-hidden">
-                            <button className="w-full flex items-center justify-between px-3 py-2.5 active:opacity-70"
-                                onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}>
-                                <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
-                                    <Icon name="History" size={14} className="text-indigo-400" /> היסטוריה ({hist10.length} סטים)
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    {hist10[0]?.weight > 0 && (
-                                        <span className="text-xs font-black text-orange-500">{hist10[0].weight} kg</span>
-                                    )}
-                                    <Icon name={isOpen?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400" />
-                                </div>
-                            </button>
-                            {isOpen && (
-                                <div className="px-3 pb-3 space-y-1.5">
-                                    {hist10.map((h,i)=>{
-                                        const dateStr = new Date(h.timestamp).toLocaleDateString('he-IL');
-                                        const pal = palettes[dateKeys.indexOf(dateStr) % palettes.length];
-                                        return (
-                                            <div key={h.id||i} className={`flex items-center justify-between px-3 py-2 rounded-2xl border text-[11px] ${pal}`}>
-                                                <div className="flex items-center gap-2">
-                                                    {onDeleteLog && requestConfirm && (
-                                                        <button onClick={()=>requestConfirm('למחוק סט זה?',()=>onDeleteLog(h.id))}
-                                                            className="text-red-300 active:text-red-500 shrink-0">
-                                                            <Icon name="Trash2" size={12} />
-                                                        </button>
-                                                    )}
-                                                    <span className="font-bold opacity-70">{getDayNameHe(h.timestamp)} {dateStr}</span>
-                                                </div>
-                                                <span className="font-black">סט {h.setNum}: {h.weight}kg × {h.reps}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </section>
-                    );
-                })()}
                 {(() => {
                     const _ov = weightStepsOverrides ? weightStepsOverrides[ex.id] : undefined;
                     let _wv = null;
@@ -1194,7 +1196,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     accentColor={accentHex} requestConfirm={requestConfirm}
                     weightStep={_ws} weightValues={_wv}
                     weightJumpSteps={_wv ? [1,2,3] : [_ws, _ws*2, _ws*4]}
-                    repsStep={1} repsJumpSteps={[1,2,3,5]} warmupEmbed={!!warmupEmbed[ex.id]} />
+                    repsStep={1} repsJumpSteps={[1,2,3,5]} warmupEmbed={!!warmupEmbed[ex.id]}
+                    historyOpen={!!historyOpen[ex.id]} onToggleHistory={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))} onDeleteLog={onDeleteLog} />
                     );
                 })()}
             </div>
@@ -1211,6 +1214,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         <Icon name="Music" size={18} />
                     </button>
                 )}
+                {onSaveDevNote && (
+                    <button onClick={()=>setDevNoteOpen(o=>!o)} className={`relative p-2 backdrop-blur-xl rounded-full active:scale-90 shadow transition-all
+                        ${devNotes[group.exercises[0].id] ? 'bg-amber-400 text-white' : 'bg-white/10 text-white'}`}>
+                        <Icon name="BookOpen" size={18} />
+                        {devNotes[group.exercises[0].id] && <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-red-500" />}
+                    </button>
+                )}
                 <button onClick={onBack} className="p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
                     <Icon name="Home" size={18} />
                 </button>
@@ -1222,9 +1232,19 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     {group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
                 </h2>
             </div>
+            {devNoteOpen && (
+                <div className="mt-2 bg-white/95 rounded-2xl p-3 shadow-lg" dir="rtl">
+                    <textarea defaultValue={devNotes[group.exercises[0].id]||''}
+                        onBlur={e=>onSaveDevNote(group.exercises[0].id, e.target.value)}
+                        placeholder="הערת שיפור לאפליקציה (ל-Claude)..."
+                        rows={3}
+                        className="w-full text-[13px] font-bold text-slate-700 bg-amber-50 border border-amber-200 rounded-xl p-2 outline-none resize-none" />
+                    <button onClick={()=>setDevNoteOpen(false)} className="mt-1.5 text-[11px] font-black text-slate-500 active:text-slate-700">סגור</button>
+                </div>
+            )}
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-40">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-2 pb-40">
             {group.isSuperset ? (()=>{
                 const [exA, exB] = group.exercises;
                 const rtA=restTimers[exA.id]||0, totA=restTimerTotals[exA.id]||0;
@@ -1629,6 +1649,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
     useEffect(()=>{ LS.set('gym-report-preamble', reportPreamble); },[reportPreamble]);
+    const [preambleOpen, setPreambleOpen] = useState(false);
 
     const [open, setOpen] = useState(()=>{
         const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false};
@@ -1895,7 +1916,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                             <span className="font-black text-slate-600 text-sm">{getDayLetterHe(items[0].timestamp)}</span>
                                                             <span className="font-black text-slate-800 text-sm">{fmtDateShort(items[0].timestamp)}</span>
                                                             {dur>0 && <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={10}/>{fmtDur(dur)}</span>}
-                                                            {bwVal>0 && <span className="text-[10px] font-black text-sky-600">⚖️{bwVal}</span>}
+                                                            {bwVal>0 && <span className="text-[10px] font-black text-sky-600">⚖️{bwVal}{bwEnt?.timestamp ? ` (${new Date(bwEnt.timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})})` : ''}</span>}
                                                             <span className="text-[10px] font-bold text-blue-500">{items.length} סטים · {uniqEx} ת׳</span>
                                                         </div>
                                                         <Icon name={isExp?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400 shrink-0"/>
@@ -2117,7 +2138,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     const bwEnt = (bodyweightLog||[]).find(b=>new Date(b.timestamp).toLocaleDateString('he-IL')===date);
                                     const bwVal = wn?.bw || bwEnt?.weight;
                                     txt += `── ${date} (יום ${dayName})${dur>0?' — '+Math.floor(dur/60)+' דק׳':''} ──\n`;
-                                    if (bwVal > 0) txt += `  ⚖️ משקל גוף: ${bwVal} ק״ג\n`;
+                                    if (bwVal > 0) txt += `  ⚖️ משקל גוף: ${bwVal} ק״ג${bwEnt?.timestamp ? ' (נשקל בשעה '+new Date(bwEnt.timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})+')' : ''}\n`;
                                     if (wn?.note) txt += `  📝 הערת אימון: ${wn.note}\n`;
                                     const byEx = {};
                                     items.forEach(l => {
@@ -2151,13 +2172,38 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 URL.revokeObjectURL(url);
                                 showToast(`דוח ${periodLabel.split('—')[0].trim()} נשמר`);
                             };
+                            const generateExerciseListReport = () => {
+                                const orderedGroups = groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean);
+                                let txt = `רשימת תרגילים — ${new Date().toLocaleDateString('he-IL')}\n`;
+                                txt += `${'═'.repeat(40)}\n\n`;
+                                orderedGroups.forEach((g,i) => {
+                                    const hidden = hiddenExercises.has(g.id);
+                                    g.exercises.forEach(ex => {
+                                        const name = customNames[ex.id] || ex.title;
+                                        txt += `${i+1}. ${name} (${g.category}${g.machine?' · '+g.machine:''})${hidden?' — מוסתר':''}\n`;
+                                    });
+                                });
+                                const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url; a.download = `gym-exercise-list-${new Date().toISOString().slice(0,10)}.txt`; a.click();
+                                URL.revokeObjectURL(url);
+                                showToast('רשימת תרגילים נשמרה');
+                            };
                             return (<>
-                                <div className="mb-3">
-                                    <div className="text-sm font-black text-slate-600 mb-2">הנחיות מקדימות לדוח</div>
-                                    <textarea value={reportPreamble} onChange={e=>setReportPreamble(e.target.value)}
-                                        className="w-full h-40 p-3 text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl resize-y" dir="rtl" />
-                                    <button onClick={()=>{setReportPreamble(DEFAULT_REPORT_PREAMBLE);showToast('הנחיות אופסו לברירת מחדל');}}
-                                        className="text-[10px] font-bold text-slate-400 mt-1 active:text-slate-600">איפוס לברירת מחדל</button>
+                                <div className="mb-3 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+                                    <button onClick={()=>setPreambleOpen(p=>!p)} className="w-full flex items-center justify-between px-3 py-2.5 active:bg-slate-100">
+                                        <span className="text-sm font-black text-slate-600">הנחיות מקדמיות</span>
+                                        <Icon name={preambleOpen?'ChevronUp':'ChevronDown'} size={16} className="text-slate-400" />
+                                    </button>
+                                    {preambleOpen && (
+                                        <div className="px-3 pb-3">
+                                            <textarea value={reportPreamble} onChange={e=>setReportPreamble(e.target.value)}
+                                                className="w-full h-40 p-3 text-xs font-mono text-slate-700 bg-white border border-slate-200 rounded-2xl resize-y" dir="rtl" />
+                                            <button onClick={()=>{setReportPreamble(DEFAULT_REPORT_PREAMBLE);showToast('הנחיות אופסו לברירת מחדל');}}
+                                                className="text-[10px] font-bold text-slate-400 mt-1 active:text-slate-600">איפוס לברירת מחדל</button>
+                                        </div>
+                                    )}
                                 </div>
                                 {[
                                     {period:'day', label:'דוח יומי', desc:'סטים ומשקלים של היום'},
@@ -2170,6 +2216,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                         <div><div className="font-black text-sm">{label}</div><div className="text-[10px] font-bold opacity-70">{desc}</div></div>
                                     </button>
                                 ))}
+                                <button onClick={generateExerciseListReport} className="w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-4 rounded-2xl border active:scale-[0.98]">
+                                    <div className="bg-indigo-200 p-2 rounded-xl"><Icon name="Dumbbell" size={20} /></div>
+                                    <div><div className="font-black text-sm">רשימת תרגילים</div><div className="text-[10px] font-bold opacity-70">כל התרגילים לפי הסדר הנוכחי</div></div>
+                                </button>
                             </>);
                         })()}
                     </div>}
@@ -2442,6 +2492,7 @@ function App() {
     const [summaryBW,        setSummaryBW]        = useState('');
     const [summarySaved,     setSummarySaved]     = useState(false);
     const [summaryBackedUp,  setSummaryBackedUp]  = useState(false);
+    const [editingDur,       setEditingDur]       = useState(false);
     const [bodyweightLog,    setBodyweightLog]    = useState(()=>LS.get('gym-bodyweight-log', []));
     useEffect(()=>{ LS.set('gym-bodyweight-log', bodyweightLog); },[bodyweightLog]);
     const [workoutNotes,     setWorkoutNotes]     = useState(()=>LS.get('gym-workout-notes', {}));
@@ -2449,6 +2500,7 @@ function App() {
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
     const [audioDuration,    setAudioDuration]    = useState(0);
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
+    const [devNotes,         setDevNotes]         = useState(()=>LS.get('gym-dev-notes',{}));
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
     const [customNames,      setCustomNames]      = useState(()=>LS.get('gym-custom-names',{}));
@@ -2565,6 +2617,7 @@ function App() {
     // שמירה אוטומטית ב-localStorage
     useEffect(()=>{ LS.set('gym-logs',           logs);             },[logs]);
     useEffect(()=>{ LS.set('gym-notes',          notes);            },[notes]);
+    useEffect(()=>{ LS.set('gym-dev-notes',      devNotes);         },[devNotes]);
     useEffect(()=>{ LS.set('gym-images',         images);           },[images]);
     useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
     useEffect(()=>{ LS.set('gym-custom-names',  customNames);      },[customNames]);
@@ -2648,11 +2701,22 @@ function App() {
         return ()=>window.removeEventListener('popstate', handler);
     },[view]);
 
-    // Timers
+    // Timers — כל תקופת פעילות מחושבת מזמן שעון אמיתי (Date.now) ולא מספירת טיקים,
+    // כדי שלא "יתקע" כשהמסך ננעל/הדפדפן ברקע (מסתנכרן מיד עם visibilitychange).
+    // בפאוז (isWorkoutActive=false) ה-effect מתנקה והשנייה האחרונה נשארת קפואה.
     useEffect(()=>{
         if (!isWorkoutActive) return;
-        const t = setInterval(()=>setWorkoutSec(s=>s>=6000?0:s+1),1000);
-        return ()=>clearInterval(t);
+        const periodStart = Date.now();
+        const secBefore   = workoutSec;
+        const tick = () => {
+            const elapsed = Math.floor((Date.now() - periodStart)/1000);
+            setWorkoutSec(secBefore + elapsed);
+        };
+        tick();
+        const t = setInterval(tick, 1000);
+        document.addEventListener('visibilitychange', tick);
+        return ()=>{ clearInterval(t); document.removeEventListener('visibilitychange', tick); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     },[isWorkoutActive]);
 
     // ref לגישה מה-interval ללא closure ישן
@@ -2833,6 +2897,14 @@ function App() {
         setNotes(prev=>({...prev,[exId]:text}));
     };
 
+    const handleSaveDevNote = (exId,text) => {
+        setDevNotes(prev=>{
+            const next = {...prev};
+            if (text) next[exId] = text; else delete next[exId];
+            return next;
+        });
+    };
+
     const handleSaveVideo = (exId, url) => {
         if (!url.trim()) return;
         const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
@@ -2951,7 +3023,7 @@ function App() {
         const wn = workoutNotes[snap.workoutStart] || {};
         setSummaryNote(wn.note || '');
         setSummaryBW(wn.bw ? String(wn.bw) : '');
-        setSummarySaved(false); setSummaryBackedUp(false);
+        setSummarySaved(false); setSummaryBackedUp(false); setEditingDur(false);
         setShowSummary(true);
     };
 
@@ -2978,7 +3050,6 @@ function App() {
                     setIsWorkoutActive(false); setIsWorkoutComplete(true);
                     setRestTimers({}); setRestTimerTotals({});
                     if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[workoutStartTime]:workoutSec})); }
-                    openSummary(computeSummarySnapshot(logsRef.current, workoutStartTime, workoutSec, newSkipped));
                 }, 300);
             }
             return newSkipped;
@@ -3003,16 +3074,25 @@ function App() {
                 if (weight > 0) {
                     const warmupWeight = getLastWarmupWeight(nextEx.id, curLogs);
                     setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight });
+                    if (warmupWeight > 0 && window.speechSynthesis) {
+                        const u1 = new SpeechSynthesisUtterance('חימום');
+                        u1.lang = 'he-IL'; u1.rate = 1.0; u1.volume = 1.0;
+                        const u2 = new SpeechSynthesisUtterance(String(warmupWeight));
+                        u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
+                        window.speechSynthesis.speak(u1);
+                        window.speechSynthesis.speak(u2);
+                    }
                 }
             }
             setActiveGroup(nextGroup); setView('detail');
             setScrollToExId(nextGroup.exercises[0].id);
         } else {
+            // כל התרגילים בוצעו — לא פותחים את מסך הסיכום אוטומטית, רק מסמנים
+            // שהאימון הושלם. המשתמש פותח את הסיכום בעצמו בלחיצה על "סוף אימון".
             setIsWorkoutActive(false); setIsWorkoutComplete(true);
             setRestTimers({}); setRestTimerTotals({});
             LS.set('gym-last-workout-sec', workoutSec);
             if (workoutSec > 0) setSessionDurations(prev=>({...prev, [workoutStartTime]: workoutSec}));
-            openSummary(computeSummarySnapshot(curLogs, curWst, workoutSec, curSkip));
             setView('list');
             setActiveGroup(null);
         }
@@ -3040,7 +3120,7 @@ function App() {
         <>
             <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} logs={logs} visibleGroups={visibleGroups} activeGroup={activeGroup} />
             {autoTransitionSplash && (
-                <div className="fixed inset-x-0 bottom-0 z-[900] flex items-center justify-center bg-black/60 backdrop-blur-sm" style={{top:'50%',maxWidth:'28rem',margin:'0 auto'}} onClick={()=>setAutoTransitionSplash(null)}>
+                <div className="fixed inset-x-0 bottom-0 z-[900] flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-t-3xl" style={{height:'13rem',maxWidth:'28rem',margin:'0 auto'}} onClick={()=>setAutoTransitionSplash(null)}>
                     <div className="text-center">
                         <div className="text-orange-400 font-black" style={{fontSize:'3.5rem',lineHeight:1.2}}>
                             משקל {autoTransitionSplash.weight}
@@ -3174,17 +3254,37 @@ function App() {
                 const remaining   = visibleGroups.filter(g=>!isGroupDone(g)).length;
                 const allDone     = remaining === 0;
                 const showDur     = allDone ? durSec : workoutSec;
+                const startTimeStr = new Date(sumWst).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+                const endTimeStr   = allDone ? new Date(sumWst + durSec*1000).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : null;
                 return (
                     <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
                         <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl space-y-4">
                             <div className="text-center">
                                 <div className="text-4xl mb-1">{allDone ? '🏆' : '⏳'}</div>
                                 <h3 className="text-xl font-black text-slate-800">{allDone ? 'כל הכבוד!' : `נשאר עוד ${remaining}`}</h3>
+                                <div className="text-[11px] font-bold text-slate-400 mt-1">
+                                    התחלה {startTimeStr}{endTimeStr ? ` · סיום ${endTimeStr}` : ''}
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-blue-50 rounded-2xl p-3 text-center">
-                                    <div className="text-lg font-black text-blue-600">{fmtDur(showDur)}</div>
-                                    <div className="text-[10px] font-bold text-blue-400">זמן אימון</div>
+                                <div className="bg-blue-50 rounded-2xl p-3 text-center cursor-pointer active:scale-95"
+                                    onClick={()=>{ if (!allDone) return; setEditingDur(true); }}>
+                                    {editingDur ? (
+                                        <input type="number" min="0" autoFocus
+                                            defaultValue={Math.round(durSec/60)}
+                                            onBlur={e=>{
+                                                const mins = parseInt(e.target.value,10);
+                                                if (!isNaN(mins) && mins>=0) {
+                                                    setSessionDurations(prev=>({...prev,[sumWst]:mins*60}));
+                                                    setSummaryData(prev=>prev?{...prev,durationSec:mins*60}:prev);
+                                                }
+                                                setEditingDur(false);
+                                            }}
+                                            className="w-full text-lg font-black text-blue-600 text-center bg-white rounded-lg outline-none" />
+                                    ) : (
+                                        <div className="text-lg font-black text-blue-600">{fmtDur(showDur)}</div>
+                                    )}
+                                    <div className="text-[10px] font-bold text-blue-400">זמן אימון{allDone?' (לחץ לעריכה)':''}</div>
                                 </div>
                                 <div className="bg-emerald-50 rounded-2xl p-3 text-center">
                                     <div className="text-lg font-black text-emerald-600">{doneCount}/{sd.totalGroups}</div>
@@ -3244,7 +3344,8 @@ function App() {
                             }} className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600'}`}>
                                 {summarySaved ? 'נשמר' : 'שמור'}
                             </button>
-                            <button onClick={()=>setShowSummary(false)} className="w-full p-3 rounded-xl font-bold text-slate-500 bg-slate-50 border border-slate-200 active:scale-95">סגור</button>
+                            <button onClick={()=>setShowSummary(false)}
+                                className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-white bg-blue-600' : 'text-slate-500 bg-slate-50 border border-slate-200'}`}>סגור</button>
                         </div>
                     </div>
                 );
@@ -3316,7 +3417,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} /></div>;
