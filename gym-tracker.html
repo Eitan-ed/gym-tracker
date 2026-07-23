@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.56';
+const APP_VERSION = '9.57';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1645,14 +1645,14 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
     useEffect(()=>{ LS.set('gym-report-preamble', reportPreamble); },[reportPreamble]);
     const [preambleOpen, setPreambleOpen] = useState(false);
 
     const [open, setOpen] = useState(()=>{
-        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false};
+        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false, devNotes:false};
         if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
         return base;
     });
@@ -1668,7 +1668,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const instructorsRef = React.useRef(null);
     const gymInfoRef = React.useRef(null);
     const reportsRef = React.useRef(null);
-    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef, gymInfo: gymInfoRef, reports: reportsRef };
+    const devNotesRef = React.useRef(null);
+    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef, gymInfo: gymInfoRef, reports: reportsRef, devNotes: devNotesRef };
     React.useEffect(()=>{
         if (initialOpenSection && sectionRefs[initialOpenSection]) {
             setOpen(p => ({...p, [initialOpenSection]: true}));
@@ -1680,7 +1681,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         }
     }, [initialOpenSection]);
     // ─── סידור אלפביתי (א"ב) של קטגוריות הניהול — אוטומטי בכל הוספת קטגוריה ───
-    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'מדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים', gymInfo:'שעות פתיחת מכון', reports:'דוחות' };
+    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'מדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים', gymInfo:'שעות פתיחת מכון', reports:'דוחות', devNotes:'הערות שיפור (ל-Claude)' };
     const sectionOrder = Object.entries(SECTION_TITLES).sort((a,b)=>a[1].localeCompare(b[1],'he')).map(e=>e[0]);
     const ord = key => sectionOrder.indexOf(key);
     const toggleSection = key => {
@@ -2224,6 +2225,47 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         })()}
                     </div>}
                 </section>
+                {/* ── ה: הערות שיפור (ל-Claude) ── */}
+                <section ref={devNotesRef} style={{order:ord('devNotes')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0`}>
+                    <button onClick={()=>toggleSection('devNotes')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="BookOpen" size={20} className="text-amber-500" /> הערות שיפור (ל-Claude)</h3>
+                        <Icon name={open.devNotes?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.devNotes && (()=>{
+                        const entries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
+                        const nameOf = exId => {
+                            const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
+                            return customNames[exId] || ex?.title || exId;
+                        };
+                        const allText = entries.map(([exId,t])=>`• ${nameOf(exId)}:\n${t}`).join('\n\n');
+                        return (
+                        <div className="px-5 pb-5 space-y-3">
+                            {entries.length===0 ? (
+                                <div className="text-center text-slate-400 font-bold py-4 text-sm">אין הערות שיפור כרגע</div>
+                            ) : (<>
+                                <div className="space-y-2">
+                                    {entries.map(([exId,t]) => (
+                                        <div key={exId} className="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs font-black text-amber-700">{nameOf(exId)}</span>
+                                                <button onClick={()=>setDevNotes(prev=>{const n={...prev};delete n[exId];return n;})}
+                                                    className="text-red-300 active:text-red-500"><Icon name="Trash2" size={14} /></button>
+                                            </div>
+                                            <div className="text-[13px] font-bold text-slate-700 whitespace-pre-wrap">{t}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={async ()=>{
+                                    try { await navigator.clipboard.writeText(allText); showToast('ההערות הועתקו — הדבק אותן בצ׳אט ל-Claude'); }
+                                    catch { showToast('העתקה נכשלה, נסה שוב', true); }
+                                }} className="w-full p-3 rounded-xl font-bold text-white bg-amber-600 active:scale-95">📋 העתק הכל (להדביק ל-Claude)</button>
+                                <button onClick={()=>requestConfirm('למחוק את כל הערות השיפור?', ()=>{setDevNotes({}); showToast('ההערות נמחקו');})}
+                                    className="w-full p-3 rounded-xl font-bold text-slate-500 bg-slate-50 border border-slate-200 active:scale-95">נקה הכל (אחרי שטופל)</button>
+                            </>)}
+                        </div>
+                        );
+                    })()}
+                </section>
                 {/* ── ש: שעות פתיחת מכון ── */}
                 <section ref={gymInfoRef} style={{order:ord('gymInfo')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0`}>
                     <button onClick={()=>toggleSection('gymInfo')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
@@ -2312,7 +2354,8 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
         { key:'progress',    label:'תדירות אימון',       icon:'CheckCircle2', color:'text-emerald-500' },
         { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
         { key:'gymInfo',     label:'שעות פתיחת מכון',    icon:'Clock',        color:'text-blue-500' },
-        { key:'reports',     label:'דוחות',              icon:'Download',     color:'text-cyan-500' }
+        { key:'reports',     label:'דוחות',              icon:'Download',     color:'text-cyan-500' },
+        { key:'devNotes',    label:'הערות שיפור (ל-Claude)', icon:'BookOpen', color:'text-amber-500' }
     ].sort((a,b)=>a.label.localeCompare(b.label,'he'));
     const topItems = [
         { key:'list',    label:'בית',      icon:'Home' },
@@ -3420,7 +3463,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} /></div>;
-    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} /></div>;
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} /></div>;
 
     // List view
     return (
