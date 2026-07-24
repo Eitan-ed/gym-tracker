@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.59';
+const APP_VERSION = '9.60';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1679,61 +1679,12 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null }) => {
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
+    filingDirName=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
     useEffect(()=>{ LS.set('gym-report-preamble', reportPreamble); },[reportPreamble]);
     const [preambleOpen, setPreambleOpen] = useState(false);
-    const [filingDirName, setFilingDirName] = useState(null);
-    const filingDirRef = React.useRef(null);
-    const filingSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
-    useEffect(() => {
-        if (!filingSupported) return;
-        (async () => {
-            const handle = await IDB.get('filingDirHandle');
-            if (!handle) return;
-            try {
-                const perm = await handle.queryPermission({ mode: 'readwrite' });
-                if (perm === 'granted') { filingDirRef.current = handle; setFilingDirName(handle.name); }
-            } catch {}
-        })();
-    }, [filingSupported]);
-    const connectFilingDir = async () => {
-        try {
-            const handle = await window.showDirectoryPicker();
-            const perm = await handle.requestPermission({ mode: 'readwrite' });
-            if (perm !== 'granted') { showToast('לא ניתנה הרשאת כתיבה', true); return; }
-            await IDB.set('filingDirHandle', handle);
-            filingDirRef.current = handle; setFilingDirName(handle.name);
-            showToast(`תיקיית "${handle.name}" חוברה`);
-        } catch { /* בוטל ע"י המשתמש */ }
-    };
-    const disconnectFilingDir = async () => {
-        await IDB.del('filingDirHandle');
-        filingDirRef.current = null; setFilingDirName(null);
-        showToast('החיבור לתיקייה נותק');
-    };
-    // שומר קובץ טקסט לתיקיית FILING אם מחוברת, אחרת מוריד כרגיל
-    const saveTextFile = async (fname, txt) => {
-        if (filingDirRef.current) {
-            try {
-                const perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
-                if (perm === 'granted') {
-                    const fh = await filingDirRef.current.getFileHandle(fname, { create: true });
-                    const w = await fh.createWritable();
-                    await w.write(new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'}));
-                    await w.close();
-                    return true;
-                }
-            } catch {}
-        }
-        const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fname; a.click();
-        URL.revokeObjectURL(url);
-        return false;
-    };
 
     const [open, setOpen] = useState(()=>{
         const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false, devNotes:false};
@@ -2279,6 +2230,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                             <div className="text-[10px] font-bold text-emerald-600 truncate">
                                                 {filingDirName ? `מחובר לתיקיית "${filingDirName}"` : 'לא מחובר — דוחות יורדו כרגיל'}
                                             </div>
+                                            {filingDirName && <div className="text-[10px] font-bold text-emerald-500 mt-0.5">הערות השיפור מסתנכרנות אוטומטית לקובץ gym-dev-notes-current.txt</div>}
                                         </div>
                                         <button onClick={filingDirName ? disconnectFilingDir : connectFilingDir}
                                             className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black active:scale-95 ${filingDirName ? 'bg-white text-red-500 border border-red-200' : 'bg-emerald-600 text-white'}`}>
@@ -2692,6 +2644,71 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [devNotes,         setDevNotes]         = useState(()=>LS.get('gym-dev-notes',{}));
     const [devNotesDone,     setDevNotesDone]     = useState(()=>LS.get('gym-dev-notes-done',{}));
+    // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
+    const [filingDirName, setFilingDirName] = useState(null);
+    const filingDirRef = React.useRef(null);
+    const filingSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+    useEffect(() => {
+        if (!filingSupported) return;
+        (async () => {
+            const handle = await IDB.get('filingDirHandle');
+            if (!handle) return;
+            try {
+                const perm = await handle.queryPermission({ mode: 'readwrite' });
+                if (perm === 'granted') { filingDirRef.current = handle; setFilingDirName(handle.name); }
+            } catch {}
+        })();
+    }, [filingSupported]);
+    const connectFilingDir = async () => {
+        try {
+            const handle = await window.showDirectoryPicker();
+            const perm = await handle.requestPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') { showToast('לא ניתנה הרשאת כתיבה', true); return; }
+            await IDB.set('filingDirHandle', handle);
+            filingDirRef.current = handle; setFilingDirName(handle.name);
+            showToast(`תיקיית "${handle.name}" חוברה`);
+        } catch { /* בוטל ע"י המשתמש */ }
+    };
+    const disconnectFilingDir = async () => {
+        await IDB.del('filingDirHandle');
+        filingDirRef.current = null; setFilingDirName(null);
+        showToast('החיבור לתיקייה נותק');
+    };
+    // שומר קובץ טקסט לתיקיית FILING אם מחוברת, אחרת מוריד כרגיל
+    const saveTextFile = async (fname, txt) => {
+        if (filingDirRef.current) {
+            try {
+                const perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    const fh = await filingDirRef.current.getFileHandle(fname, { create: true });
+                    const w = await fh.createWritable();
+                    await w.write(new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'}));
+                    await w.close();
+                    return true;
+                }
+            } catch {}
+        }
+        const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fname; a.click();
+        URL.revokeObjectURL(url);
+        return false;
+    };
+    // כתיבה אוטומטית של קובץ הערות-שיפור עדכני (שם קבוע) בכל שינוי — בלי צורך בייצוא ידני
+    const nameOfNoteKey = (exId) => {
+        if (PAGE_NOTE_LABELS[exId]) return PAGE_NOTE_LABELS[exId];
+        const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
+        return customNames[exId] || ex?.title || exId;
+    };
+    const syncDevNotesFile = useCallback((notesObj, doneObj) => {
+        if (!filingDirRef.current) return;
+        const pending = Object.entries(notesObj||{}).filter(([k,t])=>t && t.trim() && !doneObj?.[k]);
+        const txt = pending.length
+            ? pending.map(([exId,t])=>`• ${nameOfNoteKey(exId)}:\n${t}`).join('\n\n')
+            : '(אין הערות חדשות)';
+        saveTextFile('gym-dev-notes-current.txt', txt);
+    }, [customNames]);
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
     const [customNames,      setCustomNames]      = useState(()=>LS.get('gym-custom-names',{}));
@@ -2818,6 +2835,8 @@ function App() {
     useEffect(()=>{ LS.set('gym-notes',          notes);            },[notes]);
     useEffect(()=>{ LS.set('gym-dev-notes',      devNotes);         },[devNotes]);
     useEffect(()=>{ LS.set('gym-dev-notes-done', devNotesDone);     },[devNotesDone]);
+    // סנכרון אוטומטי לקובץ ב-FILING בכל שינוי בהערות (הוספה/עריכה/סימון כבוצע/מחיקה) — ללא צורך בייצוא ידני
+    useEffect(()=>{ syncDevNotesFile(devNotes, devNotesDone); },[devNotes, devNotesDone, filingDirName]);
     useEffect(()=>{ LS.set('gym-images',         images);           },[images]);
     useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
     useEffect(()=>{ LS.set('gym-custom-names',  customNames);      },[customNames]);
@@ -3627,7 +3646,8 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
-    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone} /></div>;
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
+        filingDirName={filingDirName} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
     // List view
     return (
