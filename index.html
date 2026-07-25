@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.65';
+const APP_VERSION = '9.66';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -317,7 +317,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
     return (
         <div className="flex flex-col items-center flex-1">
             <button onClick={() => setOpen(true)}
-                className={`w-full h-14 rounded-xl font-black text-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all
+                className={`w-full h-12 rounded-xl font-black text-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all
                     ${isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800'}`}>
                 <span>{value}</span>
                 <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{label}</span>
@@ -707,8 +707,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 return (
                     <React.Fragment>
                         <div style={dimDoneW ? {border:'2px solid #d97706', borderRadius:'1.6rem', filter:'grayscale(0.85) opacity(0.65)'} : isDoneW ? {border:'2px solid #d97706', borderRadius:'1.6rem'} : {border:'2px dashed #f59e0b', borderRadius:'1.6rem', boxShadow:'0 2px 8px rgba(245,158,11,0.15)'}}
-                            className={`p-3 rounded-[1.6rem] flex items-center gap-2 transition-all ${isDoneW ? 'bg-amber-50' : 'bg-amber-50/70'}`}>
-                            <div className="w-8 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg cursor-pointer"
+                            className={`p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all ${isDoneW ? 'bg-amber-50' : 'bg-amber-50/70'}`}>
+                            <div className="w-8 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg cursor-pointer"
                                 style={{background: isDoneW ? '#92400e' : '#f59e0b'}}
                                 onClick={()=>{if(!isDoneW) setWarmupOpen(false);}}>
                                 <span className="text-[6px] font-black uppercase tracking-tighter text-white/80">WARM</span>
@@ -736,7 +736,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             </div>
                             <button onClick={handleWarmupSave}
                                 disabled={isSaving}
-                                className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
+                                className={`w-14 h-12 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
                                     ${isDoneW && (sW.wC||sW.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
                                     : isDoneW ? 'bg-amber-100 text-amber-400 shadow-none'
                                     : 'bg-amber-500 text-white shadow-amber-200 shadow-lg'}`}>
@@ -780,14 +780,14 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     <React.Fragment key={num}>
                         <div style={{...(conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'} : isDone ? {border:'2px solid #94a3b8', borderRadius:'1.6rem'} : undefined)),
                                 ...(dimDone ? {filter:'grayscale(0.85) opacity(0.65)'} : {})}}
-                            className={`p-3 rounded-[1.6rem] flex items-center gap-2 transition-all
+                            className={`p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all
                                 ${isDone   ? 'bg-slate-300' : 'bg-white'}
                                 ${conic    ? ''
                                 : isActive ? ''
                                 : isDone   ? ''
                                 : timerDone? 'border border-slate-700 shadow-md'
                                 :            'border border-slate-100 shadow-sm'}`}>
-                            <div className="w-8 h-14 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
+                            <div className="w-8 h-12 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
                                 style={{background: isActive ? accentColor : '#000000'}}>
                                 <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
                                 <span className="text-base font-black leading-none">{num}</span>
@@ -829,7 +829,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                             } else if (!timerState) {
                                                 setTimerState({num, remaining:bellyTimerSecs, total:bellyTimerSecs});
                                             }
-                                        }} className={`flex-1 h-14 rounded-xl flex flex-col items-center justify-center cursor-pointer active:scale-95
+                                        }} className={`flex-1 h-12 rounded-xl flex flex-col items-center justify-center cursor-pointer active:scale-95
                                             ${timerState?.num===num?'bg-teal-50 ring-2 ring-teal-300':'bg-slate-100 active:bg-teal-50'}`}>
                                             <span className={`font-black text-[22px] ${timerState?.num===num?'text-teal-700':'text-slate-800'}`}>
                                                 {timerState?.num===num ? timerState.remaining : (isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs)}
@@ -866,7 +866,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 handleSetSave(num, state);
                             }}
                                 disabled={!canActFinal}
-                                className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
+                                className={`w-14 h-12 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
                                     ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
                                     : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
                                     : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700 text-[16px]'
@@ -1083,12 +1083,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 {dispImgSrc && (
                                     <div className="relative flex-1 min-w-0">
                                         <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
-                                            className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'9rem'}} />
+                                            className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'7.5rem'}} />
                                         {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
                                             className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
                                     </div>
                                 )}
-                                <div className={`grid grid-cols-2 grid-rows-2 gap-1.5 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'9rem'}}>
+                                <div className={`grid grid-cols-2 grid-rows-2 gap-1.5 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'7.5rem'}}>
                                     <div className="min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : <div className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl" />}</div>
                                     <div className="min-w-0 flex flex-col">{miniTimer}</div>
                                     {lastW>0 ? (
