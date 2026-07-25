@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.64';
+const APP_VERSION = '9.65';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1337,6 +1337,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     {allGroups.map((g,i) => {
                         const isSkipped = skippedGroups.includes(g.id);
                         const isCur = g.id === group.id;
+                        const isPreviewSel = g.id === previewGroupId;
                         const isDoneG = !isSkipped && g.exercises.every(ex=>{
                             const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
                             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
@@ -1346,14 +1347,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         return (
                             <button key={g.id} ref={isCur ? curChipRef : null} onClick={(e)=>{
                                     e.currentTarget.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-                                    if (g.id === group.id) return;
-                                    setPreviewGroupId(g.id);
                                     if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+                                    if (g.id === group.id) { setPreviewGroupId(null); return; }
+                                    setPreviewGroupId(g.id);
                                     previewTimeoutRef.current = setTimeout(()=>setPreviewGroupId(null), 10000);
                                 }}
                                 className="shrink-0 w-7 h-7 rounded-lg text-[11px] font-black flex items-center justify-center transition-all"
                                 style={{background:bg, color:fg,
-                                    border: isSkipped ? '1.5px dashed #cbd5e1' : undefined,
+                                    border: isSkipped ? '1.5px dashed #cbd5e1' : isPreviewSel ? '2px solid #3b82f6' : undefined,
                                     boxShadow: isCur ? '0 0 0 2px white, 0 0 0 4px #3b82f6' : undefined}}>
                                 {i+1}
                             </button>
@@ -1374,42 +1375,67 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const midGroup   = allGroups[centerIdx] || group;
                 const rightGroup = centerIdx < allGroups.length-1 ? allGroups[centerIdx+1] : null;
                 const slotStyle = g => ({ height:'4rem', filter: isGroupDoneHere(g) ? 'grayscale(100%)' : undefined, opacity: isGroupDoneHere(g) ? 0.55 : 1 });
+                const swipe = (dir) => {
+                    // dir: -1 = swipe שהראה את התרגיל הבא (אצבע שמאלה), +1 = הקודם (אצבע ימינה)
+                    const newIdx = centerIdx - dir;
+                    if (newIdx < 0 || newIdx >= allGroups.length) return;
+                    const target = allGroups[newIdx];
+                    if (target.id === group.id) { setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); return; }
+                    setPreviewGroupId(target.id);
+                    if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+                    previewTimeoutRef.current = setTimeout(()=>setPreviewGroupId(null), 10000);
+                };
+                const touchRef = { current: null };
                 return (
-                    <div className="flex items-stretch gap-1.5 mt-3" dir="rtl">
-                        <button key={`l-${leftGroup?.id}`} onClick={()=>{ if(!leftGroup) return; onNavigateTo?.(leftGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!leftGroup}
-                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!leftGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(leftGroup)}>
-                            {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" />}
-                        </button>
-                        <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
-                            className="flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
-                            style={{...slotStyle(midGroup), boxShadow: previewGroup ? `0 0 0 3px ${midGroup.hex||'#3b82f6'}` : undefined}}>
-                            {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" />}
-                        </button>
-                        <button key={`r-${rightGroup?.id}`} onClick={()=>{ if(!rightGroup) return; onNavigateTo?.(rightGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!rightGroup}
-                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!rightGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(rightGroup)}>
-                            {imgOf(rightGroup) && <img src={imgOf(rightGroup)} alt="" className="w-full h-full object-cover" />}
-                        </button>
+                    <div>
+                        <div className="flex items-stretch gap-1.5 mt-3" dir="rtl"
+                            onTouchStart={e=>{ touchRef.current = e.touches[0].clientX; }}
+                            onTouchEnd={e=>{
+                                if (touchRef.current == null) return;
+                                const dx = e.changedTouches[0].clientX - touchRef.current;
+                                touchRef.current = null;
+                                if (Math.abs(dx) < 40) return;
+                                swipe(dx > 0 ? 1 : -1);
+                            }}>
+                            <button key={`l-${leftGroup?.id}`} onClick={()=>{ if(!leftGroup) return; onNavigateTo?.(leftGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!leftGroup}
+                                className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!leftGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(leftGroup)}>
+                                {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" />}
+                            </button>
+                            <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
+                                className="flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
+                                style={{...slotStyle(midGroup), boxShadow: previewGroup ? `0 0 0 3px ${midGroup.hex||'#3b82f6'}` : undefined}}>
+                                {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" />}
+                            </button>
+                            <button key={`r-${rightGroup?.id}`} onClick={()=>{ if(!rightGroup) return; onNavigateTo?.(rightGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!rightGroup}
+                                className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!rightGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(rightGroup)}>
+                                {imgOf(rightGroup) && <img src={imgOf(rightGroup)} alt="" className="w-full h-full object-cover" />}
+                            </button>
+                        </div>
+                        {previewGroup && (
+                            <div className="text-center mt-1 fade-in">
+                                <div className="text-[9px] font-black uppercase tracking-wide" style={{color:midGroup.hex||'#3b82f6'}}>תצוגה מקדימה</div>
+                                <div className="text-[12px] font-black text-slate-700">{midGroup.title}</div>
+                            </div>
+                        )}
                     </div>
                 );
             })()}
-            {/* תרגיל הבא — מידע טקסטואלי. בזמן תצוגה מקדימה (לחיצה על מספר) מציג את פרטי התרגיל הנצפה, וחוזר להבא האמיתי אחרי 10 שנ' */}
+            {/* תרגיל הבא — מידע טקסטואלי, תמיד מציג את התרגיל הבא האמיתי (בלי קשר לתצוגה המקדימה בשורת התמונות) */}
             {(nextGroup || prevGroup) && (()=>{
-                const previewGroup = previewGroupId ? allGroups.find(g=>g.id===previewGroupId) : null;
-                const infoGroup = previewGroup || nextGroup;
-                const iEx = infoGroup?.exercises[0];
-                const iLastW = iEx?([...logs].filter(l=>l.exId===iEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
+                const nEx = nextGroup?.exercises[0];
+                const nLastW = nEx?([...logs].filter(l=>l.exId===nEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
                 return (
                     <div className="mt-3">
                         <div className="flex items-stretch gap-2">
-                            {infoGroup ? (
-                                <div onClick={()=>{ onNavigateTo?.(infoGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }}
+                            {nextGroup ? (
+                                <div onClick={()=>onNavigateTo?.(nextGroup)}
                                     className="flex-1 flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">{previewGroup ? 'תצוגה מקדימה' : 'הבא'}</div>
-                                        <div className="text-[13px] font-black text-slate-700 truncate">{infoGroup.title}</div>
-                                        <div className="text-[10px] font-bold text-slate-400">{infoGroup.category} · {infoGroup.machine}</div>
+                                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">הבא</div>
+                                        <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
+                                        <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
                                     </div>
-                                    {iLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{iLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
+                                    {nLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
                                     <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
                                 </div>
                             ) : (
@@ -1445,7 +1471,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 // תיקון 3: [...items].sort — לא מוטייט מערך מקורי
 const fmtDur = sec => { const m=Math.floor(sec/60), s=sec%60; return `${m}:${String(s).padStart(2,'0')}`; };
 
-const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, onSaveDevNote=null }) => {
+const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, onSaveDevNote=null, onShowDaySummary=null }) => {
     const [expandedDate, setExpandedDate] = useState(null);
     const grouped = useMemo(() => {
         const g = {};
@@ -1494,6 +1520,11 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                                 </div>
                                 <Icon name="ChevronDown" size={20} className={`text-slate-400 transition-transform duration-300 ${expandedDate===date?'rotate-180':''}`} />
                             </button>
+                            {onShowDaySummary && (
+                                <button onClick={()=>onShowDaySummary(date, items)} className="p-4 text-blue-300 active:text-blue-500" title="הצג סיכום אימון">
+                                    <Icon name="Download" size={20} />
+                                </button>
+                            )}
                             <button onClick={()=>requestConfirm('למחוק את כל יום האימון?',()=>onDeleteDate(items))} className="p-4 text-red-300 active:text-red-500">
                                 <Icon name="Trash" size={20} />
                             </button>
@@ -1580,32 +1611,25 @@ const writeToDir = async (dirHandle, json, fname) => {
     return true;
 };
 
+// תמיד מוריד עותק מקומי; אם תיקיית גיבוי/FILING מחוברת, כותב לשם *בנוסף* (לא במקום)
 const triggerBackupDownload = async (data, silent) => {
     const payload = { ...data, _all: collectAllGymData() };
     const json = JSON.stringify(payload, null, 2);
     const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+    let dirOk = false;
     if (_backupDirHandle) {
-        try { if (await writeToDir(_backupDirHandle, json, fname)) return true; } catch {}
+        try { dirOk = await writeToDir(_backupDirHandle, json, fname); } catch {}
     }
-    if (silent) {
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fname; a.click();
-        URL.revokeObjectURL(url);
-        return true;
-    }
-    if (window.showSaveFilePicker) {
+    if (!silent && !_backupDirHandle && window.showSaveFilePicker) {
         try {
             const opts = { suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] };
-            if (_backupDirHandle) opts.startIn = _backupDirHandle;
             const fh = await window.showSaveFilePicker(opts);
             const writable = await fh.createWritable();
             await writable.write(json);
             await writable.close();
             try { const parent = await fh.getParent?.(); if (parent) await saveBackupDirHandle(parent); } catch {}
             return true;
-        } catch (e) { if (e.name === 'AbortError') return false; }
+        } catch (e) { if (e.name === 'AbortError') return dirOk; }
     }
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1754,6 +1778,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
     useEffect(()=>{ LS.set('gym-report-preamble', reportPreamble); },[reportPreamble]);
     const [preambleOpen, setPreambleOpen] = useState(false);
+    const [newDevNoteText, setNewDevNoteText] = useState('');
 
     const [open, setOpen] = useState(()=>{
         const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, gymInfo:false, reports:false, devNotes:false};
@@ -2353,6 +2378,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     {open.devNotes && (()=>{
                         const nameOf = exId => {
                             if (PAGE_NOTE_LABELS[exId]) return PAGE_NOTE_LABELS[exId];
+                            if (String(exId).startsWith('note-')) return 'הערה כללית';
                             const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
                             return customNames[exId] || ex?.title || exId;
                         };
@@ -2364,8 +2390,21 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         const markDone = (exId) => setDevNotesDone(prev=>({...prev,[exId]:true}));
                         const unmarkDone = (exId) => setDevNotesDone(prev=>{const n={...prev};delete n[exId];return n;});
                         const deleteNote = (exId) => { setDevNotes(prev=>{const n={...prev};delete n[exId];return n;}); unmarkDone(exId); };
+                        const addNewNote = () => {
+                            const t = newDevNoteText.trim();
+                            if (!t) return;
+                            onSaveDevNote?.(`note-${Date.now()}`, t);
+                            setNewDevNoteText('');
+                        };
                         return (
                         <div className="px-5 pb-5 space-y-3">
+                            <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-3">
+                                <textarea value={newDevNoteText} onChange={e=>setNewDevNoteText(e.target.value)}
+                                    placeholder="הוסף הערת שיפור חדשה כאן..." rows={2}
+                                    className="w-full text-[13px] font-bold text-slate-700 bg-white border border-amber-200 rounded-xl p-2 outline-none resize-none" />
+                                <button onClick={addNewNote} disabled={!newDevNoteText.trim()}
+                                    className="mt-1.5 w-full p-2 rounded-xl font-bold text-white bg-amber-600 active:scale-95 disabled:opacity-40">הוסף הערה</button>
+                            </div>
                             <div className="text-xs font-black text-slate-400">חדשות (טרם טופלו)</div>
                             {pending.length===0 ? (
                                 <div className="text-center text-slate-400 font-bold py-3 text-sm">אין הערות חדשות</div>
@@ -2741,7 +2780,8 @@ function App() {
             if (perm !== 'granted') { showToast('לא ניתנה הרשאת כתיבה', true); return; }
             await IDB.set('filingDirHandle', handle);
             filingDirRef.current = handle; setFilingDirName(handle.name);
-            showToast(`תיקיית "${handle.name}" חוברה`);
+            await saveBackupDirHandle(handle); // אותה תיקייה משמשת גם לגיבויי JSON וגם לדוחות/הערות
+            showToast(`תיקיית "${handle.name}" חוברה — משמשת גם לדוחות וגם לגיבויים`);
         } catch { /* בוטל ע"י המשתמש */ }
     };
     const disconnectFilingDir = async () => {
@@ -2750,16 +2790,20 @@ function App() {
         showToast('החיבור לתיקייה נותק');
     };
     // שומר קובץ טקסט לתיקיית FILING אם מחוברת, אחרת מוריד כרגיל
+    // תמיד שומר גם קובץ מקומי (הורדה רגילה) וגם, אם תיקיית FILING מחוברת, כותב לשם במקביל.
+    // מחזיר true אם הכתיבה ל-FILING הצליחה (למטרות הודעת סטטוס בלבד).
     const saveTextFile = async (fname, txt) => {
+        let filingOk = false;
         if (filingDirRef.current) {
             try {
-                const perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
+                let perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
+                if (perm !== 'granted') perm = await filingDirRef.current.requestPermission({ mode: 'readwrite' });
                 if (perm === 'granted') {
                     const fh = await filingDirRef.current.getFileHandle(fname, { create: true });
                     const w = await fh.createWritable();
                     await w.write(new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'}));
                     await w.close();
-                    return true;
+                    filingOk = true;
                 }
             } catch {}
         }
@@ -2768,7 +2812,21 @@ function App() {
         const a = document.createElement('a');
         a.href = url; a.download = fname; a.click();
         URL.revokeObjectURL(url);
-        return false;
+        return filingOk;
+    };
+    // כתיבה שקטה ל-FILING בלבד (ללא הורדה מקומית) — לשימוש בסנכרון אוטומטי ברקע, לא בפעולה יזומה של המשתמש
+    const syncTextFileToFilingOnly = async (fname, txt) => {
+        if (!filingDirRef.current) return false;
+        try {
+            let perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') perm = await filingDirRef.current.requestPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') return false;
+            const fh = await filingDirRef.current.getFileHandle(fname, { create: true });
+            const w = await fh.createWritable();
+            await w.write(new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'}));
+            await w.close();
+            return true;
+        } catch { return false; }
     };
     // כתיבה אוטומטית של קובץ הערות-שיפור עדכני (שם קבוע) בכל שינוי — בלי צורך בייצוא ידני
     const nameOfNoteKey = (exId) => {
@@ -2782,7 +2840,7 @@ function App() {
         const txt = pending.length
             ? pending.map(([exId,t])=>`• ${nameOfNoteKey(exId)}:\n${t}`).join('\n\n')
             : '(אין הערות חדשות)';
-        saveTextFile('gym-dev-notes-current.txt', txt);
+        syncTextFileToFilingOnly('gym-dev-notes-current.txt', txt);
     }, [customNames]);
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
@@ -3320,6 +3378,19 @@ function App() {
         setSummarySaved(false); setSummaryBackedUp(false); setEditingDur(false);
         setShowSummary(true);
     };
+    // סיכום היסטורי — קירוב סביר מתוך נתוני היום (הושלם = כל תרגילי הקבוצה נרשמו עם סט 1+2 באותו יום)
+    const handleShowDaySummary = (date, items) => {
+        const wstEntry = Object.keys(sessionDurations||{}).find(ts=>new Date(Number(ts)).toLocaleDateString('he-IL')===date);
+        const startTime = wstEntry ? Number(wstEntry) : new Date(items[0].timestamp).getTime();
+        const dur = wstEntry ? (sessionDurations[wstEntry]||0) : 0;
+        const doneCount = exerciseGroups.filter(g=>g.exercises.every(ex=>{
+            const s1 = items.some(i=>i.exId===ex.id && i.setNum===1);
+            const s2 = items.some(i=>i.exId===ex.id && i.setNum===2);
+            return s1 && s2;
+        })).length;
+        openSummary({ workoutStart: startTime, durationSec: dur, doneCount, totalGroups: exerciseGroups.length, totalSets: items.length, skipCount: 0, ts: startTime + dur*1000 });
+        setView('list'); setActiveGroup(null);
+    };
 
     useEffect(()=>{
         if (view!=='list') return;
@@ -3744,7 +3815,7 @@ function App() {
 
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
-    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
+    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
         filingDirName={filingDirName} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
@@ -3916,9 +3987,11 @@ function App() {
                 <button onClick={()=>{
                     const hasCurrentLogs = logs.some(l=>new Date(l.timestamp).getTime()>workoutStartTime);
                     if (!isWorkoutComplete && hasCurrentLogs) {
-                        requestConfirm('האימון לא הסתיים. לשמור את הנתונים בהיסטוריה?',
+                        // בטיחות: "ביטול" בדיאלוג הכללי לא אמור למחוק סטים שכבר נרשמו בפועל.
+                        // שני הכפתורים שומרים את הסטים; ההבדל היחיד הוא אם נרשם משך זמן לאימון החלקי.
+                        requestConfirm('האימון לא הסתיים. לשמור את משך הזמן שנמדד בהיסטוריה?',
                             ()=>{ if(workoutSec>0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec})); startNewWorkout(); },
-                            ()=>{ setLogs(prev=>prev.filter(l=>new Date(l.timestamp).getTime()<=workoutStartTime)); startNewWorkout(); }
+                            ()=>{ startNewWorkout(); }
                         );
                     } else {
                         if(workoutSec>0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec}));
