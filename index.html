@@ -21,7 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.9/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; background:#7a8a9a; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; background:linear-gradient(180deg,#e9eef5 0%,#d6dfec 100%); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.05; background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,#5a6e82 10px,#5a6e82 11px),repeating-linear-gradient(-45deg,transparent,transparent 10px,#5a6e82 10px,#5a6e82 11px); }
         .no-scrollbar::-webkit-scrollbar { display:none; }
         .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.60';
+const APP_VERSION = '9.61';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -473,7 +473,14 @@ function DevNoteButton({ noteKey, pageLabel, devNotes={}, onSaveDevNote, classNa
     const [text, setText] = useState('');
     const hasNote = !!(devNotes[noteKey] && devNotes[noteKey].trim());
 
-    const openPanel = () => { setText(devNotes[noteKey] || ''); setOpen(true); };
+    const taRef = React.useRef(null);
+    const openPanel = () => {
+        const existing = devNotes[noteKey] || '';
+        const next = existing ? existing + '\n\n' : '';
+        setText(next);
+        setOpen(true);
+        setTimeout(() => { if (taRef.current) { taRef.current.focus(); taRef.current.setSelectionRange(next.length, next.length); } }, 0);
+    };
     const closePanel = () => {
         onSaveDevNote?.(noteKey, text);
         setOpen(false);
@@ -491,8 +498,8 @@ function DevNoteButton({ noteKey, pageLabel, devNotes={}, onSaveDevNote, classNa
             {open && (
                 <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-2xl p-3 shadow-2xl z-[950]" dir="rtl">
                     <div className="text-[11px] font-black text-amber-600 mb-1">{pageLabel}</div>
-                    <textarea value={text} onChange={e=>setText(e.target.value)} onBlur={()=>onSaveDevNote(noteKey, text)}
-                        autoFocus rows={4} placeholder="הערת שיפור..."
+                    <textarea ref={taRef} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>onSaveDevNote(noteKey, text)}
+                        rows={4} placeholder="הערת שיפור..."
                         className="w-full text-[13px] font-bold text-slate-700 bg-amber-50 border border-amber-200 rounded-xl p-2 outline-none resize-none" />
                     <button onClick={closePanel} className="mt-1.5 text-[11px] font-black text-slate-500 active:text-slate-700">סגור ושמור</button>
                 </div>
@@ -587,6 +594,11 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 if (prev.remaining <= 1) {
                     clearInterval(timerIntervalRef.current);
                     playRestCompleteSound();
+                    if (window.speechSynthesis) {
+                        const u = new SpeechSynthesisUtterance('סיום');
+                        u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0;
+                        window.speechSynthesis.speak(u);
+                    }
                     return null; // חוזר לברירת המחדל (bellyTimerSecs)
                 }
                 if (prev.remaining <= 4) playCountdownBeep();
@@ -936,7 +948,8 @@ const VideoModal = ({ src, onClose }) => {
 
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, onSaveDevNote=null,
-    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null }) {
+    workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null,
+    allGroups=[], skippedGroups=[] }) {
     const handleWarmupOpened = (exId) => {
         if (!onUpdateSettings || warmupEmbed[exId]) return;
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: true});
@@ -1234,7 +1247,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         ? _ov
                         : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1));
                     return (
-                <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
+                <ExerciseEntryRow key={ex.id} ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
                     onWarmupOpened={handleWarmupOpened}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
@@ -1315,6 +1328,28 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
                 });
             })}
+            {/* שורת ניווט מספרי תרגילים — בנוסף לניווט קודם/הבא הרגיל */}
+            {allGroups.length > 1 && (
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 mt-3" dir="rtl">
+                    {allGroups.map((g,i) => {
+                        const isSkipped = skippedGroups.includes(g.id);
+                        const isCur = g.id === group.id;
+                        const isDoneG = !isSkipped && g.exercises.every(ex=>{
+                            const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+                            return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+                        });
+                        const bg = isCur ? (group.hex||'#3b82f6') : isDoneG ? '#cbd5e1' : isSkipped ? '#f1f5f9' : '#eff6ff';
+                        const fg = isCur ? '#ffffff' : isDoneG ? '#64748b' : isSkipped ? '#cbd5e1' : '#3b82f6';
+                        return (
+                            <button key={g.id} onClick={()=>onNavigateTo?.(g)}
+                                className="shrink-0 w-7 h-7 rounded-lg text-[11px] font-black flex items-center justify-center transition-all"
+                                style={{background:bg, color:fg, boxShadow: isCur ? `0 0 0 2px white, 0 0 0 4px ${bg}` : undefined}}>
+                                {i+1}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
             {/* תרגיל הבא / קודם */}
             {(nextGroup || prevGroup) && (()=>{
                 const nEx=nextGroup?.exercises[0];
@@ -2634,6 +2669,7 @@ function App() {
     const [summaryBW,        setSummaryBW]        = useState('');
     const [summarySaved,     setSummarySaved]     = useState(false);
     const [summaryBackedUp,  setSummaryBackedUp]  = useState(false);
+    const [showBwStats,      setShowBwStats]      = useState(false);
     const [editingDur,       setEditingDur]       = useState(false);
     const [bodyweightLog,    setBodyweightLog]    = useState(()=>LS.get('gym-bodyweight-log', []));
     useEffect(()=>{ LS.set('gym-bodyweight-log', bodyweightLog); },[bodyweightLog]);
@@ -3290,9 +3326,11 @@ function App() {
                 const doneS1N = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===1&&new Date(l.timestamp).getTime()>curWst);
                 const doneS2N = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===2&&new Date(l.timestamp).getTime()>curWst);
                 const weight = getNextSetWeight(nextEx.id, curLogs, doneS1N, doneS2N);
-                if (weight > 0) {
-                    const warmupWeight = getLastWarmupWeight(nextEx.id, curLogs);
+                const warmupWeight = getLastWarmupWeight(nextEx.id, curLogs);
+                if (weight > 0 || warmupWeight > 0) {
                     setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight });
+                    // אם יש חימום — מכריזים רק עליו כרגע; המשקל הרגיל יוכרז בנפרד כשמסתיימת המנוחה שאחרי החימום (completedExId).
+                    // אם אין חימום לתרגיל הזה — מכריזים מיד על המשקל הרגיל, כי אין שלב ביניים לחכות לו.
                     if (window.speechSynthesis) {
                         window.speechSynthesis.cancel();
                         if (warmupWeight > 0) {
@@ -3302,10 +3340,11 @@ function App() {
                             const u2 = new SpeechSynthesisUtterance(String(warmupWeight));
                             u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
                             window.speechSynthesis.speak(u2);
+                        } else if (weight > 0) {
+                            const u3 = new SpeechSynthesisUtterance(String(weight));
+                            u3.lang = 'he-IL'; u3.rate = 1.0; u3.volume = 1.0;
+                            window.speechSynthesis.speak(u3);
                         }
-                        const u3 = new SpeechSynthesisUtterance(String(weight));
-                        u3.lang = 'he-IL'; u3.rate = 1.0; u3.volume = 1.0;
-                        window.speechSynthesis.speak(u3);
                     }
                 }
             }
@@ -3533,27 +3572,34 @@ function App() {
                                 placeholder="הערות לאימון זה..."
                                 rows={3}
                                 className="w-full bg-amber-50/70 border border-amber-200 rounded-2xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-                            <div className="flex items-center gap-2 bg-sky-50/70 border border-sky-200 rounded-2xl p-3">
-                                <Icon name="User" size={18} className="text-sky-500 shrink-0"/>
-                                <label className="text-[12px] font-black text-slate-700 shrink-0">משקל גוף:</label>
-                                <input type="number" step="0.1" min="0" max="300" inputMode="decimal"
-                                    value={summaryBW}
-                                    onChange={e=>{setSummaryBW(e.target.value);setSummarySaved(false);}}
-                                    placeholder="0.0"
-                                    className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-[14px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-sky-400 text-center" />
-                                <span className="text-[11px] font-bold text-slate-400 shrink-0">ק״ג</span>
+                            <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3">
+                                <div className="flex items-center gap-2">
+                                    <Icon name="User" size={18} className="text-sky-500 shrink-0"/>
+                                    <label className="text-[12px] font-black text-slate-700 shrink-0">משקל גוף:</label>
+                                    <input type="number" step="0.1" min="0" max="300" inputMode="decimal"
+                                        value={summaryBW}
+                                        onChange={e=>{setSummaryBW(e.target.value);setSummarySaved(false);}}
+                                        placeholder="0.0"
+                                        className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-[14px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-sky-400 text-center" />
+                                    <span className="text-[11px] font-bold text-slate-400 shrink-0">ק״ג</span>
+                                    {bodyweightLog.length > 0 && (
+                                        <button onClick={()=>setShowBwStats(s=>!s)} className="p-1.5 bg-sky-100 text-sky-600 rounded-lg active:scale-90 shrink-0" title="היסטוריית משקל">
+                                            <Icon name="History" size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                {showBwStats && (
+                                    <div className="mt-2 pt-2 border-t border-sky-200 space-y-1">
+                                        {[...bodyweightLog].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,8).map(b => (
+                                            <div key={b.id} className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                                                <span>{new Date(b.timestamp).toLocaleDateString('he-IL')} {new Date(b.timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</span>
+                                                <span className="font-black text-sky-700">{b.weight} ק״ג</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            <button onClick={()=>{
-                                triggerBackupDownload({logs, notes, images, videos, settings, groupOrder,
-                                    sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
-                                    lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
-                                    sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
-                                    workoutNote:summaryNote});
-                                showToast('הגיבוי הורד');
-                                setSummaryBackedUp(true);
-                            }} className={`w-full p-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 ${summaryBackedUp ? 'text-slate-400 bg-slate-100 border border-slate-200' : 'text-blue-700 bg-blue-50 border border-blue-200'}`}>
-                                <Icon name="Download" size={16}/> {summaryBackedUp ? 'גובה' : 'גיבוי אימון'}
-                            </button>
+                            {/* אבן-דרך מנחה: שמור → גיבוי אימון → סגור. תמיד רק כפתור אחד כחול = הפעולה הבאה המומלצת */}
                             <button onClick={()=>{
                                 const bw = parseFloat(summaryBW);
                                 if (!isNaN(bw) && bw > 0) {
@@ -3570,8 +3616,22 @@ function App() {
                             }} className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600'}`}>
                                 {summarySaved ? 'נשמר' : 'שמור'}
                             </button>
+                            <button onClick={()=>{
+                                triggerBackupDownload({logs, notes, images, videos, settings, groupOrder,
+                                    sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
+                                    lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
+                                    sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
+                                    workoutNote:summaryNote});
+                                showToast('הגיבוי הורד');
+                                setSummaryBackedUp(true);
+                            }} className={`w-full p-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2
+                                ${summaryBackedUp ? 'text-slate-400 bg-slate-100 border border-slate-200'
+                                : summarySaved   ? 'text-white bg-blue-600'
+                                :                  'text-blue-700 bg-blue-50 border border-blue-200'}`}>
+                                <Icon name="Download" size={16}/> {summaryBackedUp ? 'גובה' : 'גיבוי אימון'}
+                            </button>
                             <button onClick={()=>setShowSummary(false)}
-                                className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-white bg-blue-600' : 'text-slate-500 bg-slate-50 border border-slate-200'}`}>סגור</button>
+                                className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summaryBackedUp ? 'text-white bg-blue-600' : 'text-slate-500 bg-slate-50 border border-slate-200'}`}>סגור</button>
                         </div>
                     </div>
                 );
@@ -3643,7 +3703,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
@@ -3654,7 +3714,7 @@ function App() {
         <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">
         {appTitleBar}
         {overlays}
-        <div className="flex-1 flex flex-col overflow-hidden relative" style={{background:'#7a8a9a'}}>
+        <div className="flex-1 flex flex-col overflow-hidden relative" style={{background:'linear-gradient(180deg,#e9eef5 0%,#d6dfec 100%)'}}>
             <header className="bg-white pb-2 rounded-b-[2rem] shadow-lg sticky top-0 z-10 border-b border-slate-200/50 shrink-0 relative">
                 <div className="absolute left-4 top-3 z-20">
                     <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} />
