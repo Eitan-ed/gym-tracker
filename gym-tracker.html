@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.69';
+const APP_VERSION = '9.70';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1383,8 +1383,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" />}
                             </button>
                             <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
-                                className="flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
-                                style={{...slotStyle(midGroup), boxShadow: previewGroup ? `0 0 0 3px ${midGroup.hex||'#3b82f6'}` : undefined}}>
+                                className="flex-[0.7] rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
+                                style={{...slotStyle(midGroup), boxShadow: '0 0 0 3px #3b82f6'}}>
                                 {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" />}
                             </button>
                             <button key={`r-${rightGroup?.id}`} onClick={()=>{ if(!rightGroup) return; onNavigateTo?.(rightGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!rightGroup}
