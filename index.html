@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.63';
+const APP_VERSION = '9.64';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -941,7 +941,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     const [lightbox,      setLightbox]     = useState(null);
     const [previewGroupId, setPreviewGroupId] = useState(null);
     const previewTimeoutRef = React.useRef(null);
-    useEffect(() => { setPreviewGroupId(null); if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }, [group.id]);
+    const curChipRef = React.useRef(null);
+    useEffect(() => {
+        setPreviewGroupId(null);
+        if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+        setTimeout(()=>curChipRef.current?.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}), 50);
+    }, [group.id]);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
     const [showDetails,   setShowDetails]  = useState(()=>{
@@ -1339,7 +1344,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         const bg = isCur ? '#3b82f6' : isDoneG ? '#cbd5e1' : isSkipped ? '#ffffff' : '#eff6ff';
                         const fg = isCur ? '#ffffff' : isDoneG ? '#64748b' : isSkipped ? '#94a3b8' : '#3b82f6';
                         return (
-                            <button key={g.id} onClick={()=>{
+                            <button key={g.id} ref={isCur ? curChipRef : null} onClick={(e)=>{
+                                    e.currentTarget.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
                                     if (g.id === group.id) return;
                                     setPreviewGroupId(g.id);
                                     if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
@@ -1355,48 +1361,55 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     })}
                 </div>
             )}
-            {/* שורת תמונות: קודם / נוכחי (או תצוגה מקדימה מהמספרים) / הבא */}
+            {/* שורת תמונות: זזה כמו סרט לשכנים האמיתיים של התרגיל הנצפה (נוכחי, או הנבחר במספרים) */}
             {(prevGroup || nextGroup) && (()=>{
                 const imgOf = g => { const ex=g?.exercises[0]; if(!ex) return null; return images?.[ex.id]||(EXERCISE_IMAGES[ex.id]?`images/${EXERCISE_IMAGES[ex.id]}`:null); };
+                const isGroupDoneHere = g => !!g && !skippedGroups.includes(g.id) && g.exercises.every(ex=>{
+                    const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+                    return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+                });
                 const previewGroup = previewGroupId ? allGroups.find(g=>g.id===previewGroupId) : null;
-                const midGroup = previewGroup || group;
-                const midImg = imgOf(midGroup);
-                const pImg = imgOf(prevGroup);
-                const nImgThumb = imgOf(nextGroup);
+                const centerIdx = previewGroup ? allGroups.findIndex(g=>g.id===previewGroupId) : allGroups.findIndex(g=>g.id===group.id);
+                const leftGroup  = centerIdx > 0 ? allGroups[centerIdx-1] : null;
+                const midGroup   = allGroups[centerIdx] || group;
+                const rightGroup = centerIdx < allGroups.length-1 ? allGroups[centerIdx+1] : null;
+                const slotStyle = g => ({ height:'4rem', filter: isGroupDoneHere(g) ? 'grayscale(100%)' : undefined, opacity: isGroupDoneHere(g) ? 0.55 : 1 });
                 return (
                     <div className="flex items-stretch gap-1.5 mt-3" dir="rtl">
-                        <button onClick={()=>prevGroup && onNavigateTo?.(prevGroup)} disabled={!prevGroup}
-                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 ${!prevGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={{height:'4rem'}}>
-                            {pImg && <img src={pImg} alt="" className="w-full h-full object-cover" />}
+                        <button key={`l-${leftGroup?.id}`} onClick={()=>{ if(!leftGroup) return; onNavigateTo?.(leftGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!leftGroup}
+                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!leftGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(leftGroup)}>
+                            {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" />}
                         </button>
-                        <button onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
-                            className="flex-1 rounded-2xl overflow-hidden bg-slate-100 transition-all"
-                            style={{height:'4rem', boxShadow: previewGroup ? `0 0 0 3px ${midGroup.hex||'#3b82f6'}` : undefined}}>
-                            {midImg && <img src={midImg} alt="" className="w-full h-full object-cover" />}
+                        <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
+                            className="flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
+                            style={{...slotStyle(midGroup), boxShadow: previewGroup ? `0 0 0 3px ${midGroup.hex||'#3b82f6'}` : undefined}}>
+                            {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" />}
                         </button>
-                        <button onClick={()=>nextGroup && onNavigateTo?.(nextGroup)} disabled={!nextGroup}
-                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 ${!nextGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={{height:'4rem'}}>
-                            {nImgThumb && <img src={nImgThumb} alt="" className="w-full h-full object-cover" />}
+                        <button key={`r-${rightGroup?.id}`} onClick={()=>{ if(!rightGroup) return; onNavigateTo?.(rightGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!rightGroup}
+                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!rightGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(rightGroup)}>
+                            {imgOf(rightGroup) && <img src={imgOf(rightGroup)} alt="" className="w-full h-full object-cover" />}
                         </button>
                     </div>
                 );
             })()}
-            {/* תרגיל הבא — מידע טקסטואלי (התמונות עברו לשורת שלוש התמונות למעלה) */}
+            {/* תרגיל הבא — מידע טקסטואלי. בזמן תצוגה מקדימה (לחיצה על מספר) מציג את פרטי התרגיל הנצפה, וחוזר להבא האמיתי אחרי 10 שנ' */}
             {(nextGroup || prevGroup) && (()=>{
-                const nEx=nextGroup?.exercises[0];
-                const nLastW=nEx?([...logs].filter(l=>l.exId===nEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
+                const previewGroup = previewGroupId ? allGroups.find(g=>g.id===previewGroupId) : null;
+                const infoGroup = previewGroup || nextGroup;
+                const iEx = infoGroup?.exercises[0];
+                const iLastW = iEx?([...logs].filter(l=>l.exId===iEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
                 return (
                     <div className="mt-3">
                         <div className="flex items-stretch gap-2">
-                            {nextGroup ? (
-                                <div onClick={()=>onNavigateTo?.(nextGroup)}
+                            {infoGroup ? (
+                                <div onClick={()=>{ onNavigateTo?.(infoGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }}
                                     className="flex-1 flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">הבא</div>
-                                        <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
-                                        <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
+                                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">{previewGroup ? 'תצוגה מקדימה' : 'הבא'}</div>
+                                        <div className="text-[13px] font-black text-slate-700 truncate">{infoGroup.title}</div>
+                                        <div className="text-[10px] font-bold text-slate-400">{infoGroup.category} · {infoGroup.machine}</div>
                                     </div>
-                                    {nLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
+                                    {iLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{iLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
                                     <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
                                 </div>
                             ) : (
@@ -2347,6 +2360,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         const pending = allEntries.filter(([k])=>!devNotesDone[k]);
                         const done    = allEntries.filter(([k])=>devNotesDone[k]);
                         const pendingText = pending.map(([exId,t])=>`• ${nameOf(exId)}:\n${t}`).join('\n\n');
+                        const doneText = done.map(([exId,t])=>`• ${nameOf(exId)}:\n${t}`).join('\n\n');
                         const markDone = (exId) => setDevNotesDone(prev=>({...prev,[exId]:true}));
                         const unmarkDone = (exId) => setDevNotesDone(prev=>{const n={...prev};delete n[exId];return n;});
                         const deleteNote = (exId) => { setDevNotes(prev=>{const n={...prev};delete n[exId];return n;}); unmarkDone(exId); };
@@ -2397,6 +2411,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                         </div>
                                     ))}
                                 </div>
+                                <button onClick={async ()=>{
+                                    try { await navigator.clipboard.writeText(doneText); showToast('היסטוריית ההערות שבוצעו הועתקה'); }
+                                    catch { showToast('העתקה נכשלה, נסה שוב', true); }
+                                }} className="w-full p-3 rounded-xl font-bold text-slate-600 bg-slate-100 border border-slate-200 active:scale-95">📋 העתק היסטוריית בוצעו</button>
                                 <button onClick={()=>requestConfirm('למחוק את כל רשימת ה"בוצעו"?', ()=>{
                                     setDevNotes(prev=>{ const n={...prev}; done.forEach(([k])=>delete n[k]); return n; });
                                     setDevNotesDone({});
