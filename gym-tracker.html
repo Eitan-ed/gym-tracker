@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.68';
+const APP_VERSION = '9.69';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1375,28 +1375,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const midGroup   = allGroups[centerIdx] || group;
                 const rightGroup = centerIdx < allGroups.length-1 ? allGroups[centerIdx+1] : null;
                 const slotStyle = g => ({ height:'4rem', filter: isGroupDoneHere(g) ? 'grayscale(100%)' : undefined, opacity: isGroupDoneHere(g) ? 0.55 : 1 });
-                const swipe = (dir) => {
-                    // dir: -1 = swipe שהראה את התרגיל הבא (אצבע שמאלה), +1 = הקודם (אצבע ימינה)
-                    const newIdx = centerIdx - dir;
-                    if (newIdx < 0 || newIdx >= allGroups.length) return;
-                    const target = allGroups[newIdx];
-                    if (target.id === group.id) { setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); return; }
-                    setPreviewGroupId(target.id);
-                    if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
-                    previewTimeoutRef.current = setTimeout(()=>setPreviewGroupId(null), 10000);
-                };
-                const touchRef = { current: null };
                 return (
                     <div>
-                        <div className="flex items-stretch gap-1.5 mt-3" dir="rtl"
-                            onTouchStart={e=>{ touchRef.current = e.touches[0].clientX; }}
-                            onTouchEnd={e=>{
-                                if (touchRef.current == null) return;
-                                const dx = e.changedTouches[0].clientX - touchRef.current;
-                                touchRef.current = null;
-                                if (Math.abs(dx) < 40) return;
-                                swipe(dx > 0 ? 1 : -1);
-                            }}>
+                        <div className="flex items-stretch gap-1.5 mt-3" dir="rtl">
                             <button key={`l-${leftGroup?.id}`} onClick={()=>{ if(!leftGroup) return; onNavigateTo?.(leftGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!leftGroup}
                                 className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!leftGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(leftGroup)}>
                                 {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" />}
@@ -3919,7 +3900,7 @@ function App() {
                                             <span className="text-[11px] font-bold" style={{color:'#3b5998'}}>ימים עברו</span>
                                             <span className="text-slate-300 font-bold">·</span>
                                             <span className="text-[15px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
-                                            <span className="text-[11px] font-bold text-orange-400">ימים נותרו</span>
+                                            <span className="text-[11px] font-bold text-orange-400">ונותרו</span>
                                         </div>
                                     ) : (
                                         <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
@@ -3952,12 +3933,14 @@ function App() {
                             <div onClick={()=>handleOpenExercise(group)}
                                 className={`flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer
                                     ${isDoneReal?'opacity-70':isSkipped?'opacity-70':isNext?'scale-[1.02]':''}`}
-                                style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : 'linear-gradient(145deg, #d4d8de, #e8eaee)', boxShadow: isNext ? '0 0 0 2px #3b82f6, 4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)'}}>
-                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : 'linear-gradient(145deg, #dde0e5, #c8cdd3)'}}>
+                                style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
+                                    border: (!isDoneReal && !isSkipped) ? `2px solid ${isNext ? '#3b82f6' : '#cbd5e1'}` : 'none',
+                                    boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
+                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
                                     <div className="flex items-start gap-4">
                                         <div className="flex flex-col items-center gap-0.5 shrink-0">
                                             {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); return src ? <img src={src} className={`w-12 h-12 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
-                                            <span className="text-[10px] font-black text-slate-400">{idx+1}/{visibleGroups.length}</span>
+                                            <span className={isNext ? 'text-[10px] font-black text-white px-1.5 py-0.5 rounded-full' : 'text-[10px] font-black text-slate-400'} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
                                         </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
