@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.70';
+const APP_VERSION = '9.71';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -468,7 +468,7 @@ function PlankTimer() {
 
 // ─── DevNoteButton — כפתור "הערת שיפור" גנרי לכל עמוד באפליקציה ─────
 // נשמר במפורש בסגירה (לא מסתמך רק על onBlur). הכותרת (pageLabel) מוצגת בפאנל בלבד, לא מוזרקת לטקסט.
-function DevNoteButton({ noteKey, pageLabel, devNotes={}, onSaveDevNote, className='', dark=true }) {
+function DevNoteButton({ noteKey, pageLabel, devNotes={}, onSaveDevNote, className='', dark=true, square=false }) {
     const [open, setOpen] = useState(false);
     const [text, setText] = useState('');
     const hasNote = !!(devNotes[noteKey] && devNotes[noteKey].trim());
@@ -490,9 +490,10 @@ function DevNoteButton({ noteKey, pageLabel, devNotes={}, onSaveDevNote, classNa
     return (
         <div className={`relative ${className}`}>
             <button onClick={()=>{ open ? closePanel() : openPanel(); }}
-                className={`relative p-2 rounded-full active:scale-90 shadow transition-all
+                className={`relative active:scale-90 shadow transition-all flex items-center justify-center
+                    ${square ? 'w-8 h-8 rounded-lg' : 'p-2 rounded-full'}
                     ${hasNote ? 'bg-amber-400 text-white' : dark ? 'backdrop-blur-xl bg-white/10 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                <Icon name="BookOpen" size={18} />
+                <Icon name="BookOpen" size={square ? 15 : 18} />
                 {hasNote && <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-red-500" />}
             </button>
             {open && (
@@ -3832,11 +3833,8 @@ function App() {
         <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">
         {appTitleBar}
         {overlays}
-        <div className="flex-1 flex flex-col overflow-hidden relative" style={{background:'#f4f6f8'}}>
-            <header className="bg-white pb-2 rounded-b-[2rem] shadow-lg sticky top-0 z-10 border-b-2 border-slate-200 shrink-0 relative">
-                <div className="absolute left-4 top-3 z-20">
-                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} />
-                </div>
+        <div className="flex-1 flex flex-col overflow-hidden relative" style={{background:'#e0f2fe'}}>
+            <header className="bg-sky-100 pb-2 rounded-b-[2rem] shadow-lg sticky top-0 z-10 border-b-2 border-slate-200 shrink-0 relative">
                 {(() => {
                     const start = new Date(sessionStartTime);
                     const end = sessionEndTime ? new Date(sessionEndTime) : null;
@@ -3849,30 +3847,9 @@ function App() {
 
                     return (
                         <div className="px-4 mb-2 mt-2 flex items-stretch gap-3">
-                            {/* שעון עגול — מימין */}
-                            <div className="flex flex-col items-center justify-center shrink-0">
-                                <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative active:scale-95 transition-transform" style={{width:'6.5rem', height:'6.5rem'}}>
-                                    <svg viewBox="0 0 100 100" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
-                                        <circle cx="50" cy="50" r="46" fill="none" stroke="#cbd5e1" strokeWidth="4" />
-                                        {workoutSec > 0 && <circle cx="50" cy="50" r="46" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
-                                            strokeDasharray={`${2*Math.PI*46}`} strokeDashoffset={`${2*Math.PI*46 * (1 - Math.min(1, workoutSec/3600))}`}
-                                            transform="rotate(-90 50 50)" style={{transition:'stroke-dashoffset 1s linear'}} />}
-                                        <circle cx="50" cy="50" r="40" fill={isWorkoutComplete ? '#10b981' : '#2d4a6f'} />
-                                    </svg>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                                        <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
-                                        <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
-                                    </div>
-                                </button>
-                                <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
-                                    className="text-[10px] font-bold flex items-center gap-0.5 mt-1 text-slate-400 active:text-slate-600">
-                                    <Icon name="RotateCcw" size={9} /> אפס
-                                </button>
-                            </div>
-
-                            {/* תאריכים + מד — משמאל */}
+                            {/* תאריכים + מד — מימין */}
                             <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime})}
-                                className="flex-1 rounded-2xl bg-white border border-slate-200 pr-4 pl-12 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
+                                className="flex-1 rounded-2xl bg-white border border-slate-200 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
                                 style={{WebkitUserSelect:'none'}}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="text-right">
@@ -3888,23 +3865,45 @@ function App() {
                                     <div className="h-full rounded-full transition-all duration-500"
                                         style={{width:`${progress}%`, background:'#2d4a6f'}} />
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <button onClick={e=>{e.stopPropagation();setMusicPanelOpen(o=>!o)}}
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : musicList.length > 0 ? 'bg-purple-100 text-purple-500' : 'bg-slate-100 text-slate-400'}`}>
-                                        <Icon name="Music" size={18} />
+                                {end ? (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-[15px] font-black" style={{color:'#2d4a6f'}}>{daysPassed}</span>
+                                        <span className="text-[11px] font-bold" style={{color:'#3b5998'}}>ימים עברו</span>
+                                        <span className="text-slate-300 font-bold">·</span>
+                                        <span className="text-[15px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
+                                        <span className="text-[11px] font-bold text-orange-400">ונותרו</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
+                                )}
+                            </div>
+
+                            {/* שעון מלבני + מוזיקה/הערות — משמאל */}
+                            <div className="flex flex-col items-center justify-center gap-1.5 shrink-0">
+                                <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative active:scale-95 transition-transform" style={{width:'6.5rem', height:'4.5rem'}}>
+                                    <svg viewBox="0 0 100 68" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
+                                        <rect x="3" y="3" width="94" height="62" rx="14" fill="none" stroke="#cbd5e1" strokeWidth="4" />
+                                        {workoutSec > 0 && <rect x="3" y="3" width="94" height="62" rx="14" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
+                                            strokeDasharray={`${2*(94+62)}`} strokeDashoffset={`${2*(94+62) * (1 - Math.min(1, workoutSec/3600))}`}
+                                            style={{transition:'stroke-dashoffset 1s linear'}} />}
+                                        <rect x="9" y="9" width="82" height="50" rx="10" fill={isWorkoutComplete ? '#10b981' : '#2d4a6f'} />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                        <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
+                                        <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
+                                    </div>
+                                </button>
+                                <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))}
+                                    className="text-[10px] font-bold flex items-center gap-0.5 text-slate-400 active:text-slate-600">
+                                    <Icon name="RotateCcw" size={9} /> אפס
+                                </button>
+                                <div className="flex items-center gap-1.5">
+                                    <button onClick={()=>setMusicPanelOpen(o=>!o)}
+                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 shrink-0
+                                            ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'}`}>
+                                        <Icon name="Music" size={15} />
                                     </button>
-                                    {end ? (
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[15px] font-black" style={{color:'#2d4a6f'}}>{daysPassed}</span>
-                                            <span className="text-[11px] font-bold" style={{color:'#3b5998'}}>ימים עברו</span>
-                                            <span className="text-slate-300 font-bold">·</span>
-                                            <span className="text-[15px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
-                                            <span className="text-[11px] font-bold text-orange-400">ונותרו</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
-                                    )}
+                                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} square />
                                 </div>
                             </div>
                         </div>
