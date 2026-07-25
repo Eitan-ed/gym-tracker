@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.62';
+const APP_VERSION = '9.63';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -527,13 +527,13 @@ function VideoInput({ exId, onSave }) {
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal, onWarmupOpened=null,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
     weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false,
-    historyOpen=false, onToggleHistory=null, onDeleteLog=null }) {
+    historyOpen=false, onToggleHistory=null, onDeleteLog=null, warmupOpen=false, onToggleWarmup=null }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
     const defW = DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
     const defR = DEFAULT_STARTING_REPS[ex.id] ?? 10;
     const [s1, setS1] = useState({ w:defW, r:defR, wC:false, rC:false });
     const [s2, setS2] = useState({ w:defW, r:defR, wC:false, rC:false });
-    const [warmupOpen, setWarmupOpen] = useState(warmupEmbed);
+    const setWarmupOpen = (v) => onToggleWarmup?.(v);
     const [sW, setSW] = useState({ w:defW, r:10, wC:false, rC:false });
 
     const weightPresets = useMemo(() => [...new Set(
@@ -678,22 +678,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
 
     return (
         <div className="space-y-0" dir="rtl">
-            {/* שורה משולבת: היסטוריה (ימין) + חימום (שמאל) — לחיסכון במקום */}
-            <div className="flex items-center gap-1.5 mb-1.5">
-                {hist10.length > 0 && (
-                    <button onClick={onToggleHistory}
-                        className="flex-1 flex items-center justify-between px-3 py-1.5 rounded-xl text-[11px] font-black bg-indigo-50 border border-indigo-200 text-indigo-600 active:scale-95 transition-all min-w-0">
-                        <span className="flex items-center gap-1 truncate"><Icon name="History" size={13} className="text-indigo-400 shrink-0" /> היסטוריה ({hist10.length})</span>
-                        {hist10[0]?.weight > 0 && <span className="text-orange-500 shrink-0">{hist10[0].weight} kg</span>}
-                    </button>
-                )}
-                {!warmupOpen && !done.sW && (
-                    <button onClick={()=>{setWarmupOpen(true); onWarmupOpened?.(ex.id);}}
-                        className="px-3 py-1.5 rounded-xl text-[11px] font-black bg-amber-50 border border-amber-200 text-amber-600 active:scale-95 transition-all shrink-0">
-                        🔥 חימום
-                    </button>
-                )}
-            </div>
             {historyOpen && hist10.length > 0 && (
                 <div className="mb-3 bg-slate-50 rounded-2xl border border-slate-100 p-3 space-y-1.5">
                     {hist10.map((h,i)=>{
@@ -955,6 +939,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: true});
     };
     const [lightbox,      setLightbox]     = useState(null);
+    const [previewGroupId, setPreviewGroupId] = useState(null);
+    const previewTimeoutRef = React.useRef(null);
+    useEffect(() => { setPreviewGroupId(null); if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }, [group.id]);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
     const [showDetails,   setShowDetails]  = useState(()=>{
@@ -964,6 +951,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     });
     const [historyOpen, setHistoryOpen] = useState(()=>LS.get('gym-hist-open', {}));
     useEffect(()=>{ LS.set('gym-hist-open', historyOpen); },[historyOpen]);
+    const [warmupOpenMap, setWarmupOpenMap] = useState({});
     const [editingHowToId, setEditingHowToId] = useState(null);
     const [howToEditVal, setHowToEditVal] = useState('');
     const [editingTipKey, setEditingTipKey] = useState(null); // 'exId:index'
@@ -1117,27 +1105,36 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         )}
                     </>
                 )}
+                {/* שורה מאוחדת: איך לבצע / היסטוריה / חימום / דלג */}
+                <div className="flex items-center gap-1.5 mt-2 mb-1.5">
+                    <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                            ${showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
+                        <Icon name="BookOpen" size={13} /> איך לבצע
+                    </button>
+                    <button onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                            ${historyOpen[ex.id] ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600'}`}>
+                        <Icon name="History" size={13} /> היסטוריה
+                    </button>
+                    <button onClick={()=>setWarmupOpenMap(p=>{
+                            const next = !(p[ex.id] ?? !!warmupEmbed[ex.id]);
+                            if (next) handleWarmupOpened(ex.id);
+                            return {...p,[ex.id]:next};
+                        })}
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                            ${(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
+                        🔥 חימום
+                    </button>
+                    {handleHowToSkip && (
+                        <button onClick={handleHowToSkip}
+                            className="flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-500 text-[11px] font-black active:scale-95">
+                            דלג
+                        </button>
+                    )}
+                </div>
                 {/* how-to */}
-                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden mt-2">
-                    <div className="w-full flex items-center px-3 py-2.5 gap-2">
-                        <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
-                            className="flex items-center gap-2 flex-1 active:opacity-70">
-                            <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
-                                <Icon name="BookOpen" size={14} className="text-blue-500" /> איך לבצע
-                            </span>
-                        </button>
-                        {handleHowToSkip && (
-                            <button onClick={handleHowToSkip}
-                                className="px-3 py-1 rounded-xl bg-orange-50 border border-orange-200 text-orange-500 text-[11px] font-black active:scale-95 shrink-0">
-                                דלג
-                            </button>
-                        )}
-                        <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
-                            className="flex items-center gap-2 shrink-0 active:opacity-70">
-                            <span className="bg-slate-200 px-2.5 py-1 rounded-full text-[10px] font-black text-slate-600">{group.machine}</span>
-                            <Icon name={showDetails[ex.id]?'ChevronUp':'ChevronDown'} size={16} className="text-slate-400" />
-                        </button>
-                    </div>
+                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden">
                     {showDetails[ex.id] && (
                         <div className="px-4 pb-4">
                             {(()=>{
@@ -1257,7 +1254,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     weightStep={_ws} weightValues={_wv}
                     weightJumpSteps={_wv ? [1,2,3] : [_ws, _ws*2, _ws*4]}
                     repsStep={1} repsJumpSteps={[1,2,3,5]} warmupEmbed={!!warmupEmbed[ex.id]}
-                    historyOpen={!!historyOpen[ex.id]} onToggleHistory={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))} onDeleteLog={onDeleteLog} />
+                    historyOpen={!!historyOpen[ex.id]} onToggleHistory={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))} onDeleteLog={onDeleteLog}
+                    warmupOpen={warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]} onToggleWarmup={(v)=>setWarmupOpenMap(p=>({...p,[ex.id]:v}))} />
                     );
                 })()}
             </div>
@@ -1338,38 +1336,61 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
                             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
                         });
-                        const bg = isCur ? (group.hex||'#3b82f6') : isDoneG ? '#cbd5e1' : isSkipped ? '#f1f5f9' : '#eff6ff';
-                        const fg = isCur ? '#ffffff' : isDoneG ? '#64748b' : isSkipped ? '#cbd5e1' : '#3b82f6';
+                        const bg = isCur ? '#3b82f6' : isDoneG ? '#cbd5e1' : isSkipped ? '#ffffff' : '#eff6ff';
+                        const fg = isCur ? '#ffffff' : isDoneG ? '#64748b' : isSkipped ? '#94a3b8' : '#3b82f6';
                         return (
-                            <button key={g.id} onClick={()=>onNavigateTo?.(g)}
+                            <button key={g.id} onClick={()=>{
+                                    if (g.id === group.id) return;
+                                    setPreviewGroupId(g.id);
+                                    if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+                                    previewTimeoutRef.current = setTimeout(()=>setPreviewGroupId(null), 10000);
+                                }}
                                 className="shrink-0 w-7 h-7 rounded-lg text-[11px] font-black flex items-center justify-center transition-all"
-                                style={{background:bg, color:fg, boxShadow: isCur ? `0 0 0 2px white, 0 0 0 4px ${bg}` : undefined}}>
+                                style={{background:bg, color:fg,
+                                    border: isSkipped ? '1.5px dashed #cbd5e1' : undefined,
+                                    boxShadow: isCur ? '0 0 0 2px white, 0 0 0 4px #3b82f6' : undefined}}>
                                 {i+1}
                             </button>
                         );
                     })}
                 </div>
             )}
-            {/* תרגיל הבא / קודם */}
+            {/* שורת תמונות: קודם / נוכחי (או תצוגה מקדימה מהמספרים) / הבא */}
+            {(prevGroup || nextGroup) && (()=>{
+                const imgOf = g => { const ex=g?.exercises[0]; if(!ex) return null; return images?.[ex.id]||(EXERCISE_IMAGES[ex.id]?`images/${EXERCISE_IMAGES[ex.id]}`:null); };
+                const previewGroup = previewGroupId ? allGroups.find(g=>g.id===previewGroupId) : null;
+                const midGroup = previewGroup || group;
+                const midImg = imgOf(midGroup);
+                const pImg = imgOf(prevGroup);
+                const nImgThumb = imgOf(nextGroup);
+                return (
+                    <div className="flex items-stretch gap-1.5 mt-3" dir="rtl">
+                        <button onClick={()=>prevGroup && onNavigateTo?.(prevGroup)} disabled={!prevGroup}
+                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 ${!prevGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={{height:'4rem'}}>
+                            {pImg && <img src={pImg} alt="" className="w-full h-full object-cover" />}
+                        </button>
+                        <button onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
+                            className="flex-1 rounded-2xl overflow-hidden bg-slate-100 transition-all"
+                            style={{height:'4rem', boxShadow: previewGroup ? `0 0 0 3px ${midGroup.hex||'#3b82f6'}` : undefined}}>
+                            {midImg && <img src={midImg} alt="" className="w-full h-full object-cover" />}
+                        </button>
+                        <button onClick={()=>nextGroup && onNavigateTo?.(nextGroup)} disabled={!nextGroup}
+                            className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 ${!nextGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={{height:'4rem'}}>
+                            {nImgThumb && <img src={nImgThumb} alt="" className="w-full h-full object-cover" />}
+                        </button>
+                    </div>
+                );
+            })()}
+            {/* תרגיל הבא — מידע טקסטואלי (התמונות עברו לשורת שלוש התמונות למעלה) */}
             {(nextGroup || prevGroup) && (()=>{
                 const nEx=nextGroup?.exercises[0];
-                const nImg=nEx?(images?.[nEx.id]||(EXERCISE_IMAGES[nEx.id]?`images/${EXERCISE_IMAGES[nEx.id]}`:null)):null;
                 const nLastW=nEx?([...logs].filter(l=>l.exId===nEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
-                const nDone=nextGroup?.exercises.every(ex=>{const sl=logs.filter(l=>l.exId===ex.id&&new Date(l.timestamp).getTime()>sessionStartTime);return sl.some(l=>l.setNum===1)&&sl.some(l=>l.setNum===2);});
                 return (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="mt-3">
                         <div className="flex items-stretch gap-2">
-                            {prevGroup && (
-                                <button onClick={()=>onNavigateTo?.(prevGroup)}
-                                    className="flex flex-col items-center justify-center gap-0.5 px-3 py-2 bg-slate-100 rounded-2xl text-slate-500 active:scale-95 active:bg-slate-200 transition-all shrink-0 min-w-[3rem]">
-                                    <Icon name="ChevronRight" size={20} className="text-slate-400" />
-                                    <span className="text-[10px] font-black">קודם</span>
-                                </button>
-                            )}
                             {nextGroup ? (
                                 <div onClick={()=>onNavigateTo?.(nextGroup)}
                                     className="flex-1 flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
-                                    {nImg && <img src={nImg} alt={nextGroup.title} className="w-16 h-12 rounded-xl object-cover shrink-0 shadow-sm" style={nDone?{filter:'grayscale(100%)',opacity:0.55}:undefined} />}
                                     <div className="flex-1 min-w-0">
                                         <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">הבא</div>
                                         <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
@@ -3804,11 +3825,11 @@ function App() {
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
                             <div className="flex flex-col gap-1 shrink-0">
                                 <button onClick={()=>{ if(idx===0) return; requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,-1)); }} disabled={idx===0}
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 active:scale-90 disabled:opacity-20" style={{background:'rgba(90,105,120,0.6)', boxShadow:'1px 1px 3px rgba(0,0,0,0.15)'}}>
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white active:scale-90 disabled:opacity-20" style={{background:'#94a3b8', boxShadow:'1px 1px 3px rgba(0,0,0,0.15)'}}>
                                     <Icon name="ChevronUp" size={14} />
                                 </button>
                                 <button onClick={()=>{ if(idx===visibleGroups.length-1) return; requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,1)); }} disabled={idx===visibleGroups.length-1}
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 active:scale-90 disabled:opacity-20" style={{background:'rgba(90,105,120,0.6)', boxShadow:'1px 1px 3px rgba(0,0,0,0.15)'}}>
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white active:scale-90 disabled:opacity-20" style={{background:'#94a3b8', boxShadow:'1px 1px 3px rgba(0,0,0,0.15)'}}>
                                     <Icon name="ChevronDown" size={14} />
                                 </button>
                             </div>
