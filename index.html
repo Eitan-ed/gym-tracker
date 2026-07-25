@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.74';
+const APP_VERSION = '9.75';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -3847,38 +3847,7 @@ function App() {
 
                     return (
                         <div className="px-4 mb-2 mt-2 flex items-stretch gap-3">
-                            {/* שעון מלבני + מוזיקה/הערות — מימין */}
-                            <div className="flex flex-col items-center justify-center gap-1.5 shrink-0">
-                                <div className="relative" style={{width:'5.5rem', height:'5rem'}}>
-                                    <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative w-full h-full active:scale-95 transition-transform">
-                                        <svg viewBox="0 0 100 90" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
-                                            <rect x="3" y="3" width="94" height="84" rx="14" fill="none" stroke="#cbd5e1" strokeWidth="4" />
-                                            {workoutSec > 0 && <rect x="3" y="3" width="94" height="84" rx="14" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
-                                                strokeDasharray={`${2*(94+84)}`} strokeDashoffset={`${2*(94+84) * (1 - Math.min(1, workoutSec/3600))}`}
-                                                style={{transition:'stroke-dashoffset 1s linear'}} />}
-                                            <rect x="9" y="9" width="82" height="72" rx="10" fill={isWorkoutComplete ? '#10b981' : '#2d4a6f'} />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                                            <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
-                                            <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
-                                        </div>
-                                    </button>
-                                    <button onClick={e=>{e.stopPropagation();requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0));}}
-                                        className="absolute top-1.5 left-1.5 text-white/60 active:text-white">
-                                        <Icon name="RotateCcw" size={11} />
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <button onClick={()=>setMusicPanelOpen(o=>!o)}
-                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'}`}>
-                                        <Icon name="Music" size={15} />
-                                    </button>
-                                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} square />
-                                </div>
-                            </div>
-
-                            {/* תאריכים + מד — משמאל */}
+                            {/* תאריכים + מד — מימין */}
                             <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime})}
                                 className="flex-1 rounded-2xl bg-white border border-slate-200 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
                                 style={{WebkitUserSelect:'none'}}>
@@ -3908,6 +3877,37 @@ function App() {
                                     <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
                                 )}
                             </div>
+
+                            {/* מוזיקה/הערות + שעון מלבני — משמאל */}
+                            <div className="flex flex-col items-center justify-center gap-1.5 shrink-0">
+                                <div className="flex items-center gap-1.5">
+                                    <button onClick={()=>setMusicPanelOpen(o=>!o)}
+                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 shrink-0
+                                            ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'}`}>
+                                        <Icon name="Music" size={15} />
+                                    </button>
+                                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} square />
+                                </div>
+                                <div className="relative" style={{width:'5.5rem', height:'5rem'}}>
+                                    <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative w-full h-full active:scale-95 transition-transform">
+                                        <svg viewBox="0 0 100 90" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
+                                            <rect x="3" y="3" width="94" height="84" rx="14" fill="none" stroke="#cbd5e1" strokeWidth="4" />
+                                            {workoutSec > 0 && <rect x="3" y="3" width="94" height="84" rx="14" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
+                                                strokeDasharray={`${2*(94+84)}`} strokeDashoffset={`${2*(94+84) * (1 - Math.min(1, workoutSec/3600))}`}
+                                                style={{transition:'stroke-dashoffset 1s linear'}} />}
+                                            <rect x="9" y="9" width="82" height="72" rx="10" fill={isWorkoutComplete ? '#10b981' : '#2d4a6f'} />
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                            <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
+                                            <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
+                                        </div>
+                                    </button>
+                                    <button onClick={e=>{e.stopPropagation();requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0));}}
+                                        className="absolute top-1.5 left-1.5 text-white/60 active:text-white">
+                                        <Icon name="RotateCcw" size={11} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     );
                 })()}
@@ -3935,7 +3935,7 @@ function App() {
                                 className={`flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer
                                     ${isDoneReal?'opacity-70':isSkipped?'opacity-70':isNext?'scale-[1.02]':''}`}
                                 style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
-                                    border: (!isDoneReal && !isSkipped) ? `2px solid ${isNext ? '#3b82f6' : '#cbd5e1'}` : 'none',
+                                    border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
                                     boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
                                 <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
                                     <div className="flex items-start gap-4">
