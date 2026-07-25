@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.72';
+const APP_VERSION = '9.73';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -3834,7 +3834,7 @@ function App() {
         {appTitleBar}
         {overlays}
         <div className="flex-1 flex flex-col overflow-hidden relative" style={{background:'#eef2f6'}}>
-            <header className="bg-white pb-2 rounded-b-[2rem] shadow-lg sticky top-0 z-10 border-b-2 border-slate-200 shrink-0 relative">
+            <header className="bg-white pb-2 rounded-b-[2rem] shadow-lg sticky top-0 z-10 border-b-2 shrink-0 relative" style={{borderBottomColor:'rgba(45,74,111,0.18)'}}>
                 <div className="absolute left-4 top-3 z-20">
                     <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} />
                 </div>
@@ -3913,7 +3913,7 @@ function App() {
                 })()}
             </header>
 
-            <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36">
+            <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36" style={{boxShadow:'inset 0 6px 10px -8px rgba(45,74,111,0.15)'}}>
                 {visibleGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
@@ -3991,7 +3991,7 @@ function App() {
                 )}
             </main>
 
-            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t border-slate-200 px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
+            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', borderTopColor:'rgba(45,74,111,0.18)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
                 <button onClick={()=>{setManageOpenSection('exercises');navigateTo('manage');}} className="flex flex-col items-center gap-1 text-slate-500 active:text-blue-600">
                     <Icon name="Dumbbell" size={24} /><span className="text-[11px] font-black">תרגילים</span>
                 </button>
