@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.75';
+const APP_VERSION = '9.76';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -323,7 +323,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                 <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{label}</span>
             </button>
             {open && (
-                <div className="fixed inset-0 z-[800] flex items-end" onClick={confirm}>
+                <div className="fixed inset-x-0 bottom-0 z-[800] flex items-end" style={{top:'38%'}} onClick={confirm}>
                     <div className="absolute inset-0 bg-slate-900/50" />
                     <div className="relative w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
                         {/* כותרת */}
@@ -1887,7 +1887,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 <h2 className="text-base font-black text-white">ניהול והגדרות</h2>
                 <div className="absolute left-4"><DevNoteButton noteKey="page-manage" pageLabel={PAGE_NOTE_LABELS['page-manage']} devNotes={devNotes} onSaveDevNote={onSaveDevNote} /></div>
             </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 no-scrollbar pb-32 relative">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 no-scrollbar pb-32 relative">
                 {/* ── ג: גיבוי ושחזור ── */}
                 <section ref={backupRef} style={{order:ord('backup')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.backup?'':''}`}>
                     <button onClick={()=>toggleSection('backup')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
@@ -2282,6 +2282,32 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     showToast(`דוח ${periodLabel.split('—')[0].trim()} נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
                                 });
                             };
+                            const generateDevNotesReport = () => {
+                                const nameOf = exId => {
+                                    if (PAGE_NOTE_LABELS[exId]) return PAGE_NOTE_LABELS[exId];
+                                    if (String(exId).startsWith('note-')) return 'הערה כללית';
+                                    const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
+                                    return customNames[exId] || ex?.title || exId;
+                                };
+                                const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
+                                if (!allEntries.length) { showToast('אין הערות לשיפור', true); return; }
+                                const pending = allEntries.filter(([k])=>!devNotesDone[k]);
+                                const done    = allEntries.filter(([k])=>devNotesDone[k]);
+                                let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
+                                txt += `${'═'.repeat(40)}\n\n`;
+                                if (pending.length) {
+                                    txt += `חדשות (טרם טופלו):\n\n`;
+                                    pending.forEach(([exId,t])=>{ txt += `• ${nameOf(exId)}:\n${t}\n\n`; });
+                                }
+                                if (done.length) {
+                                    txt += `בוצעו:\n\n`;
+                                    done.forEach(([exId,t])=>{ txt += `• ${nameOf(exId)}:\n${t}\n\n`; });
+                                }
+                                const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
+                                saveTextFile(fname, txt).then(savedToFiling => {
+                                    showToast(`דוח הערות לשיפור נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
+                                });
+                            };
                             const generateExerciseListReport = () => {
                                 const orderedGroups = groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean);
                                 let txt = `רשימת תרגילים — ${new Date().toLocaleDateString('he-IL')}\n`;
@@ -2346,6 +2372,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <button onClick={generateExerciseListReport} className="w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-4 rounded-2xl border active:scale-[0.98]">
                                     <div className="bg-indigo-200 p-2 rounded-xl"><Icon name="Dumbbell" size={20} /></div>
                                     <div><div className="font-black text-sm">רשימת תרגילים</div><div className="text-[10px] font-bold opacity-70">כל התרגילים לפי הסדר הנוכחי</div></div>
+                                </button>
+                                <button onClick={generateDevNotesReport} className="w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-4 rounded-2xl border active:scale-[0.98]">
+                                    <div className="bg-amber-200 p-2 rounded-xl"><Icon name="BookOpen" size={20} /></div>
+                                    <div><div className="font-black text-sm">הערות לשיפור</div><div className="text-[10px] font-bold opacity-70">כל ההערות, חדשות ובוצעו</div></div>
                                 </button>
                             </>);
                         })()}
@@ -2412,7 +2442,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <button onClick={async ()=>{
                                     try { await navigator.clipboard.writeText(pendingText); } catch {}
                                     if (navigator.share) {
-                                        try { await navigator.share({ text: pendingText, title: 'הערות לשיפור' }); } catch {}
+                                        try { await navigator.share({ text: pendingText, title: `הערות לשיפור ${new Date().toLocaleDateString('he-IL')}` }); } catch {}
                                     }
                                     setDevNotesDone(prev=>{
                                         const n = {...prev};
@@ -3344,6 +3374,16 @@ function App() {
     const completedCount    = useMemo(()=>visibleGroups.filter(isGroupDone).length,          [visibleGroups,isGroupDone]);
     const nextIncompleteIndex = useMemo(()=>visibleGroups.findIndex(g=>!isGroupDone(g)),     [visibleGroups,isGroupDone]);
 
+    // רשת ביטחון: מ-4 תרגילים שהושלמו ומעלה, שומרים checkpoint של משך האימון —
+    // כדי שאם המשתמש עוזב באמצע (בלי לעבור דרך "אימון חדש") לא ייאבד רישום משך הזמן.
+    const checkpointedWstRef = React.useRef(null);
+    useEffect(() => {
+        if (completedCount > 3 && checkpointedWstRef.current !== workoutStartTime) {
+            checkpointedWstRef.current = workoutStartTime;
+            if (workoutSec > 0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec}));
+        }
+    }, [completedCount, workoutStartTime]); // eslint-disable-line
+
     // ─── סיכום אימון — בניית snapshot ופתיחה (כולל פתיחה חוזרת מהבית) ───
     const computeSummarySnapshot = (logsArr, wst, durSec, skipped) => {
         const sessionLogs = logsArr.filter(l=>new Date(l.timestamp).getTime()>wst);
@@ -3996,18 +4036,10 @@ function App() {
                     <Icon name="Dumbbell" size={24} /><span className="text-[11px] font-black">תרגילים</span>
                 </button>
                 <button onClick={()=>{
-                    const hasCurrentLogs = logs.some(l=>new Date(l.timestamp).getTime()>workoutStartTime);
-                    if (!isWorkoutComplete && hasCurrentLogs) {
-                        // בטיחות: "ביטול" בדיאלוג הכללי לא אמור למחוק סטים שכבר נרשמו בפועל.
-                        // שני הכפתורים שומרים את הסטים; ההבדל היחיד הוא אם נרשם משך זמן לאימון החלקי.
-                        requestConfirm('האימון לא הסתיים. לשמור את משך הזמן שנמדד בהיסטוריה?',
-                            ()=>{ if(workoutSec>0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec})); startNewWorkout(); },
-                            ()=>{ startNewWorkout(); }
-                        );
-                    } else {
-                        if(workoutSec>0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec}));
-                        startNewWorkout();
-                    }
+                    // תמיד שומר את משך הזמן שנמדד (אם היה) לפני פתיחת אימון חדש — בלי דיאלוג ובלי סיכון לאבד נתונים.
+                    // הסטים עצמם (logs) לעולם לא נמחקים כאן; רק מצביע "תחילת אימון נוכחי" מתאפס.
+                    if (workoutSec > 0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec}));
+                    startNewWorkout();
                 }}
                     className="flex flex-col items-center gap-1 -mt-14 p-3 rounded-full active:scale-90" style={{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'4px 4px 10px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'}}>
                     <div className="w-14 h-14 rounded-full flex items-center justify-center text-white" style={{background:'linear-gradient(145deg, #3b5998, #2d4a6f)', boxShadow:'0 4px 12px rgba(45,74,111,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'}}><Icon name="Plus" size={36} /></div>
