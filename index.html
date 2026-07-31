@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.76';
+const APP_VERSION = '9.77';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -323,7 +323,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                 <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{label}</span>
             </button>
             {open && (
-                <div className="fixed inset-x-0 bottom-0 z-[800] flex items-end" style={{top:'38%'}} onClick={confirm}>
+                <div className="fixed inset-0 z-[800] flex items-end" onClick={confirm}>
                     <div className="absolute inset-0 bg-slate-900/50" />
                     <div className="relative w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
                         {/* כותרת */}
@@ -701,6 +701,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     })}
                 </div>
             )}
+            <div id={`sets-area-${ex.id}`}>
             {/* סט חימום */}
             {(warmupOpen || done.sW) && (()=>{
                 const isDoneW = done.sW;
@@ -883,6 +884,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     </React.Fragment>
                 );
             })}
+            </div>
 
         </div>
     );
@@ -2758,6 +2760,13 @@ function App() {
     const [toast,            setToast]            = useState(null);
     const [workoutDecisionMade, setWorkoutDecisionMade] = useState(false);
     const [autoTransitionSplash, setAutoTransitionSplash] = useState(null);
+    const [splashAnchorTop, setSplashAnchorTop] = useState(null);
+    // ממקם את הפופ-אפ המשקל בדיוק מעל אזור הסטים של התרגיל הבא (לא במרחק קבוע מתחתית המסך שמשתנה בין עמודים)
+    useEffect(() => {
+        if (!autoTransitionSplash?.exId) { setSplashAnchorTop(null); return; }
+        const el = document.getElementById(`sets-area-${autoTransitionSplash.exId}`);
+        setSplashAnchorTop(el ? el.getBoundingClientRect().top : null);
+    }, [autoTransitionSplash]);
     const [summaryNote,      setSummaryNote]      = useState('');
     const [summaryBW,        setSummaryBW]        = useState('');
     const [summarySaved,     setSummarySaved]     = useState(false);
@@ -3229,6 +3238,7 @@ function App() {
     };
 
     const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
+        setAutoTransitionSplash(null); // סגירת הופ-אפ המשקל האוטומטי (אם פתוח) בלחיצה על סיום/עדכן של כל סט
         const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString()};
         const wst = sstRef.current;
         const isReplace = logsRef.current.some(l=>l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst);
@@ -3463,7 +3473,7 @@ function App() {
                 const weight = getNextSetWeight(nextEx.id, curLogs, doneS1N, doneS2N);
                 const warmupWeight = getLastWarmupWeight(nextEx.id, curLogs);
                 if (weight > 0 || warmupWeight > 0) {
-                    setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight });
+                    setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight, exId: nextEx.id });
                     // אם יש חימום — מכריזים רק עליו כרגע; המשקל הרגיל יוכרז בנפרד כשמסתיימת המנוחה שאחרי החימום (completedExId).
                     // אם אין חימום לתרגיל הזה — מכריזים מיד על המשקל הרגיל, כי אין שלב ביניים לחכות לו.
                     if (window.speechSynthesis) {
@@ -3519,9 +3529,12 @@ function App() {
         <>
             <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} logs={logs} visibleGroups={visibleGroups} activeGroup={activeGroup} />
             {autoTransitionSplash && (
-                <div className="fixed inset-x-0 bottom-24 z-[900] flex items-center justify-center pointer-events-none" style={{maxWidth:'28rem',margin:'0 auto'}}>
+                <div className="fixed inset-x-0 z-[900] flex items-start justify-center pointer-events-none"
+                    style={{maxWidth:'28rem', margin:'0 auto',
+                        top: splashAnchorTop!=null ? `${Math.max(8,splashAnchorTop)}px` : 'auto',
+                        bottom: splashAnchorTop!=null ? 'auto' : '6rem'}}>
                     <div onClick={()=>setAutoTransitionSplash(null)}
-                        className="pointer-events-auto text-center bg-slate-900/90 backdrop-blur-sm rounded-3xl px-8 py-5 shadow-2xl">
+                        className="pointer-events-auto text-center bg-slate-900/90 backdrop-blur-sm rounded-3xl px-8 py-5 shadow-2xl mt-2">
                         <div className="text-orange-400 font-black" style={{fontSize:'3rem',lineHeight:1.2}}>
                             משקל {autoTransitionSplash.weight}
                         </div>
