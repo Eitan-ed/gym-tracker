@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.78';
+const APP_VERSION = '9.79';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -957,7 +957,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, onSaveDevNote=null,
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, uploadedVideos={}, onUploadVideo=null, onDeleteUploadedVideo=null, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, onSaveDevNote=null,
     workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null,
     allGroups=[], skippedGroups=[] }) {
     const handleWarmupOpened = (exId) => {
@@ -1028,7 +1028,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const isPersonal = !!imgSrc;
         const youtubeId  = videos?.[ex.id];
         const localVid   = EXERCISE_VIDEOS[ex.id];
-        const hasVideo   = youtubeId || localVid;
+        const uploadedVid = uploadedVideos?.[ex.id];
+        const hasVideo   = youtubeId || uploadedVid || localVid;
         // skip active set
         const doneS1Ex = logs.some(l=>l.exId===ex.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
         const doneS2Ex = logs.some(l=>l.exId===ex.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
@@ -1054,6 +1055,15 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 </a>
                 <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
             </div>
+        ) : uploadedVid ? (
+            <div className="flex flex-col gap-1 h-full">
+                <button onClick={()=>setVideoModal(uploadedVid)}
+                    className="flex-1 w-full flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
+                    style={{minHeight: full ? '5rem' : '3.5rem'}}>
+                    <span className="text-2xl">▶</span><span className="text-[11px]">וידאו</span>
+                </button>
+                <button onClick={()=>onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
+            </div>
         ) : localVid ? (
             <button onClick={()=>setVideoModal(`videos/${localVid}`)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-800 border border-slate-700 text-white rounded-2xl font-black active:scale-95"
@@ -1061,6 +1071,24 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 <span className="text-2xl">▶</span><span className="text-[11px]">סרטון</span>
             </button>
         ) : null;
+
+        // ריבוע העלאת וידאו — מוצג כשאין וידאו מכל סוג לתרגיל, עם תווית קטנה וכפתור "+" להעלאה
+        const videoUploadTile = (
+            <label className="flex-1 flex flex-col items-center justify-center gap-1 bg-slate-50 border border-dashed border-slate-200 rounded-2xl cursor-pointer active:bg-slate-100 transition-colors"
+                style={{minHeight:'3.5rem'}}>
+                <input type="file" accept="video/*" className="hidden" onChange={e=>{ onUploadVideo && onUploadVideo(ex.id, e.target.files[0]); e.target.value=''; }} />
+                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[13px] font-black leading-none">+</span>
+                <span className="text-[9px] font-black text-slate-400">וידאו</span>
+            </label>
+        );
+        // ריבוע העלאת תמונה — מוצג כשאין תמונה (אישית או ברירת מחדל) לתרגיל, עם תווית קטנה וכפתור "+" להעלאה
+        const imageUploadTile = (
+            <label className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 bg-slate-50 border border-dashed border-slate-200 rounded-2xl cursor-pointer active:bg-slate-100 transition-colors">
+                <input type="file" accept="image/*" className="hidden" onChange={e=>{ onSaveImage(ex.id,e.target.files[0]); e.target.value=''; }} />
+                <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[15px] font-black leading-none">+</span>
+                <span className="text-[10px] font-black text-slate-400">תמונה</span>
+            </label>
+        );
 
         // טיימר כולל של האימון (כמו בדף הראשי) — מוצג בחצי אזור הווידאו
         const wTimerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
@@ -1081,60 +1109,44 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     <div className="flex gap-2 mb-0" style={{minHeight:'7rem'}}>
                         <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                             <div className="text-sm font-black text-slate-800 leading-tight px-0.5">{customNames[ex.id] || ex.title}</div>
-                            {dispImgSrc && (
+                            {dispImgSrc ? (
                                 <div className="relative flex-1 min-w-0">
                                     <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
                                         className="w-full h-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'5rem'}} />
                                     {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
                                         className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
                                 </div>
-                            )}
-                            {!dispImgSrc && (
-                                <label className="flex items-center gap-1 text-[10px] font-black text-slate-400 cursor-pointer">
-                                    <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])} />
-                                    📷 הוסף תמונה
-                                </label>
-                            )}
+                            ) : imageUploadTile}
                         </div>
                         <div className="flex-1 flex gap-1.5">
-                            {hasVideo && <div className="flex-1 min-w-0 flex flex-col">{videoBtn(false)}</div>}
+                            <div className="flex-1 min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : videoUploadTile}</div>
                             <div className="flex-1 min-w-0 flex flex-col">{miniTimer}</div>
                         </div>
                     </div>
                 ) : (
                     /* תרגיל רגיל */
-                    <>
-                        {(
-                            <div className="flex gap-2 mb-0">
-                                {dispImgSrc && (
-                                    <div className="relative flex-1 min-w-0">
-                                        <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
-                                            className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'7.5rem'}} />
-                                        {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
-                                            className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
-                                    </div>
-                                )}
-                                <div className={`grid grid-cols-2 grid-rows-2 gap-1.5 ${dispImgSrc ? 'w-[38%] shrink-0' : 'flex-1'}`} style={{height:'7.5rem'}}>
-                                    <div className="min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : <div className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl" />}</div>
-                                    <div className="min-w-0 flex flex-col">{miniTimer}</div>
-                                    {lastW>0 ? (
-                                        <div className="bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-                                            <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
-                                            {warmupW>0 && <span className="text-[10px] font-black text-orange-300 leading-none mt-0.5">({warmupW})</span>}
-                                            <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
-                                        </div>
-                                    ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
-                                    <div className="bg-slate-50 border border-slate-100 rounded-2xl" />
-                                </div>
+                    <div className="flex gap-2 mb-0">
+                        {dispImgSrc ? (
+                            <div className="relative flex-1 min-w-0">
+                                <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
+                                    className="w-full rounded-2xl object-cover shadow cursor-pointer active:opacity-80" style={{maxHeight:'7.5rem'}} />
+                                {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
+                                    className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
                             </div>
-                        )}
-                        {!dispImgSrc && (
-                            <label className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 cursor-pointer mt-2">
-                                <input type="file" accept="image/*" className="hidden" onChange={e=>onSaveImage(ex.id,e.target.files[0])} />
-                                📷 הוסף תמונה שלך
-                            </label>
-                        )}
-                    </>
+                        ) : <div className="relative flex-1 min-w-0" style={{maxHeight:'7.5rem'}}>{imageUploadTile}</div>}
+                        <div className="grid grid-cols-2 grid-rows-2 gap-1.5 w-[38%] shrink-0" style={{height:'7.5rem'}}>
+                            <div className="min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : videoUploadTile}</div>
+                            <div className="min-w-0 flex flex-col">{miniTimer}</div>
+                            {lastW>0 ? (
+                                <div className="bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
+                                    <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
+                                    {warmupW>0 && <span className="text-[10px] font-black text-orange-300 leading-none mt-0.5">({warmupW})</span>}
+                                    <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
+                                </div>
+                            ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
+                            <div className="bg-slate-50 border border-slate-100 rounded-2xl" />
+                        </div>
+                    </div>
                 )}
                 {/* שורה מאוחדת: איך לבצע / היסטוריה / חימום / דלג */}
                 <div className="flex items-center gap-1.5 mt-2 mb-1.5">
@@ -2786,6 +2798,10 @@ function App() {
     const [scrollToExId,     setScrollToExId]     = useState(null);
     const [confirmAction,    setConfirmAction]    = useState(null);
     const [showNewWorkoutModal, setShowNewWorkoutModal] = useState(false);
+    const [showAddExercise,  setShowAddExercise]  = useState(false);
+    const [newExTitle,       setNewExTitle]       = useState('');
+    const [newExCategory,    setNewExCategory]    = useState('');
+    const [newExCategoryOther, setNewExCategoryOther] = useState('');
     const [skippedGroups,    setSkippedGroups]    = useState([]);
     const [showSummary,      setShowSummary]      = useState(false);
     const [summaryData,      setSummaryData]      = useState(()=>LS.get('gym-last-summary', null));
@@ -2902,6 +2918,8 @@ function App() {
     }, [customNames]);
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     const [videos,           setVideos]           = useState(()=>LS.get('gym-videos',{}));
+    // וידאו מקומי שהמשתמש מעלה בעצמו לכל תרגיל (בנוסף לאפשרות קישור היוטיוב) — מאוחסן ב-IndexedDB, כמו המוזיקה
+    const [uploadedVideos,   setUploadedVideos]   = useState({}); // {exId: objectURL}
     const [customNames,      setCustomNames]      = useState(()=>LS.get('gym-custom-names',{}));
     const [customHowTo,      setCustomHowTo]      = useState(()=>LS.get('gym-custom-howto',{}));
     const [customTips,       setCustomTips]       = useState(()=>LS.get('gym-custom-tips',{}));
@@ -2947,6 +2965,24 @@ function App() {
             setMusicList(valid);
             if (valid.length !== meta.length)
                 LS.set('gym-music-list', valid.map(({id,name,type})=>({id,name,type})));
+        });
+    },[]);
+
+    // טעינת וידאו מותאם אישית מ-IDB בעת אתחול
+    useEffect(()=>{
+        const ids = LS.get('gym-uploaded-video-ids', []);
+        if (!ids.length) return;
+        Promise.all(ids.map(exId =>
+            IDB.get(`video-${exId}`).then(blob => {
+                if (!blob) return null;
+                const typed = blob.type ? blob : new Blob([blob], {type:'video/mp4'});
+                return [exId, URL.createObjectURL(typed)];
+            })
+        )).then(results => {
+            const valid = results.filter(Boolean);
+            setUploadedVideos(Object.fromEntries(valid));
+            const validIds = valid.map(([id])=>id);
+            if (validIds.length !== ids.length) LS.set('gym-uploaded-video-ids', validIds);
         });
     },[]);
 
@@ -3330,6 +3366,27 @@ function App() {
         showToast('הסרטון הוסר');
     };
 
+    // ─── וידאו מקומי שהמשתמש מעלה מהמכשיר (קובץ, לא קישור) ───
+    const handleUploadVideo = (exId, file) => {
+        if (!file) return;
+        showToast('טוען וידאו...');
+        const url = URL.createObjectURL(file);
+        setUploadedVideos(prev=>({...prev,[exId]:url}));
+        IDB.set(`video-${exId}`, file).then(ok => {
+            if (!ok) { showToast('שמירת הווידאו נכשלה', true); return; }
+            const ids = LS.get('gym-uploaded-video-ids', []);
+            if (!ids.includes(exId)) LS.set('gym-uploaded-video-ids', [...ids, exId]);
+            showToast('הווידאו נשמר');
+        });
+    };
+    const handleDeleteUploadedVideo = (exId) => {
+        setUploadedVideos(prev=>{ const n={...prev}; delete n[exId]; return n; });
+        IDB.del(`video-${exId}`);
+        const ids = LS.get('gym-uploaded-video-ids', []);
+        LS.set('gym-uploaded-video-ids', ids.filter(id=>id!==exId));
+        showToast('הווידאו הוסר');
+    };
+
     const handleRemoveImage = (exId) => {
         setImages(prev=>{ const n={...prev}; delete n[exId]; return n; });
         showToast('התמונה הוסרה');
@@ -3390,26 +3447,68 @@ function App() {
     }, []);
 
     // ─── הוספת תרגיל חדש (מותאם אישית) מתוך מסך הניהול ───
-    // יוצרת קבוצת תרגיל חדשה, שומרת אותה כדי שתישאר גם אחרי רענון, ומנווטת ישר
-    // לעמוד התרגיל שלה — בדיוק כמו כל תרגיל אחר — כדי שאפשר יהיה להעלות תמונה/וידאו ולערוך הוראות.
+    // פותחת מודל (שם + חלק בגוף). בשליחה: יוצרת קבוצת תרגיל חדשה בעיצוב תואם לקטגוריה שנבחרה,
+    // משבצת אותה ברשימה מיד ליד תרגילים אחרים מאותו חלק בגוף, שומרת אותה כדי שתישאר גם אחרי רענון,
+    // ומנווטת ישר לעמוד התרגיל שלה — בדיוק כמו כל תרגיל אחר — כדי שאפשר יהיה להעלות תמונה/וידאו ולערוך הוראות.
+    // לבסוף מציעה למשתמש לשנות את מיקום התרגיל ברשימה, ואם כן — פותחת "מצב סידור" זמני.
     const handleAddCustomExercise = useCallback(() => {
-        const title = prompt('שם התרגיל החדש:');
-        if (!title || !title.trim()) return;
-        const t = title.trim();
+        setNewExTitle(''); setNewExCategory(''); setNewExCategoryOther('');
+        setShowAddExercise(true);
+    }, []);
+
+    const submitAddCustomExercise = useCallback(() => {
+        const t = newExTitle.trim();
+        if (!t) return;
+        const category = newExCategory === '__other__' ? (newExCategoryOther.trim() || 'מותאם אישית') : newExCategory;
+        if (!category) return;
         const ts = Date.now();
+        const styleSource = exerciseGroups.find(g => g.category === category);
         const newGroup = {
-            id: `custom-${ts}`, hex:'#64748b', badgeColor:'bg-slate-100 text-slate-700',
-            title: t, category:'מותאם אישית', icon:'⭐', color:'from-slate-500 to-slate-700', machine:'—',
+            id: `custom-${ts}`,
+            hex: styleSource?.hex || '#64748b',
+            badgeColor: styleSource?.badgeColor || 'bg-slate-100 text-slate-700',
+            title: t, category, icon: styleSource?.icon || '⭐',
+            color: styleSource?.color || 'from-slate-500 to-slate-700',
+            machine: styleSource?.machine || '—',
             exercises: [{ id:`custom-${ts}-ex`, title: t, howTo:'', tips:[] }]
         };
         exerciseGroups.push(newGroup);
         LS.set('gym-custom-exercises', [...LS.get('gym-custom-exercises', []), newGroup]);
-        setGroupOrder(prev => [...prev, newGroup.id]);
+        setGroupOrder(prev => {
+            let insertAt = prev.length;
+            for (let i = prev.length - 1; i >= 0; i--) {
+                const g = exerciseGroups.find(eg => eg.id === prev[i]);
+                if (g && g.category === category) { insertAt = i + 1; break; }
+            }
+            const next = [...prev];
+            next.splice(insertAt, 0, newGroup.id);
+            return next;
+        });
+        setShowAddExercise(false);
         setActiveGroup(newGroup);
         navigateTo('detail');
         setScrollToExId(newGroup.exercises[0].id);
         showToast('התרגיל נוסף — עכשיו אפשר להוסיף תמונה, וידאו והוראות');
-    }, [showToast]);
+        setTimeout(()=>{
+            requestConfirm(`התרגיל נוסף לקטגוריית "${category}". לשנות את מיקומו ברשימה?`,
+                ()=>{ navigateTo('list'); setActiveGroup(null); enterReorderMode(newGroup.id); });
+        }, 700);
+    }, [newExTitle, newExCategory, newExCategoryOther, showToast]);
+
+    // ─── מצב סידור זמני: מאפשר להזיז תרגילים בחצים בלי אישור על כל תזוזה, לחלון זמן קצוב ───
+    const [reorderMode, setReorderMode] = useState(null); // {groupId, secondsLeft}
+    const enterReorderMode = useCallback((groupId) => setReorderMode({groupId, secondsLeft:20}), []);
+    const exitReorderMode  = useCallback(() => setReorderMode(null), []);
+    useEffect(()=>{
+        if (!reorderMode) return;
+        setTimeout(()=>document.getElementById('reorder-target-row')?.scrollIntoView({behavior:'smooth',block:'center'}), 200);
+    },[reorderMode?.groupId]); // eslint-disable-line
+    useEffect(()=>{
+        if (!reorderMode) return;
+        if (reorderMode.secondsLeft <= 0) { setReorderMode(null); return; }
+        const t = setTimeout(()=> setReorderMode(prev => prev ? {...prev, secondsLeft: prev.secondsLeft-1} : null), 1000);
+        return ()=>clearTimeout(t);
+    },[reorderMode]);
 
     const handleDeleteCustomExercise = useCallback((group) => {
         const idx = exerciseGroups.findIndex(eg => eg.id === group.id);
@@ -3722,6 +3821,51 @@ function App() {
                     </div>
                 </div>
             )}
+            {showAddExercise && (
+                <div className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
+                        <h3 className="text-lg font-black text-slate-800 mb-4 text-center">תרגיל חדש</h3>
+                        <div className="space-y-3 mb-5">
+                            <div>
+                                <label className="text-[11px] font-black text-slate-400 mb-1 block">שם התרגיל</label>
+                                <input autoFocus value={newExTitle} onChange={e=>setNewExTitle(e.target.value)}
+                                    placeholder="לדוגמה: פשיטת מרפקים עם ידית"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400" />
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-black text-slate-400 mb-1 block">חלק בגוף</label>
+                                <select value={newExCategory} onChange={e=>setNewExCategory(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400">
+                                    <option value="">בחר...</option>
+                                    {[...new Set(exerciseGroups.map(g=>g.category))].map(c=>(
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                    <option value="__other__">אחר...</option>
+                                </select>
+                                {newExCategory === '__other__' && (
+                                    <input value={newExCategoryOther} onChange={e=>setNewExCategoryOther(e.target.value)}
+                                        placeholder="שם החלק בגוף"
+                                        className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400" />
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={()=>setShowAddExercise(false)} className="flex-1 p-3 rounded-xl font-bold text-slate-500 bg-slate-100 active:scale-95">ביטול</button>
+                            <button onClick={submitAddCustomExercise}
+                                disabled={!newExTitle.trim() || !newExCategory || (newExCategory==='__other__' && !newExCategoryOther.trim())}
+                                className="flex-1 p-3 rounded-xl font-bold text-white bg-blue-600 active:scale-95 disabled:opacity-40">צור תרגיל</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {reorderMode && view==='list' && (
+                <div className="fixed inset-x-0 top-3 z-[850] flex justify-center px-4 pointer-events-none" dir="rtl">
+                    <div className="pointer-events-auto bg-indigo-600 text-white rounded-2xl pl-2 pr-4 py-2.5 shadow-2xl flex items-center gap-3 max-w-full">
+                        <span className="font-black text-[12px] leading-tight">🔀 מצב סידור פעיל — השתמשו בחצים כדי להזיז את התרגיל · {reorderMode.secondsLeft} שנ׳</span>
+                        <button onClick={exitReorderMode} className="shrink-0 bg-white/20 rounded-xl px-3 py-1.5 text-xs font-black active:scale-95">סיימתי</button>
+                    </div>
+                </div>
+            )}
             {/* תיקון 5: AlertCircle לשגיאה, CheckCircle2 להצלחה */}
             {toast && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[300px]">
@@ -3949,7 +4093,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
@@ -4049,18 +4193,19 @@ function App() {
                     return (
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
                             <div className="flex flex-col gap-1 shrink-0">
-                                <button onClick={()=>{ if(idx===0) return; requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,-1)); }} disabled={idx===0}
+                                <button onClick={()=>{ if(idx===0) return; if(reorderMode){ handleMoveGroup(idx,-1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,-1)); } }} disabled={idx===0}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronUp" size={12} />
                                 </button>
-                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,1)); }} disabled={idx===visibleGroups.length-1}
+                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; if(reorderMode){ handleMoveGroup(idx,1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,1)); } }} disabled={idx===visibleGroups.length-1}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronDown" size={12} />
                                 </button>
                             </div>
-                            <div onClick={()=>handleOpenExercise(group)}
+                            <div id={reorderMode?.groupId===group.id ? 'reorder-target-row' : undefined} onClick={()=>handleOpenExercise(group)}
                                 className={`flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer
-                                    ${isDoneReal?'opacity-70':isSkipped?'opacity-70':isNext?'scale-[1.02]':''}`}
+                                    ${isDoneReal?'opacity-70':isSkipped?'opacity-70':isNext?'scale-[1.02]':''}
+                                    ${reorderMode?.groupId===group.id ? 'ring-4 ring-indigo-400' : ''}`}
                                 style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
                                     border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
                                     boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
