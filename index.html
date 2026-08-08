@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.81';
+const APP_VERSION = '9.82';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -269,6 +269,16 @@ const exerciseGroups = [
         const g = exerciseGroups.find(eg => String(eg.id) === String(groupId));
         if (g) g.category = category;
     });
+})();
+
+// ─── תרגילים שנמחקו ע"י המשתמש (גם קבועים וגם מותאמים אישית) — מוסרים כאן מהמערך
+// בכל עליית אפליקציה, כי exerciseGroups נבנה מחדש מהקוד בכל טעינה ───
+(function applyDeletedExercises() {
+    const deleted = LS.get('gym-deleted-exercises', []);
+    if (!deleted.length) return;
+    for (let i = exerciseGroups.length - 1; i >= 0; i--) {
+        if (deleted.includes(exerciseGroups[i].id)) exerciseGroups.splice(i, 1);
+    }
 })();
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -594,8 +604,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         if (initialized.current || logs.length === 0) return;
         const exLogs = [...logs].filter(l=>l.exId===ex.id)
             .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-        const lastS1 = exLogs.find(l=>l.setNum===1);
-        const lastS2 = exLogs.find(l=>l.setNum===2);
+        // מתעלמים מסטים שדולגו (משקל וחזרות 0) — כדי שמשקל ההתחלה יימשך מהפעם האחרונה
+        // שבאמת בוצע סט, ולא יתאפס בגלל דילוג אחרון
+        const lastS1 = exLogs.find(l=>l.setNum===1 && (l.weight>0 || l.reps>0));
+        const lastS2 = exLogs.find(l=>l.setNum===2 && (l.weight>0 || l.reps>0));
         if (!lastS1 && !lastS2) return;
         if (lastS1) setS1(p=>({...p, w:lastS1.weight, r:lastS1.reps}));
         if (lastS2) setS2(p=>({...p, w:lastS2.weight, r:lastS2.reps}));
@@ -2186,7 +2198,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             <div className="w-14 text-[11px] font-black text-slate-400 text-center leading-tight shrink-0">מרווחי משקל</div>
                         </div>
                         {groupOrder.map(gid => exerciseGroups.find(eg=>eg.id===gid)).filter(Boolean).map((g, gi, arr) => (
-                            <div key={g.id} className={`space-y-2 pb-3 ${gi < arr.length-1 ? 'border-b border-slate-100' : ''}`}>
+                            <div key={g.id} className={`space-y-2 pb-3 ${gi < arr.length-1 ? 'border-b-2 border-slate-300' : ''}`}>
                                 {g.exercises.map(ex => {
                                     const isHidden = hiddenExercises.has(ex.id);
                                     const img = images?.[ex.id] || (EXERCISE_IMAGES[ex.id] ? `images/${EXERCISE_IMAGES[ex.id]}` : null);
@@ -2247,13 +2259,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                     className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-violet-50 text-violet-500 border border-violet-200">
                                                     חלק גוף
                                                 </button>
-                                                {String(g.id).startsWith('custom-') && (
-                                                    <button
-                                                        onClick={() => requestConfirm('למחוק תרגיל זה לצמיתות?', () => onDeleteCustomExercise && onDeleteCustomExercise(g))}
-                                                        className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-rose-50 text-rose-500 border border-rose-200">
-                                                        מחק
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={() => requestConfirm('למחוק תרגיל זה לצמיתות?', () => onDeleteCustomExercise && onDeleteCustomExercise(g))}
+                                                    className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-rose-50 text-rose-500 border border-rose-200">
+                                                    מחק
+                                                </button>
                                             </div>
                                             {editingCategoryId === ex.id && (
                                                 <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-2xl px-3 py-2.5" dir="rtl">
@@ -3553,10 +3563,16 @@ function App() {
         return ()=>clearTimeout(t);
     },[reorderMode]);
 
+    // מחיקת תרגיל — לכל תרגיל, גם קבוע וגם מותאם אישית. לתרגילי ברירת מחדל נשמר מזהה
+    // ברשימת "נמחקו" כדי שלא יחזרו בטעינה הבאה (כי exerciseGroups נבנה מחדש מהקוד בכל עלייה).
     const handleDeleteCustomExercise = useCallback((group) => {
         const idx = exerciseGroups.findIndex(eg => eg.id === group.id);
         if (idx >= 0) exerciseGroups.splice(idx, 1);
-        LS.set('gym-custom-exercises', LS.get('gym-custom-exercises', []).filter(c => c.id !== group.id));
+        if (String(group.id).startsWith('custom-')) {
+            LS.set('gym-custom-exercises', LS.get('gym-custom-exercises', []).filter(c => c.id !== group.id));
+        }
+        const deleted = LS.get('gym-deleted-exercises', []);
+        if (!deleted.includes(group.id)) LS.set('gym-deleted-exercises', [...deleted, group.id]);
         setGroupOrder(prev => prev.filter(id => id !== group.id));
         setHiddenExercises(prev => {
             const next = new Set(prev);
@@ -4249,12 +4265,6 @@ function App() {
             </header>
 
             <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36" style={{boxShadow:'inset 0 6px 10px -8px rgba(45,74,111,0.15)'}}>
-                {!reorderMode && (
-                    <button onClick={()=>enterReorderMode()}
-                        className="w-full flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-2xl py-2.5 font-black text-[12px] active:scale-[0.98] transition-all">
-                        🔀 סדר תרגילים
-                    </button>
-                )}
                 {visibleGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
@@ -4263,11 +4273,11 @@ function App() {
                     return (
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
                             <div className="flex flex-col gap-1 shrink-0">
-                                <button onClick={()=>{ if(idx===0) return; if(reorderMode){ handleMoveGroup(group.id,-1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(group.id,-1)); } }} disabled={idx===0}
+                                <button onClick={()=>{ if(idx===0) return; if(reorderMode){ handleMoveGroup(group.id,-1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>{ handleMoveGroup(group.id,-1); enterReorderMode(group.id); }); } }} disabled={idx===0}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronUp" size={12} />
                                 </button>
-                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; if(reorderMode){ handleMoveGroup(group.id,1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(group.id,1)); } }} disabled={idx===visibleGroups.length-1}
+                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; if(reorderMode){ handleMoveGroup(group.id,1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>{ handleMoveGroup(group.id,1); enterReorderMode(group.id); }); } }} disabled={idx===visibleGroups.length-1}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronDown" size={12} />
                                 </button>
