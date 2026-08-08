@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.77';
+const APP_VERSION = '9.78';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -204,6 +204,21 @@ function getLastWarmupWeight(exId, logs) {
         .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
     return w?.weight ?? 0;
 }
+// ─── חזרות הסט הבא / חזרות החימום — אותה לוגיקה כמו המשקל, לצורך הצגה בפופאפ המעבר האוטומטי ───
+function getNextSetReps(exId, logs, doneS1=false, doneS2=false) {
+    const lastOfSet = (setNum) => logs.filter(l => l.exId===exId && l.setNum===setNum && l.reps>0)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+    const last1 = lastOfSet(1), last2 = lastOfSet(2);
+    if (!doneS1) return last1?.reps ?? last2?.reps ?? 0;
+    if (!doneS2) return last2?.reps ?? last1?.reps ?? 0;
+    const latest = [last1,last2].filter(Boolean).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+    return latest?.reps ?? 0;
+}
+function getLastWarmupReps(exId, logs) {
+    const w = logs.filter(l => l.exId===exId && l.setNum===0 && l.reps>0)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+    return w?.reps ?? 0;
+}
 // ─── משקל להצגה ליד התמונה — המשקל הגבוה מבין הסטים באימון האחרון,
 // ובלבד שבוצעו בו יותר מ-7 חזרות לסט ───────────────────────────
 function getLastDisplayWeight(exId, logs) {
@@ -221,6 +236,7 @@ const exerciseGroups = [
     { id:1,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',    title:'לחיצת חזה במכונה',         category:'חזה',       icon:'🦾', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex1',  title:'לחיצת חזה במכונה',  howTo:'שב עם גב מוצמד. אחוז בידיות בגובה מרכז החזה. דחף קדימה וחזור באיטיות.', tips:['מרפקים מעל כף יד','כתפיים למטה','תנועה מבוקרת']}] },
     { id:2,  hex:'#3b82f6', badgeColor:'bg-blue-100 text-blue-700',     title:'פרפר חזה במכונה',           category:'חזה',       icon:'🦋', color:'from-blue-500 to-blue-700',     machine:'מכונה',   exercises:[{id:'ex2',  title:'פרפר חזה במכונה',   howTo:'סגור את הידיות למרכז תוך כיווץ החזה, וחזור לאחור עד מתיחה קלה.',        tips:['סקוויז בסגירה','גובה אמצע חזה']}] },
     { id:3,  hex:'#8b5cf6', badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים',       category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3',  title:'פשיטת מרפקים',      howTo:'הצמד מרפקים לצלעות. פשוט את הזרועות למטה עד יישור מלא.',              tips:['מרפקים קפואים','בידוד יד אחורית']}] },
+    { id:20, hex:'#8b5cf6', badgeColor:'bg-violet-100 text-violet-700',title:'פשיטת מרפקים מעל הראש', category:'יד אחורית', icon:'🪢', color:'from-violet-500 to-violet-700',  machine:'כבלים',   exercises:[{id:'ex3b', title:'פשיטת מרפקים מעל הראש', howTo:'אחוז בחבל מעל הראש עם מרפקים כפופים. פשוט את הזרועות קדימה ומעלה עד יישור מלא וחזור באיטיות.', tips:['מרפקים צמודים לראש','לא לנעול מרפקים','תנועה מבוקרת']}] },
     { id:4,  hex:'#d946ef', badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'כפיפת מרפקים בשיפוע', category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'חופשי',   exercises:[{id:'ex4',  title:'כפיפת מרפקים',      howTo:'שב בשיפוע. הרם משקולות לכתף תוך קיפול המרפק בלבד.',             tips:['רק המרפקים זזים','ירידה איטית']}] },
     { id:19, hex:'#d946ef', badgeColor:'bg-fuchsia-100 text-fuchsia-700',title:'יד קדמית במכונה',       category:'יד קדמית', icon:'💪', color:'from-fuchsia-500 to-fuchsia-700',  machine:'מכונה',   exercises:[{id:'ex15', title:'יד קדמית במכונה',   howTo:'שב במכונה עם מרפקים על הכרית. כוף את הזרועות כלפי מעלה תוך כיווץ היד הקדמית וחזור באיטיות.', tips:['מרפקים קפואים על הכרית','ירידה מבוקרת','כיווץ בשיא']}] },
     { id:5,  hex:'#0891b2', badgeColor:'bg-cyan-100 text-cyan-700',    title:'לחיצת כתפיים',              category:'כתפיים',   icon:'🏋️', color:'from-cyan-500 to-cyan-700',       machine:'מכונה',   exercises:[{id:'ex5a', title:'לחיצת כתפיים',  howTo:'דחף ידיות מעלה מעל הראש וחזור לגובה האוזניים.',  tips:['גב צמוד','אחיזה ניטרלית']}] },
@@ -237,6 +253,13 @@ const exerciseGroups = [
     { id:10, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',     title:'הרמות רגליים',               category:'בטן',       icon:'🦵', color:'from-amber-500 to-amber-700',      machine:'חופשי',   exercises:[{id:'ex10b', title:'הרמות רגליים', howTo:'הרם רגליים בכיסא רומי מעל 90 מעלות.',           tips:['תנועה איטית','גב צמוד']}] },
     { id:11, hex:'#f59e0b', badgeColor:'bg-amber-100 text-amber-700',    title:'כפיפות בטן',                  category:'בטן',       icon:'🤸', color:'from-amber-500 to-amber-700',      machine:'חופשי',   exercises:[{id:'ex10a', title:'כפיפות בטן',   howTo:'נתק שכמות וכווץ בטן חזק לכיוון המפשעה.',    tips:['לא למשוך צוואר']}] }
 ];
+
+// ─── תרגילים מותאמים אישית שנוספו ע"י המשתמש (נטענים פעם אחת בעליית האפליקציה,
+// ומוזרקים ישירות למערך exerciseGroups כדי שכל שאר הקוד ימשיך לעבוד בלי שינוי) ───
+(function loadCustomExerciseGroups() {
+    const custom = LS.get('gym-custom-exercises', []);
+    custom.forEach(g => { if (!exerciseGroups.some(eg => eg.id === g.id)) exerciseGroups.push(g); });
+})();
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
 const DRUM_H    = 48;
@@ -896,7 +919,7 @@ const EXERCISE_VIDEOS = {
     ex5a:'ex5a.mp4', ex5b:'ex5b.mp4', ex6:'ex6.mp4',
     ex7b:'ex7b.mp4', ex7c:'ex7c.mp4', ex8:'ex8.mp4',
     ex9:'ex9.mp4', ex10a:'ex10a.mp4', ex10b:'ex10b.mp4',
-    ex12:'ex12.mp4'
+    ex12:'ex12.mp4', ex3b:'ex3b.mp4'
 };
 
 // ─── EXERCISE_IMAGES ────────────────────────────────────────
@@ -906,7 +929,7 @@ const EXERCISE_IMAGES = {
     ex7b:'ex7b.png', ex7c:'ex7c.png', ex8:'ex8.png',
     ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png',
     ex11:'ex11.jpg', ex12:'ex12.jpg', ex13:'ex13.jpg', ex14:'ex14.jpg',
-    ex15:'ex15.jpg'
+    ex15:'ex15.jpg', ex3b:'ex3b.jpg'
 };
 
 // ─── VideoModal ─────────────────────────────────────────────
@@ -1756,7 +1779,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
     filingDirName=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
@@ -2128,6 +2151,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.exercises && <div className="px-4 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
+                        <button onClick={onAddExercise}
+                            className="w-full flex items-center justify-center gap-2 bg-emerald-50 border-2 border-dashed border-emerald-300 text-emerald-700 rounded-2xl py-3.5 font-black text-sm active:scale-[0.98] transition-all">
+                            <Icon name="Plus" size={18} /> הוסף תרגיל חדש
+                        </button>
                         <div className="flex items-center gap-2 px-1 sticky top-0 bg-white z-10 pb-1">
                             <div className="flex-1 text-[11px] font-black text-slate-400 uppercase tracking-wide">תרגיל</div>
                             <div className="w-14 text-[11px] font-black text-slate-400 text-center leading-tight shrink-0">מרווחי משקל</div>
@@ -2189,6 +2216,13 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                         ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                                     {isHidden ? 'הפעל' : 'הסתר'}
                                                 </button>
+                                                {String(g.id).startsWith('custom-') && (
+                                                    <button
+                                                        onClick={() => requestConfirm('למחוק תרגיל זה לצמיתות?', () => onDeleteCustomExercise && onDeleteCustomExercise(g))}
+                                                        className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-rose-50 text-rose-500 border border-rose-200">
+                                                        מחק
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -3355,6 +3389,41 @@ function App() {
         });
     }, []);
 
+    // ─── הוספת תרגיל חדש (מותאם אישית) מתוך מסך הניהול ───
+    // יוצרת קבוצת תרגיל חדשה, שומרת אותה כדי שתישאר גם אחרי רענון, ומנווטת ישר
+    // לעמוד התרגיל שלה — בדיוק כמו כל תרגיל אחר — כדי שאפשר יהיה להעלות תמונה/וידאו ולערוך הוראות.
+    const handleAddCustomExercise = useCallback(() => {
+        const title = prompt('שם התרגיל החדש:');
+        if (!title || !title.trim()) return;
+        const t = title.trim();
+        const ts = Date.now();
+        const newGroup = {
+            id: `custom-${ts}`, hex:'#64748b', badgeColor:'bg-slate-100 text-slate-700',
+            title: t, category:'מותאם אישית', icon:'⭐', color:'from-slate-500 to-slate-700', machine:'—',
+            exercises: [{ id:`custom-${ts}-ex`, title: t, howTo:'', tips:[] }]
+        };
+        exerciseGroups.push(newGroup);
+        LS.set('gym-custom-exercises', [...LS.get('gym-custom-exercises', []), newGroup]);
+        setGroupOrder(prev => [...prev, newGroup.id]);
+        setActiveGroup(newGroup);
+        navigateTo('detail');
+        setScrollToExId(newGroup.exercises[0].id);
+        showToast('התרגיל נוסף — עכשיו אפשר להוסיף תמונה, וידאו והוראות');
+    }, [showToast]);
+
+    const handleDeleteCustomExercise = useCallback((group) => {
+        const idx = exerciseGroups.findIndex(eg => eg.id === group.id);
+        if (idx >= 0) exerciseGroups.splice(idx, 1);
+        LS.set('gym-custom-exercises', LS.get('gym-custom-exercises', []).filter(c => c.id !== group.id));
+        setGroupOrder(prev => prev.filter(id => id !== group.id));
+        setHiddenExercises(prev => {
+            const next = new Set(prev);
+            group.exercises.forEach(e => next.delete(e.id));
+            return next;
+        });
+        showToast('התרגיל נמחק');
+    }, [showToast]);
+
     const visibleGroups = useMemo(()=>
         sortedGroups.map(g => {
             const visExs = g.exercises.filter(e => !hiddenExercises.has(e.id));
@@ -3397,8 +3466,10 @@ function App() {
     // ─── סיכום אימון — בניית snapshot ופתיחה (כולל פתיחה חוזרת מהבית) ───
     const computeSummarySnapshot = (logsArr, wst, durSec, skipped) => {
         const sessionLogs = logsArr.filter(l=>new Date(l.timestamp).getTime()>wst);
+        // סט שנרשם דרך "דלג" (משקל 0 וחזרות 0) לא נחשב כסט שבוצע בפועל — כדי שתרגיל
+        // שדולג עליו (כולו או חלקו) לא ייספר כ"הושלם" בסיכום האימון
         const isDone = g => skipped.includes(g.id) || g.exercises.every(ex=>{
-            const sl = logsArr.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>wst);
+            const sl = logsArr.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>wst && (l.weight>0 || l.reps>0));
             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
         });
         const doneCount = visibleGroups.filter(g=>!skipped.includes(g.id)&&isDone(g)).length;
@@ -3419,8 +3490,8 @@ function App() {
         const startTime = wstEntry ? Number(wstEntry) : new Date(items[0].timestamp).getTime();
         const dur = wstEntry ? (sessionDurations[wstEntry]||0) : 0;
         const doneCount = visibleGroups.filter(g=>g.exercises.every(ex=>{
-            const s1 = items.some(i=>i.exId===ex.id && i.setNum===1);
-            const s2 = items.some(i=>i.exId===ex.id && i.setNum===2);
+            const s1 = items.some(i=>i.exId===ex.id && i.setNum===1 && (i.weight>0 || i.reps>0));
+            const s2 = items.some(i=>i.exId===ex.id && i.setNum===2 && (i.weight>0 || i.reps>0));
             return s1 && s2;
         })).length;
         openSummary({ workoutStart: startTime, durationSec: dur, doneCount, totalGroups: visibleGroups.length, totalSets: items.length, skipCount: 0, ts: startTime + dur*1000 });
@@ -3470,26 +3541,25 @@ function App() {
                 const nextEx = nextGroup.exercises[0];
                 const doneS1N = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===1&&new Date(l.timestamp).getTime()>curWst);
                 const doneS2N = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===2&&new Date(l.timestamp).getTime()>curWst);
-                const weight = getNextSetWeight(nextEx.id, curLogs, doneS1N, doneS2N);
-                const warmupWeight = getLastWarmupWeight(nextEx.id, curLogs);
-                if (weight > 0 || warmupWeight > 0) {
-                    setAutoTransitionSplash({ title: nextGroup.title, weight, warmupWeight, exId: nextEx.id });
-                    // אם יש חימום — מכריזים רק עליו כרגע; המשקל הרגיל יוכרז בנפרד כשמסתיימת המנוחה שאחרי החימום (completedExId).
-                    // אם אין חימום לתרגיל הזה — מכריזים מיד על המשקל הרגיל, כי אין שלב ביניים לחכות לו.
+                // הסט הבא שמחכה לתרגיל: אם החימום פתוח לתרגיל הזה וטרם בוצע — הוא הסט הבא (לא הסט הרגיל)
+                const doneWarmupN = curLogs.some(l=>l.exId===nextEx.id&&l.setNum===0&&new Date(l.timestamp).getTime()>curWst);
+                const hasWarmup = !!(settings.warmupEmbed && settings.warmupEmbed[nextEx.id]);
+                const isWarmup = hasWarmup && !doneWarmupN;
+                const weight = isWarmup ? getLastWarmupWeight(nextEx.id, curLogs) : getNextSetWeight(nextEx.id, curLogs, doneS1N, doneS2N);
+                const reps   = isWarmup ? getLastWarmupReps(nextEx.id, curLogs)   : getNextSetReps(nextEx.id, curLogs, doneS1N, doneS2N);
+                if (weight > 0) {
+                    setAutoTransitionSplash({ title: nextGroup.title, weight, reps, isWarmup, exId: nextEx.id });
+                    // ההכרזה בקול היא תמיד על הסט הבא בפועל של התרגיל הבא (חימום אם ממתין, אחרת הסט הרגיל)
                     if (window.speechSynthesis) {
                         window.speechSynthesis.cancel();
-                        if (warmupWeight > 0) {
+                        if (isWarmup) {
                             const u1 = new SpeechSynthesisUtterance('חימום');
                             u1.lang = 'he-IL'; u1.rate = 1.0; u1.volume = 1.0;
                             window.speechSynthesis.speak(u1);
-                            const u2 = new SpeechSynthesisUtterance(String(warmupWeight));
-                            u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
-                            window.speechSynthesis.speak(u2);
-                        } else if (weight > 0) {
-                            const u3 = new SpeechSynthesisUtterance(String(weight));
-                            u3.lang = 'he-IL'; u3.rate = 1.0; u3.volume = 1.0;
-                            window.speechSynthesis.speak(u3);
                         }
+                        const u2 = new SpeechSynthesisUtterance(String(weight));
+                        u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
+                        window.speechSynthesis.speak(u2);
                     }
                 }
             }
@@ -3529,18 +3599,22 @@ function App() {
         <>
             <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} logs={logs} visibleGroups={visibleGroups} activeGroup={activeGroup} />
             {autoTransitionSplash && (
-                <div className="fixed inset-x-0 z-[900] flex items-start justify-center pointer-events-none"
+                <div className="fixed inset-x-0 z-[900] flex justify-center pointer-events-none"
                     style={{maxWidth:'28rem', margin:'0 auto',
-                        top: splashAnchorTop!=null ? `${Math.max(8,splashAnchorTop)}px` : 'auto',
-                        bottom: splashAnchorTop!=null ? 'auto' : '6rem'}}>
+                        ...(splashAnchorTop!=null
+                            ? {top:0, height:`${Math.max(8,splashAnchorTop)}px`, alignItems:'flex-end'}
+                            : {top:'auto', bottom:'6rem', alignItems:'flex-start'})}}>
                     <div onClick={()=>setAutoTransitionSplash(null)}
-                        className="pointer-events-auto text-center bg-slate-900/90 backdrop-blur-sm rounded-3xl px-8 py-5 shadow-2xl mt-2">
+                        className="pointer-events-auto text-center bg-slate-900/90 backdrop-blur-sm rounded-3xl px-8 py-5 shadow-2xl mb-2">
+                        {autoTransitionSplash.isWarmup && (
+                            <div className="text-amber-400 font-black text-sm mb-1">🔥 חימום</div>
+                        )}
                         <div className="text-orange-400 font-black" style={{fontSize:'3rem',lineHeight:1.2}}>
                             משקל {autoTransitionSplash.weight}
                         </div>
-                        {autoTransitionSplash.warmupWeight > 0 && (
+                        {autoTransitionSplash.reps > 0 && (
                             <div className="text-orange-300/70 font-bold text-xl mt-1">
-                                ({autoTransitionSplash.warmupWeight} ק״ג)
+                                {autoTransitionSplash.reps} חזרות
                             </div>
                         )}
                         <div className="text-white/40 text-sm font-bold mt-3">לחץ לסגירה</div>
@@ -3878,7 +3952,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
-    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
         filingDirName={filingDirName} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
     // List view
