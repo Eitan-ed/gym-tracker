@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.79';
+const APP_VERSION = '9.80';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -259,6 +259,16 @@ const exerciseGroups = [
 (function loadCustomExerciseGroups() {
     const custom = LS.get('gym-custom-exercises', []);
     custom.forEach(g => { if (!exerciseGroups.some(eg => eg.id === g.id)) exerciseGroups.push(g); });
+})();
+
+// ─── שינויי "חלק בגוף" (קטגוריה) שהמשתמש ערך בדיעבד לתרגילים קיימים — מוחלים כאן
+// בכל עליית אפליקציה, כי exerciseGroups נבנה מחדש מהקוד בכל טעינה ───
+(function applyCategoryOverrides() {
+    const overrides = LS.get('gym-category-overrides', {});
+    Object.entries(overrides).forEach(([groupId, category]) => {
+        const g = exerciseGroups.find(eg => String(eg.id) === String(groupId));
+        if (g) g.category = category;
+    });
 })();
 
 // ─── Roller (Hybrid Picker) ─────────────────────────────────
@@ -491,10 +501,11 @@ function PlankTimer() {
 
 // ─── DevNoteButton — כפתור "הערת שיפור" גנרי לכל עמוד באפליקציה ─────
 // נשמר במפורש בסגירה (לא מסתמך רק על onBlur). הכותרת (pageLabel) מוצגת בפאנל בלבד, לא מוזרקת לטקסט.
-function DevNoteButton({ noteKey, pageLabel, devNotes={}, onSaveDevNote, className='', dark=true, square=false }) {
+function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSaveDevNote, className='', dark=true, square=false }) {
     const [open, setOpen] = useState(false);
     const [text, setText] = useState('');
-    const hasNote = !!(devNotes[noteKey] && devNotes[noteKey].trim());
+    // הערה שסומנה כ"בוצעה" בדוח לא צריכה להמשיך להופיע כאינדיקציה פעילה בעמוד עצמו
+    const hasNote = !!(devNotes[noteKey] && devNotes[noteKey].trim()) && !devNotesDone[noteKey];
 
     const taRef = React.useRef(null);
     const openPanel = () => {
@@ -957,7 +968,7 @@ const VideoModal = ({ src, onClose }) => {
 };
 
 // ─── DetailView ────────────────────────────────────────────
-const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, uploadedVideos={}, onUploadVideo=null, onDeleteUploadedVideo=null, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, onSaveDevNote=null,
+const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, uploadedVideos={}, onUploadVideo=null, onDeleteUploadedVideo=null, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, devNotesDone={}, onSaveDevNote=null,
     workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null,
     allGroups=[], skippedGroups=[] }) {
     const handleWarmupOpened = (exId) => {
@@ -1317,7 +1328,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 )}
                 <DevNoteButton noteKey={group.exercises[0].id}
                     pageLabel={group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
-                    devNotes={devNotes} onSaveDevNote={onSaveDevNote} />
+                    devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} />
                 <button onClick={onBack} className="p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
                     <Icon name="Home" size={18} />
                 </button>
@@ -1490,7 +1501,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 // תיקון 3: [...items].sort — לא מוטייט מערך מקורי
 const fmtDur = sec => { const m=Math.floor(sec/60), s=sec%60; return `${m}:${String(s).padStart(2,'0')}`; };
 
-const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, onSaveDevNote=null, onShowDaySummary=null }) => {
+const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, devNotesDone={}, onSaveDevNote=null, onShowDaySummary=null }) => {
     const [expandedDate, setExpandedDate] = useState(null);
     const grouped = useMemo(() => {
         const g = {};
@@ -1507,7 +1518,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
             <div className="bg-slate-800 px-5 py-3 mt-2 relative shrink-0 flex items-center justify-center">
                 <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
                 <h2 className="text-base font-black text-white">היסטוריה</h2>
-                <div className="absolute left-4"><DevNoteButton noteKey="page-history" pageLabel={PAGE_NOTE_LABELS['page-history']} devNotes={devNotes} onSaveDevNote={onSaveDevNote} /></div>
+                <div className="absolute left-4"><DevNoteButton noteKey="page-history" pageLabel={PAGE_NOTE_LABELS['page-history']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} /></div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32">
                 {grouped.length===0 ? (
@@ -1791,7 +1802,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onChangeCategory=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
     filingDirName=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
@@ -1806,6 +1817,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     });
     const [histExpandedDate, setHistExpandedDate] = useState(null);
     const [editInstId, setEditInstId] = useState(null);
+    const [editingCategoryId, setEditingCategoryId] = useState(null); // group.id שכרגע עורכים לו קטגוריה
+    const [categoryDraft, setCategoryDraft] = useState('');
+    const [categoryDraftOther, setCategoryDraftOther] = useState('');
     const scrollRef = React.useRef(null);
     const exerciseSectionRef = React.useRef(null);
     const backupRef    = React.useRef(null);
@@ -1922,7 +1936,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     </button>
                 )}
                 <h2 className="text-base font-black text-white">ניהול והגדרות</h2>
-                <div className="absolute left-4"><DevNoteButton noteKey="page-manage" pageLabel={PAGE_NOTE_LABELS['page-manage']} devNotes={devNotes} onSaveDevNote={onSaveDevNote} /></div>
+                <div className="absolute left-4"><DevNoteButton noteKey="page-manage" pageLabel={PAGE_NOTE_LABELS['page-manage']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} /></div>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 no-scrollbar pb-32 relative">
                 {/* ── ג: גיבוי ושחזור ── */}
@@ -2177,7 +2191,8 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     const isHidden = hiddenExercises.has(ex.id);
                                     const img = images?.[ex.id] || (EXERCISE_IMAGES[ex.id] ? `images/${EXERCISE_IMAGES[ex.id]}` : null);
                                     return (
-                                        <div key={ex.id} className="flex items-center gap-2">
+                                        <div key={ex.id} className="flex flex-col gap-1.5 pb-3 mb-1 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0">
+                                        <div className="flex items-center gap-2">
                                             <button onClick={()=>onNavigateToGroup && onNavigateToGroup(g)}
                                                 className={`flex-1 flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 shadow-sm transition-all active:scale-[0.98]
                                                     ${isHidden ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white'}`}>
@@ -2228,6 +2243,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                         ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                                     {isHidden ? 'הפעל' : 'הסתר'}
                                                 </button>
+                                                <button
+                                                    onClick={() => { setEditingCategoryId(ex.id); setCategoryDraft(g.category); setCategoryDraftOther(''); }}
+                                                    className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-violet-50 text-violet-500 border border-violet-200">
+                                                    חלק גוף
+                                                </button>
                                                 {String(g.id).startsWith('custom-') && (
                                                     <button
                                                         onClick={() => requestConfirm('למחוק תרגיל זה לצמיתות?', () => onDeleteCustomExercise && onDeleteCustomExercise(g))}
@@ -2236,6 +2256,31 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                     </button>
                                                 )}
                                             </div>
+                                        </div>
+                                        {editingCategoryId === ex.id && (
+                                            <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-2xl px-3 py-2.5" dir="rtl">
+                                                <select value={categoryDraft} onChange={e=>setCategoryDraft(e.target.value)}
+                                                    className="flex-1 min-w-0 bg-white border border-violet-200 rounded-xl px-2 py-1.5 text-[12px] font-bold text-slate-700 outline-none">
+                                                    {[...new Set(exerciseGroups.map(eg=>eg.category))].map(c=>(
+                                                        <option key={c} value={c}>{c}</option>
+                                                    ))}
+                                                    <option value="__other__">אחר...</option>
+                                                </select>
+                                                {categoryDraft === '__other__' && (
+                                                    <input value={categoryDraftOther} onChange={e=>setCategoryDraftOther(e.target.value)}
+                                                        placeholder="שם החלק בגוף"
+                                                        className="flex-1 min-w-0 bg-white border border-violet-200 rounded-xl px-2 py-1.5 text-[12px] font-bold text-slate-700 outline-none" />
+                                                )}
+                                                <button onClick={()=>{
+                                                        const cat = categoryDraft==='__other__' ? categoryDraftOther : categoryDraft;
+                                                        onChangeCategory && onChangeCategory(g, cat);
+                                                        setEditingCategoryId(null);
+                                                    }}
+                                                    className="shrink-0 px-2.5 py-1.5 bg-blue-600 text-white rounded-xl text-[11px] font-black active:scale-95">✓</button>
+                                                <button onClick={()=>setEditingCategoryId(null)}
+                                                    className="shrink-0 px-2.5 py-1.5 bg-slate-200 text-slate-500 rounded-xl text-[11px] font-black active:scale-95">✕</button>
+                                            </div>
+                                        )}
                                         </div>
                                     );
                                 })}
@@ -2685,7 +2730,7 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
 });
 
 // ─── ExercisesListView ─────────────────────────────────────
-const ExercisesListView = ({ logs, images, onBack, onNavigateToGroup, devNotes={}, onSaveDevNote=null }) => {
+const ExercisesListView = ({ logs, images, onBack, onNavigateToGroup, devNotes={}, devNotesDone={}, onSaveDevNote=null }) => {
     const categories = useMemo(() => {
         const cats = {};
         exerciseGroups.forEach(g => {
@@ -2700,7 +2745,7 @@ const ExercisesListView = ({ logs, images, onBack, onNavigateToGroup, devNotes={
             <div className="bg-slate-800 px-5 py-3 mt-2 relative shrink-0 flex items-center justify-center">
                 <button onClick={onBack} className="absolute right-4 p-2 bg-white/20 rounded-full text-white active:scale-90"><Icon name="Home" size={18} /></button>
                 <h2 className="text-base font-black text-white">תרגילים</h2>
-                <div className="absolute left-4"><DevNoteButton noteKey="page-exercises" pageLabel={PAGE_NOTE_LABELS['page-exercises']} devNotes={devNotes} onSaveDevNote={onSaveDevNote} /></div>
+                <div className="absolute left-4"><DevNoteButton noteKey="page-exercises" pageLabel={PAGE_NOTE_LABELS['page-exercises']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} /></div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 no-scrollbar pb-32">
                 {Object.entries(categories).map(([cat, groups]) => (
@@ -3523,6 +3568,18 @@ function App() {
         showToast('התרגיל נמחק');
     }, [showToast]);
 
+    // ─── שינוי "חלק בגוף" (קטגוריה) לתרגיל קיים, בדיעבד — לכל תרגיל, גם קבוע וגם מותאם אישית ───
+    const handleChangeCategory = useCallback((group, newCategory) => {
+        const cat = (newCategory || '').trim();
+        if (!cat || cat === group.category) return;
+        group.category = cat; // מוטציה חיה על האובייקט הגלובלי
+        const overrides = LS.get('gym-category-overrides', {});
+        overrides[group.id] = cat;
+        LS.set('gym-category-overrides', overrides);
+        setGroupOrder(prev => [...prev]); // כפיית רינדור מחדש (אותו תוכן, רפרנס חדש) כדי שהשינוי ייראה מיד
+        showToast('החלק בגוף עודכן');
+    }, [showToast]);
+
     const visibleGroups = useMemo(()=>
         sortedGroups.map(g => {
             const visExs = g.exercises.filter(e => !hiddenExercises.has(e.id));
@@ -3531,12 +3588,21 @@ function App() {
         }).filter(Boolean)
     ,[sortedGroups, hiddenExercises]);
 
-    const handleMoveGroup = (idx, dir) => {
+    // מזיזה תרגיל לפי ה-id שלו (לא לפי אינדקס!) — כי idx במסך הבית הוא מיקום בתוך visibleGroups
+    // (שלא כולל תרגילים מוסתרים), בעוד ש-groupOrder כולל גם אותם. מדלגים על מוסתרים
+    // כדי להחליף תמיד עם השכן הגלוי הבא בפועל.
+    const handleMoveGroup = (groupId, dir) => {
         setGroupOrder(prev=>{
+            const visibleIds = new Set(visibleGroups.map(g=>g.id));
+            const curIdx = prev.indexOf(groupId);
+            if (curIdx < 0) return prev;
+            let targetIdx = curIdx + dir;
+            while (targetIdx >= 0 && targetIdx < prev.length && !visibleIds.has(prev[targetIdx])) {
+                targetIdx += dir;
+            }
+            if (targetIdx < 0 || targetIdx >= prev.length) return prev;
             const next = [...prev];
-            const target = idx + dir;
-            if (target < 0 || target >= next.length) return prev;
-            [next[idx], next[target]] = [next[target], next[idx]];
+            [next[curIdx], next[targetIdx]] = [next[targetIdx], next[curIdx]];
             return next;
         });
     };
@@ -4093,10 +4159,10 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
-    if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} /></div>;
-    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
-    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
+    if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
+    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
         filingDirName={filingDirName} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
     // List view
@@ -4157,7 +4223,7 @@ function App() {
                                             ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'}`}>
                                         <Icon name="Music" size={15} />
                                     </button>
-                                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} onSaveDevNote={handleSaveDevNote} dark={false} square />
+                                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} dark={false} square />
                                 </div>
                                 <div className="relative" style={{width:'5.5rem', height:'5rem'}}>
                                     <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative w-full h-full active:scale-95 transition-transform">
@@ -4193,11 +4259,11 @@ function App() {
                     return (
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
                             <div className="flex flex-col gap-1 shrink-0">
-                                <button onClick={()=>{ if(idx===0) return; if(reorderMode){ handleMoveGroup(idx,-1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,-1)); } }} disabled={idx===0}
+                                <button onClick={()=>{ if(idx===0) return; if(reorderMode){ handleMoveGroup(group.id,-1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(group.id,-1)); } }} disabled={idx===0}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronUp" size={12} />
                                 </button>
-                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; if(reorderMode){ handleMoveGroup(idx,1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(idx,1)); } }} disabled={idx===visibleGroups.length-1}
+                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; if(reorderMode){ handleMoveGroup(group.id,1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>handleMoveGroup(group.id,1)); } }} disabled={idx===visibleGroups.length-1}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronDown" size={12} />
                                 </button>
