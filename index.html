@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.82';
+const APP_VERSION = '9.83';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -153,7 +153,9 @@ const DEFAULT_WEIGHT_STEPS = {
     'ex7b': 5,   // מקבילים גרביטון
     'ex11': 2.5, // כפיפת ברכיים (Leg Curl)
     'ex12': 2.5, // הרמת עקבים במכשיר (שוקיים)
-    'ex15': 4    // יד קדמית במכונה
+    'ex15': 4,   // יד קדמית במכונה
+    'ex16': 5,   // לג פרס
+    'ex17': 5    // עקבים בלג פרס
 };
 
 // ─── משקל התחלתי ברירת מחדל (כשאין היסטוריה) ───────────────
@@ -161,7 +163,8 @@ const DEFAULT_STARTING_WEIGHTS = {
     'ex11': 5,   // כפיפת ברכיים (Leg Curl)
     'ex12': 5,   // הרמת עקבים במכשיר
     'ex13': 23,  // מכשיר ירך חיצוני
-    'ex14': 9    // מכשיר ירך פנימי
+    'ex14': 9,   // מכשיר ירך פנימי
+    'ex16': 64   // לג פרס
 };
 
 // ─── חזרות התחלתיות ברירת מחדל (כשאין היסטוריה) ────────────
@@ -244,7 +247,8 @@ const exerciseGroups = [
     { id:6,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700',title:'חתירות גב במכונה',       category:'גב',        icon:'🚣', color:'from-emerald-500 to-emerald-700', machine:'מכונה',   exercises:[{id:'ex6',  title:'חתירה במכונה',      howTo:'משוך ידיות לבטן תוך קירוב שכמות והצמדת מרפקים.',                      tips:['חזה מובלט','מרפקים לצלעות']}] },
     { id:7,  hex:'#10b981', badgeColor:'bg-emerald-100 text-emerald-700', title:'פולי עליון',              category:'גב',        icon:'⬇️', color:'from-emerald-500 to-emerald-700', machine:'כבלים',   exercises:[{id:'ex7c', title:'פולי עליון',         howTo:'שב מול המכונה. משוך את המוט למטה לחזה תוך כיווץ שרירי הגב. חזור לאחור באיטיות.',          tips:['גב ישר','שכמות למטה ולאחורה','מרפקים מפנים כלפי מטה']}] },
     { id:14, hex:'#6366f1', badgeColor:'bg-indigo-100 text-indigo-700', title:'מקבילים גרביטון',           category:'חזה/יד אחורית', icon:'🧗', color:'from-indigo-500 to-indigo-700', machine:'גרביטון', exercises:[{id:'ex7b', title:'מקבילים גרביטון',    howTo:'רד בקיפול מרפקים ל-90 מעלות ודחף חזרה.',                                                   tips:['הישענות קדימה']}] },
-    { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'גובלט סקוואט',              category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'חופשי',   exercises:[{id:'ex8',  title:'סקוואט',            howTo:'רד לישיבה לאחור עד נגיעה בספסל ודחף מהעקבים.',                         tips:['גב ישר','עקבים ברצפה']}] },
+    { id:8,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'לג פרס',                    category:'רגליים',   icon:'🦵', color:'from-red-500 to-red-700',        machine:'מכונה',   exercises:[{id:'ex16', title:'לג פרס',             howTo:'שב במכשיר עם כפות הרגליים על המשטח ברוחב הכתפיים. פשוט את הברכיים בשליטה בלי לנעול אותן בקצה, וחזור באיטיות עד זווית 90 מעלות.', tips:['לא לנעול ברכיים בקצה','גב ואגן צמודים למשענת','טווח מלא ומבוקר']}] },
+    { id:21, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',       title:'עקבים בלג פרס',              category:'רגליים',   icon:'🦶', color:'from-red-500 to-red-700',        machine:'מכונה',   exercises:[{id:'ex17', title:'עקבים בלג פרס',      howTo:'הצב את כפות הרגליים נמוך על המשטח, עקבים בקצה. דחף מקצות האצבעות לטווח מלא וחזור באיטיות, בלי לנעול ברכיים.', tips:['רגליים נמוך על המשטח','טווח מלא','תנועה מבוקרת']}] },
     { id:15, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'כפיפת ברכיים',               category:'רגליים',   icon:'🦿', color:'from-red-500 to-red-700',         machine:'מכונה',   exercises:[{id:'ex11', title:'כפיפת ברכיים',      howTo:'שב במכונה עם רגליים מתחת לרולר. כוף את הברכיים לאחור עד שיא הטווח וחזור באיטיות.', tips:['גב צמוד למושב','תנועה מבוקרת','לא לנעול ברכיים']}] },
     { id:9,  hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:"לאנג'ים אחוריים",           category:'רגליים',   icon:'🚶', color:'from-red-500 to-red-700',          machine:'חופשי',   exercises:[{id:'ex9',  title:"לאנג'ים",           howTo:"קח רגל אחת רחוק לאחור ורד ל-90 מעלות בברכיים.",                        tips:['מרכז כובד יציב']}] },
     { id:16, hex:'#ef4444', badgeColor:'bg-red-100 text-red-700',        title:'הרמת עקבים במכשיר',          category:'רגליים',   icon:'🦶', color:'from-red-500 to-red-700',          machine:'מכונה',   exercises:[{id:'ex12', title:'הרמת עקבים במכשיר', howTo:'הצב כפות רגליים על המדרך עם עקבים חופשיים. דחף מעלה על קצות האצבעות לטווח מלא וחזור באיטיות.', tips:['טווח מלא','עצירה למעלה','תנועה מבוקרת']}] },
@@ -580,6 +584,9 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     const [s2, setS2] = useState({ w:defW, r:defR, wC:false, rC:false });
     const setWarmupOpen = (v) => onToggleWarmup?.(v);
     const [sW, setSW] = useState({ w:defW, r:10, wC:false, rC:false });
+    // סטים נוספים (3,4,...) שהמשתמש הוסיף ידנית מעבר לשני הסטים הרגילים — לכל תרגיל
+    const [extraNums, setExtraNums] = useState([]);
+    const [extraVals, setExtraVals] = useState({}); // { [num]: {w,r,wC,rC} }
 
     const weightPresets = useMemo(() => [...new Set(
         [...logs].filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
@@ -626,6 +633,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         initialized.current = false;
         setS1(p=>({...p,wC:false,rC:false}));
         setS2(p=>({...p,wC:false,rC:false}));
+        setExtraNums([]); setExtraVals({});
     }, [sessionStartTime]);
 
     // refs עדכניים לשימוש בסגירת הטיימר
@@ -661,6 +669,21 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         s2: logs.some(l => l.exId===ex.id && l.setNum===2 && new Date(l.timestamp).getTime()>sessionStartTime)
     }), [logs, ex.id, sessionStartTime]);
 
+    // סטים נוספים: משלבים סטים שכבר נרשמו באימון הנוכחי (setNum>2) עם סטים שהתווספו זה עתה ועדיין לא נשמרו
+    const loggedExtraNums = useMemo(() => [...new Set(
+        logs.filter(l=>l.exId===ex.id && l.setNum>2 && new Date(l.timestamp).getTime()>sessionStartTime).map(l=>l.setNum)
+    )], [logs, ex.id, sessionStartTime]);
+    const visibleExtraNums = useMemo(() => [...new Set([...loggedExtraNums, ...extraNums])].sort((a,b)=>a-b), [loggedExtraNums, extraNums]);
+    const lastSetNum = visibleExtraNums.length ? visibleExtraNums[visibleExtraNums.length-1] : 2;
+    const doneExtra = (num) => logs.some(l=>l.exId===ex.id && l.setNum===num && new Date(l.timestamp).getTime()>sessionStartTime);
+    const getExtraState = (num) => extraVals[num] || { w: s2.w||defW, r: s2.r||defR, wC:false, rC:false };
+    const setExtraState = (num, updater) => setExtraVals(p => ({...p, [num]: updater(p[num] || getExtraState(num))}));
+    const handleAddExtraSet = () => setExtraNums(p => [...p, (visibleExtraNums.length ? Math.max(...visibleExtraNums) : 2) + 1]);
+    const handleRemoveExtraSet = (num) => {
+        setExtraNums(p => p.filter(n=>n!==num));
+        setExtraVals(p => { const n={...p}; delete n[num]; return n; });
+    };
+
     const stepW = useCallback((w, dir) => {
         if (!weightValues) return parseFloat((dir>0?Math.min(250,w+weightStep):Math.max(0,w-weightStep)).toFixed(4));
         const idx = weightValues.findIndex(v=>Math.abs(v-w)<0.01);
@@ -669,17 +692,19 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     },[weightValues,weightStep]);
 
     const handleSetSave = async (num, state, skipConfirm=false) => {
-        const isDoneSet = num===1 ? done.s1 : done.s2;
+        const isDoneSet = num===1 ? done.s1 : num===2 ? done.s2 : doneExtra(num);
         const doSave = async () => {
             setIsSaving(true);
             try {
                 await onSave(ex.id, num, state.w, state.r, isSuperset);
                 if (!isDoneSet) {
                     if (num===1 && !done.s2) setS2(p=>({...p, w: state.w}));
-                    if (num===2 && isLast) setTimeout(()=>onFinish(true), 800);
+                    // הסט האחרון המוצג בפועל (הרגיל או האחרון מבין הנוספים) — רק בסיומו עוברים אוטומטית לתרגיל הבא
+                    if (num === lastSetNum && isLast) setTimeout(()=>onFinish(true), 800);
                 }
                 if (num===1) setS1(p=>({...p,wC:false,rC:false}));
-                else setS2(p=>({...p,wC:false,rC:false}));
+                else if (num===2) setS2(p=>({...p,wC:false,rC:false}));
+                else setExtraVals(p=>({...p, [num]: {...(p[num]||state), wC:false, rC:false}}));
             } finally { setIsSaving(false); }
         };
         if (!skipConfirm && cameBack.current && requestConfirm) {
@@ -930,6 +955,80 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     </React.Fragment>
                 );
             })}
+            {visibleExtraNums.map((num) => {
+                const state    = getExtraState(num);
+                const setState = (updater) => setExtraState(num, updater);
+                const isDone   = doneExtra(num);
+                const donePrev = num===3 ? done.s2 : doneExtra(num-1);
+                const canAct   = !isSaving && (isDone || donePrev);
+                const betweenTimerExtra = !isDone && donePrev && restTimerTotal > 0;
+                const conic = betweenTimerExtra ? conicStyle(restTimer, restTimerTotal)
+                    : (!isDone && canAct) ? {border:`2px solid ${accentColor}`, boxShadow:`0 4px 16px ${accentColor}30`, borderRadius:'1.6rem'}
+                    : isDone ? {border:'2px solid #94a3b8', borderRadius:'1.6rem'} : undefined;
+                const countdown  = betweenTimerExtra ? restTimer : 0;
+                const showCDown  = !isDone && countdown > 0;
+                const canActFinal = canAct || showCDown;
+                const dimDone = isDone && !(state.wC || state.rC);
+                return (
+                    <React.Fragment key={num}>
+                        <div style={{...(conic||{}), ...(dimDone?{filter:'grayscale(0.85) opacity(0.65)'}:{})}}
+                            className={`p-2.5 rounded-[1.6rem] flex items-center gap-2 transition-all
+                                ${isDone ? 'bg-slate-300' : 'bg-white'}
+                                ${conic ? '' : isDone ? '' : 'border border-slate-100 shadow-sm'}`}>
+                            <div className="relative w-8 h-12 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg"
+                                style={{background: (canAct && !isDone) ? accentColor : '#000000'}}>
+                                <span className="text-[7px] font-black uppercase tracking-tighter opacity-60">SET</span>
+                                <span className="text-base font-black leading-none">{num}</span>
+                                {!isDone && (
+                                    <button onClick={(e)=>{e.stopPropagation(); handleRemoveExtraSet(num);}}
+                                        className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white text-slate-400 rounded-full flex items-center justify-center shadow border border-slate-200 active:text-red-500">
+                                        <Icon name="X" size={9} />
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex flex-1 gap-1.5">
+                                <div className="flex items-stretch flex-1 gap-0.5">
+                                    <button onClick={()=>setState(p=>({...p,w:stepW(p.w,1),wC:true}))}
+                                        className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
+                                    <Roller label="ק״ג" min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
+                                        onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
+                                        presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} />
+                                    <button onClick={()=>setState(p=>({...p,w:stepW(p.w,-1),wC:true}))}
+                                        className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
+                                </div>
+                                <div className="flex items-stretch flex-1 gap-0.5">
+                                    <button onClick={()=>setState(p=>({...p,r:Math.min(120,p.r+repsStep),rC:true}))}
+                                        className="w-9 bg-emerald-50/70 text-emerald-400 rounded-xl font-black text-2xl active:bg-emerald-100 shrink-0 flex items-center justify-center">+</button>
+                                    <Roller label="חזרות" min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
+                                        onChange={v=>setState(p=>({...p,r:v,rC:true}))}
+                                        presets={repsPresets} jumpSteps={repsJumpSteps} />
+                                    <button onClick={()=>setState(p=>({...p,r:Math.max(1,p.r-repsStep),rC:true}))}
+                                        className="w-9 bg-rose-50/70 text-rose-400 rounded-xl font-black text-2xl active:bg-rose-100 shrink-0 flex items-center justify-center">−</button>
+                                </div>
+                            </div>
+                            <button onClick={() => { if (!canActFinal) return; handleSetSave(num, state); }}
+                                disabled={!canActFinal}
+                                className={`w-14 h-12 rounded-2xl flex items-center justify-center font-black text-[14px] transition-all active:scale-95 shrink-0
+                                    ${isDone && (state.wC||state.rC) ? 'bg-amber-100 text-amber-700 shadow-amber-100 shadow-md'
+                                    : isDone    ? 'bg-slate-100 text-slate-400 shadow-none'
+                                    : showCDown ? 'bg-blue-600 text-white shadow-blue-200 shadow-lg active:bg-blue-700 text-[16px]'
+                                    : !canAct   ? 'bg-slate-100 text-slate-300 shadow-none'
+                                    : 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg'}`}>
+                                {isDone && (state.wC||state.rC) ? 'עדכן'
+                                : isDone ? 'בוצע'
+                                : isSaving ? '...'
+                                : showCDown ? countdown : 'סיום'}
+                            </button>
+                        </div>
+                        <div className="h-1.5" />
+                    </React.Fragment>
+                );
+            })}
+            {/* הוסף עוד סט — זמין מתוך כל תרגיל, בכל שלב (גם לפני סיום סט 2), כדי שהתרגיל לא יחשב "הושלם" ויעבור אוטומטית לתרגיל הבא לפני שהסט הנוסף בוצע */}
+            <button onClick={handleAddExtraSet}
+                className="w-full py-2 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-[12px] font-black active:scale-[0.98] active:bg-slate-50">
+                + הוסף סט
+            </button>
             </div>
 
         </div>
@@ -940,7 +1039,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
 const EXERCISE_VIDEOS = {
     ex1:'ex1.mp4', ex2:'ex2.mp4', ex3:'ex3.mp4', ex4:'ex4.mp4',
     ex5a:'ex5a.mp4', ex5b:'ex5b.mp4', ex6:'ex6.mp4',
-    ex7b:'ex7b.mp4', ex7c:'ex7c.mp4', ex8:'ex8.mp4',
+    ex7b:'ex7b.mp4', ex7c:'ex7c.mp4',
     ex9:'ex9.mp4', ex10a:'ex10a.mp4', ex10b:'ex10b.mp4',
     ex12:'ex12.mp4', ex3b:'ex3b.mp4'
 };
@@ -949,7 +1048,7 @@ const EXERCISE_VIDEOS = {
 const EXERCISE_IMAGES = {
     ex1:'ex1.png', ex2:'ex2.png', ex3:'ex3.png', ex4:'ex4.png',
     ex5a:'ex5a.png', ex5b:'ex5b.png', ex6:'ex6.png',
-    ex7b:'ex7b.png', ex7c:'ex7c.png', ex8:'ex8.png',
+    ex7b:'ex7b.png', ex7c:'ex7c.png',
     ex9:'ex9.png', ex10a:'ex10a.png', ex10b:'ex10b.png',
     ex11:'ex11.jpg', ex12:'ex12.jpg', ex13:'ex13.jpg', ex14:'ex14.jpg',
     ex15:'ex15.jpg', ex3b:'ex3b.jpg'
@@ -982,7 +1081,7 @@ const VideoModal = ({ src, onClose }) => {
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, uploadedVideos={}, onUploadVideo=null, onDeleteUploadedVideo=null, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, devNotesDone={}, onSaveDevNote=null,
     workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null,
-    allGroups=[], skippedGroups=[] }) {
+    allGroups=[], skippedGroups=[], onMoveGroup=null }) {
     const handleWarmupOpened = (exId) => {
         if (!onUpdateSettings || warmupEmbed[exId]) return;
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: true});
@@ -1056,15 +1155,20 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         // skip active set
         const doneS1Ex = logs.some(l=>l.exId===ex.id&&l.setNum===1&&new Date(l.timestamp).getTime()>sessionStartTime);
         const doneS2Ex = logs.some(l=>l.exId===ex.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
-        // משקל הסט הבא שטרם בוצע — מוצג בכתום ליד התמונה, ובסוגריים משקל החימום (אם קיים)
-        const lastW = getLastDisplayWeight(ex.id, logs);
+        const doneWEx  = logs.some(l=>l.exId===ex.id&&l.setNum===0&&new Date(l.timestamp).getTime()>sessionStartTime);
+        const warmupOpenEx = warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id];
+        // משקל להצגה ליד התמונה: אם יש חימום פתוח וטרם בוצע — הוא הסט הבא בפועל, ולכן מוצג משקל החימום
+        // (במקום המשקל הרגיל שמוצג רק אחרי שהחימום הושלם, או כשאין חימום כלל)
         const warmupW = getLastWarmupWeight(ex.id, logs);
+        const warmupPendingEx = warmupOpenEx && !doneWEx && warmupW > 0;
+        const lastW = warmupPendingEx ? warmupW : getLastDisplayWeight(ex.id, logs);
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
         let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
 
-        const skipActiveNum = !doneS1Ex ? 1 : !doneS2Ex ? 2 : null;
-        const handleHowToSkip = skipActiveNum ? () => {
+        // דלג: אם יש סט חימום פתוח וטרם בוצע — הוא הסט הבא לדילוג, לפני סט 1
+        const skipActiveNum = (warmupOpenEx && !doneWEx) ? 0 : !doneS1Ex ? 1 : !doneS2Ex ? 2 : null;
+        const handleHowToSkip = skipActiveNum!=null ? () => {
             onSave(ex.id, skipActiveNum, 0, 0, exIsSuperset);
             if (skipActiveNum===2 && isLast) setTimeout(()=>onFinish(true), 800);
         } : null;
@@ -1161,10 +1265,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             <div className="min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : videoUploadTile}</div>
                             <div className="min-w-0 flex flex-col">{miniTimer}</div>
                             {lastW>0 ? (
-                                <div className="bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-                                    <span className="text-3xl font-black text-orange-500 leading-none">{lastW}</span>
-                                    {warmupW>0 && <span className="text-[10px] font-black text-orange-300 leading-none mt-0.5">({warmupW})</span>}
-                                    <span className="text-[10px] font-black text-orange-400 mt-0.5">ק״ג</span>
+                                <div className={`border rounded-2xl flex flex-col items-center justify-center shadow-sm ${warmupPendingEx ? 'bg-amber-50 border-amber-200' : 'bg-orange-50 border-orange-200'}`}>
+                                    {warmupPendingEx && <span className="text-[9px] font-black text-amber-500 leading-none">🔥 חימום</span>}
+                                    <span className={`text-3xl font-black leading-none ${warmupPendingEx ? 'text-amber-500' : 'text-orange-500'}`}>{lastW}</span>
+                                    <span className={`text-[10px] font-black mt-0.5 ${warmupPendingEx ? 'text-amber-400' : 'text-orange-400'}`}>ק״ג</span>
                                 </div>
                             ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
                             <div className="bg-slate-50 border border-slate-100 rounded-2xl" />
@@ -1392,9 +1496,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
                 });
             })}
-            {/* שורת ניווט מספרי תרגילים — בנוסף לניווט קודם/הבא הרגיל */}
+            {/* שורת ניווט מספרי תרגילים — בנוסף לניווט קודם/הבא הרגיל, עם חץ קטן בכל צד להזזת התרגיל הנוכחי בחופשיות */}
             {allGroups.length > 1 && (
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 mt-3" dir="rtl">
+                <div className="flex items-center gap-1.5 mt-3" dir="rtl">
+                    {onMoveGroup && (
+                        <button onClick={()=>{ if(groupIdx>0) onMoveGroup(group.id,-1); }} disabled={groupIdx<=0}
+                            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20"
+                            style={{background:'#eef1f5', boxShadow:'1px 1px 3px rgba(0,0,0,0.08)'}}>
+                            <Icon name="ChevronLeft" size={13} className="rotate-180" />
+                        </button>
+                    )}
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 flex-1">
                     {allGroups.map((g,i) => {
                         const isSkipped = skippedGroups.includes(g.id);
                         const isCur = g.id === group.id;
@@ -1421,6 +1533,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             </button>
                         );
                     })}
+                    </div>
+                    {onMoveGroup && (
+                        <button onClick={()=>{ if(groupIdx<totalGroups-1) onMoveGroup(group.id,1); }} disabled={groupIdx>=totalGroups-1}
+                            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20"
+                            style={{background:'#eef1f5', boxShadow:'1px 1px 3px rgba(0,0,0,0.08)'}}>
+                            <Icon name="ChevronLeft" size={13} />
+                        </button>
+                    )}
                 </div>
             )}
             {/* שורת תמונות: זזה כמו סרט לשכנים האמיתיים של התרגיל הנצפה (נוכחי, או הנבחר במספרים) */}
@@ -2406,7 +2526,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 }
                                 const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
                                 saveTextFile(fname, txt).then(savedToFiling => {
-                                    showToast(`דוח הערות לשיפור נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
+                                    // אחרי ייצוא — כל ההערות שהיו ממתינות מסומנות כבוצעו, כדי שלא יופיעו שוב כ"חדשות" במסכי ההערות בפעם הבאה
+                                    if (pending.length) {
+                                        setDevNotesDone(prev => {
+                                            const n = {...prev};
+                                            pending.forEach(([exId])=>{ n[exId] = true; });
+                                            return n;
+                                        });
+                                    }
+                                    showToast(`דוח הערות לשיפור נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}${pending.length?' — ההערות סומנו כבוצעו':''}`);
                                 });
                             };
                             const generateExerciseListReport = () => {
@@ -2863,12 +2991,14 @@ function App() {
     const [toast,            setToast]            = useState(null);
     const [workoutDecisionMade, setWorkoutDecisionMade] = useState(false);
     const [autoTransitionSplash, setAutoTransitionSplash] = useState(null);
-    const [splashAnchorTop, setSplashAnchorTop] = useState(null);
-    // ממקם את הפופ-אפ המשקל בדיוק מעל אזור הסטים של התרגיל הבא (לא במרחק קבוע מתחתית המסך שמשתנה בין עמודים)
+    const [splashAnchor, setSplashAnchor] = useState(null); // {top,height} של אזור הסטים בפועל (לא כולל תמונה/וידאו/היסטוריה)
+    // ממקם את הפופ-אפ המשקל בדיוק על אזור הסטים של התרגיל הבא — כך שהוא מסתיר רק את הסטים ולא שום דבר אחר
     useEffect(() => {
-        if (!autoTransitionSplash?.exId) { setSplashAnchorTop(null); return; }
+        if (!autoTransitionSplash?.exId) { setSplashAnchor(null); return; }
         const el = document.getElementById(`sets-area-${autoTransitionSplash.exId}`);
-        setSplashAnchorTop(el ? el.getBoundingClientRect().top : null);
+        if (!el) { setSplashAnchor(null); return; }
+        const r = el.getBoundingClientRect();
+        setSplashAnchor({ top: r.top, height: r.height });
     }, [autoTransitionSplash]);
     const [summaryNote,      setSummaryNote]      = useState('');
     const [summaryBW,        setSummaryBW]        = useState('');
@@ -3621,6 +3751,16 @@ function App() {
         });
     };
 
+    // מטפל משותף לחיצי הזזת תרגיל — משמש גם במסך הבית וגם בחיצים שליד סרגל המספרים בעמוד התרגיל עצמו
+    const handleReorderClick = useCallback((groupId, dir) => {
+        if (reorderMode) {
+            handleMoveGroup(groupId, dir);
+            setReorderMode(p=>p?{...p,secondsLeft:20}:p);
+        } else {
+            requestConfirm('לשנות סדר התרגיל?', ()=>{ handleMoveGroup(groupId, dir); enterReorderMode(groupId); });
+        }
+    }, [reorderMode, visibleGroups]);
+
     const isGroupDone = useCallback((g)=>
         skippedGroups.includes(g.id) ||
         g.exercises.every(ex=>{
@@ -3778,13 +3918,13 @@ function App() {
         <>
             <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} logs={logs} visibleGroups={visibleGroups} activeGroup={activeGroup} />
             {autoTransitionSplash && (
-                <div className="fixed inset-x-0 z-[900] flex justify-center pointer-events-none"
+                <div className="fixed inset-x-0 z-[900] pointer-events-none"
                     style={{maxWidth:'28rem', margin:'0 auto',
-                        ...(splashAnchorTop!=null
-                            ? {top:0, height:`${Math.max(8,splashAnchorTop)}px`, alignItems:'flex-end'}
-                            : {top:'auto', bottom:'6rem', alignItems:'flex-start'})}}>
+                        ...(splashAnchor
+                            ? {top:`${splashAnchor.top}px`, height:`${Math.max(60,splashAnchor.height)}px`}
+                            : {top:'auto', bottom:'6rem', height:'8rem'})}}>
                     <div onClick={()=>setAutoTransitionSplash(null)}
-                        className="pointer-events-auto text-center bg-slate-900/90 backdrop-blur-sm rounded-3xl px-8 py-5 shadow-2xl mb-2">
+                        className="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center text-center bg-slate-900/95 backdrop-blur-sm rounded-3xl shadow-2xl">
                         {autoTransitionSplash.isWarmup && (
                             <div className="text-amber-400 font-black text-sm mb-1">🔥 חימום</div>
                         )}
@@ -4173,7 +4313,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
@@ -4273,11 +4413,11 @@ function App() {
                     return (
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
                             <div className="flex flex-col gap-1 shrink-0">
-                                <button onClick={()=>{ if(idx===0) return; if(reorderMode){ handleMoveGroup(group.id,-1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>{ handleMoveGroup(group.id,-1); enterReorderMode(group.id); }); } }} disabled={idx===0}
+                                <button onClick={()=>{ if(idx===0) return; handleReorderClick(group.id,-1); }} disabled={idx===0}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronUp" size={12} />
                                 </button>
-                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; if(reorderMode){ handleMoveGroup(group.id,1); setReorderMode(p=>p?{...p,secondsLeft:20}:p); } else { requestConfirm('לשנות סדר התרגיל?',()=>{ handleMoveGroup(group.id,1); enterReorderMode(group.id); }); } }} disabled={idx===visibleGroups.length-1}
+                                <button onClick={()=>{ if(idx===visibleGroups.length-1) return; handleReorderClick(group.id,1); }} disabled={idx===visibleGroups.length-1}
                                     className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20" style={{background:'#dde1e7', boxShadow:'1px 1px 3px rgba(0,0,0,0.1)'}}>
                                     <Icon name="ChevronDown" size={12} />
                                 </button>
