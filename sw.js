@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-9.83';
+const CACHE_NAME = 'gym-tracker-9.84';
 
 self.addEventListener('install', e => {
     self.skipWaiting();
