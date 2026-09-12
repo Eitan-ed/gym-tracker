@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.84';
+const APP_VERSION = '9.85';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -169,6 +169,7 @@ const PAGE_NOTE_LABELS = { 'page-list':'מסך הבית', 'page-exercises':'רש
 const DEFAULT_WEIGHT_STEPS = {
     'ex1': 4,    // לחיצת חזה במכונה
     'ex3': 4,    // פשיטת מרפקים עם חבל
+    'ex3b': 4,   // פשיטת מרפקים מעל הראש — מסונכרן עם ex3 (יד אחורית)
     'ex5a': 4,   // לחיצת כתפיים
     'ex7c': 5,   // פולי עליון
     'ex7b': 5,   // מקבילים גרביטון
@@ -185,7 +186,8 @@ const DEFAULT_STARTING_WEIGHTS = {
     'ex12': 5,   // הרמת עקבים במכשיר
     'ex13': 23,  // מכשיר ירך חיצוני
     'ex14': 9,   // מכשיר ירך פנימי
-    'ex16': 64   // לג פרס
+    'ex16': 64,  // לג פרס
+    'ex17': 64   // עקבים בלג פרס — אותו מכשיר כמו לג פרס, אותו משקל התחלתי
 };
 
 // ─── חזרות התחלתיות ברירת מחדל (כשאין היסטוריה) ────────────
@@ -203,6 +205,7 @@ const CUSTOM_WEIGHT_VALUES = {
     'ex2':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פרפר חזה — רצף 4-5 מ-5
     'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
     'ex3':  THIGH_VALUES,   // פולי יד אחורית
+    'ex3b': THIGH_VALUES,   // פשיטת מרפקים מעל הראש — מסונכרן עם ex3 (יד אחורית)
     'ex15': THIGH_VALUES,   // יד קדמית במכונה
     'ex13': THIGH_VALUES,   // מכשיר ירך חיצוני
     'ex14': THIGH_VALUES,   // מכשיר ירך פנימי
@@ -321,6 +324,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
     const fromBtn    = React.useRef(false);
 
     const effDrumStep = drumStep !== null ? drumStep : step;
+    // options: הבסיס לצ'יפים "קרובים" ולכפתורי הקפיצה — משתמש ברשימת ערכים מותאמת (values) אם קיימת לתרגיל
     const options = useMemo(() => {
         if (values) return values;
         const o = [];
@@ -329,32 +333,38 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
         return o;
     }, [min, max, effDrumStep, values]);
 
+    // drumOptions: הגלגלת עצמה — תמיד במרווחים של 1 בכל התרגילים, גם כשיש רשימת ערכים מותאמת (values) לצ'יפים/לקפיצות,
+    // כדי לאפשר כיוונון עדין מדויק לכל משקל, ולא רק לערכים שבקפיצות של 4-5 של אותו מכשיר
+    const drumOptions = useMemo(() => {
+        const o = [];
+        for (let v = min; v <= max; v = parseFloat((v + 1).toFixed(10)))
+            o.push(parseFloat(v.toFixed(4)));
+        return o;
+    }, [min, max]);
+
     const scrollTo = useCallback((idx, smooth=false) => {
         if (!listRef.current) return;
         listRef.current.scrollTo({ top: idx * DRUM_H, behavior: smooth ? 'smooth' : 'instant' });
     }, []);
 
-    // כשנפתח — אתחל localVal לערך הנוכחי (מעוגל לאפשרות הקרובה אם לא קיים בדיוק)
+    // כשנפתח — אתחל localVal לערך הנוכחי המדויק (הגלגלת תמיד במרווחי 1, כך שהערך המדויק תמיד קיים בה)
     useEffect(() => {
         if (!open) return;
-        const exact = options.indexOf(value);
-        if (exact >= 0) { setLocalVal(value); return; }
-        const ni = options.reduce((b, o, i) => Math.abs(o - value) < Math.abs(options[b] - value) ? i : b, 0);
-        setLocalVal(options[ni]);
+        setLocalVal(value);
     }, [open]);
 
-    // כשlocalVal משתנה מכפתור — גלול לשם
+    // כשlocalVal משתנה (מכפתור/צ'יפ/גלילה) — גלול את הגלגלת למיקום המתאים בתוך drumOptions
     useEffect(() => {
         if (!open) return;
-        let idx = options.indexOf(localVal);
-        if (idx < 0) idx = options.reduce((b,o,i) => Math.abs(o-localVal)<Math.abs(options[b]-localVal)?i:b, 0);
+        let idx = drumOptions.indexOf(localVal);
+        if (idx < 0) idx = drumOptions.reduce((b,o,i) => Math.abs(o-localVal)<Math.abs(drumOptions[b]-localVal)?i:b, 0);
         settling.current = true;
         requestAnimationFrame(() => {
             scrollTo(idx, fromBtn.current);
             fromBtn.current = false;
             setTimeout(() => { settling.current = false; }, 400);
         });
-    }, [localVal, open, options, scrollTo]);
+    }, [localVal, open, drumOptions, scrollTo]);
 
     const handleScroll = useCallback(() => {
         if (settling.current) return;
@@ -362,13 +372,13 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
         timerRef.current = setTimeout(() => {
             if (!listRef.current) return;
             const idx = Math.round(listRef.current.scrollTop / DRUM_H);
-            const c   = Math.min(Math.max(idx, 0), options.length - 1);
+            const c   = Math.min(Math.max(idx, 0), drumOptions.length - 1);
             settling.current = true;
             scrollTo(c, true);
-            setLocalVal(options[c]);
+            setLocalVal(drumOptions[c]);
             setTimeout(() => { settling.current = false; }, 250);
         }, 80);
-    }, [options, scrollTo]);
+    }, [drumOptions, scrollTo]);
 
     const adjust = useCallback((delta) => {
         setLocalVal(prev => {
@@ -448,7 +458,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                                 className="h-full overflow-y-scroll no-scrollbar"
                                 style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
                                 <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
-                                {options.map(o => (
+                                {drumOptions.map(o => (
                                     <div key={o} onClick={() => { if (o === localVal) { confirm(); return; } fromBtn.current=true; setLocalVal(o); }}
                                         style={{height: DRUM_H + 'px', scrollSnapAlign:'center'}}
                                         className={`flex items-center justify-center select-none cursor-pointer transition-all
@@ -1825,6 +1835,18 @@ const triggerBackupDownload = async (data, silent) => {
     a.href = url; a.download = fname; a.click();
     URL.revokeObjectURL(url);
     return true;
+};
+
+// גיבוי שקט לתיקיית FILING בלבד — ללא הורדה מקומית וללא כל דיאלוג — לשימוש אוטומטי בלחיצת "שמור" בסיכום אימון.
+// בניגוד ל-triggerBackupDownload (שתמיד מוריד עותק מקומי בכוונה), הפונקציה הזו לא נוגעת בהורדה כלל.
+const silentBackupToFiling = async (data) => {
+    if (!_backupDirHandle) return false;
+    try {
+        const payload = { ...data, _all: collectAllGymData() };
+        const json = JSON.stringify(payload, null, 2);
+        const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
+        return await writeToDir(_backupDirHandle, json, fname);
+    } catch { return false; }
 };
 
 const triggerBackupRestore = async () => {
@@ -3616,7 +3638,32 @@ function App() {
                 const dA2 = allLogs.some(l=>l.exId===ta.id&&l.setNum===2&&new Date(l.timestamp).getTime()>wst);
                 const dB2 = allLogs.some(l=>l.exId===tb.id&&l.setNum===2&&new Date(l.timestamp).getTime()>wst);
                 const nextId = !dA1 ? ta.id : !dB1 ? tb.id : !dA2 ? ta.id : !dB2 ? tb.id : null;
-                if (nextId && nextId !== exId) setTimeout(()=>setScrollToExId(nextId), 50);
+                if (nextId && nextId !== exId) {
+                    setTimeout(()=>setScrollToExId(nextId), 50);
+                    // הכרזת המשקל הבא (כולל "חימום" אם ממתין) גם במעבר פנימי בין שני תרגילי הסופרסט —
+                    // בעבר זה קרה רק במעבר בין קבוצות תרגילים רגילות, ולא כאן, ולכן לא הוכרז בתרגיל השני של הסופרסט
+                    const doneWarmupNext = allLogs.some(l=>l.exId===nextId&&l.setNum===0&&new Date(l.timestamp).getTime()>wst);
+                    const hasWarmupNext  = !!(settings.warmupEmbed && settings.warmupEmbed[nextId]);
+                    const isWarmupNext   = hasWarmupNext && !doneWarmupNext;
+                    const doneS1Next = nextId===ta.id ? dA1 : dB1;
+                    const doneS2Next = nextId===ta.id ? dA2 : dB2;
+                    const nextWeight = isWarmupNext ? getLastWarmupWeight(nextId, allLogs) : getNextSetWeight(nextId, allLogs, doneS1Next, doneS2Next);
+                    const nextReps   = isWarmupNext ? getLastWarmupReps(nextId, allLogs)   : getNextSetReps(nextId, allLogs, doneS1Next, doneS2Next);
+                    if (nextWeight > 0) {
+                        setAutoTransitionSplash({ title: sg.title, weight: nextWeight, reps: nextReps, isWarmup: isWarmupNext, exId: nextId });
+                        if (window.speechSynthesis) {
+                            window.speechSynthesis.cancel();
+                            const u1 = new SpeechSynthesisUtterance(String(nextWeight));
+                            u1.lang = 'he-IL'; u1.rate = 1.0; u1.volume = 1.0;
+                            window.speechSynthesis.speak(u1);
+                            if (isWarmupNext) {
+                                const u2 = new SpeechSynthesisUtterance('חימום');
+                                u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
+                                window.speechSynthesis.speak(u2);
+                            }
+                        }
+                    }
+                }
             }
         }
     };
@@ -3967,16 +4014,17 @@ function App() {
                 if (weight > 0) {
                     setAutoTransitionSplash({ title: nextGroup.title, weight, reps, isWarmup, exId: nextEx.id });
                     // ההכרזה בקול היא תמיד על הסט הבא בפועל של התרגיל הבא (חימום אם ממתין, אחרת הסט הרגיל)
+                    // סדר ההכרזה: קודם המשקל, ואם זהו חימום — המילה "חימום" אחריו
                     if (window.speechSynthesis) {
                         window.speechSynthesis.cancel();
+                        const u1 = new SpeechSynthesisUtterance(String(weight));
+                        u1.lang = 'he-IL'; u1.rate = 1.0; u1.volume = 1.0;
+                        window.speechSynthesis.speak(u1);
                         if (isWarmup) {
-                            const u1 = new SpeechSynthesisUtterance('חימום');
-                            u1.lang = 'he-IL'; u1.rate = 1.0; u1.volume = 1.0;
-                            window.speechSynthesis.speak(u1);
+                            const u2 = new SpeechSynthesisUtterance('חימום');
+                            u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
+                            window.speechSynthesis.speak(u2);
                         }
-                        const u2 = new SpeechSynthesisUtterance(String(weight));
-                        u2.lang = 'he-IL'; u2.rate = 1.0; u2.volume = 1.0;
-                        window.speechSynthesis.speak(u2);
                     }
                 }
             }
@@ -4344,6 +4392,14 @@ function App() {
                                 }
                                 showToast('נשמר');
                                 setSummarySaved(true);
+                                // אם תיקיית FILING מחוברת — הגיבוי נשמר לשם אוטומטית ובשקט, בלי צורך ללחוץ גם על "גיבוי אימון"
+                                if (filingDirName) {
+                                    silentBackupToFiling({logs, notes, images, videos, settings, groupOrder,
+                                        sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
+                                        lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
+                                        sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
+                                        workoutNote:summaryNote}).then(ok=>{ if (ok) setSummaryBackedUp(true); });
+                                }
                             }} className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600'}`}>
                                 {summarySaved ? 'נשמר' : 'שמור'}
                             </button>
