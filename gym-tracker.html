@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.85';
+const APP_VERSION = '9.86';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -179,6 +179,9 @@ const DEFAULT_WEIGHT_STEPS = {
     'ex16': 5,   // לג פרס
     'ex17': 5    // עקבים בלג פרס
 };
+
+// ─── מרווחי המשקל הקיימים בפועל בתפריט הניהול — כל override שמור שאינו אחד מאלה נחשב לא תקין (למשל שריד מגרסה ישנה) ───
+const ALLOWED_WEIGHT_STEPS = new Set([0.25, 0.5, 1, 2, 2.5, 4, 5, 10, '4-5']);
 
 // ─── משקל התחלתי ברירת מחדל (כשאין היסטוריה) ───────────────
 const DEFAULT_STARTING_WEIGHTS = {
@@ -1188,11 +1191,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const doneS2Ex = logs.some(l=>l.exId===ex.id&&l.setNum===2&&new Date(l.timestamp).getTime()>sessionStartTime);
         const doneWEx  = logs.some(l=>l.exId===ex.id&&l.setNum===0&&new Date(l.timestamp).getTime()>sessionStartTime);
         const warmupOpenEx = warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id];
-        // משקל להצגה ליד התמונה: אם יש חימום פתוח וטרם בוצע — הוא הסט הבא בפועל, ולכן מוצג משקל החימום
-        // (במקום המשקל הרגיל שמוצג רק אחרי שהחימום הושלם, או כשאין חימום כלל)
+        // משקל להצגה ליד התמונה: תמיד המשקל של הסט הבא בפועל — דינאמי, מתעדכן מיד עם השלמת כל סט באימון הנוכחי
+        // (ולא משקל היסטורי קבוע). אם יש חימום פתוח וטרם בוצע — הוא הסט הבא, ולכן מוצג משקל החימום
         const warmupW = getLastWarmupWeight(ex.id, logs);
         const warmupPendingEx = warmupOpenEx && !doneWEx && warmupW > 0;
-        const lastW = warmupPendingEx ? warmupW : getLastDisplayWeight(ex.id, logs);
+        const lastW = warmupPendingEx ? warmupW : getNextSetWeight(ex.id, logs, doneS1Ex, doneS2Ex);
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
         let fPrevRt = prevRestTimer, fPrevTot = prevRestTimerTotal;
@@ -1449,7 +1452,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     )}
                 </section>
                 {(() => {
-                    const _ov = weightStepsOverrides ? weightStepsOverrides[ex.id] : undefined;
+                    // מתעלמים מערך override ישן/לא תקין שנשמר בגרסה קודמת של האפליקציה ואינו אחת האפשרויות הנוכחיות בתפריט —
+                    // כדי שלא ליצור קפיצות מוזרות (למשל "9") שאינן ניתנות לבחירה יותר. במקרה כזה חוזרים לברירת המחדל.
+                    let _ov = weightStepsOverrides ? weightStepsOverrides[ex.id] : undefined;
+                    if (_ov !== undefined && !ALLOWED_WEIGHT_STEPS.has(_ov)) _ov = undefined;
                     let _wv = null;
                     if (_ov === '4-5' || _ov === undefined) {
                         _wv = CUSTOM_WEIGHT_VALUES[ex.id] || null;
@@ -2437,7 +2443,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                             </button>
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <select
-                                                    value={String(settings.weightSteps?.[ex.id] !== undefined ? settings.weightSteps[ex.id] : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
+                                                    value={String((settings.weightSteps?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id])) ? settings.weightSteps[ex.id] : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                                                     onChange={e => { const v = e.target.value === '4-5' ? '4-5' : parseFloat(e.target.value); onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: v}); }}
                                                     onClick={e => e.stopPropagation()}
                                                     title="מרווח משקל"
@@ -4050,15 +4056,27 @@ function App() {
     },[workoutSec, workoutNotes, sortedGroups]);
 
     // ─── לחיצה על "אימון חדש": תמיד שומרת קודם את משך הזמן שנמדד (בלי אובדן נתונים — הסטים עצמם
-    // תמיד נשמרים בזמן אמת). אם יש נתוני אימון נוכחי (סטים/זמן) שטרם קיבלו הערה/משקל גוף שמורים —
-    // שואלת אם לשמור אותם קודם (פותחת את מסך הסיכום); אחרת מתחילה אימון חדש מיד.
+    // תמיד נשמרים בזמן אמת). שואלת אם לשמור את האימון רק אם עדיין לא נשמר; אם כן — מגבה אוטומטית
+    // ובשקט לתיקיית FILING (אם מחוברת — כמו בקישור שנעשה לשמירת דוחות), בלי לפתוח מסך סיכום או
+    // לדרוש עוד לחיצה, ותמיד ממשיכה מיד לפתוח אימון חדש.
     const handleNewWorkoutClick = () => {
         if (workoutSec > 0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec}));
         const hasCurrentSessionData = workoutSec > 0 || logsRef.current.some(l=>l.session===workoutStartTime);
         const alreadySaved = !!workoutNotes[workoutStartTime];
         if (hasCurrentSessionData && !alreadySaved) {
-            requestConfirm('לשמור את האימון הנוכחי (הערה ומשקל גוף) לפני התחלת אימון חדש?',
-                ()=>{ handleOpenSummaryManual(); },
+            requestConfirm('לשמור את האימון הנוכחי לפני התחלת אימון חדש?',
+                ()=>{
+                    const wst = workoutStartTime;
+                    const dur = sessionDurations[wst] ?? workoutSec;
+                    if (filingDirName) {
+                        silentBackupToFiling({logs: logsRef.current, notes, images, videos, settings, groupOrder,
+                            sessionStart: sessionStartTime, sessionEnd: sessionEndTime,
+                            lastWorkoutSec: dur, showDetails: LS.get('gym-show-details',{}),
+                            sessionDurations: {...sessionDurations, ...(dur>0?{[wst]:dur}:{})},
+                            workoutNote: workoutNotes[wst]?.note || ''});
+                    }
+                    startNewWorkout();
+                },
                 ()=>{ startNewWorkout(); }
             );
         } else {
