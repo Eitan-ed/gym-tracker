@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.87';
+const APP_VERSION = '9.88';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1124,14 +1124,22 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     const [previewGroupId, setPreviewGroupId] = useState(null);
     const previewTimeoutRef = React.useRef(null);
     const curChipRef = React.useRef(null);
-    // גרירה באצבע על שורת תמונות התרגילים — כמו סרט/מניפה שזזה בכל כיוון
-    const imgRowRef = React.useRef(null);
-    const imgDragRef = React.useRef({ active:false, startX:0, startY:0, dx:0, moved:false, lock:null });
+    // שורת תמונות התרגילים — סרט גלילה רציף על כל התרגילים, גולל חופשי לפי האצבע ונעצר על הקרוב
+    const filmStripRef = React.useRef(null);
+    const filmSettleTimer = React.useRef(null);
     useEffect(() => {
         setPreviewGroupId(null);
         if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
         setTimeout(()=>curChipRef.current?.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}), 50);
+        setTimeout(()=>{
+            filmStripRef.current?.querySelector(`[data-gid="${group.id}"]`)?.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+        }, 50);
     }, [group.id]);
+    // תצוגה מקדימה (מהמספרים למעלה) — גוללת את סרט התמונות למועמד, בלי לנווט אליו
+    useEffect(() => {
+        if (!previewGroupId) return;
+        filmStripRef.current?.querySelector(`[data-gid="${previewGroupId}"]`)?.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    }, [previewGroupId]);
     const [videoModal,    setVideoModal]   = useState(null);
     const [playingVideos, setPlayingVideos]= useState({});
     const [showDetails,   setShowDetails]  = useState(()=>{
@@ -1597,75 +1605,57 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     )}
                 </div>
             )}
-            {/* שורת תמונות: זזה כמו סרט לשכנים האמיתיים של התרגיל הנצפה (נוכחי, או הנבחר במספרים) */}
-            {(prevGroup || nextGroup) && (()=>{
+            {/* שורת תמונות: סרט גלילה רציף על כל תרגילי האימון — גולל חופשי לפי האצבע (כמו מניפה), נעצר על הקרוב ומנווט אליו */}
+            {allGroups.length > 1 && (()=>{
                 const imgOf = g => { const ex=g?.exercises[0]; if(!ex) return null; return images?.[ex.id]||(EXERCISE_IMAGES[ex.id]?`images/${EXERCISE_IMAGES[ex.id]}`:null); };
                 const isGroupDoneHere = g => !!g && !skippedGroups.includes(g.id) && g.exercises.every(ex=>{
                     const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
                     return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
                 });
-                const previewGroup = previewGroupId ? allGroups.find(g=>g.id===previewGroupId) : null;
-                const centerIdx = previewGroup ? allGroups.findIndex(g=>g.id===previewGroupId) : allGroups.findIndex(g=>g.id===group.id);
-                const leftGroup  = centerIdx > 0 ? allGroups[centerIdx-1] : null;
-                const midGroup   = allGroups[centerIdx] || group;
-                const rightGroup = centerIdx < allGroups.length-1 ? allGroups[centerIdx+1] : null;
-                const slotStyle = g => ({ height:'4rem', filter: isGroupDoneHere(g) ? 'grayscale(100%)' : undefined, opacity: isGroupDoneHere(g) ? 0.55 : 1 });
+                const targetId = previewGroupId != null ? previewGroupId : group.id;
+                const targetGroup = allGroups.find(g=>g.id===targetId);
+                const ITEM = 68;
                 const goTo = (g) => { if(!g) return; onNavigateTo?.(g); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); };
-                const SWIPE_THRESHOLD = 45;
-                const onImgTouchStart = (e) => {
-                    const t = e.touches[0];
-                    imgDragRef.current = { active:true, startX:t.clientX, startY:t.clientY, dx:0, moved:false, lock:null };
-                    if (imgRowRef.current) imgRowRef.current.style.transition = 'none';
-                };
-                const onImgTouchMove = (e) => {
-                    const d = imgDragRef.current;
-                    if (!d.active) return;
-                    const t = e.touches[0];
-                    const dx = t.clientX - d.startX, dy = t.clientY - d.startY;
-                    if (d.lock === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) d.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                    if (d.lock !== 'x') return;
-                    if (e.cancelable) e.preventDefault();
-                    let adj = dx;
-                    if (dx > 0 && !leftGroup) adj = dx * 0.35;
-                    if (dx < 0 && !rightGroup) adj = dx * 0.35;
-                    d.dx = dx; d.moved = Math.abs(dx) > 8;
-                    if (imgRowRef.current) imgRowRef.current.style.transform = `translateX(${adj}px)`;
-                };
-                const onImgTouchEnd = () => {
-                    const d = imgDragRef.current;
-                    if (!d.active) return;
-                    if (imgRowRef.current) {
-                        imgRowRef.current.style.transition = 'transform 0.2s ease-out';
-                        imgRowRef.current.style.transform = 'translateX(0px)';
-                    }
-                    if (d.lock === 'x' && d.moved) {
-                        if (d.dx <= -SWIPE_THRESHOLD && rightGroup) goTo(rightGroup);
-                        else if (d.dx >= SWIPE_THRESHOLD && leftGroup) goTo(leftGroup);
-                    }
-                    imgDragRef.current = { active:false, startX:0, startY:0, dx:0, moved:false, lock:null };
+                // אחרי שהגלילה נרגעת — מוצא מי במרכז הסרט ומנווט אליו (כמו סרט תמונות שנעצר על הפריים הקרוב)
+                const handleFilmScroll = () => {
+                    if (filmSettleTimer.current) clearTimeout(filmSettleTimer.current);
+                    filmSettleTimer.current = setTimeout(() => {
+                        const el = filmStripRef.current;
+                        if (!el) return;
+                        const rect = el.getBoundingClientRect();
+                        const hit = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
+                        const gid = hit?.closest?.('[data-gid]')?.dataset?.gid;
+                        if (gid == null) return;
+                        const g = allGroups.find(x => String(x.id) === String(gid));
+                        if (g && g.id !== group.id) goTo(g);
+                    }, 130);
                 };
                 return (
                     <div>
-                        <div ref={imgRowRef} className="flex items-stretch gap-1.5 mt-3" dir="rtl" style={{touchAction:'pan-y'}}
-                            onTouchStart={onImgTouchStart} onTouchMove={onImgTouchMove} onTouchEnd={onImgTouchEnd} onTouchCancel={onImgTouchEnd}>
-                            <button key={`l-${leftGroup?.id}`} onClick={()=>goTo(leftGroup)} disabled={!leftGroup}
-                                className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!leftGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(leftGroup)}>
-                                {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" draggable={false} />}
-                            </button>
-                            <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) goTo(previewGroup); }}
-                                className="flex-[0.7] rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
-                                style={{...slotStyle(midGroup), boxShadow: '0 0 0 3px #3b82f6'}}>
-                                {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" draggable={false} />}
-                            </button>
-                            <button key={`r-${rightGroup?.id}`} onClick={()=>goTo(rightGroup)} disabled={!rightGroup}
-                                className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!rightGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(rightGroup)}>
-                                {imgOf(rightGroup) && <img src={imgOf(rightGroup)} alt="" className="w-full h-full object-cover" draggable={false} />}
-                            </button>
+                        <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar mt-3" dir="rtl"
+                            style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInline:`calc(50% - ${ITEM/2}px)`}}
+                            onScroll={handleFilmScroll}>
+                            {allGroups.map(g => {
+                                const isCur = g.id === targetId;
+                                const done = isGroupDoneHere(g);
+                                const img = imgOf(g);
+                                return (
+                                    <button key={g.id} data-gid={g.id} onClick={()=>goTo(g)}
+                                        className="shrink-0 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
+                                        style={{ width:ITEM, height:ITEM, scrollSnapAlign:'center',
+                                            filter: done ? 'grayscale(100%)' : undefined, opacity: done ? 0.55 : 1,
+                                            boxShadow: isCur ? '0 0 0 3px #3b82f6' : undefined,
+                                            transform: isCur ? 'scale(1)' : 'scale(0.84)' }}>
+                                        {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
+                                             : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
+                                    </button>
+                                );
+                            })}
                         </div>
-                        {previewGroup && (
+                        {targetGroup && targetGroup.id !== group.id && (
                             <div className="text-center mt-1 fade-in">
-                                <div className="text-[9px] font-black uppercase tracking-wide" style={{color:midGroup.hex||'#3b82f6'}}>תצוגה מקדימה</div>
-                                <div className="text-[12px] font-black text-slate-700">{midGroup.title}</div>
+                                <div className="text-[9px] font-black uppercase tracking-wide" style={{color:targetGroup.hex||'#3b82f6'}}>תצוגה מקדימה</div>
+                                <div className="text-[12px] font-black text-slate-700">{targetGroup.title}</div>
                             </div>
                         )}
                     </div>
