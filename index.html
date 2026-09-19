@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.86';
+const APP_VERSION = '9.87';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1124,6 +1124,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     const [previewGroupId, setPreviewGroupId] = useState(null);
     const previewTimeoutRef = React.useRef(null);
     const curChipRef = React.useRef(null);
+    // גרירה באצבע על שורת תמונות התרגילים — כמו סרט/מניפה שזזה בכל כיוון
+    const imgRowRef = React.useRef(null);
+    const imgDragRef = React.useRef({ active:false, startX:0, startY:0, dx:0, moved:false, lock:null });
     useEffect(() => {
         setPreviewGroupId(null);
         if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
@@ -1607,21 +1610,56 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const midGroup   = allGroups[centerIdx] || group;
                 const rightGroup = centerIdx < allGroups.length-1 ? allGroups[centerIdx+1] : null;
                 const slotStyle = g => ({ height:'4rem', filter: isGroupDoneHere(g) ? 'grayscale(100%)' : undefined, opacity: isGroupDoneHere(g) ? 0.55 : 1 });
+                const goTo = (g) => { if(!g) return; onNavigateTo?.(g); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); };
+                const SWIPE_THRESHOLD = 45;
+                const onImgTouchStart = (e) => {
+                    const t = e.touches[0];
+                    imgDragRef.current = { active:true, startX:t.clientX, startY:t.clientY, dx:0, moved:false, lock:null };
+                    if (imgRowRef.current) imgRowRef.current.style.transition = 'none';
+                };
+                const onImgTouchMove = (e) => {
+                    const d = imgDragRef.current;
+                    if (!d.active) return;
+                    const t = e.touches[0];
+                    const dx = t.clientX - d.startX, dy = t.clientY - d.startY;
+                    if (d.lock === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) d.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    if (d.lock !== 'x') return;
+                    if (e.cancelable) e.preventDefault();
+                    let adj = dx;
+                    if (dx > 0 && !leftGroup) adj = dx * 0.35;
+                    if (dx < 0 && !rightGroup) adj = dx * 0.35;
+                    d.dx = dx; d.moved = Math.abs(dx) > 8;
+                    if (imgRowRef.current) imgRowRef.current.style.transform = `translateX(${adj}px)`;
+                };
+                const onImgTouchEnd = () => {
+                    const d = imgDragRef.current;
+                    if (!d.active) return;
+                    if (imgRowRef.current) {
+                        imgRowRef.current.style.transition = 'transform 0.2s ease-out';
+                        imgRowRef.current.style.transform = 'translateX(0px)';
+                    }
+                    if (d.lock === 'x' && d.moved) {
+                        if (d.dx <= -SWIPE_THRESHOLD && rightGroup) goTo(rightGroup);
+                        else if (d.dx >= SWIPE_THRESHOLD && leftGroup) goTo(leftGroup);
+                    }
+                    imgDragRef.current = { active:false, startX:0, startY:0, dx:0, moved:false, lock:null };
+                };
                 return (
                     <div>
-                        <div className="flex items-stretch gap-1.5 mt-3" dir="rtl">
-                            <button key={`l-${leftGroup?.id}`} onClick={()=>{ if(!leftGroup) return; onNavigateTo?.(leftGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!leftGroup}
+                        <div ref={imgRowRef} className="flex items-stretch gap-1.5 mt-3" dir="rtl" style={{touchAction:'pan-y'}}
+                            onTouchStart={onImgTouchStart} onTouchMove={onImgTouchMove} onTouchEnd={onImgTouchEnd} onTouchCancel={onImgTouchEnd}>
+                            <button key={`l-${leftGroup?.id}`} onClick={()=>goTo(leftGroup)} disabled={!leftGroup}
                                 className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!leftGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(leftGroup)}>
-                                {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" />}
+                                {imgOf(leftGroup) && <img src={imgOf(leftGroup)} alt="" className="w-full h-full object-cover" draggable={false} />}
                             </button>
-                            <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) { onNavigateTo?.(previewGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); } }}
+                            <button key={`m-${midGroup?.id}`} onClick={()=>{ if (previewGroup) goTo(previewGroup); }}
                                 className="flex-[0.7] rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all"
                                 style={{...slotStyle(midGroup), boxShadow: '0 0 0 3px #3b82f6'}}>
-                                {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" />}
+                                {imgOf(midGroup) && <img src={imgOf(midGroup)} alt="" className="w-full h-full object-cover" draggable={false} />}
                             </button>
-                            <button key={`r-${rightGroup?.id}`} onClick={()=>{ if(!rightGroup) return; onNavigateTo?.(rightGroup); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); }} disabled={!rightGroup}
+                            <button key={`r-${rightGroup?.id}`} onClick={()=>goTo(rightGroup)} disabled={!rightGroup}
                                 className={`flex-1 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all ${!rightGroup?'opacity-0 pointer-events-none':'active:scale-95'}`} style={slotStyle(rightGroup)}>
-                                {imgOf(rightGroup) && <img src={imgOf(rightGroup)} alt="" className="w-full h-full object-cover" />}
+                                {imgOf(rightGroup) && <img src={imgOf(rightGroup)} alt="" className="w-full h-full object-cover" draggable={false} />}
                             </button>
                         </div>
                         {previewGroup && (
