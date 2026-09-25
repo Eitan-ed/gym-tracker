@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.90';
+const APP_VERSION = '9.91';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -3671,7 +3671,10 @@ function App() {
             : setNum === 0 ? (settings.warmupRest||60)
             : setNum === 2 ? (settings.exerciseRest||120)
             : (settings.normalRest||90);
-        setRestTimers({[exId]: dur});
+        // ממזגים לתוך הטיימרים הקיימים (לא מחליפים!) — כדי שאם קפצת לתרגיל אחר באמצע מנוחה
+        // (בלי "דלג"), הטיימר של התרגיל שיצאת ממנו ימשיך לרוץ ברקע, ויחכה לך שם כשתחזור אליו,
+        // בעוד שגם לתרגיל החדש יש טיימר משלו שרץ באותו זמן — כל תרגיל מציג תמיד את הטיימר שלו בלבד
+        setRestTimers(prev => ({...prev, [exId]: dur}));
         setRestTimerTotals(prev => ({...prev, [exId]: dur}));
         // סופרסט: קפיצה מיידית לתרגיל הבא בסדר A1→B1→A2→B2
         if (isSuperset) {
