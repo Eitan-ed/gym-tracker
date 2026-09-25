@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.89';
+const APP_VERSION = '9.90';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1564,54 +1564,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     prevRestTimerTotal: prevDoneS2 ? prevTot : 0,
                 });
             })}
-            {/* שורת ניווט מספרי תרגילים — בנוסף לניווט קודם/הבא הרגיל, עם חץ קטן בכל צד להזזת התרגיל הנוכחי בחופשיות */}
-            {allGroups.length > 1 && (
-                <div className="flex items-center gap-1.5 mt-3" dir="rtl">
-                    {onMoveGroup && (
-                        <button onClick={()=>{ if(groupIdx>0) onMoveGroup(group.id,-1); }} disabled={groupIdx<=0}
-                            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20"
-                            style={{background:'#eef1f5', boxShadow:'1px 1px 3px rgba(0,0,0,0.08)'}}>
-                            <Icon name="ChevronLeft" size={13} className="rotate-180" />
-                        </button>
-                    )}
-                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 flex-1">
-                    {allGroups.map((g,i) => {
-                        const isSkipped = skippedGroups.includes(g.id);
-                        const isCur = g.id === group.id;
-                        const isPreviewSel = g.id === previewGroupId;
-                        const isDoneG = !isSkipped && g.exercises.every(ex=>{
-                            const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
-                            return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
-                        });
-                        const bg = isCur ? '#3b82f6' : isDoneG ? '#cbd5e1' : isSkipped ? '#ffffff' : '#eff6ff';
-                        const fg = isCur ? '#ffffff' : isDoneG ? '#64748b' : isSkipped ? '#94a3b8' : '#3b82f6';
-                        return (
-                            <button key={g.id} ref={isCur ? curChipRef : null} onClick={(e)=>{
-                                    e.currentTarget.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-                                    if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
-                                    if (g.id === group.id) { setPreviewGroupId(null); return; }
-                                    setPreviewGroupId(g.id);
-                                    previewTimeoutRef.current = setTimeout(()=>setPreviewGroupId(null), 10000);
-                                }}
-                                className="shrink-0 w-7 h-7 rounded-lg text-[11px] font-black flex items-center justify-center transition-all"
-                                style={{background:bg, color:fg,
-                                    border: isSkipped ? '1.5px dashed #cbd5e1' : isPreviewSel ? '2px solid #3b82f6' : undefined,
-                                    boxShadow: isCur ? '0 0 0 2px white, 0 0 0 4px #3b82f6' : undefined}}>
-                                {i+1}
-                            </button>
-                        );
-                    })}
-                    </div>
-                    {onMoveGroup && (
-                        <button onClick={()=>{ if(groupIdx<totalGroups-1) onMoveGroup(group.id,1); }} disabled={groupIdx>=totalGroups-1}
-                            className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:scale-90 disabled:opacity-20"
-                            style={{background:'#eef1f5', boxShadow:'1px 1px 3px rgba(0,0,0,0.08)'}}>
-                            <Icon name="ChevronLeft" size={13} />
-                        </button>
-                    )}
-                </div>
-            )}
-            {/* שורת תמונות: סרט גלילה רציף על כל תרגילי האימון — גולל חופשי לפי האצבע (כמו מניפה), נעצר על הקרוב ומנווט אליו */}
+            {/* שורת תמונות: סרט גלילה רציף על כל תרגילי האימון — גולל חופשי לפי האצבע (כמו מניפה), נעצר על הקרוב ומנווט אליו.
+                מספר התרגיל (שהיה בעבר בשורת ניווט נפרדת מעל הסרט) מוצג עכשיו כתג מספר על כל תמונה בסרט עצמו —
+                אין עוד שורת מספרים נפרדת. חצי ההזזה החופשית של סדר התרגיל (מה שהיה ליד שורת המספרים) זמינים
+                עדיין ממסך הבית (כפתור "סדר תרגילים"). */}
             {allGroups.length > 1 && (()=>{
                 const imgOf = g => { const ex=g?.exercises[0]; if(!ex) return null; return images?.[ex.id]||(EXERCISE_IMAGES[ex.id]?`images/${EXERCISE_IMAGES[ex.id]}`:null); };
                 const isGroupDoneHere = g => !!g && !skippedGroups.includes(g.id) && g.exercises.every(ex=>{
@@ -1641,19 +1597,24 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar mt-3" dir="rtl"
                             style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInline:`calc(50% - ${ITEM/2}px)`}}
                             onScroll={handleFilmScroll}>
-                            {allGroups.map(g => {
+                            {allGroups.map((g,i) => {
                                 const isCur = g.id === targetId;
                                 const done = isGroupDoneHere(g);
                                 const img = imgOf(g);
                                 return (
                                     <button key={g.id} data-gid={g.id} onClick={()=>goTo(g)}
-                                        className="shrink-0 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
+                                        className="relative shrink-0 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
                                         style={{ width:ITEM, height:ITEM, scrollSnapAlign:'center',
                                             filter: done ? 'grayscale(100%)' : undefined, opacity: done ? 0.55 : 1,
                                             boxShadow: isCur ? '0 0 0 3px #3b82f6' : undefined,
                                             transform: isCur ? 'scale(1)' : 'scale(0.84)' }}>
                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
+                                        {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
+                                        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
+                                            style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>
+                                            {i+1}
+                                        </span>
                                     </button>
                                 );
                             })}
@@ -2656,16 +2617,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     done.forEach(([exId,t])=>{ txt += `• ${nameOf(exId)}:\n${t}\n\n`; });
                                 }
                                 const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
+                                // חשוב: ייצוא הדוח *לא* מסמן הערות כ"בוצעו" — סימון בוצע נעשה אך ורק ידנית (כפתור ה-✓
+                                // ליד כל הערה), כי הערה שרק יוצאה בדוח לא בהכרח יושמה בפועל בקוד
                                 saveTextFile(fname, txt).then(savedToFiling => {
-                                    // אחרי ייצוא — כל ההערות שהיו ממתינות מסומנות כבוצעו, כדי שלא יופיעו שוב כ"חדשות" במסכי ההערות בפעם הבאה
-                                    if (pending.length) {
-                                        setDevNotesDone(prev => {
-                                            const n = {...prev};
-                                            pending.forEach(([exId])=>{ n[exId] = true; });
-                                            return n;
-                                        });
-                                    }
-                                    showToast(`דוח הערות לשיפור נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}${pending.length?' — ההערות סומנו כבוצעו':''}`);
+                                    showToast(`דוח הערות לשיפור נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
                                 });
                             };
                             const generateExerciseListReport = () => {
@@ -3261,8 +3216,10 @@ function App() {
             : '(אין הערות חדשות)';
         syncTextFileToFilingOnly('gym-dev-notes-current.txt', txt);
     }, [customNames]);
-    // ייצוא דוח הערות-שיפור מתוארך (ומסמון כבוצע) — רק אם יש הערות חדשות שטרם טופלו.
-    // משמש בשרשרת השמירה האוטומטית במסך הסיכום (ראה כפתור "שמור"), ומחזיר האם בפועל יוצא דוח.
+    // ייצוא דוח הערות-שיפור מתוארך — רק אם יש הערות חדשות שטרם טופלו. משמש בשרשרת השמירה
+    // האוטומטית במסך הסיכום (ראה כפתור "שמור"), ומחזיר האם בפועל יוצא דוח.
+    // חשוב: הייצוא *לא* מסמן הערות כ"בוצעו" — סימון בוצע נעשה אך ורק ידנית (כפתור ה-✓ ליד כל
+    // הערה במסך "הערות לשיפור"), כי עצם הייצוא לא אומר שההערה יושמה בפועל בקוד.
     const exportDevNotesReportIfPending = async () => {
         const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
         const pending = allEntries.filter(([k])=>!devNotesDone[k]);
@@ -3278,11 +3235,6 @@ function App() {
         }
         const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
         const savedToFiling = await saveTextFile(fname, txt);
-        setDevNotesDone(prev => {
-            const n = {...prev};
-            pending.forEach(([exId])=>{ n[exId] = true; });
-            return n;
-        });
         return { exported:true, savedToFiling };
     };
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
