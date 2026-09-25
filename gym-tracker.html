@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.91';
+const APP_VERSION = '9.92';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -248,6 +248,18 @@ function getLastWarmupReps(exId, logs) {
     const w = logs.filter(l => l.exId===exId && l.setNum===0 && l.reps>0)
         .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
     return w?.reps ?? 0;
+}
+// ─── בחירת "התרגיל הבא" מתוך רשימת קבוצות לא-גמורות — מעדיפה קבוצה שכבר יש בה התקדמות
+// חלקית בסשן הנוכחי (למשל סט 1 בוצע אבל סט 2 לא) על פני קבוצה שעדיין לא נגעו בה בכלל.
+// זה נותן מענה לשילוב מכוון בין שני תרגילים (קפיצה ביניהם בלי "דלג"): אחרי שסיימת תרגיל
+// אחד, חוזרים קודם לתרגיל השני שכבר התחלת בו, ולא ל"הבא בתור" לפי הסדר הקבוע.
+// בזרימה רגילה (תמיד גומרים תרגיל שלם לפני שעוברים הלאה) לעולם אין קבוצה עם התקדמות חלקית,
+// כך שהבחירה חוזרת תמיד להתנהגות הרגילה — הראשונה לפי הסדר ברשימת המועמדים.
+function pickNextGroup(candidates, logsArr, sst) {
+    const hasProgress = g => g.exercises.some(ex =>
+        logsArr.some(l => l.exId===ex.id && new Date(l.timestamp).getTime()>sst && (l.weight>0 || l.reps>0))
+    );
+    return candidates.find(hasProgress) || candidates[0] || null;
 }
 // ─── משקל להצגה ליד התמונה — המשקל הגבוה מבין הסטים באימון האחרון,
 // ובלבד שבוצעו בו יותר מ-7 חזרות לסט ───────────────────────────
@@ -3614,10 +3626,8 @@ function App() {
                     const groupDone = targetGroup.exercises.every(isDoneEx);
                     // קופצים לתרגיל הבא רק אם הקבוצה כולה הסתיימה (הסט האחרון)
                     if (groupDone) {
-                        const nextGroup = curVis.find(g => {
-                            if (curSkip.includes(g.id)) return false;
-                            return !g.exercises.every(isDoneEx);
-                        });
+                        const candidates = curVis.filter(g => !curSkip.includes(g.id) && !g.exercises.every(isDoneEx));
+                        const nextGroup = pickNextGroup(candidates, curLogs, curSst);
                         if (nextGroup) {
                             setActiveGroup(nextGroup); setView('detail');
                             setScrollToExId(nextGroup.exercises[0].id);
@@ -4059,7 +4069,7 @@ function App() {
             const sl = curLogs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>curWst);
             return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
         });
-        const nextGroup = visibleGroups.find(g=>!isDone(g));
+        const nextGroup = pickNextGroup(visibleGroups.filter(g=>!isDone(g)), curLogs, curWst);
         if (nextGroup) {
             if (isAutoTransition) {
                 const nextEx = nextGroup.exercises[0];
