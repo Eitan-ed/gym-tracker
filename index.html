@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.88';
+const APP_VERSION = '9.89';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -403,7 +403,12 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                 <span>{value}</span>
                 <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{label}</span>
             </button>
-            {open && (
+            {/* התפריט התחתון נפתח דרך Portal ישירות ל-document.body — כי כרטיס הסט העוטף אותו
+                מקבל לפעמים filter (grayscale/opacity) כשהסט "בוצע" (dimDone למעלה), ו-CSS filter
+                על אב הופך אותו למסגרת המיקום של position:fixed בתוכו. בלי Portal, הגלגלת "נכלאת"
+                בגבולות כרטיס הסט הקטן (ולא מכסה את המסך המלא), ויורשת גם את הטשטוש/שקיפות של האב —
+                זה בדיוק הבאג של "הגלגלת מסתירה/מטשטשת את התמונה". ה-Portal פותר את זה לגמרי. */}
+            {open && ReactDOM.createPortal(
                 <div className="fixed inset-0 z-[800] flex items-end" onClick={confirm}>
                     <div className="absolute inset-0 bg-slate-900/50" />
                     <div className="relative w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -473,7 +478,8 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
@@ -2017,7 +2023,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
     musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicMove=null, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onChangeCategory=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
-    filingDirName=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
+    filingDirName=null, filingPermGranted=true, ensureFilingPermission=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
     useEffect(()=>{ LS.set('gym-report-preamble', reportPreamble); },[reportPreamble]);
@@ -2680,18 +2686,27 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             };
                             return (<>
                                 {filingSupported ? (
-                                    <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between gap-2">
+                                    <div className={`mb-3 rounded-2xl p-3 flex items-center justify-between gap-2 border ${filingDirName && !filingPermGranted ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
                                         <div className="min-w-0">
-                                            <div className="text-xs font-black text-emerald-700">ייצוא אוטומטי לגוגל דרייב</div>
-                                            <div className="text-[10px] font-bold text-emerald-600 truncate">
-                                                {filingDirName ? `מחובר לתיקיית "${filingDirName}"` : 'לא מחובר — דוחות יורדו כרגיל'}
+                                            <div className={`text-xs font-black ${filingDirName && !filingPermGranted ? 'text-amber-700' : 'text-emerald-700'}`}>ייצוא אוטומטי לגוגל דרייב</div>
+                                            <div className={`text-[10px] font-bold truncate ${filingDirName && !filingPermGranted ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                                {!filingDirName ? 'לא מחובר — דוחות יורדו כרגיל'
+                                                    : !filingPermGranted ? `מחובר לתיקיית "${filingDirName}" — יש לאשר גישה מחדש`
+                                                    : `מחובר לתיקיית "${filingDirName}"`}
                                             </div>
-                                            {filingDirName && <div className="text-[10px] font-bold text-emerald-500 mt-0.5">הערות השיפור מסתנכרנות אוטומטית לקובץ gym-dev-notes-current.txt</div>}
+                                            {filingDirName && filingPermGranted && <div className="text-[10px] font-bold text-emerald-500 mt-0.5">הערות השיפור מסתנכרנות אוטומטית לקובץ gym-dev-notes-current.txt</div>}
                                         </div>
-                                        <button onClick={filingDirName ? disconnectFilingDir : connectFilingDir}
-                                            className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black active:scale-95 ${filingDirName ? 'bg-white text-red-500 border border-red-200' : 'bg-emerald-600 text-white'}`}>
-                                            {filingDirName ? 'נתק' : 'חבר תיקיית FILING'}
-                                        </button>
+                                        {filingDirName && !filingPermGranted ? (
+                                            <button onClick={()=>ensureFilingPermission&&ensureFilingPermission().then(ok=>showToast(ok?'הגישה אושרה':'הגישה לא אושרה', !ok))}
+                                                className="shrink-0 px-3 py-2 rounded-xl text-[11px] font-black active:scale-95 bg-amber-500 text-white">
+                                                אשר גישה מחדש
+                                            </button>
+                                        ) : (
+                                            <button onClick={filingDirName ? disconnectFilingDir : connectFilingDir}
+                                                className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black active:scale-95 ${filingDirName ? 'bg-white text-red-500 border border-red-200' : 'bg-emerald-600 text-white'}`}>
+                                                {filingDirName ? 'נתק' : 'חבר תיקיית FILING'}
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="mb-3 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-[11px] font-bold text-slate-400">
@@ -2921,13 +2936,15 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
         { key:'progress',    label:'תדירות אימון',       icon:'CheckCircle2', color:'text-emerald-500' },
         { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
         { key:'gymInfo',     label:'שעות פתיחת מכון',    icon:'Clock',        color:'text-blue-500' },
-        { key:'reports',     label:'דוחות',              icon:'Download',     color:'text-cyan-500' },
         { key:'devNotes',    label:'הערות לשיפור', icon:'BookOpen', color:'text-amber-500' }
     ].sort((a,b)=>a.label.localeCompare(b.label,'he'));
+    // "דוחות" הוא פריט עצמאי בתפריט העליון (לא תת-פריט בתוך "ניהול") — מוביל ישירות למסך הדוחות,
+    // שם מרוכזות כל החלופות (דוח יומי/שבועי/חודשי/כולל, רשימת תרגילים, דוח הערות לשיפור)
     const topItems = [
-        { key:'list',    label:'בית',      icon:'Home' },
-        { key:'history', label:'היסטוריה', icon:'History' },
-        { key:'manage',  label:'ניהול',    icon:'Settings', hasSubs:true }
+        { key:'list',           label:'בית',      icon:'Home' },
+        { key:'history',        label:'היסטוריה', icon:'History' },
+        { key:'manage:reports', label:'דוחות',    icon:'Download' },
+        { key:'manage',         label:'ניהול',    icon:'Settings', hasSubs:true }
     ].sort((a,b)=>a.label.localeCompare(b.label,'he'));
     const topOffset = 'calc(env(safe-area-inset-top) + 0.75rem)';
     return (
@@ -3142,6 +3159,10 @@ function App() {
     const [devNotesDone,     setDevNotesDone]     = useState(()=>LS.get('gym-dev-notes-done',{}));
     // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
     const [filingDirName, setFilingDirName] = useState(null);
+    // האם הרשאת הכתיבה בפועל מאושרת כרגע (בשונה מ-filingDirName, שמציין רק שהתיקייה "מחוברת"/זכורה) —
+    // בדפדפנים מסוימים ההרשאה מתאפסת בכל טעינה מחדש (למשל אחרי שדרוג גרסה), גם כשהתיקייה עצמה
+    // עדיין זכורה ב-IndexedDB. הבחנה זו מאפשרת להציג תזכורת "יש לאשר מחדש" בלי "לנתק" בטעות.
+    const [filingPermGranted, setFilingPermGranted] = useState(true);
     const filingDirRef = React.useRef(null);
     const filingSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
     useEffect(() => {
@@ -3149,12 +3170,27 @@ function App() {
         (async () => {
             const handle = await IDB.get('filingDirHandle');
             if (!handle) return;
+            // התיקייה תמיד מוצגת כ"מחוברת" (השם שלה זמין גם בלי הרשאה) — כי כל פונקציית הכתיבה
+            // בפועל (saveTextFile וכו') מבקשת הרשאה מחדש לפני כתיבה בכל מקרה. כך החיבור "נשמר"
+            // תמיד מבחינת המשתמש, גם אם צריך לאשר גישה מחדש בפעם הבאה שכותבים.
+            filingDirRef.current = handle; setFilingDirName(handle.name);
             try {
                 const perm = await handle.queryPermission({ mode: 'readwrite' });
-                if (perm === 'granted') { filingDirRef.current = handle; setFilingDirName(handle.name); }
-            } catch {}
+                setFilingPermGranted(perm === 'granted');
+            } catch { setFilingPermGranted(false); }
         })();
     }, [filingSupported]);
+    // מבקשת הרשאת כתיבה מחדש לתיקיית FILING אם צריך — יש לקרוא לה תוך כדי טיפול בלחיצת משתמש
+    // (user gesture), אחרת הדפדפן עלול לחסום את הבקשה בשקט.
+    const ensureFilingPermission = async () => {
+        if (!filingDirRef.current) return false;
+        try {
+            let perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') perm = await filingDirRef.current.requestPermission({ mode: 'readwrite' });
+            setFilingPermGranted(perm === 'granted');
+            return perm === 'granted';
+        } catch { setFilingPermGranted(false); return false; }
+    };
     const connectFilingDir = async () => {
         try {
             const handle = await window.showDirectoryPicker();
@@ -3213,6 +3249,7 @@ function App() {
     // כתיבה אוטומטית של קובץ הערות-שיפור עדכני (שם קבוע) בכל שינוי — בלי צורך בייצוא ידני
     const nameOfNoteKey = (exId) => {
         if (PAGE_NOTE_LABELS[exId]) return PAGE_NOTE_LABELS[exId];
+        if (String(exId).startsWith('note-')) return 'הערה כללית';
         const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
         return customNames[exId] || ex?.title || exId;
     };
@@ -3224,6 +3261,30 @@ function App() {
             : '(אין הערות חדשות)';
         syncTextFileToFilingOnly('gym-dev-notes-current.txt', txt);
     }, [customNames]);
+    // ייצוא דוח הערות-שיפור מתוארך (ומסמון כבוצע) — רק אם יש הערות חדשות שטרם טופלו.
+    // משמש בשרשרת השמירה האוטומטית במסך הסיכום (ראה כפתור "שמור"), ומחזיר האם בפועל יוצא דוח.
+    const exportDevNotesReportIfPending = async () => {
+        const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
+        const pending = allEntries.filter(([k])=>!devNotesDone[k]);
+        if (!pending.length) return { exported:false };
+        const done = allEntries.filter(([k])=>devNotesDone[k]);
+        let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
+        txt += `${'═'.repeat(40)}\n\n`;
+        txt += `חדשות (טרם טופלו):\n\n`;
+        pending.forEach(([exId,t])=>{ txt += `• ${nameOfNoteKey(exId)}:\n${t}\n\n`; });
+        if (done.length) {
+            txt += `בוצעו:\n\n`;
+            done.forEach(([exId,t])=>{ txt += `• ${nameOfNoteKey(exId)}:\n${t}\n\n`; });
+        }
+        const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
+        const savedToFiling = await saveTextFile(fname, txt);
+        setDevNotesDone(prev => {
+            const n = {...prev};
+            pending.forEach(([exId])=>{ n[exId] = true; });
+            return n;
+        });
+        return { exported:true, savedToFiling };
+    };
     const [images,           setImages]           = useState(()=>LS.get('gym-images',{}));
     // זום תמונת תרגיל (per-תרגיל) — נשמר כדי שתמונות שחתוכות/מוגדלות מדי אפשר יהיה לזום אאוט/אין ולראות אותן טוב
     const [imageZoom,        setImageZoom]        = useState(()=>LS.get('gym-image-zoom',{}));
@@ -3777,13 +3838,21 @@ function App() {
         reader.readAsDataURL(file);
     };
 
+    // מאפס את כל מצב האימון הנוכחי (טיימר, סטים שדולגו, הערת סיכום ומשקל גוף) — לעולם לא נוגע ב-logs
+    // עצמם (הם אך ורק נוספים, לא נמחקים), רק במצב ה"עבודה בתהליך" של הסשן הפעיל.
+    const resetSessionState = () => {
+        setWorkoutSec(0); setRestTimers({}); setRestTimerTotals({});
+        setSkippedGroups([]); setIsWorkoutComplete(false);
+        setSummaryNote(''); setSummaryBW(''); setSummarySaved(false); setSummaryBackedUp(false);
+        LS.set('gym-last-workout-sec', 0); // איפוס טיימר כללי
+    };
+
     const startNewWorkout = ()=>{
         const wst = Date.now();
-        setWorkoutSec(0); setIsWorkoutActive(false); setRestTimers({}); setRestTimerTotals({});
-        setSkippedGroups([]); setShowSummary(false); setIsWorkoutComplete(false);
-        setWorkoutDecisionMade(false); setSummaryNote(''); setSummaryBW(''); setSummarySaved(false); setSummaryBackedUp(false);
+        resetSessionState();
+        setIsWorkoutActive(false); setShowSummary(false);
+        setWorkoutDecisionMade(false);
         setWorkoutStartTime(wst); setView('list'); setActiveGroup(null);
-        LS.set('gym-last-workout-sec', 0); // איפוס טיימר כללי
     };
 
     const handleDeleteLog  = id=>{
@@ -4019,6 +4088,8 @@ function App() {
                     setIsWorkoutActive(false); setIsWorkoutComplete(true);
                     setRestTimers({}); setRestTimerTotals({});
                     if (workoutSec > 0) { LS.set('gym-last-workout-sec', workoutSec); setSessionDurations(p=>({...p,[workoutStartTime]:workoutSec})); }
+                    const snap = computeSummarySnapshot(logsRef.current, workoutStartTime, workoutSec, newSkipped);
+                    openSummary(snap);
                 }, 300);
             }
             return newSkipped;
@@ -4065,14 +4136,16 @@ function App() {
             setActiveGroup(nextGroup); setView('detail');
             setScrollToExId(nextGroup.exercises[0].id);
         } else {
-            // כל התרגילים בוצעו — לא פותחים את מסך הסיכום אוטומטית, רק מסמנים
-            // שהאימון הושלם. המשתמש פותח את הסיכום בעצמו בלחיצה על "סוף אימון".
+            // כל התרגילים בוצעו — האימון הושלם, ועוברים אוטומטית למסך הסיכום (העדכון)
+            // בלי לדרוש עוד לחיצה נוספת של "סוף אימון"
             setIsWorkoutActive(false); setIsWorkoutComplete(true);
             setRestTimers({}); setRestTimerTotals({});
             LS.set('gym-last-workout-sec', workoutSec);
             if (workoutSec > 0) setSessionDurations(prev=>({...prev, [workoutStartTime]: workoutSec}));
             setView('list');
             setActiveGroup(null);
+            const snap = computeSummarySnapshot(curLogs, curWst, workoutSec, curSkip);
+            openSummary(snap);
         }
     },[sortedGroups,workoutSec,workoutStartTime]);
 
@@ -4082,6 +4155,18 @@ function App() {
         openSummary(snap);
         setView('list'); setActiveGroup(null);
     },[workoutSec, workoutNotes, sortedGroups]);
+
+    // בודקת ומזכירה את מצב חיבור תיקיית FILING בכל "אימון חדש" — כדי שגילוי שהחיבור/ההרשאה
+    // אינם תקינים יקרה מיד (ולא רק כשמנסים לשמור בסוף ומגלים שהגיבוי לא באמת נכתב).
+    const checkFilingOnNewWorkout = async () => {
+        if (!filingSupported) return;
+        if (!filingDirName) {
+            showToast('לא מחוברת תיקיית FILING — האימון יישמר רק באפ. אפשר לחבר בניהול ← דוחות', true);
+            return;
+        }
+        const granted = await ensureFilingPermission();
+        if (!granted) showToast('יש לאשר מחדש גישה לתיקיית FILING (בניהול ← דוחות)', true);
+    };
 
     // ─── לחיצה על "אימון חדש": תמיד שומרת קודם את משך הזמן שנמדד (בלי אובדן נתונים — הסטים עצמם
     // תמיד נשמרים בזמן אמת). שואלת אם לשמור את האימון רק אם עדיין לא נשמר; אם כן — מגבה אוטומטית
@@ -4104,20 +4189,31 @@ function App() {
                             workoutNote: workoutNotes[wst]?.note || ''});
                     }
                     startNewWorkout();
+                    checkFilingOnNewWorkout();
                 },
-                ()=>{ startNewWorkout(); }
+                ()=>{ startNewWorkout(); checkFilingOnNewWorkout(); }
             );
         } else {
             startNewWorkout();
+            checkFilingOnNewWorkout();
         }
     };
 
+    // תיקון: אם ה-session הפתוח (workoutStartTime) הוא מיום קלנדרי קודם — זהו בהכרח אימון חדש
+    // (גם אם המשתמש לא לחץ בפועל על "אימון חדש", למשל פתח את האפ ישר לתוך תרגיל, או שהאימון
+    // הקודם נשאר "פעיל" מהלילה הקודם) — כדי שמשקל גוף/הערה של האימון הישן לא "יידבקו" לאימון החדש.
     const handleOpenExercise = group=>{
+        const isNewDay = new Date(workoutStartTime).toDateString() !== new Date().toDateString();
         if (!isWorkoutActive) {
             requestConfirm('להפעיל טיימר?',
-                ()=>{ const wst=Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); },
-                ()=>{ setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); }
+                ()=>{ if (isNewDay) resetSessionState(); const wst=Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); },
+                ()=>{ if (isNewDay) { resetSessionState(); setWorkoutStartTime(Date.now()); } setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); }
             );
+        } else if (isNewDay) {
+            // "פעיל" נשאר דלוק מהאימון הקודם (למשל האפ לא נסגר) אבל זה כבר יום אחר — מתחילים session נקי
+            resetSessionState();
+            setWorkoutStartTime(Date.now());
+            setActiveGroup(group); setView('detail');
         } else { setActiveGroup(group); setView('detail'); }
     };
 
@@ -4424,8 +4520,11 @@ function App() {
                                     </div>
                                 )}
                             </div>
-                            {/* אבן-דרך מנחה: שמור → גיבוי אימון → סגור. תמיד רק כפתור אחד כחול = הפעולה הבאה המומלצת */}
-                            <button onClick={()=>{
+                            {/* אבן-דרך מנחה: שמור → גיבוי אימון → סגור. תמיד רק כפתור אחד כחול = הפעולה הבאה המומלצת
+                                שמור מבצע אוטומטית שרשרת שלמה: שמירה באפ ← גיבוי ל-FILING (אם מחובר) ←
+                                ייצוא דוח שיפורים ל-FILING (רק אם יש הערות חדשות שטרם טופלו) ← הודעת סיכום אחת
+                                שמפרטת מה באמת קרה (רק שורות שהצליחו בפועל), או הודעת כשל אם משהו נכשל. */}
+                            <button onClick={async ()=>{
                                 const bw = parseFloat(summaryBW);
                                 if (!isNaN(bw) && bw > 0) {
                                     setBodyweightLog(prev=>[
@@ -4436,16 +4535,34 @@ function App() {
                                 if (summaryNote || (!isNaN(bw) && bw > 0)) {
                                     setWorkoutNotes(prev=>({...prev, [sumWst]:{note:summaryNote, bw:(!isNaN(bw)&&bw>0)?bw:null}}));
                                 }
-                                showToast('נשמר');
                                 setSummarySaved(true);
-                                // אם תיקיית FILING מחוברת — הגיבוי נשמר לשם אוטומטית ובשקט, בלי צורך ללחוץ גם על "גיבוי אימון"
+                                const steps = ['נשמר באפ'];
+                                let hadFailure = false;
+                                // גיבוי ל-FILING — אם תיקייה מחוברת, מוודאים קודם הרשאה (תוך כדי לחיצת המשתמש הזו,
+                                // כדי לתפוס מקרה שההרשאה התאפסה מסיבה כלשהי, למשל אחרי שדרוג גרסה)
                                 if (filingDirName) {
-                                    silentBackupToFiling({logs, notes, images, videos, settings, groupOrder,
-                                        sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
-                                        lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
-                                        sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
-                                        workoutNote:summaryNote}).then(ok=>{ if (ok) setSummaryBackedUp(true); });
+                                    const granted = await ensureFilingPermission();
+                                    if (granted) {
+                                        const ok = await silentBackupToFiling({logs, notes, images, videos, settings, groupOrder,
+                                            sessionStart:sessionStartTime, sessionEnd:sessionEndTime,
+                                            lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
+                                            sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
+                                            workoutNote:summaryNote});
+                                        if (ok) { setSummaryBackedUp(true); steps.push('נשמר ב-FILING'); }
+                                        else { hadFailure = true; steps.push('❌ הגיבוי ל-FILING נכשל'); }
+                                    } else {
+                                        hadFailure = true;
+                                        steps.push('❌ אין הרשאת גישה לתיקיית FILING — יש לאשר מחדש בניהול ← דוחות');
+                                    }
+                                    // ייצוא דוח שיפורים — רק אם ההרשאה תקינה, ורק אם יש הערות חדשות שטרם טופלו
+                                    if (granted) {
+                                        try {
+                                            const devRes = await exportDevNotesReportIfPending();
+                                            if (devRes.exported) steps.push('דוח שיפורים יוצא');
+                                        } catch { hadFailure = true; steps.push('❌ ייצוא דוח השיפורים נכשל'); }
+                                    }
                                 }
+                                showToast(steps.join(' · '), hadFailure);
                             }} className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600'}`}>
                                 {summarySaved ? 'נשמר' : 'שמור'}
                             </button>
@@ -4540,7 +4657,7 @@ function App() {
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
-        filingDirName={filingDirName} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
+        filingDirName={filingDirName} filingPermGranted={filingPermGranted} ensureFilingPermission={ensureFilingPermission} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
     // List view
     return (
@@ -4709,6 +4826,9 @@ function App() {
             <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', borderTopColor:'rgba(45,74,111,0.18)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
                 <button onClick={()=>{setManageOpenSection('exercises');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
                     <Icon name="Dumbbell" size={24} /><span className="text-[11px] font-black">תרגילים</span>
+                </button>
+                <button onClick={()=>{setManageOpenSection('reports');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
+                    <Icon name="Download" size={24} /><span className="text-[11px] font-black">דוחות</span>
                 </button>
                 <button onClick={handleNewWorkoutClick}
                     className="flex flex-col items-center gap-1 -mt-14 p-3 rounded-full active:scale-90" style={{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'4px 4px 10px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'}}>
