@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.92';
+const APP_VERSION = '9.93';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -630,8 +630,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false,
     historyOpen=false, onToggleHistory=null, onDeleteLog=null, warmupOpen=false, onToggleWarmup=null }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
-    const defW = DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
-    const defR = DEFAULT_STARTING_REPS[ex.id] ?? 10;
+    const defW = ex.startW ?? DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
+    const defR = ex.startR ?? DEFAULT_STARTING_REPS[ex.id] ?? 10;
     const [s1, setS1] = useState({ w:defW, r:defR, wC:false, rC:false });
     const [s2, setS2] = useState({ w:defW, r:defR, wC:false, rC:false });
     const setWarmupOpen = (v) => onToggleWarmup?.(v);
@@ -1133,7 +1133,7 @@ const VideoModal = ({ src, onClose }) => {
 // ─── DetailView ────────────────────────────────────────────
 const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, images, onSaveImage, onRemoveImage, videos, onSaveVideo, onDeleteVideo, uploadedVideos={}, onUploadVideo=null, onDeleteUploadedVideo=null, onBack, onFinish, onSave, sessionStartTime, restTimers, restTimerTotals, scrollToExId, onScrollDone, onDeleteLog, requestConfirm, groupIdx=0, totalGroups=1, nextGroup=null, prevGroup=null, onNavigateTo, musicList=[], musicPlaying=false, onMusicToggle=null, weightStepsOverrides={}, onOpenSummary=null, allGroupsDone=false, devNotes={}, devNotesDone={}, onSaveDevNote=null,
     workoutSec=0, isWorkoutActive=false, onToggleWorkout=null, customNames={}, customHowTo={}, setCustomHowTo=null, customTips={}, setCustomTips=null, warmupEmbed={}, onUpdateSettings=null,
-    allGroups=[], skippedGroups=[], onMoveGroup=null, imageZoom={}, onZoomImage=null }) {
+    allGroups=[], skippedGroups=[], onMoveGroup=null, imageZoom={}, onZoomImage=null, returnGroup=null, onReturn=null }) {
     const handleWarmupOpened = (exId) => {
         if (!onUpdateSettings || warmupEmbed[exId]) return;
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: true});
@@ -1357,12 +1357,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
-                        <Icon name="BookOpen" size={13} /> איך לבצע
+                        <Icon name="BookOpen" size={13} /> איך
                     </button>
                     <button onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${historyOpen[ex.id] ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600'}`}>
-                        <Icon name="History" size={13} /> היסטוריה
+                        <Icon name="History" size={15} />
                     </button>
                     <button onClick={()=>setWarmupOpenMap(p=>{
                             const next = !(p[ex.id] ?? !!warmupEmbed[ex.id]);
@@ -1371,8 +1371,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         })}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
-                        🔥 חימום
+                        🔥
                     </button>
+                    {onUpdateSettings && (
+                        <select
+                            value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? weightStepsOverrides[ex.id] : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
+                            onChange={e => { const v = e.target.value === '4-5' ? '4-5' : parseFloat(e.target.value); onUpdateSettings('weightSteps', {...(weightStepsOverrides||{}), [ex.id]: v}); }}
+                            title="מרווח משקל"
+                            className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center">
+                            {['0.25','0.5','1','2','2.5','4','5','4-5','10'].map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                    )}
                     {handleHowToSkip && (
                         <button onClick={handleHowToSkip}
                             className="flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-500 text-[11px] font-black active:scale-95">
@@ -1631,6 +1640,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 );
                             })}
                         </div>
+                        {returnGroup && returnGroup.id !== group.id && (
+                            <div className="text-center mt-1.5">
+                                <button onClick={()=>onReturn?.()}
+                                    className="text-[12px] font-black text-blue-600 underline underline-offset-2 active:opacity-60">
+                                    ↩ חזור ל{returnGroup.title}
+                                </button>
+                            </div>
+                        )}
                         {targetGroup && targetGroup.id !== group.id && (
                             <div className="text-center mt-1 fade-in">
                                 <div className="text-[9px] font-black uppercase tracking-wide" style={{color:targetGroup.hex||'#3b82f6'}}>תצוגה מקדימה</div>
@@ -1641,33 +1658,15 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 );
             })()}
             {/* תרגיל הבא — מידע טקסטואלי, תמיד מציג את התרגיל הבא האמיתי (בלי קשר לתצוגה המקדימה בשורת התמונות) */}
-            {(nextGroup || prevGroup) && (()=>{
-                const nEx = nextGroup?.exercises[0];
-                const nLastW = nEx?([...logs].filter(l=>l.exId===nEx.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]?.weight||0):0;
-                return (
-                    <div className="mt-3">
-                        <div className="flex items-stretch gap-2">
-                            {nextGroup ? (
-                                <div onClick={()=>onNavigateTo?.(nextGroup)}
-                                    className="flex-1 flex items-center gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 cursor-pointer active:scale-[0.98] active:bg-slate-100 transition-all select-none">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-[9px] font-black text-blue-500 uppercase tracking-wide">הבא</div>
-                                        <div className="text-[13px] font-black text-slate-700 truncate">{nextGroup.title}</div>
-                                        <div className="text-[10px] font-bold text-slate-400">{nextGroup.category} · {nextGroup.machine}</div>
-                                    </div>
-                                    {nLastW > 0 && <span className="text-xl font-black text-orange-500 shrink-0 px-1">{nLastW}<span className="text-[10px] font-bold mr-0.5">kg</span></span>}
-                                    <Icon name="ChevronLeft" size={16} className="text-slate-300 shrink-0" />
-                                </div>
-                            ) : (
-                                <button onClick={()=>onOpenSummary?.()}
-                                    className={`flex-1 flex items-center justify-center gap-2 rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base ${allGroupsDone ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white' : 'bg-slate-300 text-slate-600'}`}>
-                                    <Icon name="CheckCircle2" size={22}/> סוף אימון
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                );
-            })()}
+            {/* כרטיס "הבא" הוסר לבקשת איתן — המניפה מספיקה. נשאר רק "סוף אימון" כשאין תרגיל הבא */}
+            {(!nextGroup && prevGroup) && (
+                <div className="mt-3">
+                    <button onClick={()=>onOpenSummary?.()}
+                        className={`w-full flex items-center justify-center gap-2 rounded-2xl p-4 shadow-lg active:scale-[0.98] font-black text-base ${allGroupsDone ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white' : 'bg-slate-300 text-slate-600'}`}>
+                        <Icon name="CheckCircle2" size={22}/> סוף אימון
+                    </button>
+                </div>
+            )}
             {!nextGroup && !prevGroup && (
                 <div className="mt-4 pt-4 border-t border-slate-100">
                     <button onClick={()=>onOpenSummary?.()}
@@ -3033,6 +3032,8 @@ function App() {
     const [view,             setView]             = useState('list');
     const [prevView,         setPrevView]         = useState('list');
     const [activeGroup,      setActiveGroup]      = useState(null);
+    // התרגיל שהיה פעיל לפני שדפדפת במניפת התרגילים — כדי שכפתור "חזור" יחזיר אליו
+    const [returnGroup,      setReturnGroup]      = useState(null);
     const [manageOpenSection, setManageOpenSection] = useState(null);
     const navigateTo = useCallback((newView) => {
         setView(currentView => {
@@ -3092,6 +3093,13 @@ function App() {
     const [newExTitle,       setNewExTitle]       = useState('');
     const [newExCategory,    setNewExCategory]    = useState('');
     const [newExCategoryOther, setNewExCategoryOther] = useState('');
+    // הכנת תרגיל חדש לפני שמירה: תמונה, וידאו (קובץ או קישור), משקל/חזרות התחלתיים ומרווח משקל
+    const [newExImage,   setNewExImage]   = useState(null);
+    const [newExVideoFile, setNewExVideoFile] = useState(null);
+    const [newExVideoUrl, setNewExVideoUrl] = useState('');
+    const [newExStartW,   setNewExStartW]   = useState('');
+    const [newExStartR,   setNewExStartR]   = useState('');
+    const [newExStep,     setNewExStep]     = useState('');
     const [skippedGroups,    setSkippedGroups]    = useState([]);
     const [showSummary,      setShowSummary]      = useState(false);
     const [summaryData,      setSummaryData]      = useState(()=>LS.get('gym-last-summary', null));
@@ -3540,6 +3548,8 @@ function App() {
     useEffect(()=>{ visibleGroupsRef.current = visibleGroups; },[visibleGroups]);
     const activeGroupRef = React.useRef(null);
     useEffect(()=>{ activeGroupRef.current = activeGroup; },[activeGroup]);
+    const appSettingsRef = React.useRef(settings);
+    useEffect(()=>{ appSettingsRef.current = settings; },[settings]);
 
     useEffect(()=>{
         const t = setInterval(()=>{
@@ -3585,8 +3595,8 @@ function App() {
                 if (window.speechSynthesis) {
                     const curLogsT = logsRef.current;
                     const curVisT = visibleGroupsRef.current;
-                    const curActiveT = activeGroupRef.current;
-                    const curGroupT = curActiveT || curVisT.find(g => g.exercises.some(e => e.id === completedExId));
+                    // הקבוצה של התרגיל שהטיימר שלו הסתיים (לא בהכרח הקבוצה שבה המשתמש נמצא כרגע)
+                    const curGroupT = curVisT.find(g => g.exercises.some(e => e.id === completedExId));
                     if (curGroupT) {
                         let nextExT = null;
                         if (curGroupT.exercises.length === 2) {
@@ -3598,14 +3608,18 @@ function App() {
                             const curSstT = sstRef.current;
                             const doneS1T = curLogsT.some(l => l.exId===nextExT.id && l.setNum===1 && new Date(l.timestamp).getTime()>curSstT);
                             const doneS2T = curLogsT.some(l => l.exId===nextExT.id && l.setNum===2 && new Date(l.timestamp).getTime()>curSstT);
-                            const nextW = getNextSetWeight(nextExT.id, curLogsT, doneS1T, doneS2T);
-                            if (nextW > 0) {
-                                setTimeout(() => {
-                                    const u = new SpeechSynthesisUtterance(String(nextW));
-                                    u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0;
-                                    window.speechSynthesis.speak(u);
-                                }, 1200);
-                            }
+                            const doneWT  = curLogsT.some(l => l.exId===nextExT.id && l.setNum===0 && new Date(l.timestamp).getTime()>curSstT);
+                            const warmupEmb = appSettingsRef.current?.warmupEmbed || {};
+                            // חימום פתוח וטרם בוצע = הוא הסט הבא, ולכן מקריאים את משקל החימום ולא את משקל הסט הרגיל
+                            const isWarmupT = !!warmupEmb[nextExT.id] && !doneWT && getLastWarmupWeight(nextExT.id, curLogsT) > 0;
+                            const nextW = isWarmupT ? getLastWarmupWeight(nextExT.id, curLogsT) : getNextSetWeight(nextExT.id, curLogsT, doneS1T, doneS2T);
+                            const exNum = curVisT.findIndex(g => g.id === curGroupT.id) + 1; // מספר התרגיל לפי הרשימה
+                            setTimeout(() => {
+                                const say = (txt) => { const u = new SpeechSynthesisUtterance(String(txt)); u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u); };
+                                if (exNum > 0) say(`תרגיל ${exNum}`);
+                                if (nextW > 0) say(nextW);
+                                if (isWarmupT) say('חימום');
+                            }, 1200);
                         }
                     }
                 }
@@ -3686,6 +3700,45 @@ function App() {
         // בעוד שגם לתרגיל החדש יש טיימר משלו שרץ באותו זמן — כל תרגיל מציג תמיד את הטיימר שלו בלבד
         setRestTimers(prev => ({...prev, [exId]: dur}));
         setRestTimerTotals(prev => ({...prev, [exId]: dur}));
+        setReturnGroup(null); // התחיל עבודה בפועל — כפתור "חזור" של המניפה כבר לא רלוונטי
+        // שילוב תרגילים (A1, B1, A2, B2): אם סיימתי סט בתרגיל שלא נגמר, ויש תרגיל אחר שכבר התחלתי בו
+        // ולא סיימתי — חוזרים אליו להשלמת הסט הבא. הטיימר של התרגיל שעזבתי ממשיך לרוץ ברקע (טיימר לכל תרגיל).
+        if (!isSuperset) {
+            const gCur = exerciseGroups.find(g=>g.exercises.some(e=>e.id===exId));
+            if (gCur && !gCur.isSuperset) {
+                const allLogsX = [...logsRef.current, newLog];
+                const skipX = skippedRef.current;
+                const inSession = l => new Date(l.timestamp).getTime() > wst;
+                const isDoneG = g => g.exercises.every(ex => {
+                    const sl = allLogsX.filter(l=>l.exId===ex.id && inSession(l));
+                    return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+                });
+                const hasProg = g => g.exercises.some(ex => allLogsX.some(l=>l.exId===ex.id && inSession(l) && (l.weight>0 || l.reps>0)));
+                if (!isDoneG(gCur)) {
+                    const other = visibleGroupsRef.current.find(g => g.id!==gCur.id && !g.isSuperset && !skipX.includes(g.id) && !isDoneG(g) && hasProg(g));
+                    if (other) {
+                        const oEx = other.exercises[0];
+                        const dS1 = allLogsX.some(l=>l.exId===oEx.id&&l.setNum===1&&inSession(l));
+                        const dS2 = allLogsX.some(l=>l.exId===oEx.id&&l.setNum===2&&inSession(l));
+                        const dW  = allLogsX.some(l=>l.exId===oEx.id&&l.setNum===0&&inSession(l));
+                        const isW = !!(settings.warmupEmbed && settings.warmupEmbed[oEx.id]) && !dW && getLastWarmupWeight(oEx.id, allLogsX) > 0;
+                        const oW = isW ? getLastWarmupWeight(oEx.id, allLogsX) : getNextSetWeight(oEx.id, allLogsX, dS1, dS2);
+                        const oR = isW ? getLastWarmupReps(oEx.id, allLogsX) : getNextSetReps(oEx.id, allLogsX, dS1, dS2);
+                        const oNum = visibleGroupsRef.current.findIndex(g=>g.id===other.id) + 1;
+                        setActiveGroup(other); setView('detail');
+                        setScrollToExId(oEx.id);
+                        if (oW > 0) setAutoTransitionSplash({ title: other.title, weight: oW, reps: oR, isWarmup: isW, exId: oEx.id });
+                        if (window.speechSynthesis) {
+                            window.speechSynthesis.cancel();
+                            const say = (txt) => { const u = new SpeechSynthesisUtterance(String(txt)); u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u); };
+                            if (oNum > 0) say(`תרגיל ${oNum}`);
+                            if (oW > 0) say(oW);
+                            if (isW) say('חימום');
+                        }
+                    }
+                }
+            }
+        }
         // סופרסט: קפיצה מיידית לתרגיל הבא בסדר A1→B1→A2→B2
         if (isSuperset) {
             const sg = exerciseGroups.find(g=>g.exercises.some(e=>e.id===exId));
@@ -3849,6 +3902,7 @@ function App() {
     // לבסוף מציעה למשתמש לשנות את מיקום התרגיל ברשימה, ואם כן — פותחת "מצב סידור" זמני.
     const handleAddCustomExercise = useCallback(() => {
         setNewExTitle(''); setNewExCategory(''); setNewExCategoryOther('');
+        setNewExImage(null); setNewExVideoFile(null); setNewExVideoUrl(''); setNewExStartW(''); setNewExStartR(''); setNewExStep('');
         setShowAddExercise(true);
     }, []);
 
@@ -3866,8 +3920,15 @@ function App() {
             title: t, category, icon: styleSource?.icon || '⭐',
             color: styleSource?.color || 'from-slate-500 to-slate-700',
             machine: styleSource?.machine || '—',
-            exercises: [{ id:`custom-${ts}-ex`, title: t, howTo:'', tips:[] }]
+            exercises: [{ id:`custom-${ts}-ex`, title: t, howTo:'', tips:[],
+                ...(parseFloat(newExStartW)>0 ? { startW: parseFloat(newExStartW) } : {}),
+                ...(parseInt(newExStartR)>0 ? { startR: parseInt(newExStartR) } : {}) }]
         };
+        const newExId = newGroup.exercises[0].id;
+        if (newExImage) handleSaveImage(newExId, newExImage);
+        if (newExVideoFile) handleUploadVideo(newExId, newExVideoFile);
+        else if (newExVideoUrl.trim()) handleSaveVideo(newExId, newExVideoUrl.trim());
+        if (newExStep) setSettings(prev => ({...prev, weightSteps: {...(prev.weightSteps||{}), [newExId]: newExStep === '4-5' ? '4-5' : parseFloat(newExStep)}}));
         exerciseGroups.push(newGroup);
         LS.set('gym-custom-exercises', [...LS.get('gym-custom-exercises', []), newGroup]);
         setGroupOrder(prev => {
@@ -3889,7 +3950,7 @@ function App() {
             requestConfirm(`התרגיל נוסף לקטגוריית "${category}". לשנות את מיקומו ברשימה?`,
                 ()=>{ navigateTo('list'); setActiveGroup(null); enterReorderMode(newGroup.id); });
         }, 700);
-    }, [newExTitle, newExCategory, newExCategoryOther, showToast]);
+    }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, showToast]);
 
     // ─── מצב סידור זמני: מאפשר להזיז תרגילים בחצים בלי אישור על כל תזוזה, לחלון זמן קצוב ───
     const [reorderMode, setReorderMode] = useState(null); // {groupId, secondsLeft}
@@ -4344,6 +4405,30 @@ function App() {
                                         className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400" />
                                 )}
                             </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className="flex flex-col items-center justify-center gap-1 bg-slate-50 border border-dashed border-slate-300 rounded-xl py-2 text-[11px] font-black text-slate-500 cursor-pointer">
+                                    <input type="file" accept="image/*" className="hidden" onChange={e=>setNewExImage(e.target.files[0]||null)} />
+                                    {newExImage ? '✓ ' + newExImage.name.slice(0,14) : '+ תמונה'}
+                                </label>
+                                <label className="flex flex-col items-center justify-center gap-1 bg-slate-50 border border-dashed border-slate-300 rounded-xl py-2 text-[11px] font-black text-slate-500 cursor-pointer">
+                                    <input type="file" accept="video/*" className="hidden" onChange={e=>setNewExVideoFile(e.target.files[0]||null)} />
+                                    {newExVideoFile ? '✓ ' + newExVideoFile.name.slice(0,14) : '+ וידאו (קובץ)'}
+                                </label>
+                            </div>
+                            <input value={newExVideoUrl} onChange={e=>setNewExVideoUrl(e.target.value)} disabled={!!newExVideoFile} dir="ltr"
+                                placeholder="או קישור YouTube"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none disabled:opacity-40" />
+                            <div className="grid grid-cols-3 gap-2">
+                                <input type="number" inputMode="decimal" value={newExStartW} onChange={e=>setNewExStartW(e.target.value)} placeholder="משקל התחלתי"
+                                    className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-[11px] font-bold text-slate-700 outline-none text-center" />
+                                <input type="number" inputMode="numeric" value={newExStartR} onChange={e=>setNewExStartR(e.target.value)} placeholder="חזרות"
+                                    className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-[11px] font-bold text-slate-700 outline-none text-center" />
+                                <select value={newExStep} onChange={e=>setNewExStep(e.target.value)}
+                                    className="bg-slate-50 border border-slate-200 rounded-xl px-1 py-2 text-[11px] font-bold text-slate-700 outline-none text-center">
+                                    <option value="">מרווח</option>
+                                    {['0.25','0.5','1','2','2.5','4','5','4-5','10'].map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
                         </div>
                         <div className="flex gap-3">
                             <button onClick={()=>setShowAddExercise(false)} className="flex-1 p-3 rounded-xl font-bold text-slate-500 bg-slate-100 active:scale-95">ביטול</button>
@@ -4618,7 +4703,7 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} imageZoom={imageZoom} onZoomImage={handleZoomImage} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{ if (!returnGroup && activeGroup && activeGroup.id!==g.id) setReturnGroup(activeGroup); setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} returnGroup={returnGroup} onReturn={()=>{ const r=returnGroup; setReturnGroup(null); if(r){ setActiveGroup(r); setScrollToExId(r.exercises[0].id); } }} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} imageZoom={imageZoom} onZoomImage={handleZoomImage} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
