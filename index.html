@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.93';
+const APP_VERSION = '9.94';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -163,6 +163,16 @@ const Icon = ({ name, size=24, className="" }) => {
 const GRAVITRON_EXERCISES = new Set(['ex7b']);
 
 // ─── תוויות עמוד להערות שיפור (מפתח → שם תצוגה) ────────────
+// ─── היסטוריית תיקונים: כל בקשה שהועברה (לטיקטיק/סומנה) נשמרת לצמיתות עם תאריך, כדי לבדוק בדיעבד שהכול בוצע ───
+const DEV_HIST_VIA = { tiktik:'הועבר לטיקטיק', manual:'סומן כבוצע', legacy:'מהרשימה הישנה' };
+const fmtHistAt = iso => iso ? new Date(iso).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'ללא תאריך (מלפני ההיסטוריה)';
+const formatDevNotesHistory = (hist) => {
+    const list = [...(hist||[])].sort((a,b)=>String(b.sentAt||'').localeCompare(String(a.sentAt||'')));
+    if (!list.length) return '';
+    let t = `היסטוריית תיקונים (${list.length}):\n\n`;
+    list.forEach(h => { t += `• ${h.name} — ${DEV_HIST_VIA[h.via]||h.via} ב-${fmtHistAt(h.sentAt)} — ${h.verified?'אומת ✓':'טרם אומת'}:\n${h.text}\n\n`; });
+    return t;
+};
 const PAGE_NOTE_LABELS = { 'page-list':'מסך הבית', 'page-exercises':'רשימת תרגילים', 'page-history':'היסטוריה', 'page-manage':'ניהול והגדרות' };
 
 // ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
@@ -174,7 +184,7 @@ const DEFAULT_WEIGHT_STEPS = {
     'ex7c': 5,   // פולי עליון
     'ex7b': 5,   // מקבילים גרביטון
     'ex11': 2.5, // כפיפת ברכיים (Leg Curl)
-    'ex12': 2.5, // הרמת עקבים במכשיר (שוקיים)
+    'ex12': 10,  // הרמת עקבים במכשיר (שוקיים) — בפועל 10,20,30,40
     'ex15': 4,   // יד קדמית במכונה
     'ex16': 5,   // לג פרס
     'ex17': 5    // עקבים בלג פרס
@@ -186,7 +196,7 @@ const ALLOWED_WEIGHT_STEPS = new Set([0.25, 0.5, 1, 2, 2.5, 4, 5, 10, '4-5']);
 // ─── משקל התחלתי ברירת מחדל (כשאין היסטוריה) ───────────────
 const DEFAULT_STARTING_WEIGHTS = {
     'ex11': 5,   // כפיפת ברכיים (Leg Curl)
-    'ex12': 5,   // הרמת עקבים במכשיר
+    'ex12': 10,  // הרמת עקבים במכשיר
     'ex13': 23,  // מכשיר ירך חיצוני
     'ex14': 9,   // מכשיר ירך פנימי
     'ex16': 64,  // לג פרס
@@ -200,19 +210,31 @@ const DEFAULT_STARTING_REPS = {
 };
 
 // ─── רשימות משקל מותאמות (מכשירים עם קפיצות 4/5) ───────────
-const THIGH_VALUES = [9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91,95,100];
+// הרצפים נלמדו מהמשקלים שבוצעו בפועל (גיבוי 10.10.26): מכשיר עם מחסנית של ~100 ק"ג — חצי-פלטה = ~4.5, פלטה מלאה = ~9.1.
+// (קודם 63/72/81 — בפועל המכשיר מראה 64/73/82)
+const THIGH_VALUES = [9,14,18,23,27,32,36,41,45,50,54,59,64,68,73,77,82,86,91,95,100,104,109];
+const STACK_FROM_5 = [5, ...THIGH_VALUES];
+// מכשירי רגליים (לג פרס וגם 2 התרגילים המותאמים על אותו מכשיר — "לחיצת רגליים בישיבה" ו"לחיצת תאומים-עקבים"): פלטה מלאה ~9.1
+const LEG_PRESS_VALUES = [9,18,27,36,45,54,64,73,82,91,100,109,118,127];
 const CUSTOM_WEIGHT_VALUES = {
-    'ex5a': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],
-    'ex7c': [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פולי גב — רצף 4-5 מ-5
-    'ex6':  [5,9,14,18,23,27,32,36,41,45,50,54,59,64,68,73,77,82,86,91],  // חתירה — רצף מדויק לפי המכונה בפועל
-    'ex2':  [5,9,14,18,23,27,32,36,41,45,50,54,59,63,68,72,77,81,86,91],  // פרפר חזה — רצף 4-5 מ-5
+    'ex5a': STACK_FROM_5,
+    'ex7c': STACK_FROM_5,  // פולי גב
+    'ex6':  STACK_FROM_5,  // חתירה
+    'ex2':  STACK_FROM_5,  // פרפר חזה
     'ex1':  THIGH_VALUES,   // לחיצת חזה במכונה
     'ex3':  THIGH_VALUES,   // פולי יד אחורית
     'ex3b': THIGH_VALUES,   // פשיטת מרפקים מעל הראש — מסונכרן עם ex3 (יד אחורית)
     'ex15': THIGH_VALUES,   // יד קדמית במכונה
     'ex13': THIGH_VALUES,   // מכשיר ירך חיצוני
     'ex14': THIGH_VALUES,   // מכשיר ירך פנימי
-    'ex7b': THIGH_VALUES,   // מקבילים גרביטון — כולל 18,23,27,32,36,41
+    'ex7b': THIGH_VALUES,   // מקבילים גרביטון — עד 109 בפועל
+    'ex16': LEG_PRESS_VALUES, // לג פרס
+    'ex17': LEG_PRESS_VALUES, // עקבים בלג פרס
+    'custom-1786215867506-ex': LEG_PRESS_VALUES, // לחיצת רגליים בישיבה (חצי שכיבה)
+    'custom-1786216264083-ex': LEG_PRESS_VALUES, // לחיצת תאומים-עקבים — אותו מכשיר
+    'custom-1789804149113-ex': STACK_FROM_5,     // חתירה על ספסל
+    'custom-1790054263410-ex': STACK_FROM_5,     // פרפר הפוך
+    'custom-1790215042100-ex': STACK_FROM_5,     // תחליף לפולי עליון
 };
 
 // ─── תרגילי טיימר (בטן) ─────────────────────────────────────
@@ -1994,7 +2016,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicMove=null, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onChangeCategory=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null,
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicMove=null, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onChangeCategory=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null, devNotesHistory=[], setDevNotesHistory=null,
     filingDirName=null, filingPermGranted=true, ensureFilingPermission=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
@@ -2537,15 +2559,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 else { fromDate = new Date(0); periodLabel = 'כולל — כל הזמנים'; }
                                 const filtered = logs.filter(l => new Date(l.timestamp) >= fromDate).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
                                 if (!filtered.length) { showToast('אין נתונים לתקופה זו', true); return; }
-                                const grouped = {};
-                                filtered.forEach(l => {
-                                    const d = new Date(l.timestamp).toLocaleDateString('he-IL');
-                                    if (!grouped[d]) grouped[d] = [];
-                                    grouped[d].push(l);
-                                });
+                                // כל אימון (session) מוצג בפני עצמו — אימונים באותו יום לא מתמזגים (גם אם השני היה ניסוי באפ)
+                                const sessionGroups = groupLogsBySession(filtered).reverse();
                                 const planStart = new Date(sessionStartTime).toLocaleDateString('he-IL');
                                 const planEnd = sessionEndTime ? new Date(sessionEndTime).toLocaleDateString('he-IL') : 'לא נקבע';
-                                const totalDays = Object.keys(grouped).length;
+                                const totalSessions = sessionGroups.length;
+                                const totalDays = new Set(filtered.map(l=>new Date(l.timestamp).toLocaleDateString('he-IL'))).size;
                                 const totalSets = filtered.length;
                                 const visibleCount = exerciseGroups.filter(g=>!hiddenExercises.has(g.id)).length;
                                 const totalExercises = new Set(filtered.map(l=>l.exId)).size;
@@ -2553,7 +2572,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     const d = new Date(Number(ts));
                                     return d >= fromDate && d <= now;
                                 }).reduce((s,[,v])=>s+v, 0);
-                                const avgDurMin = totalDays > 0 ? Math.round(totalDurSec / totalDays / 60) : 0;
+                                const avgDurMin = totalSessions > 0 ? Math.round(totalDurSec / totalSessions / 60) : 0;
                                 const daysInPeriod = Math.max(1, Math.ceil((now - fromDate) / 86400000));
                                 const freqPerWeek = totalDays > 0 ? (totalDays / daysInPeriod * 7).toFixed(1) : '0';
 
@@ -2561,26 +2580,34 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 txt += `${'═'.repeat(40)}\n\n`;
                                 txt += `תקופת תוכנית: ${planStart} — ${planEnd}\n`;
                                 txt += `סה"כ: ${totalSets} סטים | ${totalExercises} תרגילים (${visibleCount} גלויים מתוך ${exerciseGroups.length})\n`;
-                                txt += `ימי אימון: ${totalDays} | תדירות: ${freqPerWeek} אימונים/שבוע | ממוצע זמן אימון: ${avgDurMin} דק׳\n\n`;
+                                txt += `ימי אימון: ${totalDays} | אימונים: ${totalSessions} | תדירות: ${freqPerWeek} אימונים/שבוע | ממוצע זמן אימון: ${avgDurMin} דק׳\n\n`;
                                 const orderedNames = groupOrder.map(id=>exerciseGroups.find(g=>g.id===id)).filter(Boolean).map(g=>g.title);
                                 txt += `סדר תרגילים: ${orderedNames.join(' → ')}\n`;
                                 const hiddenNames = exerciseGroups.filter(g=>hiddenExercises.has(g.id)).map(g=>g.title);
                                 if (hiddenNames.length > 0) txt += `תרגילים מוסתרים: ${hiddenNames.join(', ')}\n`;
                                 txt += '\n';
-                                Object.entries(grouped).forEach(([date, items]) => {
+                                const seenBwDates = new Set();
+                                const sessionsPerDate = {};
+                                sessionGroups.forEach(([k, its]) => { const d0 = sessionGroupInfo(k, its).date; sessionsPerDate[d0] = (sessionsPerDate[d0]||0)+1; });
+                                const sessionIdxOfDate = {};
+                                sessionGroups.forEach(([sKey, rawItems]) => {
+                                    const { wst, date } = sessionGroupInfo(sKey, rawItems);
+                                    const items = [...rawItems].sort((x,y)=>new Date(x.timestamp)-new Date(y.timestamp));
                                     const dayName = getDayNameHe(items[0].timestamp);
-                                    const dur = Object.entries(sessionDurations||{}).find(([ts])=>new Date(Number(ts)).toLocaleDateString('he-IL')===date)?.[1];
-                                    const wst = Object.keys(sessionDurations||{}).find(ts=>new Date(Number(ts)).toLocaleDateString('he-IL')===date);
+                                    const startTime = new Date(wst ? Number(wst) : items[0].timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+                                    sessionIdxOfDate[date] = (sessionIdxOfDate[date]||0)+1;
+                                    const multi = sessionsPerDate[date] > 1 ? ` · אימון ${sessionIdxOfDate[date]} מתוך ${sessionsPerDate[date]} באותו יום` : '';
+                                    const dur = wst ? (sessionDurations||{})[wst] : undefined;
                                     const wn = wst ? (workoutNotes||{})[wst] : null;
                                     const bwEnt = (bodyweightLog||[]).find(b=>new Date(b.timestamp).toLocaleDateString('he-IL')===date);
                                     const bwVal = wn?.bw || bwEnt?.weight;
-                                    txt += `── ${date} (יום ${dayName})${dur>0?' — '+Math.floor(dur/60)+' דק׳':''} ──\n`;
-                                    if (bwVal > 0) txt += `  ⚖️ משקל גוף: ${bwVal} ק״ג${bwEnt?.timestamp ? ' (נשקל בשעה '+new Date(bwEnt.timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})+')' : ''}\n`;
+                                    txt += `── ${date} (יום ${dayName}) · התחלה ${startTime}${dur>0?' — '+Math.floor(dur/60)+' דק׳':''}${multi} ──\n`;
+                                    if (bwVal > 0 && !seenBwDates.has(date) && seenBwDates.add(date)) txt += `  ⚖️ משקל גוף: ${bwVal} ק״ג${bwEnt?.timestamp ? ' (נשקל בשעה '+new Date(bwEnt.timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})+')' : ''}\n`;
                                     if (wn?.note) txt += `  📝 הערת אימון: ${wn.note}\n`;
                                     const byEx = {};
                                     items.forEach(l => {
                                         const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===l.exId);
-                                        const name = ex?.title || l.exId;
+                                        const name = customNames[l.exId] || ex?.title || l.exId;
                                         if (!byEx[l.exId]) byEx[l.exId] = {name, sets:[]};
                                         byEx[l.exId].sets.push(l);
                                     });
@@ -2588,8 +2615,11 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                         const grp = exerciseGroups.find(g=>g.exercises.some(e=>e.id===sets[0]?.exId));
                                         const restSec = grp?.isSuperset ? (settings.supersetRest||60) : (settings.normalRest||90);
                                         txt += `  ${name}: (מנוחה: ${restSec} שנ׳)\n`;
-                                        sets.forEach(s => { txt += `    סט ${s.setNum}: ${s.weight} kg × ${s.reps} חזרות\n`; });
-                                        const maxW = Math.max(...sets.map(s=>s.weight));
+                                        sets.forEach(s => {
+                                            const label = s.setNum === 0 ? 'חימום' : `סט ${s.setNum}`;
+                                            txt += (s.weight > 0 || s.reps > 0) ? `    ${label}: ${s.weight} kg × ${s.reps} חזרות\n` : `    ${label}: דולג\n`;
+                                        });
+                                        const maxW = Math.max(0, ...sets.filter(s=>s.setNum>0).map(s=>s.weight));
                                         if (maxW > 0) txt += `    ◆ מקסימום: ${maxW} kg\n`;
                                         const exNote = (notes||{})[sets[0]?.exId];
                                         if (exNote) txt += `    📋 הערה: ${exNote}\n`;
@@ -2613,20 +2643,15 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
                                     return customNames[exId] || ex?.title || exId;
                                 };
-                                const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
-                                if (!allEntries.length) { showToast('אין הערות לשיפור', true); return; }
-                                const pending = allEntries.filter(([k])=>!devNotesDone[k]);
-                                const done    = allEntries.filter(([k])=>devNotesDone[k]);
+                                const pending = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
+                                if (!pending.length && !(devNotesHistory||[]).length) { showToast('אין הערות לשיפור', true); return; }
                                 let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
                                 txt += `${'═'.repeat(40)}\n\n`;
                                 if (pending.length) {
                                     txt += `חדשות (טרם טופלו):\n\n`;
                                     pending.forEach(([exId,t])=>{ txt += `• ${nameOf(exId)}:\n${t}\n\n`; });
                                 }
-                                if (done.length) {
-                                    txt += `בוצעו:\n\n`;
-                                    done.forEach(([exId,t])=>{ txt += `• ${nameOf(exId)}:\n${t}\n\n`; });
-                                }
+                                txt += formatDevNotesHistory(devNotesHistory);
                                 const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
                                 // חשוב: ייצוא הדוח *לא* מסמן הערות כ"בוצעו" — סימון בוצע נעשה אך ורק ידנית (כפתור ה-✓
                                 // ליד כל הערה), כי הערה שרק יוצאה בדוח לא בהכרח יושמה בפועל בקוד
@@ -2710,7 +2735,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 </button>
                                 <button onClick={generateDevNotesReport} className="w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-4 rounded-2xl border active:scale-[0.98]">
                                     <div className="bg-amber-200 p-2 rounded-xl"><Icon name="BookOpen" size={20} /></div>
-                                    <div><div className="font-black text-sm">הערות לשיפור</div><div className="text-[10px] font-bold opacity-70">כל ההערות, חדשות ובוצעו</div></div>
+                                    <div><div className="font-black text-sm">הערות לשיפור</div><div className="text-[10px] font-bold opacity-70">חדשות + היסטוריית תיקונים עם תאריכים</div></div>
                                 </button>
                             </>);
                         })()}
@@ -2730,13 +2755,21 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             return customNames[exId] || ex?.title || exId;
                         };
                         const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
-                        const pending = allEntries.filter(([k])=>!devNotesDone[k]);
-                        const done    = allEntries.filter(([k])=>devNotesDone[k]);
+                        const pending = allEntries;
+                        const history = [...(devNotesHistory||[])].sort((a,b)=>String(b.sentAt||'').localeCompare(String(a.sentAt||'')));
                         const pendingText = pending.map(([exId,t])=>`• ${nameOf(exId)}:\n${t}`).join('\n\n');
-                        const doneText = done.map(([exId,t])=>`• ${nameOf(exId)}:\n${t}`).join('\n\n');
-                        const markDone = (exId) => setDevNotesDone(prev=>({...prev,[exId]:true}));
-                        const unmarkDone = (exId) => setDevNotesDone(prev=>{const n={...prev};delete n[exId];return n;});
-                        const deleteNote = (exId) => { setDevNotes(prev=>{const n={...prev};delete n[exId];return n;}); unmarkDone(exId); };
+                        const fmtAt = iso => iso ? new Date(iso).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'ללא תאריך (מלפני ההיסטוריה)';
+                        const VIA = { tiktik:'הועבר לטיקטיק', manual:'סומן כבוצע', legacy:'מהרשימה הישנה' };
+                        const historyText = history.map(h=>`• ${h.name} — ${VIA[h.via]||h.via} ב-${fmtAt(h.sentAt)}${h.verified?' — אומת ✓':' — טרם אומת'}:\n${h.text}`).join('\n\n');
+                        // מעבירים הערות להיסטוריית תיקונים קבועה (עם תאריך), ומפנים את הרשימה הפעילה — כך שגם הערה חדשה על אותו תרגיל לא נדרסת/נבלעת
+                        const archive = (entries, via) => {
+                            const at = new Date().toISOString();
+                            setDevNotesHistory(prev=>[...(prev||[]), ...entries.map(([k,t],i)=>({ id:`h-${Date.now()}-${i}-${k}`, key:k, name:nameOf(k), text:t, sentAt:at, via, verified:false, verifiedAt:null }))]);
+                            setDevNotes(prev=>{ const n={...prev}; entries.forEach(([k])=>delete n[k]); return n; });
+                        };
+                        const markDone = (exId) => archive(pending.filter(([k])=>k===exId), 'manual');
+                        const toggleVerified = (id) => setDevNotesHistory(prev=>prev.map(h=>h.id===id ? {...h, verified:!h.verified, verifiedAt:!h.verified ? new Date().toISOString() : null} : h));
+                        const deleteNote = (exId) => { setDevNotes(prev=>{const n={...prev};delete n[exId];return n;}); };
                         const addNewNote = () => {
                             const t = newDevNoteText.trim();
                             if (!t) return;
@@ -2779,36 +2812,33 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     if (navigator.share) {
                                         try { await navigator.share({ text: pendingText, title: `הערות לשיפור ${new Date().toLocaleDateString('he-IL')}` }); } catch {}
                                     }
-                                    setDevNotesDone(prev=>{
-                                        const n = {...prev};
-                                        pending.forEach(([exId])=>{ n[exId] = true; });
-                                        return n;
-                                    });
-                                    showToast('ההערות הועתקו ועברו לבוצעו');
+                                    archive(pending, 'tiktik');
+                                    showToast('ההערות הועתקו ונרשמו בהיסטוריית התיקונים');
                                 }} className="w-full p-3 rounded-xl font-bold text-white bg-amber-600 active:scale-95">📋 העתק ושלח לטיקטיק</button>
                             )}
-                            {done.length > 0 && (<>
-                                <div className="text-xs font-black text-slate-400 pt-2">בוצעו</div>
+                            <div className="text-xs font-black text-slate-400 pt-2">היסטוריית תיקונים ({history.length}) — מה הועבר, מתי, ואם אומת בפועל</div>
+                            {history.length === 0 ? (
+                                <div className="text-center text-slate-400 font-bold py-3 text-sm">עדיין אין בקשות בהיסטוריה</div>
+                            ) : (<>
                                 <div className="space-y-2">
-                                    {done.map(([exId,t]) => (
-                                        <div key={exId} className="bg-slate-50 border border-slate-200 rounded-2xl p-3 opacity-70">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-xs font-black text-slate-500">{nameOf(exId)}</span>
-                                                <button onClick={()=>unmarkDone(exId)} className="text-[10px] font-bold text-blue-400 active:text-blue-600">החזר לרשימה</button>
+                                    {history.map(h => (
+                                        <div key={h.id} className={`rounded-2xl p-3 border ${h.verified ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+                                            <div className="flex items-center justify-between mb-0.5 gap-2">
+                                                <span className="text-xs font-black text-slate-600">{h.name}</span>
+                                                <button onClick={()=>toggleVerified(h.id)}
+                                                    className={`shrink-0 text-[10px] font-black px-2 py-1 rounded-lg active:scale-95 ${h.verified ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-300 text-slate-500'}`}>
+                                                    {h.verified ? '✓ אומת' : 'סמן כאומת'}
+                                                </button>
                                             </div>
-                                            <div className="text-[13px] font-bold text-slate-500 whitespace-pre-wrap">{t}</div>
+                                            <div className="text-[10px] font-bold text-slate-400 mb-1">{VIA[h.via]||h.via} · {fmtAt(h.sentAt)}{h.verified && h.verifiedAt ? ` · אומת ${fmtAt(h.verifiedAt)}` : ''}</div>
+                                            <div className="text-[13px] font-bold text-slate-600 whitespace-pre-wrap">{h.text}</div>
                                         </div>
                                     ))}
                                 </div>
                                 <button onClick={async ()=>{
-                                    try { await navigator.clipboard.writeText(doneText); showToast('היסטוריית ההערות שבוצעו הועתקה'); }
+                                    try { await navigator.clipboard.writeText(historyText); showToast('היסטוריית התיקונים הועתקה'); }
                                     catch { showToast('העתקה נכשלה, נסה שוב', true); }
-                                }} className="w-full p-3 rounded-xl font-bold text-slate-600 bg-slate-100 border border-slate-200 active:scale-95">📋 העתק היסטוריית בוצעו</button>
-                                <button onClick={()=>requestConfirm('למחוק את כל רשימת ה"בוצעו"?', ()=>{
-                                    setDevNotes(prev=>{ const n={...prev}; done.forEach(([k])=>delete n[k]); return n; });
-                                    setDevNotesDone({});
-                                    showToast('רשימת הבוצעו נמחקה');
-                                })} className="w-full p-3 rounded-xl font-bold text-slate-500 bg-slate-50 border border-slate-200 active:scale-95">מחק את רשימת הבוצעו</button>
+                                }} className="w-full p-3 rounded-xl font-bold text-slate-600 bg-slate-100 border border-slate-200 active:scale-95">📋 העתק היסטוריית תיקונים</button>
                             </>)}
                         </div>
                         );
@@ -3132,6 +3162,7 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [devNotes,         setDevNotes]         = useState(()=>LS.get('gym-dev-notes',{}));
     const [devNotesDone,     setDevNotesDone]     = useState(()=>LS.get('gym-dev-notes-done',{}));
+    const [devNotesHistory,  setDevNotesHistory]  = useState(()=>LS.get('gym-dev-notes-history',[]));
     // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
     const [filingDirName, setFilingDirName] = useState(null);
     // האם הרשאת הכתיבה בפועל מאושרת כרגע (בשונה מ-filingDirName, שמציין רק שהתיקייה "מחוברת"/זכורה) —
@@ -3241,18 +3272,13 @@ function App() {
     // חשוב: הייצוא *לא* מסמן הערות כ"בוצעו" — סימון בוצע נעשה אך ורק ידנית (כפתור ה-✓ ליד כל
     // הערה במסך "הערות לשיפור"), כי עצם הייצוא לא אומר שההערה יושמה בפועל בקוד.
     const exportDevNotesReportIfPending = async () => {
-        const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
-        const pending = allEntries.filter(([k])=>!devNotesDone[k]);
+        const pending = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
         if (!pending.length) return { exported:false };
-        const done = allEntries.filter(([k])=>devNotesDone[k]);
         let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
         txt += `${'═'.repeat(40)}\n\n`;
         txt += `חדשות (טרם טופלו):\n\n`;
         pending.forEach(([exId,t])=>{ txt += `• ${nameOfNoteKey(exId)}:\n${t}\n\n`; });
-        if (done.length) {
-            txt += `בוצעו:\n\n`;
-            done.forEach(([exId,t])=>{ txt += `• ${nameOfNoteKey(exId)}:\n${t}\n\n`; });
-        }
+        txt += formatDevNotesHistory(devNotesHistory);
         const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
         const savedToFiling = await saveTextFile(fname, txt);
         return { exported:true, savedToFiling };
@@ -3434,6 +3460,20 @@ function App() {
     useEffect(()=>{ LS.set('gym-dev-notes-done', devNotesDone);     },[devNotesDone]);
     // סנכרון אוטומטי לקובץ ב-FILING בכל שינוי בהערות (הוספה/עריכה/סימון כבוצע/מחיקה) — ללא צורך בייצוא ידני
     useEffect(()=>{ syncDevNotesFile(devNotes, devNotesDone); },[devNotes, devNotesDone, filingDirName]);
+    useEffect(()=>{ LS.set('gym-dev-notes-history', devNotesHistory); },[devNotesHistory]);
+    // קובץ קבוע בספריית FILING עם כל היסטוריית התיקונים (מסונכרן בכל שינוי), כדי שאפשר לבדוק בדיעבד
+    useEffect(()=>{
+        if (!filingDirRef.current) return;
+        syncTextFileToFilingOnly('gym-dev-notes-history.txt', formatDevNotesHistory(devNotesHistory) || '(אין היסטוריית תיקונים)');
+    },[devNotesHistory, filingDirName]);
+    // מיגרציה חד-פעמית: הערות שסומנו "בוצעו" ברשימה הישנה עוברות להיסטוריית התיקונים (נשמרות עם הטקסט שלהן, בלי תאריך כי לא נרשם)
+    useEffect(()=>{
+        const doneKeys = Object.keys(devNotesDone||{}).filter(k=>devNotesDone[k] && devNotes[k] && devNotes[k].trim());
+        if (!doneKeys.length) { if (Object.keys(devNotesDone||{}).length) setDevNotesDone({}); return; }
+        setDevNotesHistory(prev=>[...(prev||[]), ...doneKeys.map((k,i)=>({ id:`h-legacy-${i}-${k}`, key:k, name:nameOfNoteKey(k), text:devNotes[k], sentAt:null, via:'legacy', verified:false, verifiedAt:null }))]);
+        setDevNotes(prev=>{ const n={...prev}; doneKeys.forEach(k=>delete n[k]); return n; });
+        setDevNotesDone({});
+    },[]); // eslint-disable-line
     useEffect(()=>{ LS.set('gym-images',         images);           },[images]);
     useEffect(()=>{ LS.set('gym-videos',         videos);           },[videos]);
     useEffect(()=>{ LS.set('gym-custom-names',  customNames);      },[customNames]);
@@ -4706,7 +4746,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{ if (!returnGroup && activeGroup && activeGroup.id!==g.id) setReturnGroup(activeGroup); setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} returnGroup={returnGroup} onReturn={()=>{ const r=returnGroup; setReturnGroup(null); if(r){ setActiveGroup(r); setScrollToExId(r.exercises[0].id); } }} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} imageZoom={imageZoom} onZoomImage={handleZoomImage} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
-    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone}
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone} devNotesHistory={devNotesHistory} setDevNotesHistory={setDevNotesHistory}
         filingDirName={filingDirName} filingPermGranted={filingPermGranted} ensureFilingPermission={ensureFilingPermission} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
     // List view
