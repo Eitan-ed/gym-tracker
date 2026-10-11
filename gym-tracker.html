@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.94';
+const APP_VERSION = '9.95';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -183,7 +183,7 @@ const DEFAULT_WEIGHT_STEPS = {
     'ex5a': 4,   // לחיצת כתפיים
     'ex7c': 5,   // פולי עליון
     'ex7b': 5,   // מקבילים גרביטון
-    'ex11': 2.5, // כפיפת ברכיים (Leg Curl)
+    'ex11': 5,   // כפיפת ברכיים (Leg Curl) — בפועל 5,10
     'ex12': 10,  // הרמת עקבים במכשיר (שוקיים) — בפועל 10,20,30,40
     'ex15': 4,   // יד קדמית במכונה
     'ex16': 5,   // לג פרס
@@ -236,6 +236,9 @@ const CUSTOM_WEIGHT_VALUES = {
     'custom-1790054263410-ex': STACK_FROM_5,     // פרפר הפוך
     'custom-1790215042100-ex': STACK_FROM_5,     // תחליף לפולי עליון
 };
+
+// קפיצה קבועה של 4 שנשמרה ידנית לתרגיל שיש לו רצף משקלים (4/5 לסירוגין) יוצרת משקלים שלא קיימים במכשיר (37, 40, 20.5...) — מתייחסים אליה כרצף
+const effectiveStepOv = (exId, v) => (v === 4 && CUSTOM_WEIGHT_VALUES[exId]) ? '4-5' : v;
 
 // ─── תרגילי טיימר (בטן) ─────────────────────────────────────
 const TIMER_EXERCISES = new Set(['ex10a']);
@@ -1397,7 +1400,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </button>
                     {onUpdateSettings && (
                         <select
-                            value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? weightStepsOverrides[ex.id] : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
+                            value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                             onChange={e => { const v = e.target.value === '4-5' ? '4-5' : parseFloat(e.target.value); onUpdateSettings('weightSteps', {...(weightStepsOverrides||{}), [ex.id]: v}); }}
                             title="מרווח משקל"
                             className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center">
@@ -1514,7 +1517,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 {(() => {
                     // מתעלמים מערך override ישן/לא תקין שנשמר בגרסה קודמת של האפליקציה ואינו אחת האפשרויות הנוכחיות בתפריט —
                     // כדי שלא ליצור קפיצות מוזרות (למשל "9") שאינן ניתנות לבחירה יותר. במקרה כזה חוזרים לברירת המחדל.
-                    let _ov = weightStepsOverrides ? weightStepsOverrides[ex.id] : undefined;
+                    let _ov = weightStepsOverrides ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : undefined;
                     if (_ov !== undefined && !ALLOWED_WEIGHT_STEPS.has(_ov)) _ov = undefined;
                     let _wv = null;
                     if (_ov === '4-5' || _ov === undefined) {
@@ -2471,7 +2474,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                             </button>
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <select
-                                                    value={String((settings.weightSteps?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id])) ? settings.weightSteps[ex.id] : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
+                                                    value={String((settings.weightSteps?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id])) ? effectiveStepOv(ex.id, settings.weightSteps[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                                                     onChange={e => { const v = e.target.value === '4-5' ? '4-5' : parseFloat(e.target.value); onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: v}); }}
                                                     onClick={e => e.stopPropagation()}
                                                     title="מרווח משקל"
@@ -2568,12 +2571,14 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 const totalSets = filtered.length;
                                 const visibleCount = exerciseGroups.filter(g=>!hiddenExercises.has(g.id)).length;
                                 const totalExercises = new Set(filtered.map(l=>l.exId)).size;
-                                const totalDurSec = Object.entries(sessionDurations||{}).filter(([ts])=>{
-                                    const d = new Date(Number(ts));
-                                    return d >= fromDate && d <= now;
-                                }).reduce((s,[,v])=>s+v, 0);
-                                const avgDurMin = totalSessions > 0 ? Math.round(totalDurSec / totalSessions / 60) : 0;
-                                const daysInPeriod = Math.max(1, Math.ceil((now - fromDate) / 86400000));
+                                // זמן ממוצע: רק אימונים שנרשם להם משך סביר (עד 4 שעות) — שעון שנשכח פועל (למשל 8,500 דק') לא מעוות את הממוצע
+                                const MAX_REAL_DUR = 4*3600;
+                                const realDurs = sessionGroups.map(([k, its]) => sessionGroupInfo(k, its).wst).filter(Boolean)
+                                    .map(w => (sessionDurations||{})[w]).filter(v => v > 0 && v <= MAX_REAL_DUR);
+                                const avgDurMin = realDurs.length ? Math.round(realDurs.reduce((a,b)=>a+b,0) / realDurs.length / 60) : 0;
+                                // בדוח "כולל" התקופה מתחילה באימון הראשון (ולא ב-1970)
+                                const periodStart = period === 'all' ? new Date(filtered[0].timestamp) : fromDate;
+                                const daysInPeriod = Math.max(1, Math.ceil((now - periodStart) / 86400000));
                                 const freqPerWeek = totalDays > 0 ? (totalDays / daysInPeriod * 7).toFixed(1) : '0';
 
                                 let txt = `דוח אימונים — ${periodLabel}\n`;
