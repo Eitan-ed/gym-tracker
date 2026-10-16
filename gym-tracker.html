@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.95';
+const APP_VERSION = '9.96';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1647,10 +1647,20 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 const isCur = g.id === targetId;
                                 const done = isGroupDoneHere(g);
                                 const img = imgOf(g);
+                                // כיתוב המשקל הבא (קטן, מתחת לתמונה): חימום אם ממתין, אחרת הסט הבא
+                                const fEx = g.exercises[0];
+                                const fIn = l => l.exId===fEx.id && new Date(l.timestamp).getTime()>sessionStartTime;
+                                const fDW = logs.some(l=>fIn(l)&&l.setNum===0);
+                                const fD1 = logs.some(l=>fIn(l)&&l.setNum===1);
+                                const fD2 = logs.some(l=>fIn(l)&&l.setNum===2);
+                                const fWW = getLastWarmupWeight(fEx.id, logs);
+                                const fWarm = !!warmupEmbed[fEx.id] && !fDW && fWW > 0;
+                                const fW = done ? 0 : (fWarm ? fWW : getNextSetWeight(fEx.id, logs, fD1, fD2));
                                 return (
-                                    <button key={g.id} data-gid={g.id} onClick={()=>goTo(g)}
-                                        className="relative shrink-0 rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
-                                        style={{ width:ITEM, height:ITEM, scrollSnapAlign:'center',
+                                    <div key={g.id} data-gid={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM, scrollSnapAlign:'center' }}>
+                                    <button onClick={()=>goTo(g)}
+                                        className="relative rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
+                                        style={{ width:ITEM, height:ITEM,
                                             filter: done ? 'grayscale(100%)' : undefined, opacity: done ? 0.55 : 1,
                                             boxShadow: isCur ? '0 0 0 3px #3b82f6' : undefined,
                                             transform: isCur ? 'scale(1)' : 'scale(0.84)' }}>
@@ -1662,6 +1672,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             {i+1}
                                         </span>
                                     </button>
+                                    <div className={`text-[10px] font-black leading-none mt-0.5 h-3 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
+                                        {fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : ''}
+                                    </div>
+                                    </div>
                                 );
                             })}
                         </div>
