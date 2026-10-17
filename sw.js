@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-9.96';
+const CACHE_NAME = 'gym-tracker-9.97';
 
 self.addEventListener('install', e => {
     self.skipWaiting();
@@ -6,7 +6,11 @@ self.addEventListener('install', e => {
         './',
         './index.html',
         './manifest.json'
-    ]).catch(() => {})));
+    ]).catch(() => {})).then(() => caches.open(CACHE_NAME)).then(cache => Promise.all([
+        'https://cdn.tailwindcss.com/3.4.17',
+        'https://unpkg.com/react@18.3.1/umd/react.production.min.js',
+        'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js'
+    ].map(u => fetch(u, {mode:'no-cors'}).then(r => cache.put(u, r)).catch(() => {})))));
 });
 
 self.addEventListener('activate', e => {
@@ -42,7 +46,7 @@ self.addEventListener('fetch', e => {
     }
     e.respondWith(
         fetch(e.request).then(r => {
-            if (!r || r.status !== 200) return r;
+            if (!r || (r.status !== 200 && r.type !== 'opaque')) return r;
             const clone = r.clone();
             caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
             return r;
