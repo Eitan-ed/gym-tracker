@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.07';
+const APP_VERSION = '10.08';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -712,7 +712,7 @@ function VideoInput({ exId, onSave }) {
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal, onWarmupOpened=null,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
     weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false,
-    historyOpen=false, onToggleHistory=null, onDeleteLog=null, warmupOpen=false, onToggleWarmup=null }) {
+    historyOpen=false, onToggleHistory=null, onDeleteLog=null, warmupOpen=false, onToggleWarmup=null, onNextWeight=null }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
     const defW = ex.startW ?? DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
     const defR = ex.startR ?? DEFAULT_STARTING_REPS[ex.id] ?? 10;
@@ -850,6 +850,20 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     }, [logs, ex.id, sessionStartTime, stepW]);
     const showSuggestion = suggestion && !sugDismissed && !done.sW && !done.s1 && !done.s2;
 
+    // מדווח להורה את המשקל הכתוב בסט הבא: לפני חימום — משקל החימום; אחרת הסט הראשון שטרם בוצע
+    useEffect(()=>{
+        if (!onNextWeight) return;
+        let w, warm = false;
+        if (warmupOpen && !done.sW) { w = sW.w; warm = true; }
+        else {
+            const nums = [1, 2, ...visibleExtraNums];
+            const isD = n => n===1 ? done.s1 : n===2 ? done.s2 : doneExtra(n);
+            const st = n => n===1 ? s1 : n===2 ? s2 : getExtraState(n);
+            const nxt = nums.find(n => !isD(n));
+            w = st(nxt !== undefined ? nxt : nums[nums.length-1]).w;
+        }
+        onNextWeight(ex.id, w, warm);
+    }, [warmupOpen, done.sW, done.s1, done.s2, sW.w, s1.w, s2.w, JSON.stringify(extraVals), visibleExtraNums.join(',')]);
     const handleSetSave = async (num, state, skipConfirm=false) => {
         const isDoneSet = num===1 ? done.s1 : num===2 ? done.s2 : doneExtra(num);
         const doSave = async () => {
@@ -1386,6 +1400,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: false});
     };
     const [lightbox,      setLightbox]     = useState(null);
+    // המשקל הכתוב בסט הבא (לפי מצב הסטים בפועל) — מדווח מכל שורת תרגיל ומוצג בכרטיס המשקל שמתחת לווידאו
+    const [nextW, setNextW] = useState({});
+    const reportNextW = useCallback((exId, w, warm) => setNextW(p => (p[exId] && p[exId].w === w && p[exId].warm === warm) ? p : {...p, [exId]: {w, warm}}), []);
     const [previewGroupId, setPreviewGroupId] = useState(null);
     const previewTimeoutRef = React.useRef(null);
     const curChipRef = React.useRef(null);
@@ -1471,7 +1488,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         // (ולא משקל היסטורי קבוע). אם יש חימום פתוח וטרם בוצע — הוא הסט הבא, ולכן מוצג משקל החימום
         const warmupW = getLastWarmupWeight(ex.id, logs);
         const warmupPendingEx = warmupOpenEx && !doneWEx && warmupW > 0;
-        const lastW = warmupPendingEx ? warmupW : getNextSetInfo(ex.id, logs, sessionStartTime, null).weight;
+        const nwRep = nextW[ex.id];
+        const tileWarm = nwRep ? nwRep.warm : warmupPendingEx;
+        const lastW = nwRep ? nwRep.w : (warmupPendingEx ? warmupW : getNextSetInfo(ex.id, logs, sessionStartTime, null).weight);
         // (הכרטיס מחליט לפי החימום הפתוח בפועל; החלטה זו נשמרת גם ב-warmupEmbed, כך שההכרזות מסכימות איתה)
 
         // טיימר prev — רק מתרגיל בקבוצה הנוכחית (לא לעבור בין קבוצות)
@@ -1496,21 +1515,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         ) : uploadedVid ? (
             <div className="flex flex-col gap-1 h-full">
                 <button onClick={()=>setVideoModal(uploadedVid)}
-                    className="flex-1 w-full flex bg-white border border-slate-200 p-1.5 rounded-2xl font-black active:scale-95"
+                    className="flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
                     style={{minHeight: full ? '5rem' : '3.5rem'}}>
-                    <span className="flex-1 flex flex-col items-center justify-center gap-0.5 bg-black text-white rounded-xl">
-                        <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">וידאו</span>
-                    </span>
+                    <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">וידאו</span>
                 </button>
                 <button onClick={()=>onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
             </div>
         ) : localVid ? (
             <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                className="flex-1 flex bg-white border border-slate-200 p-1.5 rounded-2xl font-black active:scale-95"
+                className="flex-1 flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
                 style={{minHeight: full ? '5rem' : '3.5rem'}}>
-                <span className="flex-1 flex flex-col items-center justify-center gap-0.5 bg-black text-white rounded-xl">
-                    <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">סרטון</span>
-                </span>
+                <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">סרטון</span>
             </button>
         ) : null;
 
@@ -1595,9 +1610,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             <div className="min-w-0 flex flex-col">{miniTimer}</div>
                             {lastW>0 ? (
                                 <div className="rounded-2xl flex flex-col items-center justify-center shadow-sm bg-black">
-                                    {warmupPendingEx && <span className="text-[9px] font-black text-amber-400 leading-none">🔥 חימום</span>}
-                                    <span className={`text-3xl font-black leading-none ${warmupPendingEx ? 'text-amber-400' : 'text-orange-400'}`}>{lastW}</span>
-                                    <span className={`text-[10px] font-black mt-0.5 ${warmupPendingEx ? 'text-amber-300' : 'text-orange-300'}`}>ק״ג</span>
+                                    {tileWarm && <span className="text-[9px] font-black text-amber-400 leading-none">🔥 חימום</span>}
+                                    <span className={`text-3xl font-black leading-none ${tileWarm ? 'text-amber-400' : 'text-orange-400'}`}>{lastW}</span>
+                                    <span className={`text-[10px] font-black mt-0.5 ${tileWarm ? 'text-amber-300' : 'text-orange-300'}`}>ק״ג</span>
                                 </div>
                             ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
                             <div className="bg-slate-50 border border-slate-100 rounded-2xl" />
@@ -1758,7 +1773,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     return (
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
                     onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
-                    onWarmupOpened={handleWarmupOpened}
+                    onWarmupOpened={handleWarmupOpened} onNextWeight={reportNextW}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
                     prevRestTimer={fPrevRt} prevRestTimerTotal={fPrevTot}
@@ -1891,6 +1906,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             }}>
                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
+                                        {gRt > 0 && <span className="absolute inset-0 flex items-center justify-center font-black text-[26px] text-white" dir="ltr"
+                                            style={{background:'rgba(0,0,0,0.5)', textShadow:'0 1px 3px #000'}}>{gRt}</span>}
                                         {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                             style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>
@@ -1898,7 +1915,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         </span>
                                     </button>
                                     <div className={`text-[14px] font-black leading-none mt-1 h-4 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
-                                        {(restTimers[g.exercises[0].id]||0) > 0 ? `⏱${restTimers[g.exercises[0].id]}` : (fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : '')}
+                                        {fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : ''}
                                     </div>
                                     </div>
                                 );
@@ -1925,11 +1942,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                         style={{ width:ITEM, height:ITEM, boxShadow: shadow }}>
                                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
+                                                        {gRt > 0 && <span className="absolute inset-0 flex items-center justify-center font-black text-[26px] text-white" dir="ltr"
+                                                            style={{background:'rgba(0,0,0,0.5)', textShadow:'0 1px 3px #000'}}>{gRt}</span>}
                                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                                             style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
                                                     </button>
                                                     <div className="text-[14px] font-black leading-none mt-1 h-4 text-orange-500" dir="ltr">
-                                                        {gRt > 0 ? `⏱${gRt}` : (fInfo.weight > 0 ? `${fInfo.isWarmup ? '🔥' : ''}${fInfo.weight}` : '')}
+                                                        {fInfo.weight > 0 ? `${fInfo.isWarmup ? '🔥' : ''}${fInfo.weight}` : ''}
                                                     </div>
                                                 </div>
                                             );
