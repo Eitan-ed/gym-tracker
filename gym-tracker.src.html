@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.02';
+const APP_VERSION = '10.03';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1716,7 +1716,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 });
                 const targetId = previewGroupId != null ? previewGroupId : group.id;
                 const targetGroup = allGroups.find(g=>g.id===targetId);
-                const ITEM = 50;
+                const ITEM = 62;
                 const goTo = (g) => { if(!g) return; onNavigateTo?.(g); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); };
                 // אחרי שהגלילה נרגעת — מוצא מי במרכז הסרט ומנווט אליו (כמו סרט תמונות שנעצר על הפריים הקרוב)
                 const handleFilmScroll = () => {
@@ -1763,7 +1763,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             {i+1}
                                         </span>
                                     </button>
-                                    <div className={`text-[10px] font-black leading-none mt-0.5 h-3 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
+                                    <div className={`text-[14px] font-black leading-none mt-1 h-4 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
                                         {(restTimers[g.exercises[0].id]||0) > 0 ? `⏱${restTimers[g.exercises[0].id]}` : (fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : '')}
                                     </div>
                                     </div>
@@ -1794,7 +1794,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                                             style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
                                                     </button>
-                                                    <div className="text-[10px] font-black leading-none mt-0.5 h-3 text-orange-500" dir="ltr">
+                                                    <div className="text-[14px] font-black leading-none mt-1 h-4 text-orange-500" dir="ltr">
                                                         {gRt > 0 ? `⏱${gRt}` : (fInfo.weight > 0 ? `${fInfo.isWarmup ? '🔥' : ''}${fInfo.weight}` : '')}
                                                     </div>
                                                 </div>
@@ -3786,6 +3786,8 @@ function App() {
 
     // ref לגישה מה-interval ללא closure ישן
     const restTimersRef = React.useRef({});
+    const restTotalsRef = React.useRef({});
+    useEffect(()=>{ restTotalsRef.current = restTimerTotals; },[restTimerTotals]);
     useEffect(()=>{ restTimersRef.current = restTimers; },[restTimers]);
     const logsRef = React.useRef(logs);
     useEffect(()=>{ logsRef.current = logs; },[logs]);
@@ -3944,8 +3946,17 @@ function App() {
         // ממזגים לתוך הטיימרים הקיימים (לא מחליפים!) — כדי שאם קפצת לתרגיל אחר באמצע מנוחה
         // (בלי "דלג"), הטיימר של התרגיל שיצאת ממנו ימשיך לרוץ ברקע, ויחכה לך שם כשתחזור אליו,
         // בעוד שגם לתרגיל החדש יש טיימר משלו שרץ באותו זמן — כל תרגיל מציג תמיד את הטיימר שלו בלבד
-        setRestTimers(prev => ({...prev, [exId]: dur}));
-        setRestTimerTotals(prev => ({...prev, [exId]: dur}));
+        // השלמת תרגיל "בדיעבד": הסט האחרון נשמר מיד אחרי הסט הקודם (הטיימר שלו כמעט לא התקדם) — התרגיל
+        // הסתיים בפועל ואין טעם להחזיק לו טיימר מנוחה
+        const prevRt = restTimersRef.current[exId] || 0, prevTot = restTotalsRef.current[exId] || 0;
+        const catchUp = setNum === 2 && !isSuperset && prevRt > 0 && prevTot > 0 && (prevTot - prevRt) <= 12;
+        if (catchUp) {
+            setRestTimers(prev => { const n = {...prev}; delete n[exId]; return n; });
+            setRestTimerTotals(prev => { const n = {...prev}; delete n[exId]; return n; });
+        } else {
+            setRestTimers(prev => ({...prev, [exId]: dur}));
+            setRestTimerTotals(prev => ({...prev, [exId]: dur}));
+        }
         setReturnGroup(null); // התחיל עבודה בפועל — כפתור "חזור" של המניפה כבר לא רלוונטי
         // שילוב תרגילים (A1, B1, A2, B2): אם סיימתי סט בתרגיל שלא נגמר, ויש תרגיל אחר שכבר התחלתי בו
         // ולא סיימתי — חוזרים אליו להשלמת הסט הבא. הטיימר של התרגיל שעזבתי ממשיך לרוץ ברקע (טיימר לכל תרגיל).

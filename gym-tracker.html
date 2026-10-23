@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.02';
+var APP_VERSION = '10.03';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -3764,7 +3764,7 @@ var DetailView = memo(function DetailView(_ref17) {
     var targetGroup = allGroups.find(function (g) {
       return g.id === targetId;
     });
-    var ITEM = 50;
+    var ITEM = 62;
     var goTo = function goTo(g) {
       if (!g) return;
       onNavigateTo === null || onNavigateTo === void 0 || onNavigateTo(g);
@@ -3844,7 +3844,7 @@ var DetailView = memo(function DetailView(_ref17) {
           color: '#ffffff'
         }
       }, i + 1)), /*#__PURE__*/React.createElement("div", {
-        className: "text-[10px] font-black leading-none mt-0.5 h-3 ".concat(fWarm ? 'text-amber-500' : 'text-orange-500'),
+        className: "text-[14px] font-black leading-none mt-1 h-4 ".concat(fWarm ? 'text-amber-500' : 'text-orange-500'),
         dir: "ltr"
       }, (restTimers[g.exercises[0].id] || 0) > 0 ? "\u23F1".concat(restTimers[g.exercises[0].id]) : fW > 0 ? "".concat(fWarm ? '🔥' : '').concat(fW) : ''));
     })), function () {
@@ -3907,7 +3907,7 @@ var DetailView = memo(function DetailView(_ref17) {
         }, allGroups.findIndex(function (x) {
           return x.id === g.id;
         }) + 1)), /*#__PURE__*/React.createElement("div", {
-          className: "text-[10px] font-black leading-none mt-0.5 h-3 text-orange-500",
+          className: "text-[14px] font-black leading-none mt-1 h-4 text-orange-500",
           dir: "ltr"
         }, gRt > 0 ? "\u23F1".concat(gRt) : fInfo.weight > 0 ? "".concat(fInfo.isWarmup ? '🔥' : '').concat(fInfo.weight) : ''));
       })));
@@ -8507,6 +8507,10 @@ function App() {
 
   // ref לגישה מה-interval ללא closure ישן
   var restTimersRef = React.useRef({});
+  var restTotalsRef = React.useRef({});
+  useEffect(function () {
+    restTotalsRef.current = restTimerTotals;
+  }, [restTimerTotals]);
   useEffect(function () {
     restTimersRef.current = restTimers;
   }, [restTimers]);
@@ -8745,12 +8749,30 @@ function App() {
     // ממזגים לתוך הטיימרים הקיימים (לא מחליפים!) — כדי שאם קפצת לתרגיל אחר באמצע מנוחה
     // (בלי "דלג"), הטיימר של התרגיל שיצאת ממנו ימשיך לרוץ ברקע, ויחכה לך שם כשתחזור אליו,
     // בעוד שגם לתרגיל החדש יש טיימר משלו שרץ באותו זמן — כל תרגיל מציג תמיד את הטיימר שלו בלבד
-    setRestTimers(function (prev) {
-      return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, dur));
-    });
-    setRestTimerTotals(function (prev) {
-      return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, dur));
-    });
+    // השלמת תרגיל "בדיעבד": הסט האחרון נשמר מיד אחרי הסט הקודם (הטיימר שלו כמעט לא התקדם) — התרגיל
+    // הסתיים בפועל ואין טעם להחזיק לו טיימר מנוחה
+    var prevRt = restTimersRef.current[exId] || 0,
+      prevTot = restTotalsRef.current[exId] || 0;
+    var catchUp = setNum === 2 && !isSuperset && prevRt > 0 && prevTot > 0 && prevTot - prevRt <= 12;
+    if (catchUp) {
+      setRestTimers(function (prev) {
+        var n = _objectSpread({}, prev);
+        delete n[exId];
+        return n;
+      });
+      setRestTimerTotals(function (prev) {
+        var n = _objectSpread({}, prev);
+        delete n[exId];
+        return n;
+      });
+    } else {
+      setRestTimers(function (prev) {
+        return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, dur));
+      });
+      setRestTimerTotals(function (prev) {
+        return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, dur));
+      });
+    }
     setReturnGroup(null); // התחיל עבודה בפועל — כפתור "חזור" של המניפה כבר לא רלוונטי
     // שילוב תרגילים (A1, B1, A2, B2): אם סיימתי סט בתרגיל שלא נגמר, ויש תרגיל אחר שכבר התחלתי בו
     // ולא סיימתי — חוזרים אליו להשלמת הסט הבא. הטיימר של התרגיל שעזבתי ממשיך לרוץ ברקע (טיימר לכל תרגיל).
