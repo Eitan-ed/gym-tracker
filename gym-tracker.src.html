@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '9.98';
+const APP_VERSION = '9.99';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -300,6 +300,18 @@ function getNextSetInfo(exId, logs, sst, warmupEmbedMap) {
 }
 // שם התרגיל להכרזה קולית (שם מותאם אישית אם הוגדר)
 const spokenName = ex => ((LS.get("gym-custom-names", {}) || {})[ex.id]) || ex.title || "";
+// קול גברי (או נמוך) לטיימר הבטן — כדי להבדיל אותו מטיימר המנוחה של שאר התרגילים
+function speakBelly(txt, rate=1.0) {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(String(txt));
+    u.lang = 'he-IL'; u.rate = rate; u.volume = 1.0;
+    const hv = (window.speechSynthesis.getVoices() || []).filter(v => /^he/i.test(v.lang));
+    const male = hv.find(v => /asaf|male|david|גבר/i.test(v.name));
+    if (male) u.voice = male; else u.pitch = 0.4;
+    window.speechSynthesis.speak(u);
+}
+// שם תרגיל לפי מזהה — לציון איזה טיימר מכריזים כשיש כמה במקביל
+const spokenNameById = id => { const ex = exerciseGroups.find(e => String(e.id) === String(id)); return ex ? spokenName(ex) : ''; };
 // הכרזה קולית אחת לכל המערכת: [תרגיל N] משקל [חימום]
 function speakNextSet(info, label, cancel=false) {
     if (!window.speechSynthesis || !info || !(info.weight > 0)) return;
@@ -761,15 +773,15 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 if (prev.remaining <= 1) {
                     clearInterval(timerIntervalRef.current);
                     playRestCompleteSound();
-                    if (window.speechSynthesis) {
-                        const u = new SpeechSynthesisUtterance('סיום');
-                        u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0;
-                        window.speechSynthesis.speak(u);
-                    }
+                    speakBelly('סיום');
                     return null; // חוזר לברירת המחדל (bellyTimerSecs)
                 }
                 if (prev.remaining <= 4) playCountdownBeep();
-                return {...prev, remaining: prev.remaining-1};
+                // טיימר בטן: קול גברי — ספירה לאחור 3-2-1 וכל 20 שניות
+                const left = prev.remaining - 1;
+                if (left >= 1 && left <= 3) speakBelly(left, 1.2);
+                else if (left >= 20 && left % 20 === 0) speakBelly(left);
+                return {...prev, remaining: left};
             });
         },1000);
         return ()=>clearInterval(timerIntervalRef.current);
@@ -2980,53 +2992,14 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
 };
 
 
-// ─── FloatingRestTimer ─────────────────────────────────────
-const FloatingRestTimer = memo(({ restTimers, restTimerTotals, logs, visibleGroups, activeGroup }) => {
-    const active = useMemo(() => {
-        let best = null;
-        for (const id in restTimers) {
-            const rt = restTimers[id] || 0;
-            const tot = restTimerTotals[id] || 0;
-            if (rt > 0 && tot > 0 && (!best || rt < best.rt)) best = { id, rt, tot };
-        }
-        return best;
-    }, [restTimers, restTimerTotals]);
-    const nextInfo = useMemo(() => {
-        if (!active || !visibleGroups || !logs) return null;
-        const curGroup = activeGroup || visibleGroups.find(g => g.exercises.some(e => e.id === active.id));
-        if (!curGroup) return null;
-        let nextEx = null;
-        if (curGroup.exercises.length === 2) {
-            nextEx = curGroup.exercises.find(e => e.id !== active.id) || curGroup.exercises[0];
-        } else {
-            nextEx = curGroup.exercises[0];
-        }
-        if (!nextEx) return null;
-        const isGrav = GRAVITRON_EXERCISES.has(nextEx.id);
-        const exLogs = logs.filter(l => l.exId === nextEx.id && l.setNum > 0 && l.weight > 0)
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        const bestLog = exLogs.length > 0
-            ? exLogs.reduce((best, l) => isGrav ? (l.weight < best.weight ? l : best) : (l.weight > best.weight ? l : best), exLogs[0])
-            : null;
-        const warmupLogs = logs.filter(l => l.exId === nextEx.id && l.setNum === 0 && l.weight > 0)
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        return { weight: bestLog?.weight || 0, warmupWeight: warmupLogs[0]?.weight || 0 };
-    }, [active, visibleGroups, activeGroup, logs]);
-    if (!active) return null;
-    const pct = (active.rt / active.tot) * 100;
-    return (
-        <div className="fixed left-0 right-0 z-[700] pointer-events-none"
-             style={{top:'env(safe-area-inset-top)'}}>
-            <div className="h-3 bg-slate-200/50 overflow-hidden">
-                <div className="h-full bg-orange-500 transition-all duration-1000 ease-linear" style={{width: pct + '%'}} />
-            </div>
-        </div>
-    );
-});
-
 // ─── HamburgerMenu ─────────────────────────────────────────
-const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) => {
+const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, restTimers={}, restTimerTotals={} }) => {
     const [open, setOpen] = useState(false);
+    // טיימר מנוחה לכל תרגיל בנפרד — במקום פסי התפריט, כל טיימר בחלון עם היקף כתום מתמלא
+    const activeTimers = Object.keys(restTimers)
+        .map(id => ({ id, rt: restTimers[id]||0, tot: restTimerTotals[id]||0 }))
+        .filter(t => t.rt > 0 && t.tot > 0)
+        .sort((a,b) => a.rt - b.rt);
     const [manageExpanded, setManageExpanded] = useState(false);
     const manageSubs = [
         { key:'backup',      label:'גיבוי ושחזור',      icon:'Database',     color:'text-sky-500' },
@@ -3051,9 +3024,27 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false }) =>
     return (
         <>
             <button onClick={()=>setOpen(true)}
-                className="fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
+                className={activeTimers.length ? "fixed right-2 z-[650] flex flex-row-reverse gap-1.5 active:scale-90" : "fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"}
                 style={{top: topOffset}}>
-                <Icon name="Menu" size={20} />
+                {activeTimers.length === 0 && <Icon name="Menu" size={20} />}
+                {activeTimers.map(t => {
+                    const ex = exerciseGroups.find(e => String(e.id) === String(t.id));
+                    const R = 17, C = 2 * Math.PI * R;
+                    return (
+                        <span key={t.id} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-slate-900/70 backdrop-blur-md shadow-lg text-white">
+                            <svg className="absolute inset-0" width="44" height="44" viewBox="0 0 44 44" style={{transform:'rotate(-90deg)'}}>
+                                <circle cx="22" cy="22" r={R} fill="none" stroke="rgba(249,115,22,0.25)" strokeWidth="3" />
+                                <circle cx="22" cy="22" r={R} fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round"
+                                        strokeDasharray={C} strokeDashoffset={C * (1 - t.rt / t.tot)}
+                                        style={{transition:'stroke-dashoffset 1s linear'}} />
+                            </svg>
+                            <span className="relative flex flex-col items-center leading-none">
+                                <span className="text-[11px]">{ex ? ex.icon : ''}</span>
+                                <span className="text-[12px] font-black" dir="ltr">{t.rt}</span>
+                            </span>
+                        </span>
+                    );
+                })}
             </button>
             {open && (
                 <div className="fixed inset-0 z-[900] flex" onClick={()=>setOpen(false)}>
@@ -3706,12 +3697,12 @@ function App() {
             const cur = restTimersRef.current;
             if (Object.keys(cur).length === 0) return;
             const next = {};
-            let doCountdown = false, doWarning = false, completedExId = null;
+            let doCountdown = false, doWarning = false, completedExId = null, warnId = null, cdId = null;
             Object.entries(cur).forEach(([k,v])=>{
                 if (v > 1) {
                     next[k] = v - 1;
-                    if (v <= 3) doCountdown = true;
-                    if (v === 21) doWarning = true;
+                    if (v <= 3) { doCountdown = true; if (cdId === null || v - 1 < next[cdId]) cdId = k; }
+                    if (v === 21) { doWarning = true; warnId = k; }
                 } else if (v === 1) {
                     completedExId = k;
                 }
@@ -3724,8 +3715,10 @@ function App() {
             }
             if (doCountdown) {
                 playCountdownBeep();
-                const spokenSec = Object.values(next).find(v => v >= 1 && v <= 3);
+                const spokenSec = cdId !== null ? next[cdId] : undefined;
                 if (spokenSec && window.speechSynthesis) {
+                    // כשיש כמה טיימרים במקביל — מציינים לאיזה תרגיל הספירה
+                    if (Object.keys(cur).length > 1 && spokenSec === 3) { const nm = spokenNameById(cdId); if (nm) { const nu = new SpeechSynthesisUtterance(nm); nu.lang = 'he-IL'; nu.rate = 1.2; window.speechSynthesis.speak(nu); } }
                     const u = new SpeechSynthesisUtterance(String(spokenSec));
                     u.lang = 'he-IL'; u.rate = 1.2; u.volume = 0.8;
                     window.speechSynthesis.speak(u);
@@ -3734,7 +3727,7 @@ function App() {
             if (doWarning) {
                 playWarningBeep();
                 if (window.speechSynthesis) {
-                    const u = new SpeechSynthesisUtterance('עשרים');
+                    const u = new SpeechSynthesisUtterance(Object.keys(cur).length > 1 ? (spokenNameById(warnId) + ' עשרים') : 'עשרים');
                     u.lang = 'he-IL'; u.rate = 1.2; u.volume = 1.0;
                     window.speechSynthesis.speak(u);
                 }
@@ -4349,7 +4342,6 @@ function App() {
     const hasActiveRest = Object.keys(restTimers).some(id => (restTimers[id]||0) > 0 && (restTimerTotals[id]||0) > 0);
     const overlays = (
         <>
-            <FloatingRestTimer restTimers={restTimers} restTimerTotals={restTimerTotals} logs={logs} visibleGroups={visibleGroups} activeGroup={activeGroup} />
             {autoTransitionSplash && (
                 <div className="fixed inset-x-0 z-[900] pointer-events-none"
                     style={{maxWidth:'28rem', margin:'0 auto',
@@ -4373,7 +4365,7 @@ function App() {
                     </div>
                 </div>
             )}
-            <HamburgerMenu currentView={view} hasActiveRest={hasActiveRest} onNavigate={(v)=>{
+            <HamburgerMenu currentView={view} hasActiveRest={hasActiveRest} restTimers={restTimers} restTimerTotals={restTimerTotals} onNavigate={(v)=>{
                 if (v==='list') { navigateTo('list'); setActiveGroup(null); }
                 else if (v.startsWith('manage:')) { const sec=v.split(':')[1]; setManageOpenSection(sec); navigateTo('manage'); }
                 else navigateTo(v);
