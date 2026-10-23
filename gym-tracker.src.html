@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.00';
+const APP_VERSION = '10.01';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1256,6 +1256,50 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         onUpdateSettings('warmupEmbed', {...warmupEmbed, [exId]: false});
     };
     const [lightbox,      setLightbox]     = useState(null);
+    // ─── שורת תמונות חכמה: בוצעו מימין, נוכחי במרכז, הבאים בתור משמאל — בלי גלילה ובלי קפיצות ───
+    const [showAllDone, setShowAllDone] = useState(false);
+    const isGroupDoneHere = g => !!g && !skippedGroups.includes(g.id) && g.exercises.every(ex=>{
+        const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
+        return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
+    });
+    const lastLogTs = g => Math.max(0, ...g.exercises.flatMap(ex => logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime).map(l=>new Date(l.timestamp).getTime())));
+    const computeStrip = () => {
+        const curIdx = allGroups.findIndex(g=>g.id===group.id);
+        const hasTimer = g => g.exercises.some(e => (restTimers?.[e.id]||0) > 0);
+        const doneAll = allGroups.filter(g=>g.id!==group.id && isGroupDoneHere(g)).sort((a,b)=>lastLogTs(b)-lastLogTs(a)); // האחרון שבוצע ראשון
+        const upAll = [...allGroups.slice(curIdx+1), ...allGroups.slice(0,Math.max(0,curIdx))].filter(g=>g.id!==group.id && !isGroupDoneHere(g));
+        // 3 הבאים לפי סדר האימון; תרגיל עם טיימר רץ שנמצא רחוק יותר ברשימה תמיד נכנס (במקום האחרון/ים)
+        const shown = upAll.slice(0,3);
+        const timerFar = upAll.slice(3).filter(hasTimer);
+        timerFar.forEach(tg => { for (let k=shown.length-1;k>=0;k--) { if (!hasTimer(shown[k])) { shown[k]=tg; break; } } });
+        const order = new Map(upAll.map((g,i)=>[g.id,i]));
+        shown.sort((a,b)=>order.get(a.id)-order.get(b.id));
+        return { doneAll, up: shown, upAll };
+    };
+    // החלקה על תמונת התרגיל הגדולה: שמאלה = הבא בתור, ימינה = האחרון שבוצע
+    const swipeRef = React.useRef(null);
+    swipeRef.current = { computeStrip, onNavigateTo };
+    useEffect(() => {
+        let sx = 0, sy = 0, active = false;
+        const onStart = e => {
+            const t = e.touches && e.touches[0];
+            active = !!(t && e.target.closest && e.target.closest('[id^="ex-row-"] img'));
+            if (active) { sx = t.clientX; sy = t.clientY; }
+        };
+        const onEnd = e => {
+            if (!active) return; active = false;
+            const t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+            const dx = t.clientX - sx, dy = t.clientY - sy;
+            if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+            const { computeStrip: cs, onNavigateTo: nav } = swipeRef.current;
+            const { doneAll, upAll } = cs();
+            const target = dx < 0 ? upAll[0] : doneAll[0];
+            if (target) nav?.(target);
+        };
+        document.addEventListener('touchstart', onStart, { passive: true });
+        document.addEventListener('touchend', onEnd, { passive: true });
+        return () => { document.removeEventListener('touchstart', onStart); document.removeEventListener('touchend', onEnd); };
+    }, []);
     const [previewGroupId, setPreviewGroupId] = useState(null);
     const previewTimeoutRef = React.useRef(null);
     const curChipRef = React.useRef(null);
@@ -1710,78 +1754,61 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 עדיין ממסך הבית (כפתור "סדר תרגילים"). */}
             {allGroups.length > 1 && (()=>{
                 const imgOf = g => { const ex=g?.exercises[0]; if(!ex) return null; return images?.[ex.id]||(EXERCISE_IMAGES[ex.id]?`images/${EXERCISE_IMAGES[ex.id]}`:null); };
-                const isGroupDoneHere = g => !!g && !skippedGroups.includes(g.id) && g.exercises.every(ex=>{
-                    const sl = logs.filter(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime);
-                    return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
-                });
-                const targetId = previewGroupId != null ? previewGroupId : group.id;
-                const targetGroup = allGroups.find(g=>g.id===targetId);
-                const ITEM = 68;
-                const goTo = (g) => { if(!g) return; onNavigateTo?.(g); setPreviewGroupId(null); if(previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current); };
-                // אחרי שהגלילה נרגעת — מוצא מי במרכז הסרט ומנווט אליו (כמו סרט תמונות שנעצר על הפריים הקרוב)
-                const handleFilmScroll = () => {
-                    if (filmSettleTimer.current) clearTimeout(filmSettleTimer.current);
-                    filmSettleTimer.current = setTimeout(() => {
-                        const el = filmStripRef.current;
-                        if (!el) return;
-                        const rect = el.getBoundingClientRect();
-                        const hit = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
-                        const gid = hit?.closest?.('[data-gid]')?.dataset?.gid;
-                        if (gid == null) return;
-                        const g = allGroups.find(x => String(x.id) === String(gid));
-                        if (g && g.id !== group.id) goTo(g);
-                    }, 130);
+                const { doneAll, up } = computeStrip();
+                const doneShown = doneAll.slice(0,2).reverse(); // הישן יותר רחוק מהמרכז, האחרון שבוצע צמוד לנוכחי
+                const goTo = (g) => { if(!g) return; onNavigateTo?.(g); setShowAllDone(false); };
+                const numOf = g => allGroups.findIndex(x=>x.id===g.id) + 1;
+                const thumb = (g, kind) => {
+                    const isCur = kind === 'cur', isDone = kind === 'done';
+                    const size = isCur ? 60 : isDone ? 32 : 48;
+                    const img = imgOf(g);
+                    const gRt = Math.max(0, ...g.exercises.map(e => restTimers?.[e.id]||0));
+                    const ringC = gRt > 0 ? (gRt <= 20 ? '#ef4444' : '#f97316') : null;
+                    const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed);
+                    const fWarm = fInfo.isWarmup;
+                    const fW = isDone ? 0 : fInfo.weight;
+                    const shadow = [isCur && '0 0 0 3px #3b82f6', ringC && `0 0 0 ${isCur ? 6 : 3}px ${ringC}`].filter(Boolean).join(', ') || undefined;
+                    return (
+                        <div key={g.id} data-gid={g.id} className="shrink-0 flex flex-col items-center" style={{ width:size }}>
+                            <button onClick={()=>goTo(g)}
+                                className={`relative overflow-hidden bg-slate-100 active:scale-95 transition-all ${isDone ? 'rounded-full' : 'rounded-2xl'}`}
+                                style={{ width:size, height:size, boxShadow: shadow, filter: isDone ? 'grayscale(100%)' : undefined, opacity: isDone ? 0.8 : 1 }}>
+                                {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
+                                     : <div className="w-full h-full flex items-center justify-center text-lg bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
+                                {isDone
+                                    ? <span className="absolute inset-0 flex items-center justify-center text-white text-[15px] font-black" style={{background:'rgba(22,163,74,0.55)'}}>✓</span>
+                                    : <span className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
+                                          style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.6)', color:'#ffffff'}}>{numOf(g)}</span>}
+                            </button>
+                            <div className={`text-[10px] font-black leading-none mt-0.5 h-3 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
+                                {isDone ? '' : (gRt > 0 ? `⏱${gRt}` : (fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : ''))}
+                            </div>
+                        </div>
+                    );
                 };
                 return (
-                    <div>
-                        <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar mt-3" dir="rtl"
-                            style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInline:`calc(50% - ${ITEM/2}px)`}}
-                            onScroll={handleFilmScroll}>
-                            {allGroups.map((g,i) => {
-                                const isCur = g.id === targetId;
-                                const done = isGroupDoneHere(g);
-                                const img = imgOf(g);
-                                // כיתוב המשקל הבא (קטן, מתחת לתמונה): חימום אם ממתין, אחרת הסט הבא
-                                const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed);
-                                const fWarm = fInfo.isWarmup;
-                                const fW = done ? 0 : fInfo.weight;
-                                const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
-                                const ringC = gRt > 0 ? (gRt <= 20 ? '#ef4444' : '#f97316') : null;
-                                return (
-                                    <div key={g.id} data-gid={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM, scrollSnapAlign:'center' }}>
-                                    <button onClick={()=>goTo(g)}
-                                        className="relative rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
-                                        style={{ width:ITEM, height:ITEM,
-                                            filter: done ? 'grayscale(100%)' : undefined, opacity: done ? 0.55 : 1,
-                                            boxShadow: ringC ? (isCur ? `0 0 0 3px #3b82f6, 0 0 0 6px ${ringC}` : `0 0 0 3px ${ringC}`) : (isCur ? '0 0 0 3px #3b82f6' : undefined),
-                                            transform: isCur ? 'scale(1)' : 'scale(0.84)' }}>
-                                        {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
-                                             : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
-                                        {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
-                                        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
-                                            style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>
-                                            {i+1}
-                                        </span>
-                                    </button>
-                                    <div className={`text-[10px] font-black leading-none mt-0.5 h-3 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
-                                        {(restTimers[g.exercises[0].id]||0) > 0 ? `⏱${restTimers[g.exercises[0].id]}` : (fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : '')}
-                                    </div>
-                                    </div>
-                                );
-                            })}
+                    <div className="mt-3">
+                        <div className="flex items-start justify-center gap-1.5 px-1" dir="rtl">
+                            {doneAll.length > 0 && (
+                                <button onClick={()=>setShowAllDone(v=>!v)}
+                                    className={`shrink-0 h-8 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center active:scale-95 ${showAllDone ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700'}`}
+                                    style={{minWidth:28}}>✓{doneAll.length}</button>
+                            )}
+                            {doneShown.map(g => thumb(g, 'done'))}
+                            {thumb(group, 'cur')}
+                            {up.map(g => thumb(g, 'up'))}
                         </div>
+                        {showAllDone && doneAll.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-1.5 mt-1.5 fade-in" dir="rtl">
+                                {doneAll.map(g => thumb(g, 'done'))}
+                            </div>
+                        )}
                         {returnGroup && returnGroup.id !== group.id && (
                             <div className="text-center mt-1.5">
                                 <button onClick={()=>onReturn?.()}
                                     className="text-[12px] font-black text-blue-600 underline underline-offset-2 active:opacity-60">
                                     ↩ חזור ל{returnGroup.title}
                                 </button>
-                            </div>
-                        )}
-                        {targetGroup && targetGroup.id !== group.id && (
-                            <div className="text-center mt-1 fade-in">
-                                <div className="text-[9px] font-black uppercase tracking-wide" style={{color:targetGroup.hex||'#3b82f6'}}>תצוגה מקדימה</div>
-                                <div className="text-[12px] font-black text-slate-700">{targetGroup.title}</div>
                             </div>
                         )}
                     </div>
