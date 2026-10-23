@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.04';
+const APP_VERSION = '10.05';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -413,7 +413,7 @@ const DRUM_H    = 48;
 const DRUM_VIS  = 7;
 const DRUM_HALF = 3;
 
-const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[], values=null, compact=false }) => {
+const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[], values=null, compact=false, onTap=null }) => {
     const [open,     setOpen]     = useState(false);
     const [localVal, setLocalVal] = useState(value);
 
@@ -493,7 +493,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
 
     return (
         <div className="flex flex-col items-center flex-1">
-            <button onClick={() => setOpen(true)}
+            <button onClick={() => { if (onTap && !onTap()) return; setOpen(true); }}
                 className={`w-full ${compact ? 'h-[26px] rounded-lg text-[19px] flex-row gap-1' : 'h-12 rounded-xl text-[22px] flex-col gap-0.5'} font-black flex items-center justify-center active:scale-95 transition-all
                     ${isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800'}`}>
                 <span className={compact ? 'leading-none' : ''}>{value}</span>
@@ -940,7 +940,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 </div>
             )}
             {/* סט חימום */}
-            {(warmupOpen || done.sW) && (()=>{
+            {isTimerEx && (warmupOpen || done.sW) && (()=>{
                 const isDoneW = done.sW;
                 const dimDoneW = isDoneW && !(sW.wC || sW.rC);
                 return (
@@ -987,9 +987,15 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 );
             })()}
             {!isTimerEx && (()=>{
-                const nums = [1, 2, ...visibleExtraNums];
+                const hasWarm = warmupOpen || done.sW;
+                const nums = [1, 2, ...visibleExtraNums, ...(hasWarm ? [0] : [])]; // הסטים לפי הסדר (1 מימין למעלה, 2 משמאלו, 3 מתחת מימין...); החימום אחריהם
                 const warmupPending = warmupOpen && !done.sW;
                 const info = (num) => {
+                    if (num === 0) {
+                        const isDoneW = done.sW;
+                        return { num, isWarm:true, isExtra:false, state:sW, setState:setSW, isDone:isDoneW, canAct:!isSaving, conic:null, countdown:0, showCDown:false,
+                                 canActFinal:!isSaving, isActive:!isDoneW, dimDone: isDoneW && !(sW.wC || sW.rC) };
+                    }
                     const isExtra = num > 2;
                     const state    = num===1 ? s1 : num===2 ? s2 : getExtraState(num);
                     const setState = num===1 ? setS1 : num===2 ? setS2 : (u)=>setExtraState(num, u);
@@ -1018,8 +1024,9 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     return { num, isExtra, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone: isDone && !(state.wC || state.rC) };
                 };
                 const infos = nums.map(info);
-                const nextTodo = infos.find(i => !i.isDone);
-                const autoNum = (nextTodo || infos[infos.length-1]).num;
+                const warmInfo = infos.find(i => i.isWarm);
+                const nextTodo = (warmInfo && !warmInfo.isDone) ? warmInfo : infos.find(i => !i.isDone && !i.isWarm);
+                const autoNum = (nextTodo || infos.filter(i => !i.isWarm).slice(-1)[0]).num;
                 const selEff = (selNum != null && nums.includes(selNum)) ? selNum : autoNum;
                 const selInfo = infos.find(i => i.num === selEff);
                 const bump = (field, dir) => selInfo && selInfo.setState(p => field==='w'
@@ -1032,34 +1039,43 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     </button>
                 );
                 const cell = (i) => {
-                    const { num, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone } = i;
+                    const { num, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone, isWarm } = i;
                     const isSel = num === selEff;
-                    const borderSt = conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 3px 10px ${accentColor}30`} : isDone ? {border:'2px solid #94a3b8'} : {border:'1px solid #e2e8f0'});
+                    const borderSt = isWarm ? (isDone ? {border:'2px solid #d97706'} : {border:'2px dashed #f59e0b'})
+                        : conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 3px 10px ${accentColor}30`} : isDone ? {border:'2px solid #94a3b8'} : {border:'1px solid #e2e8f0'});
                     const changed = isDone && (state.wC || state.rC);
                     return (
                         <div key={num} onClick={()=>setSelNum(num)}
                             style={{...borderSt, borderRadius:'1rem', ...(dimDone ? {filter:'grayscale(0.85) opacity(0.65)'} : {}), ...(isSel ? {outline:'3px solid #3b82f6', outlineOffset:'1px'} : {})}}
-                            className={`relative p-1 flex items-center gap-1 transition-all ${isDone ? 'bg-slate-300' : 'bg-white'}`}>
-                            <button onClick={(e)=>{ e.stopPropagation(); if (!canActFinal) return; setSelNum(null); handleSetSave(num, state); }}
-                                disabled={!canActFinal}
+                            className={`relative p-1 flex items-center gap-1 transition-all ${isWarm ? 'bg-amber-50' : isDone ? 'bg-slate-300' : 'bg-white'}`}>
+                            <button onClick={(e)=>{ e.stopPropagation(); if (!isSel) { setSelNum(num); return; } if (!canActFinal) return; setSelNum(null); if (isWarm) handleWarmupSave(); else handleSetSave(num, state); }}
+                                aria-disabled={!canActFinal}
                                 className={`w-10 h-[56px] rounded-xl flex flex-col items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all
                                     ${changed ? 'bg-amber-400 !text-amber-900'
+                                    : isWarm && isDone ? 'bg-amber-700'
+                                    : isWarm ? 'bg-amber-500'
                                     : isDone ? 'bg-slate-500'
                                     : showCDown ? 'bg-blue-600'
                                     : !canAct ? 'bg-slate-300'
                                     : ''}`}
-                                style={(!isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
-                                <span className="text-[19px] leading-none">{showCDown ? countdown : (isDone && !changed) ? '✓' : num}</span>
+                                style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
+                                <span className="text-[19px] leading-none">{showCDown ? countdown : (isDone && !changed) ? '✓' : isWarm ? '🔥' : num}</span>
                                 <span className="text-[9px] leading-none mt-1 opacity-90">{changed ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום'}</span>
                             </button>
                             <div className="flex flex-col flex-1 gap-1 min-w-0">
-                                <Roller label="ק״ג" compact min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
+                                <Roller label="ק״ג" compact onTap={()=>{ if (isSel) return true; setSelNum(num); return false; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
                                     onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
                                     presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} />
-                                <Roller label="חז׳" compact min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
+                                <Roller label="חז׳" compact onTap={()=>{ if (isSel) return true; setSelNum(num); return false; }} min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
                                     onChange={v=>setState(p=>({...p,r:v,rC:true}))}
                                     presets={repsPresets} jumpSteps={repsJumpSteps} />
                             </div>
+                            {isWarm && !isDone && (
+                                <button onClick={(e)=>{e.stopPropagation(); setWarmupOpen(false);}}
+                                    className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white text-slate-400 rounded-full flex items-center justify-center shadow border border-slate-200 active:text-red-500">
+                                    <Icon name="X" size={9} />
+                                </button>
+                            )}
                             {i.isExtra && !isDone && (
                                 <button onClick={(e)=>{e.stopPropagation(); handleRemoveExtraSet(num);}}
                                     className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white text-slate-400 rounded-full flex items-center justify-center shadow border border-slate-200 active:text-red-500">

@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.04';
+var APP_VERSION = '10.05';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -1255,7 +1255,9 @@ var Roller = memo(function (_ref0) {
     _ref0$values = _ref0.values,
     values = _ref0$values === void 0 ? null : _ref0$values,
     _ref0$compact = _ref0.compact,
-    compact = _ref0$compact === void 0 ? false : _ref0$compact;
+    compact = _ref0$compact === void 0 ? false : _ref0$compact,
+    _ref0$onTap = _ref0.onTap,
+    onTap = _ref0$onTap === void 0 ? null : _ref0$onTap;
   var _useState = useState(false),
     _useState2 = _slicedToArray(_useState, 2),
     open = _useState2[0],
@@ -1349,7 +1351,8 @@ var Roller = memo(function (_ref0) {
     className: "flex flex-col items-center flex-1"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setOpen(true);
+      if (onTap && !onTap()) return;
+      setOpen(true);
     },
     className: "w-full ".concat(compact ? 'h-[26px] rounded-lg text-[19px] flex-row gap-1' : 'h-12 rounded-xl text-[22px] flex-col gap-0.5', " font-black flex items-center justify-center active:scale-95 transition-all\n                    ").concat(isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800')
   }, /*#__PURE__*/React.createElement("span", {
@@ -2290,7 +2293,7 @@ function ExerciseEntryRow(_ref11) {
       return setSugDismissed(true);
     },
     className: "px-1.5 text-emerald-400 active:scale-95"
-  }, "\u2715")), (warmupOpen || done.sW) && function () {
+  }, "\u2715")), isTimerEx && (warmupOpen || done.sW) && function () {
     var isDoneW = done.sW;
     var dimDoneW = isDoneW && !(sW.wC || sW.rC);
     return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -2409,9 +2412,28 @@ function ExerciseEntryRow(_ref11) {
       className: "h-1.5"
     }));
   }(), !isTimerEx && function () {
-    var nums = [1, 2].concat(_toConsumableArray(visibleExtraNums));
+    var hasWarm = warmupOpen || done.sW;
+    var nums = [1, 2].concat(_toConsumableArray(visibleExtraNums), _toConsumableArray(hasWarm ? [0] : [])); // הסטים לפי הסדר (1 מימין למעלה, 2 משמאלו, 3 מתחת מימין...); החימום אחריהם
     var warmupPending = warmupOpen && !done.sW;
     var info = function info(num) {
+      if (num === 0) {
+        var isDoneW = done.sW;
+        return {
+          num: num,
+          isWarm: true,
+          isExtra: false,
+          state: sW,
+          setState: setSW,
+          isDone: isDoneW,
+          canAct: !isSaving,
+          conic: null,
+          countdown: 0,
+          showCDown: false,
+          canActFinal: !isSaving,
+          isActive: !isDoneW,
+          dimDone: isDoneW && !(sW.wC || sW.rC)
+        };
+      }
       var isExtra = num > 2;
       var state = num === 1 ? s1 : num === 2 ? s2 : getExtraState(num);
       var setState = num === 1 ? setS1 : num === 2 ? setS2 : function (u) {
@@ -2467,10 +2489,15 @@ function ExerciseEntryRow(_ref11) {
       };
     };
     var infos = nums.map(info);
-    var nextTodo = infos.find(function (i) {
-      return !i.isDone;
+    var warmInfo = infos.find(function (i) {
+      return i.isWarm;
     });
-    var autoNum = (nextTodo || infos[infos.length - 1]).num;
+    var nextTodo = warmInfo && !warmInfo.isDone ? warmInfo : infos.find(function (i) {
+      return !i.isDone && !i.isWarm;
+    });
+    var autoNum = (nextTodo || infos.filter(function (i) {
+      return !i.isWarm;
+    }).slice(-1)[0]).num;
     var selEff = selNum != null && nums.includes(selNum) ? selNum : autoNum;
     var selInfo = infos.find(function (i) {
       return i.num === selEff;
@@ -2505,9 +2532,14 @@ function ExerciseEntryRow(_ref11) {
         showCDown = i.showCDown,
         canActFinal = i.canActFinal,
         isActive = i.isActive,
-        dimDone = i.dimDone;
+        dimDone = i.dimDone,
+        isWarm = i.isWarm;
       var isSel = num === selEff;
-      var borderSt = conic || (isActive ? {
+      var borderSt = isWarm ? isDone ? {
+        border: '2px solid #d97706'
+      } : {
+        border: '2px dashed #f59e0b'
+      } : conic || (isActive ? {
         border: "2px solid ".concat(accentColor),
         boxShadow: "0 3px 10px ".concat(accentColor, "30")
       } : isDone ? {
@@ -2529,28 +2561,37 @@ function ExerciseEntryRow(_ref11) {
           outline: '3px solid #3b82f6',
           outlineOffset: '1px'
         } : {}),
-        className: "relative p-1 flex items-center gap-1 transition-all ".concat(isDone ? 'bg-slate-300' : 'bg-white')
+        className: "relative p-1 flex items-center gap-1 transition-all ".concat(isWarm ? 'bg-amber-50' : isDone ? 'bg-slate-300' : 'bg-white')
       }, /*#__PURE__*/React.createElement("button", {
         onClick: function onClick(e) {
           e.stopPropagation();
+          if (!isSel) {
+            setSelNum(num);
+            return;
+          }
           if (!canActFinal) return;
           setSelNum(null);
-          handleSetSave(num, state);
+          if (isWarm) handleWarmupSave();else handleSetSave(num, state);
         },
-        disabled: !canActFinal,
-        className: "w-10 h-[56px] rounded-xl flex flex-col items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
-        style: !isDone && !showCDown && canAct ? {
+        "aria-disabled": !canActFinal,
+        className: "w-10 h-[56px] rounded-xl flex flex-col items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
+        style: !isWarm && !isDone && !showCDown && canAct ? {
           background: isActive ? accentColor : '#16a34a'
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[19px] leading-none"
-      }, showCDown ? countdown : isDone && !changed ? '✓' : num), /*#__PURE__*/React.createElement("span", {
+      }, showCDown ? countdown : isDone && !changed ? '✓' : isWarm ? '🔥' : num), /*#__PURE__*/React.createElement("span", {
         className: "text-[9px] leading-none mt-1 opacity-90"
       }, changed ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום')), /*#__PURE__*/React.createElement("div", {
         className: "flex flex-col flex-1 gap-1 min-w-0"
       }, /*#__PURE__*/React.createElement(Roller, {
         label: "\u05E7\u05F4\u05D2",
         compact: true,
+        onTap: function onTap() {
+          if (isSel) return true;
+          setSelNum(num);
+          return false;
+        },
         min: 0,
         max: 250,
         step: weightStep,
@@ -2571,6 +2612,11 @@ function ExerciseEntryRow(_ref11) {
       }), /*#__PURE__*/React.createElement(Roller, {
         label: "\u05D7\u05D6\u05F3",
         compact: true,
+        onTap: function onTap() {
+          if (isSel) return true;
+          setSelNum(num);
+          return false;
+        },
         min: 1,
         max: 120,
         step: repsStep,
@@ -2586,6 +2632,15 @@ function ExerciseEntryRow(_ref11) {
         },
         presets: repsPresets,
         jumpSteps: repsJumpSteps
+      })), isWarm && !isDone && /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick(e) {
+          e.stopPropagation();
+          setWarmupOpen(false);
+        },
+        className: "absolute -top-1.5 -left-1.5 w-4 h-4 bg-white text-slate-400 rounded-full flex items-center justify-center shadow border border-slate-200 active:text-red-500"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "X",
+        size: 9
       })), i.isExtra && !isDone && /*#__PURE__*/React.createElement("button", {
         onClick: function onClick(e) {
           e.stopPropagation();
