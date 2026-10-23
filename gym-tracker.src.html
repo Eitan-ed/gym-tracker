@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.03';
+const APP_VERSION = '10.04';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -413,7 +413,7 @@ const DRUM_H    = 48;
 const DRUM_VIS  = 7;
 const DRUM_HALF = 3;
 
-const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[], values=null }) => {
+const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, label, isChanged, presets=[], jumpSteps=[], values=null, compact=false }) => {
     const [open,     setOpen]     = useState(false);
     const [localVal, setLocalVal] = useState(value);
 
@@ -494,10 +494,10 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
     return (
         <div className="flex flex-col items-center flex-1">
             <button onClick={() => setOpen(true)}
-                className={`w-full h-12 rounded-xl font-black text-[22px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all
+                className={`w-full ${compact ? 'h-[26px] rounded-lg text-[19px] flex-row gap-1' : 'h-12 rounded-xl text-[22px] flex-col gap-0.5'} font-black flex items-center justify-center active:scale-95 transition-all
                     ${isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800'}`}>
-                <span>{value}</span>
-                <span className="text-[9px] font-black opacity-50 tracking-tighter uppercase">{label}</span>
+                <span className={compact ? 'leading-none' : ''}>{value}</span>
+                <span className={`font-black opacity-50 tracking-tighter uppercase ${compact ? 'text-[9px] leading-none' : 'text-[9px]'}`}>{label}</span>
             </button>
             {/* התפריט התחתון נפתח דרך Portal ישירות ל-document.body — כי כרטיס הסט העוטף אותו
                 מקבל לפעמים filter (grayscale/opacity) כשהסט "בוצע" (dimDone למעלה), ו-CSS filter
@@ -723,6 +723,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     // סטים נוספים (3,4,...) שהמשתמש הוסיף ידנית מעבר לשני הסטים הרגילים — לכל תרגיל
     const [extraNums, setExtraNums] = useState([]);
     const [extraVals, setExtraVals] = useState({}); // { [num]: {w,r,wC,rC} }
+    // סט שנבחר להפעלת כפתורי ה-▲▼ בצד (null = אוטומטי: הסט הפעיל, כלומר הבא שטרם בוצע)
+    const [selNum, setSelNum] = useState(null);
 
     const weightPresets = useMemo(() => [...new Set(
         [...logs].filter(l=>l.exId===ex.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
@@ -984,7 +986,111 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     </React.Fragment>
                 );
             })()}
-            {[1,2].map((num) => {
+            {!isTimerEx && (()=>{
+                const nums = [1, 2, ...visibleExtraNums];
+                const warmupPending = warmupOpen && !done.sW;
+                const info = (num) => {
+                    const isExtra = num > 2;
+                    const state    = num===1 ? s1 : num===2 ? s2 : getExtraState(num);
+                    const setState = num===1 ? setS1 : num===2 ? setS2 : (u)=>setExtraState(num, u);
+                    const isDone   = num===1 ? done.s1 : num===2 ? done.s2 : doneExtra(num);
+                    const donePrev = num===1 ? true : num===2 ? done.s1 : (num===3 ? done.s2 : doneExtra(num-1));
+                    const canAct   = !isSaving && (isDone ? true : (num===1 ? !forceSet1Disabled : num===2 ? (done.s1 && !forceSet2Disabled) : donePrev));
+                    let conic = null, countdown = 0;
+                    if (num===1) {
+                        const isCross1 = false;
+                        const warmupToS1 = done.sW && !done.s1 && restTimerTotal > 0;
+                        const hasConic1  = !done.s1 && (prevRestTimerTotal > 0 || warmupToS1);
+                        const rt  = prevRestTimerTotal > 0 ? prevRestTimer      : restTimer;
+                        const tot = prevRestTimerTotal > 0 ? prevRestTimerTotal : restTimerTotal;
+                        if (hasConic1) { conic = conicStyle(rt, tot); countdown = rt; }
+                    } else if (num===2) {
+                        const isCrossTimerSet2 = !isDone && done.s1 && forceSet2Disabled && prevRestTimerTotal > 0 && prevRestTimer > 0;
+                        const hasConic2 = betweenTimer || isCrossTimerSet2;
+                        if (hasConic2) { const rt = betweenTimer ? restTimer : prevRestTimer; const tot = betweenTimer ? restTimerTotal : prevRestTimerTotal; conic = conicStyle(rt, tot); countdown = rt; }
+                    } else {
+                        const bt = !isDone && donePrev && restTimerTotal > 0;
+                        if (bt) { conic = conicStyle(restTimer, restTimerTotal); countdown = restTimer; }
+                    }
+                    const showCDown = !isDone && countdown > 0;
+                    const canActFinal = canAct || showCDown;
+                    const isActive = !conic && canAct && !isDone && !(num===1 && warmupPending);
+                    return { num, isExtra, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone: isDone && !(state.wC || state.rC) };
+                };
+                const infos = nums.map(info);
+                const nextTodo = infos.find(i => !i.isDone);
+                const autoNum = (nextTodo || infos[infos.length-1]).num;
+                const selEff = (selNum != null && nums.includes(selNum)) ? selNum : autoNum;
+                const selInfo = infos.find(i => i.num === selEff);
+                const bump = (field, dir) => selInfo && selInfo.setState(p => field==='w'
+                    ? ({...p, w: stepW(p.w, dir), wC:true})
+                    : ({...p, r: dir>0 ? Math.min(120, p.r+repsStep) : Math.max(1, p.r-repsStep), rC:true}));
+                const stepBtn = (field, dir) => (
+                    <button onClick={()=>bump(field, dir)}
+                        className={`flex-1 rounded-xl flex items-center justify-center active:scale-95 font-black text-xl ${dir>0 ? 'bg-emerald-50 text-emerald-500 active:bg-emerald-100' : 'bg-rose-50 text-rose-400 active:bg-rose-100'}`}>
+                        {dir>0 ? '▲' : '▼'}
+                    </button>
+                );
+                const cell = (i) => {
+                    const { num, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone } = i;
+                    const isSel = num === selEff;
+                    const borderSt = conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 3px 10px ${accentColor}30`} : isDone ? {border:'2px solid #94a3b8'} : {border:'1px solid #e2e8f0'});
+                    const changed = isDone && (state.wC || state.rC);
+                    return (
+                        <div key={num} onClick={()=>setSelNum(num)}
+                            style={{...borderSt, borderRadius:'1rem', ...(dimDone ? {filter:'grayscale(0.85) opacity(0.65)'} : {}), ...(isSel ? {outline:'3px solid #3b82f6', outlineOffset:'1px'} : {})}}
+                            className={`relative p-1 flex items-center gap-1 transition-all ${isDone ? 'bg-slate-300' : 'bg-white'}`}>
+                            <button onClick={(e)=>{ e.stopPropagation(); if (!canActFinal) return; setSelNum(null); handleSetSave(num, state); }}
+                                disabled={!canActFinal}
+                                className={`w-10 h-[56px] rounded-xl flex flex-col items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all
+                                    ${changed ? 'bg-amber-400 !text-amber-900'
+                                    : isDone ? 'bg-slate-500'
+                                    : showCDown ? 'bg-blue-600'
+                                    : !canAct ? 'bg-slate-300'
+                                    : ''}`}
+                                style={(!isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
+                                <span className="text-[19px] leading-none">{showCDown ? countdown : (isDone && !changed) ? '✓' : num}</span>
+                                <span className="text-[9px] leading-none mt-1 opacity-90">{changed ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום'}</span>
+                            </button>
+                            <div className="flex flex-col flex-1 gap-1 min-w-0">
+                                <Roller label="ק״ג" compact min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
+                                    onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
+                                    presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} />
+                                <Roller label="חז׳" compact min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
+                                    onChange={v=>setState(p=>({...p,r:v,rC:true}))}
+                                    presets={repsPresets} jumpSteps={repsJumpSteps} />
+                            </div>
+                            {i.isExtra && !isDone && (
+                                <button onClick={(e)=>{e.stopPropagation(); handleRemoveExtraSet(num);}}
+                                    className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white text-slate-400 rounded-full flex items-center justify-center shadow border border-slate-200 active:text-red-500">
+                                    <Icon name="X" size={9} />
+                                </button>
+                            )}
+                        </div>
+                    );
+                };
+                return (
+                    <div className="flex gap-1.5 items-stretch" dir="rtl">
+                        <div className="grid grid-cols-2 gap-1.5 flex-1 min-w-0 content-start">
+                            {infos.map(cell)}
+                            <button onClick={handleAddExtraSet}
+                                className="rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-[13px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center"
+                                style={{minHeight:64}}>+ סט</button>
+                        </div>
+                        <div className="flex gap-1 shrink-0" style={{width:84}}>
+                            <div className="flex flex-col flex-1 gap-1">
+                                <span className="text-[9px] font-black text-slate-400 text-center leading-none">ק״ג</span>
+                                {stepBtn('w', 1)}{stepBtn('w', -1)}
+                            </div>
+                            <div className="flex flex-col flex-1 gap-1">
+                                <span className="text-[9px] font-black text-slate-400 text-center leading-none">חז׳</span>
+                                {stepBtn('r', 1)}{stepBtn('r', -1)}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+            {isTimerEx && [1,2].map((num) => {
                 const state    = num===1 ? s1 : s2;
                 const setState = num===1 ? setS1 : setS2;
                 const isDone   = num===1 ? done.s1 : done.s2;
@@ -1119,7 +1225,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     </React.Fragment>
                 );
             })}
-            {visibleExtraNums.map((num) => {
+            {isTimerEx && visibleExtraNums.map((num) => {
                 const state    = getExtraState(num);
                 const setState = (updater) => setExtraState(num, updater);
                 const isDone   = doneExtra(num);
@@ -1189,10 +1295,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 );
             })}
             {/* הוסף עוד סט — זמין מתוך כל תרגיל, בכל שלב (גם לפני סיום סט 2), כדי שהתרגיל לא יחשב "הושלם" ויעבור אוטומטית לתרגיל הבא לפני שהסט הנוסף בוצע */}
-            <button onClick={handleAddExtraSet}
+            {isTimerEx && <button onClick={handleAddExtraSet}
                 className="w-full py-2 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-[12px] font-black active:scale-[0.98] active:bg-slate-50">
                 + הוסף סט
-            </button>
+            </button>}
             </div>
 
         </div>
