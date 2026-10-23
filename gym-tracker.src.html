@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.08';
+const APP_VERSION = '10.09';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1906,8 +1906,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             }}>
                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
-                                        {gRt > 0 && <span className="absolute inset-0 flex items-center justify-center font-black text-[26px] text-white" dir="ltr"
-                                            style={{background:'rgba(0,0,0,0.5)', textShadow:'0 1px 3px #000'}}>{gRt}</span>}
+                                        {gRt > 0 && <span className="absolute bottom-0.5 right-0.5 min-w-[22px] h-[22px] px-1 rounded-lg flex items-center justify-center font-black text-[14px] leading-none text-white shadow" dir="ltr"
+                                            style={{background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'}}>{gRt}</span>}
                                         {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                             style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>
@@ -1942,8 +1942,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                         style={{ width:ITEM, height:ITEM, boxShadow: shadow }}>
                                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
-                                                        {gRt > 0 && <span className="absolute inset-0 flex items-center justify-center font-black text-[26px] text-white" dir="ltr"
-                                                            style={{background:'rgba(0,0,0,0.5)', textShadow:'0 1px 3px #000'}}>{gRt}</span>}
+                                                        {gRt > 0 && <span className="absolute bottom-0.5 right-0.5 min-w-[22px] h-[22px] px-1 rounded-lg flex items-center justify-center font-black text-[14px] leading-none text-white shadow" dir="ltr"
+                                                            style={{background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'}}>{gRt}</span>}
                                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                                             style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
                                                     </button>

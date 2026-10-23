@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.08';
+var APP_VERSION = '10.09';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -4182,11 +4182,10 @@ var DetailView = memo(function DetailView(_ref17) {
       }) : /*#__PURE__*/React.createElement("div", {
         className: "w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400"
       }, g.icon || '🏋️'), gRt > 0 && /*#__PURE__*/React.createElement("span", {
-        className: "absolute inset-0 flex items-center justify-center font-black text-[26px] text-white",
+        className: "absolute bottom-0.5 right-0.5 min-w-[22px] h-[22px] px-1 rounded-lg flex items-center justify-center font-black text-[14px] leading-none text-white shadow",
         dir: "ltr",
         style: {
-          background: 'rgba(0,0,0,0.5)',
-          textShadow: '0 1px 3px #000'
+          background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'
         }
       }, gRt), /*#__PURE__*/React.createElement("span", {
         className: "absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none",
@@ -4250,11 +4249,10 @@ var DetailView = memo(function DetailView(_ref17) {
         }) : /*#__PURE__*/React.createElement("div", {
           className: "w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400"
         }, g.icon || '🏋️'), gRt > 0 && /*#__PURE__*/React.createElement("span", {
-          className: "absolute inset-0 flex items-center justify-center font-black text-[26px] text-white",
+          className: "absolute bottom-0.5 right-0.5 min-w-[22px] h-[22px] px-1 rounded-lg flex items-center justify-center font-black text-[14px] leading-none text-white shadow",
           dir: "ltr",
           style: {
-            background: 'rgba(0,0,0,0.5)',
-            textShadow: '0 1px 3px #000'
+            background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'
           }
         }, gRt), /*#__PURE__*/React.createElement("span", {
           className: "absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none",
