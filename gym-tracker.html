@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.13';
+var APP_VERSION = '10.14';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -1200,6 +1200,33 @@ var exerciseGroups = [{
 // ומוזרקים ישירות למערך exerciseGroups כדי שכל שאר הקוד ימשיך לעבוד בלי שינוי) ───
 (function loadCustomExerciseGroups() {
   var custom = LS.get('gym-custom-exercises', []);
+  // שינוי שם חד-פעמי לתרגיל מותאם: "גלוט" ← "בעיטת ישבן במכונה" (מוחל על התרגיל השמור ועל שם מותאם אם יש)
+  var RENAMES = {
+    'גלוט': 'בעיטת ישבן במכונה'
+  };
+  var renamed = false;
+  custom.forEach(function (g) {
+    if (RENAMES[g.title]) {
+      g.title = RENAMES[g.title];
+      renamed = true;
+    }
+    (g.exercises || []).forEach(function (e) {
+      if (RENAMES[e.title]) {
+        e.title = RENAMES[e.title];
+        renamed = true;
+      }
+    });
+  });
+  if (renamed) LS.set('gym-custom-exercises', custom);
+  var names = LS.get('gym-custom-names', {});
+  var namesChanged = false;
+  Object.keys(names).forEach(function (k) {
+    if (RENAMES[names[k]]) {
+      names[k] = RENAMES[names[k]];
+      namesChanged = true;
+    }
+  });
+  if (namesChanged) LS.set('gym-custom-names', names);
   custom.forEach(function (g) {
     if (!exerciseGroups.some(function (eg) {
       return eg.id === g.id;
