@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.12';
+const APP_VERSION = '10.13';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1623,8 +1623,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             <div className="text-sm font-black text-slate-800 leading-tight px-0.5">{customNames[ex.id] || ex.title}</div>
                             {dispImgSrc ? (
                                 <div className="relative flex-1 min-w-0 overflow-hidden rounded-2xl" style={{height:'5rem'}}>
+                                    <img src={dispImgSrc} alt="" aria-hidden="true" draggable={false} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{filter:'blur(14px) brightness(0.92)', transform:'scale(1.25)'}} />
                                     <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
-                                        className="w-full h-full rounded-2xl shadow cursor-pointer active:opacity-80"
+                                        className="relative w-full h-full rounded-2xl cursor-pointer active:opacity-80"
                                         style={{objectFit:'contain', transform:`scale(${exZoom})`, transformOrigin:'center'}} />
                                     {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
                                         className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
@@ -1642,8 +1643,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     <div className="flex gap-2 mb-0">
                         {dispImgSrc ? (
                             <div className="relative flex-1 min-w-0 overflow-hidden rounded-2xl" style={{height:'7.5rem'}}>
+                                <img src={dispImgSrc} alt="" aria-hidden="true" draggable={false} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{filter:'blur(14px) brightness(0.92)', transform:'scale(1.25)'}} />
                                 <img src={dispImgSrc} alt={ex.title} onClick={()=>setLightbox(dispImgSrc)}
-                                    className="w-full h-full rounded-2xl shadow cursor-pointer active:opacity-80"
+                                    className="relative w-full h-full rounded-2xl cursor-pointer active:opacity-80"
                                     style={{objectFit:'contain', transform:`scale(${exZoom})`, transformOrigin:'center'}} />
                                 {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
                                     className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}

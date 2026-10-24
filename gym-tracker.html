@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.12';
+var APP_VERSION = '10.13';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -3725,11 +3725,21 @@ var DetailView = memo(function DetailView(_ref17) {
       }
     }, /*#__PURE__*/React.createElement("img", {
       src: dispImgSrc,
+      alt: "",
+      "aria-hidden": "true",
+      draggable: false,
+      className: "absolute inset-0 w-full h-full object-cover pointer-events-none",
+      style: {
+        filter: 'blur(14px) brightness(0.92)',
+        transform: 'scale(1.25)'
+      }
+    }), /*#__PURE__*/React.createElement("img", {
+      src: dispImgSrc,
       alt: ex.title,
       onClick: function onClick() {
         return setLightbox(dispImgSrc);
       },
-      className: "w-full h-full rounded-2xl shadow cursor-pointer active:opacity-80",
+      className: "relative w-full h-full rounded-2xl cursor-pointer active:opacity-80",
       style: {
         objectFit: 'contain',
         transform: "scale(".concat(exZoom, ")"),
@@ -3758,11 +3768,21 @@ var DetailView = memo(function DetailView(_ref17) {
       }
     }, /*#__PURE__*/React.createElement("img", {
       src: dispImgSrc,
+      alt: "",
+      "aria-hidden": "true",
+      draggable: false,
+      className: "absolute inset-0 w-full h-full object-cover pointer-events-none",
+      style: {
+        filter: 'blur(14px) brightness(0.92)',
+        transform: 'scale(1.25)'
+      }
+    }), /*#__PURE__*/React.createElement("img", {
+      src: dispImgSrc,
       alt: ex.title,
       onClick: function onClick() {
         return setLightbox(dispImgSrc);
       },
-      className: "w-full h-full rounded-2xl shadow cursor-pointer active:opacity-80",
+      className: "relative w-full h-full rounded-2xl cursor-pointer active:opacity-80",
       style: {
         objectFit: 'contain',
         transform: "scale(".concat(exZoom, ")"),
