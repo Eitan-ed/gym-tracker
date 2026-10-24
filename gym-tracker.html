@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.11';
+var APP_VERSION = '10.12';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -6260,6 +6260,7 @@ var ManageView = function ManageView(_ref27) {
     }, g.exercises.map(function (ex) {
       var _settings$weightSteps, _settings$warmupEmbed, _settings$warmupEmbed2;
       var isHidden = hiddenExercises.has(ex.id);
+      var isOff = isHidden && !oneTimeEx.has(ex.id); // לא פעיל = מוסתר (ולא נוסף לאימון של היום)
       var img = (images === null || images === void 0 ? void 0 : images[ex.id]) || (EXERCISE_IMAGES[ex.id] ? "images/".concat(EXERCISE_IMAGES[ex.id]) : null);
       return /*#__PURE__*/React.createElement("div", {
         key: ex.id,
@@ -6268,16 +6269,16 @@ var ManageView = function ManageView(_ref27) {
         onClick: function onClick() {
           return !exOrderDraft && onNavigateToGroup && onNavigateToGroup(g);
         },
-        className: "w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 shadow-sm transition-all active:scale-[0.98]\n                                                    ".concat(isHidden ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white')
+        className: "w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 shadow-sm transition-all active:scale-[0.98]\n                                                    ".concat(isOff ? 'border-slate-200 bg-white' : 'border-indigo-300 bg-indigo-50')
       }, img ? /*#__PURE__*/React.createElement("img", {
         src: img,
-        className: "w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm"
+        className: "w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm ".concat(isOff ? 'grayscale opacity-70' : '')
       }) : /*#__PURE__*/React.createElement("div", {
-        className: "w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ".concat(g.color, " shrink-0 shadow-sm")
+        className: "w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ".concat(g.color, " shrink-0 shadow-sm ").concat(isOff ? 'grayscale opacity-70' : '')
       }, g.icon), /*#__PURE__*/React.createElement("div", {
         className: "flex-1 min-w-0 text-right"
       }, /*#__PURE__*/React.createElement("div", {
-        className: "text-[13px] font-black truncate ".concat(isHidden ? 'text-indigo-700' : 'text-slate-700'),
+        className: "text-[13px] font-black truncate ".concat(isOff ? 'text-slate-700' : 'text-indigo-700'),
         onTouchStart: function onTouchStart(e) {
           e.currentTarget._lp = setTimeout(function () {
             e.preventDefault();
@@ -11444,16 +11445,16 @@ function App() {
       onClick: function onClick() {
         return handleOpenExercise(group);
       },
-      className: "flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer\n                                    ".concat(isDone ? 'opacity-70' : isNext ? 'scale-[1.02]' : '', "\n                                    ").concat((reorderMode === null || reorderMode === void 0 ? void 0 : reorderMode.groupId) === group.id ? 'ring-4 ring-indigo-400' : ''),
+      className: "flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer\n                                    ".concat(isDoneReal ? 'opacity-70' : isSkipped ? 'opacity-70' : isNext ? 'scale-[1.02]' : '', "\n                                    ").concat((reorderMode === null || reorderMode === void 0 ? void 0 : reorderMode.groupId) === group.id ? 'ring-4 ring-indigo-400' : ''),
       style: {
-        background: isDone ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : '#ffffff',
-        border: isDone ? '2px solid #9ca3af' : isNext ? '4px solid #a855f7' : '3px solid #a855f7',
-        boxShadow: isDone ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(168,85,247,0.18)'
+        background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
+        border: !isDoneReal && !isSkipped ? isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1' : 'none',
+        boxShadow: isDoneReal || isSkipped ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'
       }
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex items-center justify-between p-4 rounded-[1.4rem]",
       style: {
-        background: isDone ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : '#ffffff'
+        background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'
       }
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex items-start gap-4"
@@ -11478,7 +11479,7 @@ function App() {
     }(), /*#__PURE__*/React.createElement("span", {
       className: isNext ? 'text-[10px] font-black text-white px-1.5 py-0.5 rounded-full' : 'text-[10px] font-black text-slate-400',
       style: isNext ? {
-        background: '#a855f7'
+        background: group.hex
       } : undefined
     }, idx + 1, "/", visibleGroups.length)), /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col justify-center",
@@ -11486,7 +11487,7 @@ function App() {
         minHeight: '3rem'
       }
     }, /*#__PURE__*/React.createElement("div", {
-      className: "font-black text-[15px] leading-tight ".concat(isDone ? 'text-slate-500 line-through' : 'text-purple-700')
+      className: "font-black text-[15px] leading-tight ".concat(isDone ? 'text-slate-500 line-through' : 'text-slate-800')
     }, group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-2 mt-1.5 flex-wrap"
     }, /*#__PURE__*/React.createElement("div", {

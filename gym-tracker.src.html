@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.11';
+const APP_VERSION = '10.12';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2795,18 +2795,19 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <div className="flex-1 min-w-0 space-y-2">
                                 {g.exercises.map(ex => {
                                     const isHidden = hiddenExercises.has(ex.id);
+                                    const isOff = isHidden && !oneTimeEx.has(ex.id); // לא פעיל = מוסתר (ולא נוסף לאימון של היום)
                                     const img = images?.[ex.id] || (EXERCISE_IMAGES[ex.id] ? `images/${EXERCISE_IMAGES[ex.id]}` : null);
                                     return (
                                         <div key={ex.id} className="flex flex-col gap-1.5">
                                             <button onClick={()=>!exOrderDraft && onNavigateToGroup && onNavigateToGroup(g)}
                                                 className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl border-2 shadow-sm transition-all active:scale-[0.98]
-                                                    ${isHidden ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white'}`}>
+                                                    ${isOff ? 'border-slate-200 bg-white' : 'border-indigo-300 bg-indigo-50'}`}>
                                                 {img
-                                                    ? <img src={img} className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm" />
-                                                    : <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ${g.color} shrink-0 shadow-sm`}>{g.icon}</div>
+                                                    ? <img src={img} className={`w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm ${isOff ? 'grayscale opacity-70' : ''}`} />
+                                                    : <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br ${g.color} shrink-0 shadow-sm ${isOff ? 'grayscale opacity-70' : ''}`}>{g.icon}</div>
                                                 }
                                                 <div className="flex-1 min-w-0 text-right">
-                                                    <div className={`text-[13px] font-black truncate ${isHidden ? 'text-indigo-700' : 'text-slate-700'}`}
+                                                    <div className={`text-[13px] font-black truncate ${isOff ? 'text-slate-700' : 'text-indigo-700'}`}
                                                         onTouchStart={e => { e.currentTarget._lp = setTimeout(()=>{ e.preventDefault(); const cur = customNames[ex.id] || ex.title; const n = prompt('שם תרגיל:', cur); if (n !== null && n.trim()) { setCustomNames(prev=>({...prev,[ex.id]:n.trim()})); showToast('השם עודכן'); } else if (n !== null && !n.trim()) { setCustomNames(prev=>{ const c={...prev}; delete c[ex.id]; return c; }); showToast('השם אופס לברירת מחדל'); } }, 600); }}
                                                         onTouchEnd={e => clearTimeout(e.currentTarget._lp)}
                                                         onTouchMove={e => clearTimeout(e.currentTarget._lp)}
@@ -5257,19 +5258,19 @@ function App() {
                             </div>
                             <div id={reorderMode?.groupId===group.id ? 'reorder-target-row' : undefined} onClick={()=>handleOpenExercise(group)}
                                 className={`flex-1 p-0.5 rounded-[1.6rem] transition-all active:scale-[0.98] cursor-pointer
-                                    ${isDone?'opacity-70':isNext?'scale-[1.02]':''}
+                                    ${isDoneReal?'opacity-70':isSkipped?'opacity-70':isNext?'scale-[1.02]':''}
                                     ${reorderMode?.groupId===group.id ? 'ring-4 ring-indigo-400' : ''}`}
-                                style={{background: isDone ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : '#ffffff',
-                                    border: isDone ? '2px solid #9ca3af' : (isNext ? '4px solid #a855f7' : '3px solid #a855f7'),
-                                    boxShadow: isDone ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(168,85,247,0.18)'}}>
-                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDone ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : '#ffffff'}}>
+                                style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
+                                    border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
+                                    boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
+                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
                                     <div className="flex items-start gap-4">
                                         <div className="flex flex-col items-center gap-0.5 shrink-0">
                                             {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-12 h-12 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
-                                            <span className={isNext ? 'text-[10px] font-black text-white px-1.5 py-0.5 rounded-full' : 'text-[10px] font-black text-slate-400'} style={isNext ? {background:'#a855f7'} : undefined}>{idx+1}/{visibleGroups.length}</span>
+                                            <span className={isNext ? 'text-[10px] font-black text-white px-1.5 py-0.5 rounded-full' : 'text-[10px] font-black text-slate-400'} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
                                         </div>
                                         <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
-                                            <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-purple-700'}`}>
+                                            <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
                                             {group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
                                         </div>
                                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
