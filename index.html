@@ -42,17 +42,17 @@ function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArra
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
 function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
-function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
-function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, e) { if ("object" != _typeof(t) || !t) return t; var r; if ("undefined" != typeof Symbol && void 0 !== (r = t[Symbol.toPrimitive])) { var i = r.call(t, e || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === e ? String : Number)(t); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, e) { if ("object" != _typeof(t) || !t) return t; var r; if ("undefined" != typeof Symbol && void 0 !== (r = t[Symbol.toPrimitive])) { var i = r.call(t, e || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === e ? String : Number)(t); }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i["return"]) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.16';
+var APP_VERSION = '10.17';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -237,6 +237,24 @@ var IDB = function () {
   };
 }();
 
+// שינוי שם תרגיל (לחיצה כפולה / עיפרון): ריק = איפוס לשם המקורי
+function promptRenameExercise(exId, current, setCustomNames, toast) {
+  var n = prompt('שם תרגיל:', current);
+  if (n === null || !setCustomNames) return;
+  if (n.trim()) {
+    setCustomNames(function (prev) {
+      return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, n.trim()));
+    });
+    toast && toast('השם עודכן');
+  } else {
+    setCustomNames(function (prev) {
+      var c = _objectSpread({}, prev);
+      delete c[exId];
+      return c;
+    });
+    toast && toast('השם אופס לברירת מחדל');
+  }
+}
 // Icons — SVG inline (ללא תלות בספרייה חיצונית)
 var ICONS = {
   Home: [['path', {
@@ -263,6 +281,9 @@ var ICONS = {
     d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
   }], ['path', {
     d: "M3 3v5h5"
+  }]],
+  Pencil: [['path', {
+    d: "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"
   }]],
   Plus: [['path', {
     d: "M5 12h14"
@@ -524,6 +545,31 @@ var Icon = function Icon(_ref) {
 var GRAVITRON_EXERCISES = new Set(['ex7b']);
 
 // ─── תוויות עמוד להערות שיפור (מפתח → שם תצוגה) ────────────
+// תאריך וסטטוס לכל הערת שיפור פעילה (חדש / בעבודה / אומת) — נשמר ב-gym-dev-notes-meta (נכלל בגיבוי הכללי)
+var DEV_STATUS = {
+  "new": 'חדש',
+  wip: 'בעבודה',
+  verified: 'אומת'
+};
+var DEV_STATUS_NEXT = {
+  "new": 'wip',
+  wip: 'verified',
+  verified: 'new'
+};
+var getDevMeta = function getDevMeta(k) {
+  return (LS.get('gym-dev-notes-meta', {}) || {})[k] || null;
+};
+var setDevMeta = function setDevMeta(k, patch) {
+  var m = LS.get('gym-dev-notes-meta', {}) || {};
+  m[k] = _objectSpread(_objectSpread({}, m[k] || {}), patch);
+  LS.set('gym-dev-notes-meta', m);
+};
+var devMetaLabel = function devMetaLabel(k) {
+  var m = getDevMeta(k);
+  var d = m !== null && m !== void 0 && m.at ? new Date(m.at) : null;
+  var ds = d ? "".concat(String(d.getDate()).padStart(2, '0'), ".").concat(String(d.getMonth() + 1).padStart(2, '0'), ".").concat(String(d.getFullYear()).slice(2)) : 'ללא תאריך';
+  return "".concat(ds, " \xB7 ").concat(DEV_STATUS[(m === null || m === void 0 ? void 0 : m.status) || 'new']);
+};
 // ─── היסטוריית תיקונים: כל בקשה שהועברה (לטיקטיק/סומנה) נשמרת לצמיתות עם תאריך, כדי לבדוק בדיעבד שהכול בוצע ───
 var DEV_HIST_VIA = {
   tiktik: 'הועבר לטיקטיק',
@@ -3363,6 +3409,8 @@ var DetailView = memo(function DetailView(_ref17) {
     onToggleWorkout = _ref17$onToggleWorkou === void 0 ? null : _ref17$onToggleWorkou,
     _ref17$customNames = _ref17.customNames,
     customNames = _ref17$customNames === void 0 ? {} : _ref17$customNames,
+    _ref17$setCustomNames = _ref17.setCustomNames,
+    setCustomNames = _ref17$setCustomNames === void 0 ? null : _ref17$setCustomNames,
     _ref17$customHowTo = _ref17.customHowTo,
     customHowTo = _ref17$customHowTo === void 0 ? {} : _ref17$customHowTo,
     _ref17$setCustomHowTo = _ref17.setCustomHowTo,
@@ -3783,7 +3831,10 @@ var DetailView = memo(function DetailView(_ref17) {
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex-1 flex flex-col gap-1.5 min-w-0"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "text-sm font-black text-slate-800 leading-tight px-0.5"
+      className: "text-sm font-black text-slate-800 leading-tight px-0.5",
+      onDoubleClick: function onDoubleClick() {
+        return promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames);
+      }
     }, customNames[ex.id] || ex.title), dispImgSrc ? /*#__PURE__*/React.createElement("div", {
       className: "relative flex-1 min-w-0 overflow-hidden rounded-2xl",
       style: {
@@ -4334,7 +4385,7 @@ var DetailView = memo(function DetailView(_ref17) {
       // כיתוב המשקל הבא (קטן, מתחת לתמונה): חימום אם ממתין, אחרת הסט הבא
       var fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
       var fWarm = fInfo.isWarmup;
-      var fW = done ? 0 : fInfo.weight;
+      var fW = done ? 0 : fInfo.weight || g.exercises[0].startW || DEFAULT_STARTING_WEIGHTS[g.exercises[0].id] || 0;
       var gRt = Math.max.apply(Math, [0].concat(_toConsumableArray(g.exercises.map(function (e) {
         return restTimers[e.id] || 0;
       }))));
@@ -4513,6 +4564,11 @@ var fmtDur = function fmtDur(sec) {
     s = sec % 60;
   return "".concat(m, ":").concat(String(s).padStart(2, '0'));
 };
+var TOTAL_EX_COUNT = function TOTAL_EX_COUNT() {
+  return exerciseGroups.reduce(function (n, g) {
+    return n + g.exercises.length;
+  }, 0);
+};
 var HistoryView = function HistoryView(_ref19) {
   var logs = _ref19.logs,
     sessionDurations = _ref19.sessionDurations,
@@ -4562,7 +4618,11 @@ var HistoryView = function HistoryView(_ref19) {
     onSaveDevNote: onSaveDevNote
   }))), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32"
-  }, grouped.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden"
+  }, /*#__PURE__*/React.createElement(WorkoutProgressCalendar, {
+    logs: logs
+  })), grouped.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "flex flex-col items-center justify-center h-[50vh] text-slate-400"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Dumbbell",
@@ -4583,9 +4643,13 @@ var HistoryView = function HistoryView(_ref19) {
         ts = _ref23[0];
       return new Date(Number(ts)).toLocaleDateString('he-IL') === date;
     })) === null || _Object$entries$find === void 0 ? void 0 : _Object$entries$find[1];
+    var exCount = new Set(items.map(function (i) {
+      return i.exId;
+    })).size;
+    var isShort = exCount < 5;
     return /*#__PURE__*/React.createElement("div", {
       key: gkey,
-      className: "bg-slate-50 rounded-[2.2rem] border border-slate-100 shadow-sm overflow-hidden"
+      className: "rounded-[2.2rem] border shadow-sm overflow-hidden ".concat(isShort ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100')
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex justify-between items-center bg-white p-1"
     }, /*#__PURE__*/React.createElement("button", {
@@ -4596,14 +4660,16 @@ var HistoryView = function HistoryView(_ref19) {
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-4"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "w-3 h-3 rounded-full bg-blue-500 shrink-0"
+      className: "w-3 h-3 rounded-full shrink-0 ".concat(isShort ? 'bg-red-500' : 'bg-blue-500')
     }), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-2"
     }, /*#__PURE__*/React.createElement("span", {
       className: "font-black text-slate-500 text-base shrink-0"
     }, getDayLetterHe(items[0].timestamp)), /*#__PURE__*/React.createElement("span", {
-      className: "font-black text-slate-800"
-    }, fmtDateShort(items[0].timestamp)), dur > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "font-black ".concat(isShort ? 'text-red-600' : 'text-slate-800')
+    }, fmtDateShort(items[0].timestamp)), /*#__PURE__*/React.createElement("span", {
+      className: "text-[11px] font-black ".concat(isShort ? 'text-red-500' : 'text-slate-400')
+    }, exCount, "/", TOTAL_EX_COUNT(), " \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD"), dur > 0 && /*#__PURE__*/React.createElement("span", {
       className: "text-[11px] font-bold text-slate-400 flex items-center gap-0.5"
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "Clock",
@@ -4660,7 +4726,7 @@ var HistoryView = function HistoryView(_ref19) {
         size: 11
       }), fmtDur(dur)), /*#__PURE__*/React.createElement("span", {
         className: "bg-slate-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-slate-600"
-      }, items.length, " \u05E1\u05D8\u05D9\u05DD \xB7 ", uniqueEx, " \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD"), (wn === null || wn === void 0 ? void 0 : wn.bw) > 0 && /*#__PURE__*/React.createElement("span", {
+      }, items.length, " \u05E1\u05D8\u05D9\u05DD \xB7 ", uniqueEx, " \u05DE\u05EA\u05D5\u05DA ", TOTAL_EX_COUNT(), " \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD"), (wn === null || wn === void 0 ? void 0 : wn.bw) > 0 && /*#__PURE__*/React.createElement("span", {
         className: "bg-sky-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-sky-600"
       }, "\u2696\uFE0F ", wn.bw, " \u05E7\u05F4\u05D2")), wn !== null && wn !== void 0 && wn.note ? /*#__PURE__*/React.createElement("div", {
         className: "bg-amber-50 rounded-2xl px-3 py-2 border border-amber-100 text-[12px] font-bold text-slate-600 whitespace-pre-wrap"
@@ -4768,55 +4834,236 @@ var saveBackupDirHandle = /*#__PURE__*/function () {
   }
   return saveBackupDirHandle;
 }();
-var writeToDir = /*#__PURE__*/function () {
-  var _writeToDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dirHandle, json, fname) {
-    var perm, req, fh, writable;
+
+// גיבוי מדיה (סרטונים שהועלו + מוזיקה, שנשמרים ב-IndexedDB ולכן לא נכנסים לקובץ ה-JSON) לתת-תיקייה gym-media-backup.
+// קובץ שכבר קיים באותו גודל לא נכתב מחדש. מחזיר מספר קבצים שנכתבו, או -1 בכשל.
+var backupMediaToDir = /*#__PURE__*/function () {
+  var _backupMediaToDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dirHandle) {
+    var sub, extOf, items, _i, _exerciseGroups, g, _iterator3, _step3, e, b, music, _iterator4, _step4, m, _b, written, _i2, _items, it, same, f, w, idx, _t5, _t6, _t7, _t8;
     return _regenerator().w(function (_context0) {
-      while (1) switch (_context0.n) {
+      while (1) switch (_context0.p = _context0.n) {
         case 0:
+          _context0.p = 0;
           _context0.n = 1;
+          return dirHandle.getDirectoryHandle('gym-media-backup', {
+            create: true
+          });
+        case 1:
+          sub = _context0.v;
+          extOf = function extOf(b) {
+            return (String(b.type || '').split('/')[1] || 'bin').split(';')[0].replace(/[^a-z0-9]/gi, '') || 'bin';
+          };
+          items = [];
+          _i = 0, _exerciseGroups = exerciseGroups;
+        case 2:
+          if (!(_i < _exerciseGroups.length)) {
+            _context0.n = 11;
+            break;
+          }
+          g = _exerciseGroups[_i];
+          _iterator3 = _createForOfIteratorHelper(g.exercises);
+          _context0.p = 3;
+          _iterator3.s();
+        case 4:
+          if ((_step3 = _iterator3.n()).done) {
+            _context0.n = 7;
+            break;
+          }
+          e = _step3.value;
+          _context0.n = 5;
+          return IDB.get("video-".concat(e.id));
+        case 5:
+          b = _context0.v;
+          if (b && b.size) items.push({
+            fname: "video-".concat(e.id, ".").concat(extOf(b)),
+            blob: b
+          });
+        case 6:
+          _context0.n = 4;
+          break;
+        case 7:
+          _context0.n = 9;
+          break;
+        case 8:
+          _context0.p = 8;
+          _t5 = _context0.v;
+          _iterator3.e(_t5);
+        case 9:
+          _context0.p = 9;
+          _iterator3.f();
+          return _context0.f(9);
+        case 10:
+          _i++;
+          _context0.n = 2;
+          break;
+        case 11:
+          music = LS.get('gym-music-list', []);
+          _iterator4 = _createForOfIteratorHelper(music);
+          _context0.p = 12;
+          _iterator4.s();
+        case 13:
+          if ((_step4 = _iterator4.n()).done) {
+            _context0.n = 16;
+            break;
+          }
+          m = _step4.value;
+          _context0.n = 14;
+          return IDB.get("music-".concat(m.id));
+        case 14:
+          _b = _context0.v;
+          if (_b && _b.size) items.push({
+            fname: "music-".concat(m.id, ".").concat(extOf(_b)),
+            blob: _b
+          });
+        case 15:
+          _context0.n = 13;
+          break;
+        case 16:
+          _context0.n = 18;
+          break;
+        case 17:
+          _context0.p = 17;
+          _t6 = _context0.v;
+          _iterator4.e(_t6);
+        case 18:
+          _context0.p = 18;
+          _iterator4.f();
+          return _context0.f(18);
+        case 19:
+          written = 0;
+          _i2 = 0, _items = items;
+        case 20:
+          if (!(_i2 < _items.length)) {
+            _context0.n = 32;
+            break;
+          }
+          it = _items[_i2];
+          same = false;
+          _context0.p = 21;
+          _context0.n = 22;
+          return sub.getFileHandle(it.fname);
+        case 22:
+          _context0.n = 23;
+          return _context0.v.getFile();
+        case 23:
+          f = _context0.v;
+          same = f.size === it.blob.size;
+          _context0.n = 25;
+          break;
+        case 24:
+          _context0.p = 24;
+          _t7 = _context0.v;
+        case 25:
+          if (!same) {
+            _context0.n = 26;
+            break;
+          }
+          return _context0.a(3, 31);
+        case 26:
+          _context0.n = 27;
+          return sub.getFileHandle(it.fname, {
+            create: true
+          });
+        case 27:
+          _context0.n = 28;
+          return _context0.v.createWritable();
+        case 28:
+          w = _context0.v;
+          _context0.n = 29;
+          return w.write(it.blob);
+        case 29:
+          _context0.n = 30;
+          return w.close();
+        case 30:
+          written++;
+        case 31:
+          _i2++;
+          _context0.n = 20;
+          break;
+        case 32:
+          _context0.n = 33;
+          return sub.getFileHandle('index.json', {
+            create: true
+          });
+        case 33:
+          _context0.n = 34;
+          return _context0.v.createWritable();
+        case 34:
+          idx = _context0.v;
+          _context0.n = 35;
+          return idx.write(JSON.stringify({
+            at: new Date().toISOString(),
+            music: music,
+            files: items.map(function (i) {
+              return i.fname;
+            })
+          }, null, 2));
+        case 35:
+          _context0.n = 36;
+          return idx.close();
+        case 36:
+          return _context0.a(2, written);
+        case 37:
+          _context0.p = 37;
+          _t8 = _context0.v;
+          return _context0.a(2, -1);
+      }
+    }, _callee0, null, [[21, 24], [12, 17, 18, 19], [3, 8, 9, 10], [0, 37]]);
+  }));
+  function backupMediaToDir(_x9) {
+    return _backupMediaToDir.apply(this, arguments);
+  }
+  return backupMediaToDir;
+}();
+var writeToDir = /*#__PURE__*/function () {
+  var _writeToDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(dirHandle, json, fname) {
+    var perm, req, fh, writable;
+    return _regenerator().w(function (_context1) {
+      while (1) switch (_context1.n) {
+        case 0:
+          _context1.n = 1;
           return dirHandle.queryPermission({
             mode: 'readwrite'
           });
         case 1:
-          perm = _context0.v;
+          perm = _context1.v;
           if (!(perm !== 'granted')) {
-            _context0.n = 3;
+            _context1.n = 3;
             break;
           }
-          _context0.n = 2;
+          _context1.n = 2;
           return dirHandle.requestPermission({
             mode: 'readwrite'
           });
         case 2:
-          req = _context0.v;
+          req = _context1.v;
           if (!(req !== 'granted')) {
-            _context0.n = 3;
+            _context1.n = 3;
             break;
           }
-          return _context0.a(2, false);
+          return _context1.a(2, false);
         case 3:
-          _context0.n = 4;
+          _context1.n = 4;
           return dirHandle.getFileHandle(fname, {
             create: true
           });
         case 4:
-          fh = _context0.v;
-          _context0.n = 5;
+          fh = _context1.v;
+          _context1.n = 5;
           return fh.createWritable();
         case 5:
-          writable = _context0.v;
-          _context0.n = 6;
+          writable = _context1.v;
+          _context1.n = 6;
           return writable.write(json);
         case 6:
-          _context0.n = 7;
+          _context1.n = 7;
           return writable.close();
         case 7:
-          return _context0.a(2, true);
+          return _context1.a(2, true);
       }
-    }, _callee0);
+    }, _callee1);
   }));
-  function writeToDir(_x9, _x0, _x1) {
+  function writeToDir(_x0, _x1, _x10) {
     return _writeToDir.apply(this, arguments);
   }
   return writeToDir;
@@ -4827,13 +5074,13 @@ var writeToDir = /*#__PURE__*/function () {
 var markBackupOk = function markBackupOk() {
   try {
     localStorage.setItem('gym-last-ok-backup', String(Date.now()));
-  } catch (_unused9) {}
+  } catch (_unused1) {}
 };
 var backupAgeDays = function backupAgeDays() {
   try {
     var t = Number(localStorage.getItem('gym-last-ok-backup') || 0);
     return t ? (Date.now() - t) / 864e5 : Infinity;
-  } catch (_unused0) {
+  } catch (_unused10) {
     return Infinity;
   }
 };
@@ -4842,14 +5089,14 @@ try {
   navigator.storage && navigator.storage.persist && navigator.storage.persist().then(function (g) {
     try {
       localStorage.setItem('gym-persist-granted', g ? '1' : '0');
-    } catch (_unused1) {}
+    } catch (_unused11) {}
   });
-} catch (_unused10) {}
+} catch (_unused12) {}
 var triggerBackupDownload = /*#__PURE__*/function () {
-  var _triggerBackupDownload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(data, silent) {
-    var payload, json, fname, dirOk, opts, fh, writable, _fh$getParent, parent, blob, url, a, _t5, _t6, _t7;
-    return _regenerator().w(function (_context1) {
-      while (1) switch (_context1.p = _context1.n) {
+  var _triggerBackupDownload = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(data, silent) {
+    var payload, json, fname, dirOk, opts, fh, writable, _fh$getParent, parent, blob, url, a, _t9, _t0, _t1;
+    return _regenerator().w(function (_context10) {
+      while (1) switch (_context10.p = _context10.n) {
         case 0:
           payload = _objectSpread(_objectSpread({}, data), {}, {
             _all: collectAllGymData()
@@ -4858,25 +5105,32 @@ var triggerBackupDownload = /*#__PURE__*/function () {
           fname = "gym-backup-".concat(new Date().toLocaleDateString('he-IL').replace(/\./g, '-'), ".json");
           dirOk = false;
           if (!_backupDirHandle) {
-            _context1.n = 4;
+            _context10.n = 5;
             break;
           }
-          _context1.p = 1;
-          _context1.n = 2;
+          _context10.p = 1;
+          _context10.n = 2;
           return writeToDir(_backupDirHandle, json, fname);
         case 2:
-          dirOk = _context1.v;
-          _context1.n = 4;
+          dirOk = _context10.v;
+          _context10.n = 4;
           break;
         case 3:
-          _context1.p = 3;
-          _t5 = _context1.v;
+          _context10.p = 3;
+          _t9 = _context10.v;
         case 4:
-          if (!(!silent && !_backupDirHandle && window.showSaveFilePicker)) {
-            _context1.n = 15;
+          if (!dirOk) {
+            _context10.n = 5;
             break;
           }
-          _context1.p = 5;
+          _context10.n = 5;
+          return backupMediaToDir(_backupDirHandle);
+        case 5:
+          if (!(!silent && !_backupDirHandle && window.showSaveFilePicker)) {
+            _context10.n = 16;
+            break;
+          }
+          _context10.p = 6;
           opts = {
             suggestedName: fname,
             types: [{
@@ -4886,49 +5140,49 @@ var triggerBackupDownload = /*#__PURE__*/function () {
               }
             }]
           };
-          _context1.n = 6;
+          _context10.n = 7;
           return window.showSaveFilePicker(opts);
-        case 6:
-          fh = _context1.v;
-          _context1.n = 7;
-          return fh.createWritable();
         case 7:
-          writable = _context1.v;
-          _context1.n = 8;
-          return writable.write(json);
+          fh = _context10.v;
+          _context10.n = 8;
+          return fh.createWritable();
         case 8:
-          _context1.n = 9;
-          return writable.close();
+          writable = _context10.v;
+          _context10.n = 9;
+          return writable.write(json);
         case 9:
-          _context1.p = 9;
-          _context1.n = 10;
-          return (_fh$getParent = fh.getParent) === null || _fh$getParent === void 0 ? void 0 : _fh$getParent.call(fh);
+          _context10.n = 10;
+          return writable.close();
         case 10:
-          parent = _context1.v;
-          if (!parent) {
-            _context1.n = 11;
-            break;
-          }
-          _context1.n = 11;
-          return saveBackupDirHandle(parent);
+          _context10.p = 10;
+          _context10.n = 11;
+          return (_fh$getParent = fh.getParent) === null || _fh$getParent === void 0 ? void 0 : _fh$getParent.call(fh);
         case 11:
-          _context1.n = 13;
-          break;
-        case 12:
-          _context1.p = 12;
-          _t6 = _context1.v;
-        case 13:
-          markBackupOk();
-          return _context1.a(2, true);
-        case 14:
-          _context1.p = 14;
-          _t7 = _context1.v;
-          if (!(_t7.name === 'AbortError')) {
-            _context1.n = 15;
+          parent = _context10.v;
+          if (!parent) {
+            _context10.n = 12;
             break;
           }
-          return _context1.a(2, dirOk);
+          _context10.n = 12;
+          return saveBackupDirHandle(parent);
+        case 12:
+          _context10.n = 14;
+          break;
+        case 13:
+          _context10.p = 13;
+          _t0 = _context10.v;
+        case 14:
+          markBackupOk();
+          return _context10.a(2, true);
         case 15:
+          _context10.p = 15;
+          _t1 = _context10.v;
+          if (!(_t1.name === 'AbortError')) {
+            _context10.n = 16;
+            break;
+          }
+          return _context10.a(2, dirOk);
+        case 16:
           blob = new Blob([json], {
             type: 'application/json'
           });
@@ -4939,11 +5193,11 @@ var triggerBackupDownload = /*#__PURE__*/function () {
           a.click();
           URL.revokeObjectURL(url);
           markBackupOk();
-          return _context1.a(2, true);
+          return _context10.a(2, true);
       }
-    }, _callee1, null, [[9, 12], [5, 14], [1, 3]]);
+    }, _callee10, null, [[10, 13], [6, 15], [1, 3]]);
   }));
-  function triggerBackupDownload(_x10, _x11) {
+  function triggerBackupDownload(_x11, _x12) {
     return _triggerBackupDownload.apply(this, arguments);
   }
   return triggerBackupDownload;
@@ -4952,52 +5206,59 @@ var triggerBackupDownload = /*#__PURE__*/function () {
 // גיבוי שקט לתיקיית FILING בלבד — ללא הורדה מקומית וללא כל דיאלוג — לשימוש אוטומטי בלחיצת "שמור" בסיכום אימון.
 // בניגוד ל-triggerBackupDownload (שתמיד מוריד עותק מקומי בכוונה), הפונקציה הזו לא נוגעת בהורדה כלל.
 var silentBackupToFiling = /*#__PURE__*/function () {
-  var _silentBackupToFiling = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(data) {
-    var payload, json, fname, ok, _t8;
-    return _regenerator().w(function (_context10) {
-      while (1) switch (_context10.p = _context10.n) {
+  var _silentBackupToFiling = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(data) {
+    var payload, json, fname, ok, _t10;
+    return _regenerator().w(function (_context11) {
+      while (1) switch (_context11.p = _context11.n) {
         case 0:
           if (_backupDirHandle) {
-            _context10.n = 1;
+            _context11.n = 1;
             break;
           }
-          return _context10.a(2, false);
+          return _context11.a(2, false);
         case 1:
-          _context10.p = 1;
+          _context11.p = 1;
           payload = _objectSpread(_objectSpread({}, data), {}, {
             _all: collectAllGymData()
           });
           json = JSON.stringify(payload, null, 2);
           fname = "gym-backup-".concat(new Date().toLocaleDateString('he-IL').replace(/\./g, '-'), ".json");
-          _context10.n = 2;
+          _context11.n = 2;
           return writeToDir(_backupDirHandle, json, fname);
         case 2:
-          ok = _context10.v;
-          if (ok) markBackupOk();
-          return _context10.a(2, ok);
+          ok = _context11.v;
+          if (!ok) {
+            _context11.n = 3;
+            break;
+          }
+          markBackupOk();
+          _context11.n = 3;
+          return backupMediaToDir(_backupDirHandle);
         case 3:
-          _context10.p = 3;
-          _t8 = _context10.v;
-          return _context10.a(2, false);
+          return _context11.a(2, ok);
+        case 4:
+          _context11.p = 4;
+          _t10 = _context11.v;
+          return _context11.a(2, false);
       }
-    }, _callee10, null, [[1, 3]]);
+    }, _callee11, null, [[1, 4]]);
   }));
-  function silentBackupToFiling(_x12) {
+  function silentBackupToFiling(_x13) {
     return _silentBackupToFiling.apply(this, arguments);
   }
   return silentBackupToFiling;
 }();
 var triggerBackupRestore = /*#__PURE__*/function () {
-  var _triggerBackupRestore = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
-    var opts, _yield$window$showOpe, _yield$window$showOpe2, fh, file, _fh$getParent2, _t9, _t0;
-    return _regenerator().w(function (_context11) {
-      while (1) switch (_context11.p = _context11.n) {
+  var _triggerBackupRestore = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
+    var opts, _yield$window$showOpe, _yield$window$showOpe2, fh, file, _fh$getParent2, _t11, _t12;
+    return _regenerator().w(function (_context12) {
+      while (1) switch (_context12.p = _context12.n) {
         case 0:
           if (!window.showOpenFilePicker) {
-            _context11.n = 9;
+            _context12.n = 9;
             break;
           }
-          _context11.p = 1;
+          _context12.p = 1;
           opts = {
             types: [{
               description: 'JSON',
@@ -5008,40 +5269,40 @@ var triggerBackupRestore = /*#__PURE__*/function () {
             multiple: false
           };
           if (_backupDirHandle) opts.startIn = _backupDirHandle;
-          _context11.n = 2;
+          _context12.n = 2;
           return window.showOpenFilePicker(opts);
         case 2:
-          _yield$window$showOpe = _context11.v;
+          _yield$window$showOpe = _context12.v;
           _yield$window$showOpe2 = _slicedToArray(_yield$window$showOpe, 1);
           fh = _yield$window$showOpe2[0];
-          _context11.n = 3;
+          _context12.n = 3;
           return fh.getFile();
         case 3:
-          file = _context11.v;
-          _context11.p = 4;
-          _context11.n = 5;
+          file = _context12.v;
+          _context12.p = 4;
+          _context12.n = 5;
           return (_fh$getParent2 = fh.getParent) === null || _fh$getParent2 === void 0 ? void 0 : _fh$getParent2.call(fh);
         case 5:
-          _backupDirHandle = _context11.v;
-          _context11.n = 7;
+          _backupDirHandle = _context12.v;
+          _context12.n = 7;
           break;
         case 6:
-          _context11.p = 6;
-          _t9 = _context11.v;
+          _context12.p = 6;
+          _t11 = _context12.v;
         case 7:
-          return _context11.a(2, file);
+          return _context12.a(2, file);
         case 8:
-          _context11.p = 8;
-          _t0 = _context11.v;
-          if (!(_t0.name === 'AbortError')) {
-            _context11.n = 9;
+          _context12.p = 8;
+          _t12 = _context12.v;
+          if (!(_t12.name === 'AbortError')) {
+            _context12.n = 9;
             break;
           }
-          return _context11.a(2, null);
+          return _context12.a(2, null);
         case 9:
-          return _context11.a(2, null);
+          return _context12.a(2, null);
       }
-    }, _callee11, null, [[4, 6], [1, 8]]);
+    }, _callee12, null, [[4, 6], [1, 8]]);
   }));
   function triggerBackupRestore() {
     return _triggerBackupRestore.apply(this, arguments);
@@ -5375,7 +5636,6 @@ var ManageView = function ManageView(_ref27) {
         progress: false,
         history: false,
         instructors: false,
-        gymInfo: false,
         reports: false,
         devNotes: false
       };
@@ -5432,7 +5692,6 @@ var ManageView = function ManageView(_ref27) {
   var musicRef = React.useRef(null);
   var progressRef = React.useRef(null);
   var instructorsRef = React.useRef(null);
-  var gymInfoRef = React.useRef(null);
   var reportsRef = React.useRef(null);
   var devNotesRef = React.useRef(null);
   var sectionRefs = {
@@ -5443,7 +5702,6 @@ var ManageView = function ManageView(_ref27) {
     music: musicRef,
     progress: progressRef,
     instructors: instructorsRef,
-    gymInfo: gymInfoRef,
     reports: reportsRef,
     devNotes: devNotesRef
   };
@@ -5468,11 +5726,10 @@ var ManageView = function ManageView(_ref27) {
     backup: 'גיבוי ושחזור',
     settings: 'הגדרות אימון',
     history: 'היסטוריית אימונים',
-    instructors: 'מדריכים',
+    instructors: 'שעות פתיחה ומדריכים',
     music: 'מוזיקה',
     progress: 'תדירות אימון',
     exercises: 'תרגילים',
-    gymInfo: 'שעות פתיחת מכון',
     reports: 'דוחות',
     devNotes: 'הערות לשיפור'
   };
@@ -5503,12 +5760,12 @@ var ManageView = function ManageView(_ref27) {
     backupDir = _useState88[0],
     setBackupDir = _useState88[1];
   var handleBackup = /*#__PURE__*/function () {
-    var _handleBackup = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
+    var _handleBackup = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13() {
       var ok;
-      return _regenerator().w(function (_context12) {
-        while (1) switch (_context12.n) {
+      return _regenerator().w(function (_context13) {
+        while (1) switch (_context13.n) {
           case 0:
-            _context12.n = 1;
+            _context13.n = 1;
             return triggerBackupDownload({
               logs: logs,
               notes: notes,
@@ -5529,15 +5786,15 @@ var ManageView = function ManageView(_ref27) {
               customHowTo: LS.get('gym-custom-howto', {})
             }, false);
           case 1:
-            ok = _context12.v;
+            ok = _context13.v;
             if (ok) {
               showToast('הגיבוי נשמר בהצלחה');
               setBackupDir(getBackupDirName());
             }
           case 2:
-            return _context12.a(2);
+            return _context13.a(2);
         }
-      }, _callee12);
+      }, _callee13);
     }));
     function handleBackup() {
       return _handleBackup.apply(this, arguments);
@@ -5603,7 +5860,7 @@ var ManageView = function ManageView(_ref27) {
             setCustomNames === null || setCustomNames === void 0 || setCustomNames(data.customNames);
           }
           showToast('הנתונים שוחזרו בהצלחה');
-        } catch (_unused15) {
+        } catch (_unused17) {
           showToast('שגיאה בשחזור', true);
         }
       };
@@ -5611,23 +5868,23 @@ var ManageView = function ManageView(_ref27) {
     });
   };
   var handleRestore = /*#__PURE__*/function () {
-    var _handleRestore = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13() {
+    var _handleRestore = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
       var file;
-      return _regenerator().w(function (_context13) {
-        while (1) switch (_context13.n) {
+      return _regenerator().w(function (_context14) {
+        while (1) switch (_context14.n) {
           case 0:
-            _context13.n = 1;
+            _context14.n = 1;
             return triggerBackupRestore();
           case 1:
-            file = _context13.v;
+            file = _context14.v;
             if (file) {
               setBackupDir(getBackupDirName());
               doRestoreFile(file);
             }
           case 2:
-            return _context13.a(2);
+            return _context14.a(2);
         }
-      }, _callee13);
+      }, _callee14);
     }));
     function handleRestore() {
       return _handleRestore.apply(this, arguments);
@@ -5695,30 +5952,30 @@ var ManageView = function ManageView(_ref27) {
   })), open.backup && /*#__PURE__*/React.createElement("div", {
     className: "px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1"
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
-      var h, _t1;
-      return _regenerator().w(function (_context14) {
-        while (1) switch (_context14.p = _context14.n) {
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15() {
+      var h, _t13;
+      return _regenerator().w(function (_context15) {
+        while (1) switch (_context15.p = _context15.n) {
           case 0:
-            _context14.p = 0;
-            _context14.n = 1;
+            _context15.p = 0;
+            _context15.n = 1;
             return window.showDirectoryPicker();
           case 1:
-            h = _context14.v;
-            _context14.n = 2;
+            h = _context15.v;
+            _context15.n = 2;
             return saveBackupDirHandle(h);
           case 2:
             setBackupDir(h.name);
             showToast('ספריית גיבוי נשמרה');
-            _context14.n = 4;
+            _context15.n = 4;
             break;
           case 3:
-            _context14.p = 3;
-            _t1 = _context14.v;
+            _context15.p = 3;
+            _t13 = _context15.v;
           case 4:
-            return _context14.a(2);
+            return _context15.a(2);
         }
-      }, _callee14, null, [[0, 3]]);
+      }, _callee15, null, [[0, 3]]);
     })),
     className: "w-full flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5857,13 +6114,67 @@ var ManageView = function ManageView(_ref27) {
     name: "BookOpen",
     size: 20,
     className: "text-rose-500"
-  }), " \u05DE\u05D3\u05E8\u05D9\u05DB\u05D9\u05DD (", instructors.length, ")"), /*#__PURE__*/React.createElement(Icon, {
+  }), " \u05E9\u05E2\u05D5\u05EA \u05E4\u05EA\u05D9\u05D7\u05D4 \u05D5\u05DE\u05D3\u05E8\u05D9\u05DB\u05D9\u05DD (", instructors.length, ")"), /*#__PURE__*/React.createElement(Icon, {
     name: open.instructors ? 'ChevronUp' : 'ChevronDown',
     size: 18,
     className: "text-slate-400"
   })), open.instructors && /*#__PURE__*/React.createElement("div", {
     className: "px-5 pb-5 space-y-2 overflow-y-auto no-scrollbar flex-1"
-  }, instructors.map(function (ins) {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3 pb-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-sm font-black text-slate-700"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Clock",
+    size: 16,
+    className: "text-blue-400"
+  }), " \u05E9\u05E2\u05D5\u05EA \u05E4\u05EA\u05D9\u05D7\u05D4"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1 text-[13px] font-bold text-slate-600 mr-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", null, "\u05D0\u05F3 \u2013 \u05D4\u05F3"), /*#__PURE__*/React.createElement("span", {
+    className: "font-black text-slate-800",
+    dir: "ltr"
+  }, "06:00 \u2013 23:00")), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", null, "\u05D5\u05F3"), /*#__PURE__*/React.createElement("span", {
+    className: "font-black text-slate-800",
+    dir: "ltr"
+  }, "06:00 \u2013 16:00")), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", null, "\u05E9\u05F3"), /*#__PURE__*/React.createElement("span", {
+    className: "font-black text-slate-800",
+    dir: "ltr"
+  }, "08:00 \u2013 13:00")))), /*#__PURE__*/React.createElement("a", {
+    href: "tel:*6628",
+    className: "flex items-center gap-3 bg-green-50 p-4 rounded-2xl border border-green-100 text-green-700 active:scale-[0.98]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-green-100 p-2 rounded-xl"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Phone",
+    size: 20
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "font-black text-sm"
+  }, "\u05D8\u05DC\u05E4\u05D5\u05DF"), /*#__PURE__*/React.createElement("div", {
+    className: "text-[13px] font-bold",
+    dir: "ltr"
+  }, "*6628"))), /*#__PURE__*/React.createElement("a", {
+    href: "https://www.iconfitness.co.il/",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-blue-100 p-2 rounded-xl"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Globe",
+    size: 20
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "font-black text-sm"
+  }, "\u05D0\u05EA\u05E8 \u05D4\u05DE\u05DB\u05D5\u05DF"), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] font-bold opacity-70"
+  }, "iconfitness.co.il")))), instructors.map(function (ins) {
     return editInstId === ins.id ?
     /*#__PURE__*/
     /* מצב עריכה */
@@ -5986,7 +6297,11 @@ var ManageView = function ManageView(_ref27) {
     className: "text-slate-400"
   })), open.history && /*#__PURE__*/React.createElement("div", {
     className: "pb-3 space-y-2 overflow-y-auto no-scrollbar flex-1"
-  }, function () {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mx-3 bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden"
+  }, /*#__PURE__*/React.createElement(WorkoutProgressCalendar, {
+    logs: logs
+  })), function () {
     var entries = groupLogsBySession(logs);
     if (!entries.length) return /*#__PURE__*/React.createElement("div", {
       className: "text-center text-slate-400 font-bold py-4 px-5"
@@ -6034,7 +6349,7 @@ var ManageView = function ManageView(_ref27) {
       }))).length;
       return /*#__PURE__*/React.createElement("div", {
         key: gkey,
-        className: "bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden mx-3"
+        className: "rounded-[1.5rem] border shadow-sm overflow-hidden mx-3 ".concat(uniqEx < 5 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100')
       }, /*#__PURE__*/React.createElement("div", {
         className: "flex items-center"
       }, /*#__PURE__*/React.createElement("button", {
@@ -6045,11 +6360,11 @@ var ManageView = function ManageView(_ref27) {
       }, /*#__PURE__*/React.createElement("div", {
         className: "flex items-center gap-2 flex-wrap"
       }, /*#__PURE__*/React.createElement("div", {
-        className: "w-2 h-2 rounded-full bg-blue-400 shrink-0"
+        className: "w-2 h-2 rounded-full shrink-0 ".concat(uniqEx < 5 ? 'bg-red-500' : 'bg-blue-400')
       }), /*#__PURE__*/React.createElement("span", {
         className: "font-black text-slate-600 text-sm"
       }, getDayLetterHe(items[0].timestamp)), /*#__PURE__*/React.createElement("span", {
-        className: "font-black text-slate-800 text-sm"
+        className: "font-black text-sm ".concat(uniqEx < 5 ? 'text-red-600' : 'text-slate-800')
       }, fmtDateShort(items[0].timestamp)), dur > 0 && /*#__PURE__*/React.createElement("span", {
         className: "text-[10px] font-bold text-slate-400 flex items-center gap-0.5"
       }, /*#__PURE__*/React.createElement(Icon, {
@@ -6062,7 +6377,7 @@ var ManageView = function ManageView(_ref27) {
         minute: '2-digit'
       }), ")") : ''), /*#__PURE__*/React.createElement("span", {
         className: "text-[10px] font-bold text-blue-500"
-      }, items.length, " \u05E1\u05D8\u05D9\u05DD \xB7 ", uniqEx, " \u05EA\u05F3")), /*#__PURE__*/React.createElement(Icon, {
+      }, items.length, " \u05E1\u05D8\u05D9\u05DD \xB7 ", uniqEx, " \u05DE\u05EA\u05D5\u05DA ", TOTAL_EX_COUNT(), " \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD")), /*#__PURE__*/React.createElement(Icon, {
         name: isExp ? 'ChevronUp' : 'ChevronDown',
         size: 15,
         className: "text-slate-400 shrink-0"
@@ -6408,8 +6723,21 @@ var ManageView = function ManageView(_ref27) {
             });
             showToast('השם אופס לברירת מחדל');
           }
+        },
+        onDoubleClick: function onDoubleClick() {
+          return promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames, showToast);
         }
-      }, customNames[ex.id] || ex.title), /*#__PURE__*/React.createElement("div", {
+      }, customNames[ex.id] || ex.title, /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick(e) {
+          e.stopPropagation();
+          promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames, showToast);
+        },
+        className: "mr-1.5 align-middle text-slate-400 active:text-indigo-600",
+        title: "\u05E9\u05E0\u05D4 \u05E9\u05DD"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "Pencil",
+        size: 12
+      }))), /*#__PURE__*/React.createElement("div", {
         className: "text-[10px] font-bold text-slate-400 mt-0.5"
       }, g.category, " \xB7 ", g.machine), function () {
         var lw = logs.filter(function (l) {
@@ -6752,7 +7080,7 @@ var ManageView = function ManageView(_ref27) {
           var _ref47 = _slicedToArray(_ref46, 2),
             exId = _ref47[0],
             t = _ref47[1];
-          txt += "\u2022 ".concat(nameOf(exId), ":\n").concat(markImplemented(t), "\n\n");
+          txt += "\u2022 ".concat(nameOf(exId), " [").concat(devMetaLabel(exId), "]:\n").concat(markImplemented(t), "\n\n");
         });
       }
       txt += formatDevNotesHistory(devNotesHistory);
@@ -6942,7 +7270,7 @@ var ManageView = function ManageView(_ref27) {
       var _ref52 = _slicedToArray(_ref51, 2),
         exId = _ref52[0],
         t = _ref52[1];
-      return "\u2022 ".concat(nameOf(exId), ":\n").concat(t);
+      return "\u2022 ".concat(nameOf(exId), " [").concat(devMetaLabel(exId), "]:\n").concat(t);
     }).join('\n\n');
     var fmtAt = function fmtAt(iso) {
       return iso ? new Date(iso).toLocaleString('he-IL', {
@@ -7059,6 +7387,18 @@ var ManageView = function ManageView(_ref27) {
         className: "flex items-center gap-2"
       }, /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
+          var _getDevMeta;
+          setDevMeta(exId, {
+            status: DEV_STATUS_NEXT[((_getDevMeta = getDevMeta(exId)) === null || _getDevMeta === void 0 ? void 0 : _getDevMeta.status) || 'new']
+          });
+          setDevNotes(function (prev) {
+            return _objectSpread({}, prev);
+          });
+        },
+        className: "text-[10px] font-black bg-white border border-amber-300 text-amber-700 rounded-full px-2 py-0.5 active:scale-95",
+        title: "\u05D4\u05D7\u05DC\u05E3 \u05E1\u05D8\u05D8\u05D5\u05E1"
+      }, devMetaLabel(exId)), /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
           return markDone(exId);
         },
         className: "text-emerald-500 active:text-emerald-700",
@@ -7085,44 +7425,44 @@ var ManageView = function ManageView(_ref27) {
         className: "w-full text-[13px] font-bold text-slate-700 bg-white border border-amber-200 rounded-xl p-2 outline-none resize-none"
       }));
     })), pending.length > 0 && /*#__PURE__*/React.createElement("button", {
-      onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15() {
-        var _t10, _t11;
-        return _regenerator().w(function (_context15) {
-          while (1) switch (_context15.p = _context15.n) {
+      onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16() {
+        var _t14, _t15;
+        return _regenerator().w(function (_context16) {
+          while (1) switch (_context16.p = _context16.n) {
             case 0:
-              _context15.p = 0;
-              _context15.n = 1;
+              _context16.p = 0;
+              _context16.n = 1;
               return navigator.clipboard.writeText(pendingText);
             case 1:
-              _context15.n = 3;
+              _context16.n = 3;
               break;
             case 2:
-              _context15.p = 2;
-              _t10 = _context15.v;
+              _context16.p = 2;
+              _t14 = _context16.v;
             case 3:
               if (!navigator.share) {
-                _context15.n = 7;
+                _context16.n = 7;
                 break;
               }
-              _context15.p = 4;
-              _context15.n = 5;
+              _context16.p = 4;
+              _context16.n = 5;
               return navigator.share({
                 text: pendingText,
                 title: "\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 ".concat(new Date().toLocaleDateString('he-IL'))
               });
             case 5:
-              _context15.n = 7;
+              _context16.n = 7;
               break;
             case 6:
-              _context15.p = 6;
-              _t11 = _context15.v;
+              _context16.p = 6;
+              _t15 = _context16.v;
             case 7:
               archive(pending, 'tiktik');
               showToast('ההערות הועתקו ונרשמו בהיסטוריית התיקונים');
             case 8:
-              return _context15.a(2);
+              return _context16.a(2);
           }
-        }, _callee15, null, [[4, 6], [0, 2]]);
+        }, _callee16, null, [[4, 6], [0, 2]]);
       })),
       className: "w-full p-3 rounded-xl font-bold text-white bg-amber-600 active:scale-95"
     }, "\uD83D\uDCCB \u05D4\u05E2\u05EA\u05E7 \u05D5\u05E9\u05DC\u05D7 \u05DC\u05D8\u05D9\u05E7\u05D8\u05D9\u05E7"), /*#__PURE__*/React.createElement("div", {
@@ -7165,105 +7505,30 @@ var ManageView = function ManageView(_ref27) {
         className: "text-[13px] font-bold text-slate-600 whitespace-pre-wrap"
       }, h.text));
     })), /*#__PURE__*/React.createElement("button", {
-      onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16() {
-        var _t12;
-        return _regenerator().w(function (_context16) {
-          while (1) switch (_context16.p = _context16.n) {
+      onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17() {
+        var _t16;
+        return _regenerator().w(function (_context17) {
+          while (1) switch (_context17.p = _context17.n) {
             case 0:
-              _context16.p = 0;
-              _context16.n = 1;
+              _context17.p = 0;
+              _context17.n = 1;
               return navigator.clipboard.writeText(historyText);
             case 1:
               showToast('היסטוריית התיקונים הועתקה');
-              _context16.n = 3;
+              _context17.n = 3;
               break;
             case 2:
-              _context16.p = 2;
-              _t12 = _context16.v;
+              _context17.p = 2;
+              _t16 = _context17.v;
               showToast('העתקה נכשלה, נסה שוב', true);
             case 3:
-              return _context16.a(2);
+              return _context17.a(2);
           }
-        }, _callee16, null, [[0, 2]]);
+        }, _callee17, null, [[0, 2]]);
       })),
       className: "w-full p-3 rounded-xl font-bold text-slate-600 bg-slate-100 border border-slate-200 active:scale-95"
     }, "\uD83D\uDCCB \u05D4\u05E2\u05EA\u05E7 \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05EA\u05D9\u05E7\u05D5\u05E0\u05D9\u05DD")));
-  }()), /*#__PURE__*/React.createElement("section", {
-    ref: gymInfoRef,
-    style: {
-      order: ord('gymInfo')
-    },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return toggleSection('gymInfo');
-    },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Clock",
-    size: 20,
-    className: "text-blue-500"
-  }), " \u05E9\u05E2\u05D5\u05EA \u05E4\u05EA\u05D9\u05D7\u05EA \u05DE\u05DB\u05D5\u05DF"), /*#__PURE__*/React.createElement(Icon, {
-    name: open.gymInfo ? 'ChevronUp' : 'ChevronDown',
-    size: 18,
-    className: "text-slate-400"
-  })), open.gymInfo && /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-5 space-y-3"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2 text-sm font-black text-slate-700"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Clock",
-    size: 16,
-    className: "text-blue-400"
-  }), " \u05E9\u05E2\u05D5\u05EA \u05E4\u05EA\u05D9\u05D7\u05D4"), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1 text-[13px] font-bold text-slate-600 mr-6"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\u05D0\u05F3 \u2013 \u05D4\u05F3"), /*#__PURE__*/React.createElement("span", {
-    className: "font-black text-slate-800",
-    dir: "ltr"
-  }, "06:00 \u2013 23:00")), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\u05D5\u05F3"), /*#__PURE__*/React.createElement("span", {
-    className: "font-black text-slate-800",
-    dir: "ltr"
-  }, "06:00 \u2013 16:00")), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\u05E9\u05F3"), /*#__PURE__*/React.createElement("span", {
-    className: "font-black text-slate-800",
-    dir: "ltr"
-  }, "08:00 \u2013 13:00")))), /*#__PURE__*/React.createElement("a", {
-    href: "tel:*6628",
-    className: "flex items-center gap-3 bg-green-50 p-4 rounded-2xl border border-green-100 text-green-700 active:scale-[0.98]"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-green-100 p-2 rounded-xl"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Phone",
-    size: 20
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-sm"
-  }, "\u05D8\u05DC\u05E4\u05D5\u05DF"), /*#__PURE__*/React.createElement("div", {
-    className: "text-[13px] font-bold",
-    dir: "ltr"
-  }, "*6628"))), /*#__PURE__*/React.createElement("a", {
-    href: "https://www.iconfitness.co.il/",
-    target: "_blank",
-    rel: "noopener noreferrer",
-    className: "flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-blue-100 p-2 rounded-xl"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Globe",
-    size: 20
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-sm"
-  }, "\u05D0\u05EA\u05E8 \u05D4\u05DE\u05DB\u05D5\u05DF"), /*#__PURE__*/React.createElement("div", {
-    className: "text-[11px] font-bold opacity-70"
-  }, "iconfitness.co.il")))))));
+  }())));
 };
 
 // ─── HamburgerMenu ─────────────────────────────────────────
@@ -7447,7 +7712,7 @@ var HamburgerMenu = memo(function (_ref63) {
     color: 'text-teal-500'
   }, {
     key: 'instructors',
-    label: 'מדריכים',
+    label: 'שעות פתיחה ומדריכים',
     icon: 'BookOpen',
     color: 'text-rose-500'
   }, {
@@ -7465,11 +7730,6 @@ var HamburgerMenu = memo(function (_ref63) {
     label: 'תרגילים',
     icon: 'Dumbbell',
     color: 'text-indigo-500'
-  }, {
-    key: 'gymInfo',
-    label: 'שעות פתיחת מכון',
-    icon: 'Clock',
-    color: 'text-blue-500'
   }, {
     key: 'devNotes',
     label: 'הערות לשיפור',
@@ -8068,87 +8328,87 @@ function App() {
   var filingSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   useEffect(function () {
     if (!filingSupported) return;
-    _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17() {
-      var handle, perm, _t13;
-      return _regenerator().w(function (_context17) {
-        while (1) switch (_context17.p = _context17.n) {
+    _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee18() {
+      var handle, perm, _t17;
+      return _regenerator().w(function (_context18) {
+        while (1) switch (_context18.p = _context18.n) {
           case 0:
-            _context17.n = 1;
+            _context18.n = 1;
             return IDB.get('filingDirHandle');
           case 1:
-            handle = _context17.v;
+            handle = _context18.v;
             if (handle) {
-              _context17.n = 2;
+              _context18.n = 2;
               break;
             }
-            return _context17.a(2);
+            return _context18.a(2);
           case 2:
             // התיקייה תמיד מוצגת כ"מחוברת" (השם שלה זמין גם בלי הרשאה) — כי כל פונקציית הכתיבה
             // בפועל (saveTextFile וכו') מבקשת הרשאה מחדש לפני כתיבה בכל מקרה. כך החיבור "נשמר"
             // תמיד מבחינת המשתמש, גם אם צריך לאשר גישה מחדש בפעם הבאה שכותבים.
             filingDirRef.current = handle;
             setFilingDirName(handle.name);
-            _context17.p = 3;
-            _context17.n = 4;
+            _context18.p = 3;
+            _context18.n = 4;
             return handle.queryPermission({
               mode: 'readwrite'
             });
           case 4:
-            perm = _context17.v;
+            perm = _context18.v;
             setFilingPermGranted(perm === 'granted');
-            _context17.n = 6;
+            _context18.n = 6;
             break;
           case 5:
-            _context17.p = 5;
-            _t13 = _context17.v;
+            _context18.p = 5;
+            _t17 = _context18.v;
             setFilingPermGranted(false);
           case 6:
-            return _context17.a(2);
+            return _context18.a(2);
         }
-      }, _callee17, null, [[3, 5]]);
+      }, _callee18, null, [[3, 5]]);
     }))();
   }, [filingSupported]);
   // מבקשת הרשאת כתיבה מחדש לתיקיית FILING אם צריך — יש לקרוא לה תוך כדי טיפול בלחיצת משתמש
   // (user gesture), אחרת הדפדפן עלול לחסום את הבקשה בשקט.
   var ensureFilingPermission = /*#__PURE__*/function () {
-    var _ensureFilingPermission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee18() {
-      var perm, _t14;
-      return _regenerator().w(function (_context18) {
-        while (1) switch (_context18.p = _context18.n) {
+    var _ensureFilingPermission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
+      var perm, _t18;
+      return _regenerator().w(function (_context19) {
+        while (1) switch (_context19.p = _context19.n) {
           case 0:
             if (filingDirRef.current) {
-              _context18.n = 1;
+              _context19.n = 1;
               break;
             }
-            return _context18.a(2, false);
+            return _context19.a(2, false);
           case 1:
-            _context18.p = 1;
-            _context18.n = 2;
+            _context19.p = 1;
+            _context19.n = 2;
             return filingDirRef.current.queryPermission({
               mode: 'readwrite'
             });
           case 2:
-            perm = _context18.v;
+            perm = _context19.v;
             if (!(perm !== 'granted')) {
-              _context18.n = 4;
+              _context19.n = 4;
               break;
             }
-            _context18.n = 3;
+            _context19.n = 3;
             return filingDirRef.current.requestPermission({
               mode: 'readwrite'
             });
           case 3:
-            perm = _context18.v;
+            perm = _context19.v;
           case 4:
             setFilingPermGranted(perm === 'granted');
-            return _context18.a(2, perm === 'granted');
+            return _context19.a(2, perm === 'granted');
           case 5:
-            _context18.p = 5;
-            _t14 = _context18.v;
+            _context19.p = 5;
+            _t18 = _context19.v;
             setFilingPermGranted(false);
-            return _context18.a(2, false);
+            return _context19.a(2, false);
         }
-      }, _callee18, null, [[1, 5]]);
+      }, _callee19, null, [[1, 5]]);
     }));
     function ensureFilingPermission() {
       return _ensureFilingPermission.apply(this, arguments);
@@ -8156,48 +8416,48 @@ function App() {
     return ensureFilingPermission;
   }();
   var connectFilingDir = /*#__PURE__*/function () {
-    var _connectFilingDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
-      var handle, perm, _t15;
-      return _regenerator().w(function (_context19) {
-        while (1) switch (_context19.p = _context19.n) {
+    var _connectFilingDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee20() {
+      var handle, perm, _t19;
+      return _regenerator().w(function (_context20) {
+        while (1) switch (_context20.p = _context20.n) {
           case 0:
-            _context19.p = 0;
-            _context19.n = 1;
+            _context20.p = 0;
+            _context20.n = 1;
             return window.showDirectoryPicker();
           case 1:
-            handle = _context19.v;
-            _context19.n = 2;
+            handle = _context20.v;
+            _context20.n = 2;
             return handle.requestPermission({
               mode: 'readwrite'
             });
           case 2:
-            perm = _context19.v;
+            perm = _context20.v;
             if (!(perm !== 'granted')) {
-              _context19.n = 3;
+              _context20.n = 3;
               break;
             }
             showToast('לא ניתנה הרשאת כתיבה', true);
-            return _context19.a(2);
+            return _context20.a(2);
           case 3:
-            _context19.n = 4;
+            _context20.n = 4;
             return IDB.set('filingDirHandle', handle);
           case 4:
             filingDirRef.current = handle;
             setFilingDirName(handle.name);
-            _context19.n = 5;
+            _context20.n = 5;
             return saveBackupDirHandle(handle);
           case 5:
             // אותה תיקייה משמשת גם לגיבויי JSON וגם לדוחות/הערות
             showToast("\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \"".concat(handle.name, "\" \u05D7\u05D5\u05D1\u05E8\u05D4 \u2014 \u05DE\u05E9\u05DE\u05E9\u05EA \u05D2\u05DD \u05DC\u05D3\u05D5\u05D7\u05D5\u05EA \u05D5\u05D2\u05DD \u05DC\u05D2\u05D9\u05D1\u05D5\u05D9\u05D9\u05DD"));
-            _context19.n = 7;
+            _context20.n = 7;
             break;
           case 6:
-            _context19.p = 6;
-            _t15 = _context19.v;
+            _context20.p = 6;
+            _t19 = _context20.v;
           case 7:
-            return _context19.a(2);
+            return _context20.a(2);
         }
-      }, _callee19, null, [[0, 6]]);
+      }, _callee20, null, [[0, 6]]);
     }));
     function connectFilingDir() {
       return _connectFilingDir.apply(this, arguments);
@@ -8205,20 +8465,20 @@ function App() {
     return connectFilingDir;
   }();
   var disconnectFilingDir = /*#__PURE__*/function () {
-    var _disconnectFilingDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee20() {
-      return _regenerator().w(function (_context20) {
-        while (1) switch (_context20.n) {
+    var _disconnectFilingDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21() {
+      return _regenerator().w(function (_context21) {
+        while (1) switch (_context21.n) {
           case 0:
-            _context20.n = 1;
+            _context21.n = 1;
             return IDB.del('filingDirHandle');
           case 1:
             filingDirRef.current = null;
             setFilingDirName(null);
             showToast('החיבור לתיקייה נותק');
           case 2:
-            return _context20.a(2);
+            return _context21.a(2);
         }
-      }, _callee20);
+      }, _callee21);
     }));
     function disconnectFilingDir() {
       return _disconnectFilingDir.apply(this, arguments);
@@ -8229,95 +8489,16 @@ function App() {
   // תמיד שומר גם קובץ מקומי (הורדה רגילה) וגם, אם תיקיית FILING מחוברת, כותב לשם במקביל.
   // מחזיר true אם הכתיבה ל-FILING הצליחה (למטרות הודעת סטטוס בלבד).
   var saveTextFile = /*#__PURE__*/function () {
-    var _saveTextFile = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21(fname, txt) {
-      var filingOk, perm, fh, w, blob, url, a, _t16;
-      return _regenerator().w(function (_context21) {
-        while (1) switch (_context21.p = _context21.n) {
-          case 0:
-            filingOk = false;
-            if (!filingDirRef.current) {
-              _context21.n = 11;
-              break;
-            }
-            _context21.p = 1;
-            _context21.n = 2;
-            return filingDirRef.current.queryPermission({
-              mode: 'readwrite'
-            });
-          case 2:
-            perm = _context21.v;
-            if (!(perm !== 'granted')) {
-              _context21.n = 4;
-              break;
-            }
-            _context21.n = 3;
-            return filingDirRef.current.requestPermission({
-              mode: 'readwrite'
-            });
-          case 3:
-            perm = _context21.v;
-          case 4:
-            if (!(perm === 'granted')) {
-              _context21.n = 9;
-              break;
-            }
-            _context21.n = 5;
-            return filingDirRef.current.getFileHandle(fname, {
-              create: true
-            });
-          case 5:
-            fh = _context21.v;
-            _context21.n = 6;
-            return fh.createWritable();
-          case 6:
-            w = _context21.v;
-            _context21.n = 7;
-            return w.write(new Blob(['﻿' + txt], {
-              type: 'text/plain;charset=utf-8'
-            }));
-          case 7:
-            _context21.n = 8;
-            return w.close();
-          case 8:
-            filingOk = true;
-          case 9:
-            _context21.n = 11;
-            break;
-          case 10:
-            _context21.p = 10;
-            _t16 = _context21.v;
-          case 11:
-            blob = new Blob(['﻿' + txt], {
-              type: 'text/plain;charset=utf-8'
-            });
-            url = URL.createObjectURL(blob);
-            a = document.createElement('a');
-            a.href = url;
-            a.download = fname;
-            a.click();
-            URL.revokeObjectURL(url);
-            return _context21.a(2, filingOk);
-        }
-      }, _callee21, null, [[1, 10]]);
-    }));
-    function saveTextFile(_x13, _x14) {
-      return _saveTextFile.apply(this, arguments);
-    }
-    return saveTextFile;
-  }();
-  // כתיבה שקטה ל-FILING בלבד (ללא הורדה מקומית) — לשימוש בסנכרון אוטומטי ברקע, לא בפעולה יזומה של המשתמש
-  var syncTextFileToFilingOnly = /*#__PURE__*/function () {
-    var _syncTextFileToFilingOnly = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22(fname, txt) {
-      var perm, fh, w, _t17;
+    var _saveTextFile = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22(fname, txt) {
+      var filingOk, perm, fh, w, blob, url, a, _t20;
       return _regenerator().w(function (_context22) {
         while (1) switch (_context22.p = _context22.n) {
           case 0:
-            if (filingDirRef.current) {
-              _context22.n = 1;
+            filingOk = false;
+            if (!filingDirRef.current) {
+              _context22.n = 11;
               break;
             }
-            return _context22.a(2, false);
-          case 1:
             _context22.p = 1;
             _context22.n = 2;
             return filingDirRef.current.queryPermission({
@@ -8336,39 +8517,118 @@ function App() {
           case 3:
             perm = _context22.v;
           case 4:
-            if (!(perm !== 'granted')) {
-              _context22.n = 5;
+            if (!(perm === 'granted')) {
+              _context22.n = 9;
               break;
             }
-            return _context22.a(2, false);
+            _context22.n = 5;
+            return filingDirRef.current.getFileHandle(fname, {
+              create: true
+            });
           case 5:
+            fh = _context22.v;
             _context22.n = 6;
+            return fh.createWritable();
+          case 6:
+            w = _context22.v;
+            _context22.n = 7;
+            return w.write(new Blob(['﻿' + txt], {
+              type: 'text/plain;charset=utf-8'
+            }));
+          case 7:
+            _context22.n = 8;
+            return w.close();
+          case 8:
+            filingOk = true;
+          case 9:
+            _context22.n = 11;
+            break;
+          case 10:
+            _context22.p = 10;
+            _t20 = _context22.v;
+          case 11:
+            blob = new Blob(['﻿' + txt], {
+              type: 'text/plain;charset=utf-8'
+            });
+            url = URL.createObjectURL(blob);
+            a = document.createElement('a');
+            a.href = url;
+            a.download = fname;
+            a.click();
+            URL.revokeObjectURL(url);
+            return _context22.a(2, filingOk);
+        }
+      }, _callee22, null, [[1, 10]]);
+    }));
+    function saveTextFile(_x14, _x15) {
+      return _saveTextFile.apply(this, arguments);
+    }
+    return saveTextFile;
+  }();
+  // כתיבה שקטה ל-FILING בלבד (ללא הורדה מקומית) — לשימוש בסנכרון אוטומטי ברקע, לא בפעולה יזומה של המשתמש
+  var syncTextFileToFilingOnly = /*#__PURE__*/function () {
+    var _syncTextFileToFilingOnly = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23(fname, txt) {
+      var perm, fh, w, _t21;
+      return _regenerator().w(function (_context23) {
+        while (1) switch (_context23.p = _context23.n) {
+          case 0:
+            if (filingDirRef.current) {
+              _context23.n = 1;
+              break;
+            }
+            return _context23.a(2, false);
+          case 1:
+            _context23.p = 1;
+            _context23.n = 2;
+            return filingDirRef.current.queryPermission({
+              mode: 'readwrite'
+            });
+          case 2:
+            perm = _context23.v;
+            if (!(perm !== 'granted')) {
+              _context23.n = 4;
+              break;
+            }
+            _context23.n = 3;
+            return filingDirRef.current.requestPermission({
+              mode: 'readwrite'
+            });
+          case 3:
+            perm = _context23.v;
+          case 4:
+            if (!(perm !== 'granted')) {
+              _context23.n = 5;
+              break;
+            }
+            return _context23.a(2, false);
+          case 5:
+            _context23.n = 6;
             return filingDirRef.current.getFileHandle(fname, {
               create: true
             });
           case 6:
-            fh = _context22.v;
-            _context22.n = 7;
+            fh = _context23.v;
+            _context23.n = 7;
             return fh.createWritable();
           case 7:
-            w = _context22.v;
-            _context22.n = 8;
+            w = _context23.v;
+            _context23.n = 8;
             return w.write(new Blob(['﻿' + txt], {
               type: 'text/plain;charset=utf-8'
             }));
           case 8:
-            _context22.n = 9;
+            _context23.n = 9;
             return w.close();
           case 9:
-            return _context22.a(2, true);
+            return _context23.a(2, true);
           case 10:
-            _context22.p = 10;
-            _t17 = _context22.v;
-            return _context22.a(2, false);
+            _context23.p = 10;
+            _t21 = _context23.v;
+            return _context23.a(2, false);
         }
-      }, _callee22, null, [[1, 10]]);
+      }, _callee23, null, [[1, 10]]);
     }));
-    function syncTextFileToFilingOnly(_x15, _x16) {
+    function syncTextFileToFilingOnly(_x16, _x17) {
       return _syncTextFileToFilingOnly.apply(this, arguments);
     }
     return syncTextFileToFilingOnly;
@@ -8405,10 +8665,10 @@ function App() {
   // חשוב: הייצוא *לא* מסמן הערות כ"בוצעו" — סימון בוצע נעשה אך ורק ידנית (כפתור ה-✓ ליד כל
   // הערה במסך "הערות לשיפור"), כי עצם הייצוא לא אומר שההערה יושמה בפועל בקוד.
   var exportDevNotesReportIfPending = /*#__PURE__*/function () {
-    var _exportDevNotesReportIfPending = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23() {
+    var _exportDevNotesReportIfPending = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee24() {
       var exportedMap, pending, txt, fname, savedToFiling, nextMap;
-      return _regenerator().w(function (_context23) {
-        while (1) switch (_context23.n) {
+      return _regenerator().w(function (_context24) {
+        while (1) switch (_context24.n) {
           case 0:
             // הדוח האוטומטי כולל רק הערות שטרם יוצאו (לפי טקסט) — הערות שכבר יוצאו לא חוזרות, גם אם לא נמחקו מהרשימה.
             // ההיסטוריה המלאה נשארת זמינה בניהול ← הערות לשיפור.
@@ -8420,10 +8680,10 @@ function App() {
               return t && t.trim() && exportedMap[k] !== t;
             });
             if (pending.length) {
-              _context23.n = 1;
+              _context24.n = 1;
               break;
             }
-            return _context23.a(2, {
+            return _context24.a(2, {
               exported: false
             });
           case 1:
@@ -8437,10 +8697,10 @@ function App() {
               txt += "\u2022 ".concat(nameOfNoteKey(exId), ":\n").concat(markImplemented(t), "\n\n");
             });
             fname = "gym-dev-notes-report-".concat(new Date().toISOString().slice(0, 10), ".txt");
-            _context23.n = 2;
+            _context24.n = 2;
             return saveTextFile(fname, txt);
           case 2:
-            savedToFiling = _context23.v;
+            savedToFiling = _context24.v;
             nextMap = _objectSpread({}, exportedMap);
             pending.forEach(function (_ref76) {
               var _ref77 = _slicedToArray(_ref76, 2),
@@ -8450,12 +8710,12 @@ function App() {
             });
             LS.set('gym-dev-notes-exported', nextMap);
             purgeImplementedNotes();
-            return _context23.a(2, {
+            return _context24.a(2, {
               exported: true,
               savedToFiling: savedToFiling
             });
         }
-      }, _callee23);
+      }, _callee24);
     }));
     function exportDevNotesReportIfPending() {
       return _exportDevNotesReportIfPending.apply(this, arguments);
@@ -8718,11 +8978,11 @@ function App() {
     });
   };
   var handleMusicRemoveOne = /*#__PURE__*/function () {
-    var _handleMusicRemoveOne = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee24(id) {
-      return _regenerator().w(function (_context24) {
-        while (1) switch (_context24.n) {
+    var _handleMusicRemoveOne = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee25(id) {
+      return _regenerator().w(function (_context25) {
+        while (1) switch (_context25.n) {
           case 0:
-            _context24.n = 1;
+            _context25.n = 1;
             return IDB.del("music-".concat(id));
           case 1:
             setMusicList(function (prev) {
@@ -8745,23 +9005,23 @@ function App() {
               return 0;
             });
           case 2:
-            return _context24.a(2);
+            return _context25.a(2);
         }
-      }, _callee24);
+      }, _callee25);
     }));
-    function handleMusicRemoveOne(_x17) {
+    function handleMusicRemoveOne(_x18) {
       return _handleMusicRemoveOne.apply(this, arguments);
     }
     return handleMusicRemoveOne;
   }();
   var handleMusicRemoveAll = /*#__PURE__*/function () {
-    var _handleMusicRemoveAll = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee25() {
+    var _handleMusicRemoveAll = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee26() {
       var meta;
-      return _regenerator().w(function (_context25) {
-        while (1) switch (_context25.n) {
+      return _regenerator().w(function (_context26) {
+        while (1) switch (_context26.n) {
           case 0:
             meta = LS.get('gym-music-list', []);
-            _context25.n = 1;
+            _context26.n = 1;
             return Promise.all(meta.map(function (_ref87) {
               var id = _ref87.id;
               return IDB.del("music-".concat(id));
@@ -8772,9 +9032,9 @@ function App() {
             setMusicIndex(0);
             setMusicPlaying(false);
           case 2:
-            return _context25.a(2);
+            return _context26.a(2);
         }
-      }, _callee25);
+      }, _callee26);
     }));
     function handleMusicRemoveAll() {
       return _handleMusicRemoveAll.apply(this, arguments);
@@ -9583,6 +9843,10 @@ function App() {
       if (text) next[exId] = text;else delete next[exId];
       return next;
     });
+    if (text && !getDevMeta(exId)) setDevMeta(exId, {
+      at: new Date().toISOString(),
+      status: 'new'
+    });
   };
   var handleSaveVideo = function handleSaveVideo(exId, url) {
     if (!url.trim()) return;
@@ -9656,9 +9920,33 @@ function App() {
       img.onload = function () {
         var MAX = 800;
         var ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-        canvas.width = Math.round(img.width * ratio);
-        canvas.height = Math.round(img.height * ratio);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var dw = Math.round(img.width * ratio),
+          dh = Math.round(img.height * ratio);
+        if (dh > dw) {
+          // תמונה לאורך -> קנבס לרוחב (4:3) עם רקע מטושטש מאותה תמונה והתמונה במרכז, כדי שתתאים למסגרת הקיימת
+          canvas.width = 800;
+          canvas.height = 600;
+          var cover = Math.max(canvas.width / img.width, canvas.height / img.height);
+          var cw = img.width * cover,
+            ch = img.height * cover;
+          try {
+            ctx.filter = 'blur(24px)';
+          } catch (_unused27) {}
+          ctx.drawImage(img, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch);
+          try {
+            ctx.filter = 'none';
+          } catch (_unused28) {}
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          var fit = Math.min(canvas.width / img.width, canvas.height / img.height);
+          var fw = img.width * fit,
+            fh = img.height * fit;
+          ctx.drawImage(img, (canvas.width - fw) / 2, (canvas.height - fh) / 2, fw, fh);
+        } else {
+          canvas.width = dw;
+          canvas.height = dh;
+          ctx.drawImage(img, 0, 0, dw, dh);
+        }
         var url = canvas.toDataURL('image/jpeg', 0.8);
         setImages(function (prev) {
           return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, url));
@@ -10177,33 +10465,33 @@ function App() {
   // בודקת ומזכירה את מצב חיבור תיקיית FILING בכל "אימון חדש" — כדי שגילוי שהחיבור/ההרשאה
   // אינם תקינים יקרה מיד (ולא רק כשמנסים לשמור בסוף ומגלים שהגיבוי לא באמת נכתב).
   var checkFilingOnNewWorkout = /*#__PURE__*/function () {
-    var _checkFilingOnNewWorkout = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee26() {
+    var _checkFilingOnNewWorkout = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee27() {
       var granted;
-      return _regenerator().w(function (_context26) {
-        while (1) switch (_context26.n) {
+      return _regenerator().w(function (_context27) {
+        while (1) switch (_context27.n) {
           case 0:
             if (filingSupported) {
-              _context26.n = 1;
+              _context27.n = 1;
               break;
             }
-            return _context26.a(2);
+            return _context27.a(2);
           case 1:
             if (filingDirName) {
-              _context26.n = 2;
+              _context27.n = 2;
               break;
             }
             showToast('לא מחוברת תיקיית FILING — האימון יישמר רק באפ. אפשר לחבר בניהול ← דוחות', true);
-            return _context26.a(2);
+            return _context27.a(2);
           case 2:
-            _context26.n = 3;
+            _context27.n = 3;
             return ensureFilingPermission();
           case 3:
-            granted = _context26.v;
+            granted = _context27.v;
             if (!granted) showToast('יש לאשר מחדש גישה לתיקיית FILING (בניהול ← דוחות)', true);
           case 4:
-            return _context26.a(2);
+            return _context27.a(2);
         }
-      }, _callee26);
+      }, _callee27);
     }));
     function checkFilingOnNewWorkout() {
       return _checkFilingOnNewWorkout.apply(this, arguments);
@@ -10886,10 +11174,10 @@ function App() {
         className: "font-black text-sky-700"
       }, b.weight, " \u05E7\u05F4\u05D2"));
     }))), /*#__PURE__*/React.createElement("button", {
-      onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee27() {
-        var bw, steps, hadFailure, granted, ok, devRes, _t18;
-        return _regenerator().w(function (_context27) {
-          while (1) switch (_context27.p = _context27.n) {
+      onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28() {
+        var bw, steps, hadFailure, granted, ok, devRes, _t22;
+        return _regenerator().w(function (_context28) {
+          while (1) switch (_context28.p = _context28.n) {
             case 0:
               bw = parseFloat(summaryBW);
               if (!isNaN(bw) && bw > 0) {
@@ -10917,18 +11205,18 @@ function App() {
               hadFailure = false; // גיבוי ל-FILING — אם תיקייה מחוברת, מוודאים קודם הרשאה (תוך כדי לחיצת המשתמש הזו,
               // כדי לתפוס מקרה שההרשאה התאפסה מסיבה כלשהי, למשל אחרי שדרוג גרסה)
               if (!filingDirName) {
-                _context27.n = 8;
+                _context28.n = 8;
                 break;
               }
-              _context27.n = 1;
+              _context28.n = 1;
               return ensureFilingPermission();
             case 1:
-              granted = _context27.v;
+              granted = _context28.v;
               if (!granted) {
-                _context27.n = 3;
+                _context28.n = 3;
                 break;
               }
-              _context27.n = 2;
+              _context28.n = 2;
               return silentBackupToFiling({
                 logs: logs,
                 notes: notes,
@@ -10944,7 +11232,7 @@ function App() {
                 workoutNote: summaryNote
               });
             case 2:
-              ok = _context27.v;
+              ok = _context28.v;
               if (ok) {
                 setSummaryBackedUp(true);
                 steps.push('נשמר ב-FILING');
@@ -10952,35 +11240,35 @@ function App() {
                 hadFailure = true;
                 steps.push('❌ הגיבוי ל-FILING נכשל');
               }
-              _context27.n = 4;
+              _context28.n = 4;
               break;
             case 3:
               hadFailure = true;
               steps.push('❌ אין הרשאת גישה לתיקיית FILING — יש לאשר מחדש בניהול ← דוחות');
             case 4:
               if (!granted) {
-                _context27.n = 8;
+                _context28.n = 8;
                 break;
               }
-              _context27.p = 5;
-              _context27.n = 6;
+              _context28.p = 5;
+              _context28.n = 6;
               return exportDevNotesReportIfPending();
             case 6:
-              devRes = _context27.v;
+              devRes = _context28.v;
               if (devRes.exported) steps.push('דוח שיפורים יוצא');
-              _context27.n = 8;
+              _context28.n = 8;
               break;
             case 7:
-              _context27.p = 7;
-              _t18 = _context27.v;
+              _context28.p = 7;
+              _t22 = _context28.v;
               hadFailure = true;
               steps.push('❌ ייצוא דוח השיפורים נכשל');
             case 8:
               showToast(steps.join(' · '), hadFailure);
             case 9:
-              return _context27.a(2);
+              return _context28.a(2);
           }
-        }, _callee27, null, [[5, 7]]);
+        }, _callee28, null, [[5, 7]]);
       })),
       className: "w-full p-3 rounded-xl font-bold active:scale-95 ".concat(summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600')
     }, summarySaved ? 'נשמר' : 'שמור'), /*#__PURE__*/React.createElement("button", {
@@ -11058,7 +11346,11 @@ function App() {
     className: "text-sm font-bold text-slate-600 mb-1"
   }, "\u05EA\u05D0\u05E8\u05D9\u05DA \u05E1\u05D5\u05E3 \u05E6\u05E4\u05D5\u05D9:"), /*#__PURE__*/React.createElement("div", {
     className: "text-lg font-black text-blue-600"
-  }, editingDates.end ? new Date(editingDates.end).toLocaleDateString('he-IL') : 'לא הוגדר'))), /*#__PURE__*/React.createElement("div", {
+  }, editingDates.end ? new Date(editingDates.end).toLocaleDateString('he-IL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  }) : 'לא הוגדר'))), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-3 pt-2"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
@@ -11109,23 +11401,23 @@ function App() {
     dir: "ltr"
   }, "v.", APP_VERSION), backupAgeDays() > 5 && logs.length > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: (/*#__PURE__*/function () {
-      var _ref103 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28(e) {
-        return _regenerator().w(function (_context28) {
-          while (1) switch (_context28.n) {
+      var _ref103 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29(e) {
+        return _regenerator().w(function (_context29) {
+          while (1) switch (_context29.n) {
             case 0:
               e.stopPropagation();
-              _context28.n = 1;
+              _context29.n = 1;
               return triggerBackupDownload({}, false);
             case 1:
               setBackupBannerTick(function (t) {
                 return t + 1;
               });
             case 2:
-              return _context28.a(2);
+              return _context29.a(2);
           }
-        }, _callee28);
+        }, _callee29);
       }));
-      return function (_x18) {
+      return function (_x19) {
         return _ref103.apply(this, arguments);
       };
     }()),
@@ -11205,6 +11497,7 @@ function App() {
         });
       },
       customNames: customNames,
+      setCustomNames: setCustomNames,
       customHowTo: customHowTo,
       setCustomHowTo: setCustomHowTo,
       customTips: customTips,
@@ -11381,7 +11674,7 @@ function App() {
     var progress = daysTotal > 0 ? Math.min(100, daysPassed / daysTotal * 100) : 0;
     var timerStr = "".concat(String(Math.floor(workoutSec / 60)).padStart(2, '0'), ":").concat(String(workoutSec % 60).padStart(2, '0'));
     return /*#__PURE__*/React.createElement("div", {
-      className: "px-4 mb-2 mt-2 flex items-stretch gap-3"
+      className: "px-4 mb-1 mt-1 flex items-stretch gap-3"
     }, /*#__PURE__*/React.createElement("div", {
       onClick: function onClick() {
         return setEditingDates({
@@ -11389,24 +11682,32 @@ function App() {
           end: sessionEndTime
         });
       },
-      className: "flex-1 rounded-2xl bg-white border border-slate-200 px-4 py-3 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm",
+      className: "flex-1 rounded-2xl bg-white border border-slate-200 px-3 py-1.5 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm",
       style: {
         WebkitUserSelect: 'none'
       }
     }, /*#__PURE__*/React.createElement("div", {
-      className: "flex justify-between items-start mb-2"
+      className: "flex justify-between items-start mb-1"
     }, /*#__PURE__*/React.createElement("div", {
       className: "text-right"
     }, /*#__PURE__*/React.createElement("div", {
       className: "text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5"
     }, "\u05D4\u05EA\u05D7\u05DC\u05D4"), /*#__PURE__*/React.createElement("div", {
       className: "text-[15px] font-black text-slate-800 leading-none"
-    }, start.toLocaleDateString('he-IL'))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }, start.toLocaleDateString('he-IL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       className: "text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5"
     }, "\u05E1\u05D5\u05E3"), /*#__PURE__*/React.createElement("div", {
       className: "text-[15px] font-black text-slate-800 leading-none"
-    }, (end === null || end === void 0 ? void 0 : end.toLocaleDateString('he-IL')) || '—'))), /*#__PURE__*/React.createElement("div", {
-      className: "h-2 bg-slate-100 rounded-full overflow-hidden mb-2 shadow-inner"
+    }, (end === null || end === void 0 ? void 0 : end.toLocaleDateString('he-IL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    })) || '—'))), /*#__PURE__*/React.createElement("div", {
+      className: "h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1 shadow-inner"
     }, /*#__PURE__*/React.createElement("div", {
       className: "h-full rounded-full transition-all duration-500",
       style: {
@@ -11716,22 +12017,20 @@ function App() {
     className: "text-[11px] font-black"
   }, "\u05D3\u05D5\u05D7\u05D5\u05EA")), /*#__PURE__*/React.createElement("button", {
     onClick: handleNewWorkoutClick,
-    className: "flex flex-col items-center gap-1 -mt-14 p-3 rounded-full active:scale-90",
+    className: "flex flex-col items-center gap-1 active:opacity-70",
     style: {
-      background: 'linear-gradient(145deg, #dde1e7, #c0c5cc)',
-      boxShadow: '4px 4px 10px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.3)'
+      color: '#2d4a6f'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "w-14 h-14 rounded-full flex items-center justify-center text-white",
+    className: "w-6 h-6 rounded-full flex items-center justify-center text-white",
     style: {
-      background: 'linear-gradient(145deg, #3b5998, #2d4a6f)',
-      boxShadow: '0 4px 12px rgba(45,74,111,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'
+      background: 'linear-gradient(145deg, #3b5998, #2d4a6f)'
     }
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Plus",
-    size: 36
+    size: 16
   })), /*#__PURE__*/React.createElement("span", {
-    className: "text-[11px] font-black mt-1 text-slate-600"
+    className: "text-[11px] font-black"
   }, "\u05D0\u05D9\u05DE\u05D5\u05DF \u05D7\u05D3\u05E9")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return navigateTo('manage');
