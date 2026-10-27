@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.17';
+const APP_VERSION = '10.18';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -2258,6 +2258,23 @@ const backupMediaToDir = async (dirHandle) => {
         return written;
     } catch { return -1; }
 };
+// שחזור המדיה מתת-התיקייה gym-media-backup (אם קיימת ליד קובץ הגיבוי) חזרה ל-IndexedDB. מחזיר מספר קבצים ששוחזרו.
+const restoreMediaFromDir = async (dirHandle) => {
+    try {
+        const sub = await dirHandle.getDirectoryHandle('gym-media-backup');
+        let n = 0;
+        for await (const [name, h] of sub.entries()) {
+            const m = h.kind === 'file' && name.match(/^(video|music)-(.+)\.[a-z0-9]+$/i);
+            if (!m) continue;
+            if (await IDB.set(`${m[1].toLowerCase()}-${m[2]}`, await h.getFile())) n++;
+        }
+        try {
+            const idx = JSON.parse(await (await (await sub.getFileHandle('index.json')).getFile()).text());
+            if (Array.isArray(idx.music) && idx.music.length) LS.set('gym-music-list', idx.music);
+        } catch {}
+        return n;
+    } catch { return 0; }
+};
 const writeToDir = async (dirHandle, json, fname) => {
     const perm = await dirHandle.queryPermission({mode:'readwrite'});
     if (perm !== 'granted') {
@@ -2543,7 +2560,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const doRestoreFile = (file) => {
         requestConfirm('שחזור ימחוק את כל הנתונים הקיימים. להמשיך?', () => {
             const reader = new FileReader();
-            reader.onload = ev => {
+            reader.onload = async ev => {
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (data._all && typeof data._all === 'object') {
@@ -2573,6 +2590,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     if (data.lastSummary !== undefined) { LS.set('gym-last-summary', data.lastSummary);   setSummaryData?.(data.lastSummary); }
                     if (data.customNames)      { LS.set('gym-custom-names',      data.customNames);      setCustomNames?.(data.customNames); }
                     showToast('הנתונים שוחזרו בהצלחה');
+                    if (_backupDirHandle) {
+                        const nm = await restoreMediaFromDir(_backupDirHandle);
+                        if (nm > 0) { showToast(`הנתונים ו-${nm} קבצי מדיה שוחזרו — טוען מחדש`); setTimeout(()=>location.reload(), 1800); }
+                    }
                 } catch { showToast('שגיאה בשחזור', true); }
             };
             reader.readAsText(file);
