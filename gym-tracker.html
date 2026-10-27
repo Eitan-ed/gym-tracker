@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.14';
+var APP_VERSION = '10.15';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -759,7 +759,51 @@ function getLastWarmupReps(exId, logs) {
 }
 // ─── מקור אחד לשאלה "מה הסט הבא של התרגיל": חימום (אם פתוח וטרם בוצע) או סט 1/2, עם משקל וחזרות ───
 // משמש את הכרטיס, המניפה, ההכרזות הקוליות והחלון הקופץ — כדי שכולם תמיד יסכימו.
-function getNextSetInfo(exId, logs, sst, warmupEmbedMap) {
+// משקל החימום ההתחלתי המוצג בכרטיס: 85% מהמשקל הגבוה של סט 1/2 האחרונים, מעוגל לרשת המשקלים של התרגיל.
+// ההכרזה משתמשת באותו חישוב בדיוק כדי שלא תקריא משקל עבודה כשהכרטיס מציג חימום.
+function resolveWeightGrid(exId, stepOverrides) {
+  var ov = stepOverrides ? effectiveStepOv(exId, stepOverrides[exId]) : undefined;
+  if (ov !== undefined && !ALLOWED_WEIGHT_STEPS.has(ov)) ov = undefined;
+  var wv = null;
+  if (typeof ov === 'string' && WEIGHT_SEQUENCES[ov]) wv = WEIGHT_SEQUENCES[ov];else if (ov === '4-5' || ov === undefined) {
+    wv = CUSTOM_WEIGHT_VALUES[exId] || null;
+    if (ov === '4-5' && !wv) wv = THIGH_VALUES;
+  }
+  var ws = wv ? 1 : ov !== undefined && ov !== '4-5' ? ov : DEFAULT_WEIGHT_STEPS[exId] !== undefined ? DEFAULT_WEIGHT_STEPS[exId] : 1;
+  return {
+    wv: wv,
+    ws: ws
+  };
+}
+function calcWarmupDefault(bestW, wv, ws) {
+  if (!(bestW > 0)) return 0;
+  if (wv) {
+    var t = bestW * 0.85;
+    return wv.reduce(function (prev, curr) {
+      return Math.abs(curr - t) < Math.abs(prev - t) ? curr : prev;
+    });
+  }
+  return parseFloat((Math.round(bestW * 0.85 / ws) * ws).toFixed(4));
+}
+function getWarmupDefaultWeight(exId, logs, stepOverrides) {
+  var ex = logs.filter(function (l) {
+    return l.exId === exId;
+  }).sort(function (a, b) {
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+  var l1 = ex.find(function (l) {
+    return l.setNum === 1 && (l.weight > 0 || l.reps > 0);
+  });
+  var l2 = ex.find(function (l) {
+    return l.setNum === 2 && (l.weight > 0 || l.reps > 0);
+  });
+  var bestW = Math.max((l1 === null || l1 === void 0 ? void 0 : l1.weight) || 0, (l2 === null || l2 === void 0 ? void 0 : l2.weight) || 0);
+  var _resolveWeightGrid = resolveWeightGrid(exId, stepOverrides),
+    wv = _resolveWeightGrid.wv,
+    ws = _resolveWeightGrid.ws;
+  return calcWarmupDefault(bestW, wv, ws);
+}
+function getNextSetInfo(exId, logs, sst, warmupEmbedMap, stepOverrides) {
   var inS = function inS(l) {
     return l.exId === exId && new Date(l.timestamp).getTime() > sst;
   };
@@ -772,7 +816,7 @@ function getNextSetInfo(exId, logs, sst, warmupEmbedMap) {
   var done2 = logs.some(function (l) {
     return inS(l) && l.setNum === 2;
   });
-  var ww = getLastWarmupWeight(exId, logs);
+  var ww = getWarmupDefaultWeight(exId, logs, stepOverrides) || getLastWarmupWeight(exId, logs);
   var isWarmup = !!(warmupEmbedMap && warmupEmbedMap[exId]) && !doneW && ww > 0;
   // סט 2 עוקב אחרי סט 1 של האימון הנוכחי (כמו בכרטיס) — ולא אחרי סט 2 של האימון הקודם
   var s1Now = done1 && !done2 ? logs.filter(function (l) {
@@ -1909,12 +1953,7 @@ function ExerciseEntryRow(_ref11) {
     });
     var bestW = Math.max((lastS1 === null || lastS1 === void 0 ? void 0 : lastS1.weight) || 0, (lastS2 === null || lastS2 === void 0 ? void 0 : lastS2.weight) || 0);
     if (bestW > 0) {
-      var warmW = weightValues ? function () {
-        var target = bestW * 0.85;
-        return weightValues.reduce(function (prev, curr) {
-          return Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev;
-        });
-      }() : parseFloat((Math.round(bestW * 0.85 / weightStep) * weightStep).toFixed(4));
+      var warmW = calcWarmupDefault(bestW, weightValues, weightStep);
       setSW(function (p) {
         return _objectSpread(_objectSpread({}, p), {}, {
           w: warmW
@@ -3555,7 +3594,7 @@ var DetailView = memo(function DetailView(_ref17) {
     var warmupOpenEx = (_warmupOpenMap$ex$id = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id !== void 0 ? _warmupOpenMap$ex$id : !!warmupEmbed[ex.id];
     // משקל להצגה ליד התמונה: תמיד המשקל של הסט הבא בפועל — דינאמי, מתעדכן מיד עם השלמת כל סט באימון הנוכחי
     // (ולא משקל היסטורי קבוע). אם יש חימום פתוח וטרם בוצע — הוא הסט הבא, ולכן מוצג משקל החימום
-    var warmupW = getLastWarmupWeight(ex.id, logs);
+    var warmupW = getWarmupDefaultWeight(ex.id, logs, weightStepsOverrides) || getLastWarmupWeight(ex.id, logs);
     var warmupPendingEx = warmupOpenEx && !doneWEx && warmupW > 0;
     var nwRep = nextW[ex.id];
     var tileWarm = nwRep ? nwRep.warm : warmupPendingEx;
@@ -4293,7 +4332,7 @@ var DetailView = memo(function DetailView(_ref17) {
       var done = isGroupDoneHere(g);
       var img = imgOf(g);
       // כיתוב המשקל הבא (קטן, מתחת לתמונה): חימום אם ממתין, אחרת הסט הבא
-      var fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed);
+      var fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
       var fWarm = fInfo.isWarmup;
       var fW = done ? 0 : fInfo.weight;
       var gRt = Math.max.apply(Math, [0].concat(_toConsumableArray(g.exercises.map(function (e) {
@@ -4369,7 +4408,7 @@ var DetailView = memo(function DetailView(_ref17) {
           return restTimers[e.id] || 0;
         }))));
         var ringC = gRt > 0 ? gRt <= 20 ? '#ef4444' : '#f97316' : null;
-        var fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed);
+        var fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
         var shadow = [isCur && '0 0 0 3px #3b82f6', ringC && "0 0 0 ".concat(isCur ? 6 : 3, "px ").concat(ringC)].filter(Boolean).join(', ') || undefined;
         return /*#__PURE__*/React.createElement("div", {
           key: g.id,
@@ -9219,7 +9258,8 @@ function App() {
             var warmupEmb = ((_appSettingsRef$curre = appSettingsRef.current) === null || _appSettingsRef$curre === void 0 ? void 0 : _appSettingsRef$curre.warmupEmbed) || {};
             var isGroupDoneT = function isGroupDoneT(g) {
               return g.exercises.every(function (e) {
-                var i = getNextSetInfo(e.id, curLogsT, curSstT, warmupEmb);
+                var _appSettingsRef$curre2;
+                var i = getNextSetInfo(e.id, curLogsT, curSstT, warmupEmb, (_appSettingsRef$curre2 = appSettingsRef.current) === null || _appSettingsRef$curre2 === void 0 ? void 0 : _appSettingsRef$curre2.weightSteps);
                 return i.done;
               });
             };
@@ -9233,10 +9273,11 @@ function App() {
               }), curLogsT, curSstT);
             }
             if (tgtG) {
+              var _appSettingsRef$curre3;
               var tgtEx = tgtG.exercises.length === 2 && tgtG.id === curGroupT.id ? tgtG.exercises.find(function (e) {
                 return e.id !== completedExId;
               }) || tgtG.exercises[0] : tgtG.exercises[0];
-              var infoT = getNextSetInfo(tgtEx.id, curLogsT, curSstT, warmupEmb);
+              var infoT = getNextSetInfo(tgtEx.id, curLogsT, curSstT, warmupEmb, (_appSettingsRef$curre3 = appSettingsRef.current) === null || _appSettingsRef$curre3 === void 0 ? void 0 : _appSettingsRef$curre3.weightSteps);
               var exNum = spokenName(tgtEx);
               setTimeout(function () {
                 return speakNextSet(infoT, exNum);
@@ -9416,7 +9457,7 @@ function App() {
           })[0];
           if (other) {
             var oEx = other.exercises[0];
-            var oInfo = getNextSetInfo(oEx.id, allLogsX, wst, settings.warmupEmbed);
+            var oInfo = getNextSetInfo(oEx.id, allLogsX, wst, settings.warmupEmbed, settings.weightSteps);
             var oNum = visibleGroupsRef.current.findIndex(function (g) {
               return g.id === other.id;
             }) + 1;
@@ -9467,7 +9508,7 @@ function App() {
           }, 50);
           // הכרזת המשקל הבא (כולל "חימום" אם ממתין) גם במעבר פנימי בין שני תרגילי הסופרסט —
           // בעבר זה קרה רק במעבר בין קבוצות תרגילים רגילות, ולא כאן, ולכן לא הוכרז בתרגיל השני של הסופרסט
-          var nInfo = getNextSetInfo(nextId, allLogs, _wst, settings.warmupEmbed);
+          var nInfo = getNextSetInfo(nextId, allLogs, _wst, settings.warmupEmbed, settings.weightSteps);
           if (nInfo.weight > 0) {
             setAutoTransitionSplash({
               title: sg.title,
@@ -10046,10 +10087,10 @@ function App() {
     }), curLogs, curWst);
     if (nextGroup) {
       if (isAutoTransition) {
-        var _appSettingsRef$curre2;
+        var _appSettingsRef$curre4, _appSettingsRef$curre5;
         var nextEx = nextGroup.exercises[0];
         // settings מגיע מ-ref (ה-callback הזה לא מתעדכן בכל רינדור) — אחרת פתיחת חימום באמצע אימון לא הייתה מוכרת כאן
-        var nInfo = getNextSetInfo(nextEx.id, curLogs, curWst, (_appSettingsRef$curre2 = appSettingsRef.current) === null || _appSettingsRef$curre2 === void 0 ? void 0 : _appSettingsRef$curre2.warmupEmbed);
+        var nInfo = getNextSetInfo(nextEx.id, curLogs, curWst, (_appSettingsRef$curre4 = appSettingsRef.current) === null || _appSettingsRef$curre4 === void 0 ? void 0 : _appSettingsRef$curre4.warmupEmbed, (_appSettingsRef$curre5 = appSettingsRef.current) === null || _appSettingsRef$curre5 === void 0 ? void 0 : _appSettingsRef$curre5.weightSteps);
         if (nInfo.weight > 0) {
           setAutoTransitionSplash({
             title: nextGroup.title,

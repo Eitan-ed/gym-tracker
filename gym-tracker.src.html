@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.14';
+const APP_VERSION = '10.15';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -294,12 +294,39 @@ function getLastWarmupReps(exId, logs) {
 }
 // ─── מקור אחד לשאלה "מה הסט הבא של התרגיל": חימום (אם פתוח וטרם בוצע) או סט 1/2, עם משקל וחזרות ───
 // משמש את הכרטיס, המניפה, ההכרזות הקוליות והחלון הקופץ — כדי שכולם תמיד יסכימו.
-function getNextSetInfo(exId, logs, sst, warmupEmbedMap) {
+// משקל החימום ההתחלתי המוצג בכרטיס: 85% מהמשקל הגבוה של סט 1/2 האחרונים, מעוגל לרשת המשקלים של התרגיל.
+// ההכרזה משתמשת באותו חישוב בדיוק כדי שלא תקריא משקל עבודה כשהכרטיס מציג חימום.
+function resolveWeightGrid(exId, stepOverrides) {
+    let ov = stepOverrides ? effectiveStepOv(exId, stepOverrides[exId]) : undefined;
+    if (ov !== undefined && !ALLOWED_WEIGHT_STEPS.has(ov)) ov = undefined;
+    let wv = null;
+    if (typeof ov === 'string' && WEIGHT_SEQUENCES[ov]) wv = WEIGHT_SEQUENCES[ov];
+    else if (ov === '4-5' || ov === undefined) {
+        wv = CUSTOM_WEIGHT_VALUES[exId] || null;
+        if (ov === '4-5' && !wv) wv = THIGH_VALUES;
+    }
+    const ws = wv ? 1 : ((ov !== undefined && ov !== '4-5') ? ov : (DEFAULT_WEIGHT_STEPS[exId] !== undefined ? DEFAULT_WEIGHT_STEPS[exId] : 1));
+    return { wv, ws };
+}
+function calcWarmupDefault(bestW, wv, ws) {
+    if (!(bestW > 0)) return 0;
+    if (wv) { const t = bestW*0.85; return wv.reduce((prev,curr)=>Math.abs(curr-t)<Math.abs(prev-t)?curr:prev); }
+    return parseFloat((Math.round(bestW*0.85/ws)*ws).toFixed(4));
+}
+function getWarmupDefaultWeight(exId, logs, stepOverrides) {
+    const ex = logs.filter(l=>l.exId===exId).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+    const l1 = ex.find(l=>l.setNum===1 && (l.weight>0 || l.reps>0));
+    const l2 = ex.find(l=>l.setNum===2 && (l.weight>0 || l.reps>0));
+    const bestW = Math.max(l1?.weight||0, l2?.weight||0);
+    const { wv, ws } = resolveWeightGrid(exId, stepOverrides);
+    return calcWarmupDefault(bestW, wv, ws);
+}
+function getNextSetInfo(exId, logs, sst, warmupEmbedMap, stepOverrides) {
     const inS = l => l.exId===exId && new Date(l.timestamp).getTime()>sst;
     const doneW = logs.some(l=>inS(l)&&l.setNum===0);
     const done1 = logs.some(l=>inS(l)&&l.setNum===1);
     const done2 = logs.some(l=>inS(l)&&l.setNum===2);
-    const ww = getLastWarmupWeight(exId, logs);
+    const ww = getWarmupDefaultWeight(exId, logs, stepOverrides) || getLastWarmupWeight(exId, logs);
     const isWarmup = !!(warmupEmbedMap && warmupEmbedMap[exId]) && !doneW && ww > 0;
     // סט 2 עוקב אחרי סט 1 של האימון הנוכחי (כמו בכרטיס) — ולא אחרי סט 2 של האימון הקודם
     const s1Now = done1 && !done2 ? logs.filter(l=>inS(l)&&l.setNum===1&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0] : null;
@@ -774,9 +801,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         else if (lastS1) setS2(p=>({...p, w:lastS1.weight, r:lastS1.reps}));
         const bestW = Math.max(lastS1?.weight||0, lastS2?.weight||0);
         if (bestW > 0) {
-            const warmW = weightValues
-                ? (()=>{ const target=bestW*0.85; return weightValues.reduce((prev,curr)=>Math.abs(curr-target)<Math.abs(prev-target)?curr:prev); })()
-                : parseFloat((Math.round(bestW*0.85/weightStep)*weightStep).toFixed(4));
+            const warmW = calcWarmupDefault(bestW, weightValues, weightStep);
             setSW(p=>({...p, w:warmW}));
         }
         initialized.current = true;
@@ -1530,7 +1555,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const warmupOpenEx = warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id];
         // משקל להצגה ליד התמונה: תמיד המשקל של הסט הבא בפועל — דינאמי, מתעדכן מיד עם השלמת כל סט באימון הנוכחי
         // (ולא משקל היסטורי קבוע). אם יש חימום פתוח וטרם בוצע — הוא הסט הבא, ולכן מוצג משקל החימום
-        const warmupW = getLastWarmupWeight(ex.id, logs);
+        const warmupW = getWarmupDefaultWeight(ex.id, logs, weightStepsOverrides) || getLastWarmupWeight(ex.id, logs);
         const warmupPendingEx = warmupOpenEx && !doneWEx && warmupW > 0;
         const nwRep = nextW[ex.id];
         const tileWarm = nwRep ? nwRep.warm : warmupPendingEx;
@@ -1951,7 +1976,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 const done = isGroupDoneHere(g);
                                 const img = imgOf(g);
                                 // כיתוב המשקל הבא (קטן, מתחת לתמונה): חימום אם ממתין, אחרת הסט הבא
-                                const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed);
+                                const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
                                 const fWarm = fInfo.isWarmup;
                                 const fW = done ? 0 : fInfo.weight;
                                 const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
@@ -1994,7 +2019,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             const isCur = g.id === group.id;
                                             const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
                                             const ringC = gRt > 0 ? (gRt <= 20 ? '#ef4444' : '#f97316') : null;
-                                            const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed);
+                                            const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
                                             const shadow = [isCur && '0 0 0 3px #3b82f6', ringC && `0 0 0 ${isCur ? 6 : 3}px ${ringC}`].filter(Boolean).join(', ') || undefined;
                                             return (
                                                 <div key={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM }}>
@@ -4108,7 +4133,7 @@ function App() {
                     if (curGroupT) {
                         const curSstT = sstRef.current;
                         const warmupEmb = appSettingsRef.current?.warmupEmbed || {};
-                        const isGroupDoneT = g => g.exercises.every(e => { const i = getNextSetInfo(e.id, curLogsT, curSstT, warmupEmb); return i.done; });
+                        const isGroupDoneT = g => g.exercises.every(e => { const i = getNextSetInfo(e.id, curLogsT, curSstT, warmupEmb, appSettingsRef.current?.weightSteps); return i.done; });
                         // התרגיל שהטיימר שלו הסתיים עדיין לא גמור -> מכריזים על הסט הבא שלו.
                         // אם הוא כבר גמור (האפ כבר עבר הלאה) -> מכריזים על התרגיל הבא שמחכה למתאמן, לא על הגמור.
                         let tgtG = curGroupT;
@@ -4119,7 +4144,7 @@ function App() {
                         if (tgtG) {
                             const tgtEx = tgtG.exercises.length === 2 && tgtG.id === curGroupT.id
                                 ? (tgtG.exercises.find(e => e.id !== completedExId) || tgtG.exercises[0]) : tgtG.exercises[0];
-                            const infoT = getNextSetInfo(tgtEx.id, curLogsT, curSstT, warmupEmb);
+                            const infoT = getNextSetInfo(tgtEx.id, curLogsT, curSstT, warmupEmb, appSettingsRef.current?.weightSteps);
                             const exNum = spokenName(tgtEx);
                             setTimeout(() => speakNextSet(infoT, exNum), 1200);
                         }
@@ -4233,7 +4258,7 @@ function App() {
                     const other = visibleGroupsRef.current.filter(g => g.id!==gCur.id && !g.isSuperset && !skipX.includes(g.id) && !isDoneG(g) && hasProg(g)).sort((x,y)=>remainOf(x)-remainOf(y))[0];
                     if (other) {
                         const oEx = other.exercises[0];
-                        const oInfo = getNextSetInfo(oEx.id, allLogsX, wst, settings.warmupEmbed);
+                        const oInfo = getNextSetInfo(oEx.id, allLogsX, wst, settings.warmupEmbed, settings.weightSteps);
                         const oNum = visibleGroupsRef.current.findIndex(g=>g.id===other.id) + 1;
                         setActiveGroup(other); setView('detail');
                         setScrollToExId(oEx.id);
@@ -4259,7 +4284,7 @@ function App() {
                     setTimeout(()=>setScrollToExId(nextId), 50);
                     // הכרזת המשקל הבא (כולל "חימום" אם ממתין) גם במעבר פנימי בין שני תרגילי הסופרסט —
                     // בעבר זה קרה רק במעבר בין קבוצות תרגילים רגילות, ולא כאן, ולכן לא הוכרז בתרגיל השני של הסופרסט
-                    const nInfo = getNextSetInfo(nextId, allLogs, wst, settings.warmupEmbed);
+                    const nInfo = getNextSetInfo(nextId, allLogs, wst, settings.warmupEmbed, settings.weightSteps);
                     if (nInfo.weight > 0) {
                         setAutoTransitionSplash({ title: sg.title, weight: nInfo.weight, reps: nInfo.reps, isWarmup: nInfo.isWarmup, exId: nextId });
                         speakNextSet(nInfo, spokenName(exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===nextId)||{id:nextId,title:""}), true);
@@ -4623,7 +4648,7 @@ function App() {
             if (isAutoTransition) {
                 const nextEx = nextGroup.exercises[0];
                 // settings מגיע מ-ref (ה-callback הזה לא מתעדכן בכל רינדור) — אחרת פתיחת חימום באמצע אימון לא הייתה מוכרת כאן
-                const nInfo = getNextSetInfo(nextEx.id, curLogs, curWst, appSettingsRef.current?.warmupEmbed);
+                const nInfo = getNextSetInfo(nextEx.id, curLogs, curWst, appSettingsRef.current?.warmupEmbed, appSettingsRef.current?.weightSteps);
                 if (nInfo.weight > 0) {
                     setAutoTransitionSplash({ title: nextGroup.title, weight: nInfo.weight, reps: nInfo.reps, isWarmup: nInfo.isWarmup, exId: nextEx.id });
                     speakNextSet(nInfo, spokenName(nextEx), true);
