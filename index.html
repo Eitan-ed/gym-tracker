@@ -63,7 +63,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.15';
+var APP_VERSION = '10.16';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -9410,6 +9410,48 @@ function App() {
       setRestTimerTotals(function (prev) {
         return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, dur));
       });
+    }
+    // תרגיל שסיים את כל הסטים שלו — הטיימר שלו (המנוחה שלפני התרגיל הבא) נשאר רק עד שמתחילים בפועל תרגיל אחר.
+    // ברגע ששמרתי סט בתרגיל אחר, הטיימר של תרגיל גמור כבר לא רלוונטי ונמחק.
+    if (!isSuperset && !isSkipLog) {
+      var gSelf = exerciseGroups.find(function (g) {
+        return g.exercises.some(function (e) {
+          return e.id === exId;
+        });
+      });
+      var selfIds = new Set((gSelf ? gSelf.exercises : []).map(function (e) {
+        return e.id;
+      }));
+      var logsNow = [].concat(_toConsumableArray(logsRef.current), [newLog]);
+      var doneEx = function doneEx(id) {
+        var sl = logsNow.filter(function (l) {
+          return l.exId === id && new Date(l.timestamp).getTime() > wst;
+        });
+        return sl.some(function (l) {
+          return l.setNum === 1;
+        }) && sl.some(function (l) {
+          return l.setNum === 2;
+        });
+      };
+      var staleIds = Object.keys(restTimersRef.current).filter(function (id) {
+        return !selfIds.has(id) && doneEx(id);
+      });
+      if (staleIds.length) {
+        setRestTimers(function (prev) {
+          var n = _objectSpread({}, prev);
+          staleIds.forEach(function (id) {
+            return delete n[id];
+          });
+          return n;
+        });
+        setRestTimerTotals(function (prev) {
+          var n = _objectSpread({}, prev);
+          staleIds.forEach(function (id) {
+            return delete n[id];
+          });
+          return n;
+        });
+      }
     }
     setReturnGroup(null); // התחיל עבודה בפועל — כפתור "חזור" של המניפה כבר לא רלוונטי
     // שילוב תרגילים (A1, B1, A2, B2): אם סיימתי סט בתרגיל שלא נגמר, ויש תרגיל אחר שכבר התחלתי בו

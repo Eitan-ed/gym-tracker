@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.15';
+const APP_VERSION = '10.16';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -4237,6 +4237,19 @@ function App() {
         } else {
             setRestTimers(prev => ({...prev, [exId]: dur}));
             setRestTimerTotals(prev => ({...prev, [exId]: dur}));
+        }
+        // תרגיל שסיים את כל הסטים שלו — הטיימר שלו (המנוחה שלפני התרגיל הבא) נשאר רק עד שמתחילים בפועל תרגיל אחר.
+        // ברגע ששמרתי סט בתרגיל אחר, הטיימר של תרגיל גמור כבר לא רלוונטי ונמחק.
+        if (!isSuperset && !isSkipLog) {
+            const gSelf = exerciseGroups.find(g=>g.exercises.some(e=>e.id===exId));
+            const selfIds = new Set((gSelf ? gSelf.exercises : []).map(e=>e.id));
+            const logsNow = [...logsRef.current, newLog];
+            const doneEx = id => { const sl = logsNow.filter(l=>l.exId===id && new Date(l.timestamp).getTime()>wst); return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2); };
+            const staleIds = Object.keys(restTimersRef.current).filter(id => !selfIds.has(id) && doneEx(id));
+            if (staleIds.length) {
+                setRestTimers(prev => { const n = {...prev}; staleIds.forEach(id => delete n[id]); return n; });
+                setRestTimerTotals(prev => { const n = {...prev}; staleIds.forEach(id => delete n[id]); return n; });
+            }
         }
         setReturnGroup(null); // התחיל עבודה בפועל — כפתור "חזור" של המניפה כבר לא רלוונטי
         // שילוב תרגילים (A1, B1, A2, B2): אם סיימתי סט בתרגיל שלא נגמר, ויש תרגיל אחר שכבר התחלתי בו
