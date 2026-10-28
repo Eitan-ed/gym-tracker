@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.18';
+const APP_VERSION = '10.19';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1492,10 +1492,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     // שורת תמונות התרגילים — סרט גלילה רציף על כל התרגילים, גולל חופשי לפי האצבע ונעצר על הקרוב
     const filmStripRef = React.useRef(null);
     const filmSettleTimer = React.useRef(null);
+    const filmProgRef = React.useRef(0); // גלילה יזומה של הקוד — לא מפעילה ניווט אוטומטי לפריים שבמרכז
     useEffect(() => {
         setPreviewGroupId(null);
         if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
         setTimeout(()=>curChipRef.current?.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}), 50);
+        filmProgRef.current = Date.now() + 1000;
         setTimeout(()=>{
             filmStripRef.current?.querySelector(`[data-gid="${group.id}"]`)?.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
         }, 50);
@@ -1503,6 +1505,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     // תצוגה מקדימה (מהמספרים למעלה) — גוללת את סרט התמונות למועמד, בלי לנווט אליו
     useEffect(() => {
         if (!previewGroupId) return;
+        filmProgRef.current = Date.now() + 1000;
         filmStripRef.current?.querySelector(`[data-gid="${previewGroupId}"]`)?.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
     }, [previewGroupId]);
     const [videoModal,    setVideoModal]   = useState(null);
@@ -1671,7 +1674,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     /* סופרסט: שמאל = כותרת + תמונה, ימין = וידאו */
                     <div className="flex gap-2 mb-0" style={{minHeight:'7rem'}}>
                         <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                            <div className="text-sm font-black text-slate-800 leading-tight px-0.5" onDoubleClick={()=>promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames)}>{customNames[ex.id] || ex.title}</div>
+                            <div className="text-sm font-black text-slate-800 leading-tight px-0.5" onDoubleClick={()=>promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames)}>{customNames[ex.id] || ex.title}{setCustomNames && <button onClick={()=>promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames)} className="mr-1.5 align-middle text-slate-400 active:text-indigo-600" title="שנה שם"><Icon name="Pencil" size={13} /></button>}</div>
                             {dispImgSrc ? (
                                 <div className="relative flex-1 min-w-0 overflow-hidden rounded-2xl" style={{height:'5rem'}}>
                                     <img src={dispImgSrc} alt="" aria-hidden="true" draggable={false} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{filter:'blur(14px) brightness(0.92)', transform:'scale(1.25)'}} />
@@ -1906,6 +1909,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 </button>
             </div>
             <div className="flex items-center gap-3 pr-14 pl-9">
+                {group.exercises.length===1 && setCustomNames && (
+                    <button onClick={()=>promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames)}
+                        className="p-1.5 rounded-full bg-white/25 text-white active:scale-90 shrink-0" title="שנה שם תרגיל"><Icon name="Pencil" size={14} /></button>
+                )}
                 <h2 className="text-base font-black text-white leading-none tracking-tight">
                     <span className="font-black text-xl ml-1.5">{groupIdx+1}</span><span className="opacity-60 font-bold text-sm">/{totalGroups}</span>
                     <span className="opacity-60 font-bold text-xs mx-1">({group.category})</span>
@@ -1971,7 +1978,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     if (filmSettleTimer.current) clearTimeout(filmSettleTimer.current);
                     filmSettleTimer.current = setTimeout(() => {
                         const el = filmStripRef.current;
-                        if (!el) return;
+                        if (!el || Date.now() < filmProgRef.current) return;
                         const rect = el.getBoundingClientRect();
                         const hit = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
                         const gid = hit?.closest?.('[data-gid]')?.dataset?.gid;
@@ -1983,7 +1990,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 return (
                     <div>
                         <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar mt-3" dir="rtl"
-                            style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInline:`calc(50% - ${ITEM/2}px)`}}
+                            style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInlineStart:8, paddingInlineEnd:`calc(50% - ${ITEM/2}px)`}}
                             onScroll={handleFilmScroll}>
                             {allGroups.map((g,i) => {
                                 const isCur = g.id === targetId;
@@ -2106,7 +2113,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
 // תיקון 3: [...items].sort — לא מוטייט מערך מקורי
 const fmtDur = sec => { const m=Math.floor(sec/60), s=sec%60; return `${m}:${String(s).padStart(2,'0')}`; };
 
-const TOTAL_EX_COUNT = () => exerciseGroups.reduce((n,g)=>n+g.exercises.length, 0);
+// סה"כ תרגילים פעילים בתוכנית (בלי מוסתרים) — המכנה של "17/17" בהיסטוריה
+const TOTAL_EX_COUNT = () => { const hid = new Set(LS.get('gym-hidden-exercises', []) || []); return exerciseGroups.reduce((n,g)=>n + (hid.has(g.id) ? 0 : g.exercises.length), 0); };
 const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, devNotesDone={}, onSaveDevNote=null, onShowDaySummary=null }) => {
     const [expandedDate, setExpandedDate] = useState(null);
     const grouped = useMemo(() => groupLogsBySession(logs), [logs]);
@@ -2141,7 +2149,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                                     <div className="flex items-center gap-2">
                                         <span className="font-black text-slate-500 text-base shrink-0">{getDayLetterHe(items[0].timestamp)}</span>
                                         <span className={`font-black ${isShort ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(items[0].timestamp)}</span>
-                                        <span className={`text-[11px] font-black ${isShort ? 'text-red-500' : 'text-slate-400'}`}>{exCount}/{TOTAL_EX_COUNT()} תרגילים</span>
+                                        <span className={`text-[11px] font-black ${isShort ? 'text-red-500' : 'text-slate-400'}`}>{exCount}/{TOTAL_EX_COUNT()}</span>
                                         {dur > 0 && <span className="text-[11px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={11}/>{fmtDur(dur)}</span>}
                                         {(()=>{
                                             const wn=wst?workoutNotes[wst]:null;
@@ -2169,7 +2177,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                                 {/* סיכום אימון */}
                                 <div className="flex flex-wrap gap-1.5 mb-1">
                                     {dur > 0 && <span className="flex items-center gap-1 bg-blue-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-blue-600"><Icon name="Clock" size={11}/>{fmtDur(dur)}</span>}
-                                    <span className="bg-slate-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-slate-600">{items.length} סטים · {uniqueEx} מתוך {TOTAL_EX_COUNT()} תרגילים</span>
+                                    <span className="bg-slate-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-slate-600">{uniqueEx}/{TOTAL_EX_COUNT()}</span>
                                     {(wn?.bw>0) && <span className="bg-sky-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-sky-600">⚖️ {wn.bw} ק״ג</span>}
                                 </div>
                                 {wn?.note ? (
@@ -2216,6 +2224,9 @@ const collectAllGymData = () => {
     return all;
 };
 let _backupDirHandle = null;
+// האם הכתיבה האחרונה לתיקיית FILING הצליחה — להודעת "נשמר גם ב-FILING / רק במכשיר"
+let _lastFilingOk = false;
+const backupStatusMsg = what => _lastFilingOk ? `${what} נשמר במכשיר וגם בתיקיית FILING ✓` : `${what} נשמר רק במכשיר — FILING לא מקושר ⚠`;
 const getBackupDirName = () => _backupDirHandle?.name || null;
 
 const loadBackupDirHandle = async () => {
@@ -2261,7 +2272,8 @@ const backupMediaToDir = async (dirHandle) => {
 // שחזור המדיה מתת-התיקייה gym-media-backup (אם קיימת ליד קובץ הגיבוי) חזרה ל-IndexedDB. מחזיר מספר קבצים ששוחזרו.
 const restoreMediaFromDir = async (dirHandle) => {
     try {
-        const sub = await dirHandle.getDirectoryHandle('gym-media-backup');
+        let sub = dirHandle;
+        try { sub = await dirHandle.getDirectoryHandle('gym-media-backup'); } catch {} // או התיקייה עצמה שנבחרה
         let n = 0;
         for await (const [name, h] of sub.entries()) {
             const m = h.kind === 'file' && name.match(/^(video|music)-(.+)\.[a-z0-9]+$/i);
@@ -2303,6 +2315,7 @@ const triggerBackupDownload = async (data, silent) => {
         try { dirOk = await writeToDir(_backupDirHandle, json, fname); } catch {}
         if (dirOk) await backupMediaToDir(_backupDirHandle);
     }
+    _lastFilingOk = dirOk;
     if (!silent && !_backupDirHandle && window.showSaveFilePicker) {
         try {
             const opts = { suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] };
@@ -2334,6 +2347,7 @@ const silentBackupToFiling = async (data) => {
         const fname = `gym-backup-${new Date().toLocaleDateString('he-IL').replace(/\./g,'-')}.json`;
         const ok = await writeToDir(_backupDirHandle, json, fname);
         if (ok) { markBackupOk(); await backupMediaToDir(_backupDirHandle); }
+        _lastFilingOk = !!ok;
         return ok;
     } catch { return false; }
 };
@@ -2345,8 +2359,7 @@ const triggerBackupRestore = async () => {
             if (_backupDirHandle) opts.startIn = _backupDirHandle;
             const [fh] = await window.showOpenFilePicker(opts);
             const file = await fh.getFile();
-            try { _backupDirHandle = await fh.getParent?.(); } catch {}
-            return file;
+            return file; // לא משנים את תיקיית היעד של הגיבויים — השחזור יכול להיות מכל מקום
         } catch (e) { if (e.name === 'AbortError') return null; }
     }
     return null;
@@ -2480,7 +2493,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const [newDevNoteText, setNewDevNoteText] = useState('');
 
     const [open, setOpen] = useState(()=>{
-        const base = {exercises:false, backup:false, music:false, settings:false, progress:false, history:false, instructors:false, reports:false, devNotes:false};
+        const base = {exercises:false, backup:false, music:false, settings:false, history:false, instructors:false, reports:false, devNotes:false};
         if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
         return base;
     });
@@ -2509,11 +2522,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const settingsRef  = React.useRef(null);
     const historyRef   = React.useRef(null);
     const musicRef     = React.useRef(null);
-    const progressRef  = React.useRef(null);
     const instructorsRef = React.useRef(null);
     const reportsRef = React.useRef(null);
     const devNotesRef = React.useRef(null);
-    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, progress: progressRef, instructors: instructorsRef, reports: reportsRef, devNotes: devNotesRef };
+    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, instructors: instructorsRef, reports: reportsRef, devNotes: devNotesRef };
     React.useEffect(()=>{
         if (initialOpenSection && sectionRefs[initialOpenSection]) {
             setOpen(p => ({...p, [initialOpenSection]: true}));
@@ -2525,7 +2537,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         }
     }, [initialOpenSection]);
     // ─── סידור אלפביתי (א"ב) של קטגוריות הניהול — אוטומטי בכל הוספת קטגוריה ───
-    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'שעות פתיחה ומדריכים', music:'מוזיקה', progress:'תדירות אימון', exercises:'תרגילים', reports:'דוחות', devNotes:'הערות לשיפור' };
+    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'שעות פתיחה ומדריכים', music:'מוזיקה', exercises:'תרגילים', reports:'דוחות', devNotes:'הערות לשיפור' };
     const sectionOrder = Object.entries(SECTION_TITLES).sort((a,b)=>a[1].localeCompare(b[1],'he')).map(e=>e[0]);
     const ord = key => sectionOrder.indexOf(key);
     const toggleSection = key => {
@@ -2554,7 +2566,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
             lastSummary:      LS.get('gym-last-summary',       null),
             customHowTo:      LS.get('gym-custom-howto',       {})
         }, false);
-        if (ok) { showToast('הגיבוי נשמר בהצלחה'); setBackupDir(getBackupDirName()); }
+        if (ok) { showToast(backupStatusMsg('הגיבוי'), !_lastFilingOk); setBackupDir(getBackupDirName()); }
     };
 
     const doRestoreFile = (file) => {
@@ -2590,10 +2602,6 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                     if (data.lastSummary !== undefined) { LS.set('gym-last-summary', data.lastSummary);   setSummaryData?.(data.lastSummary); }
                     if (data.customNames)      { LS.set('gym-custom-names',      data.customNames);      setCustomNames?.(data.customNames); }
                     showToast('הנתונים שוחזרו בהצלחה');
-                    if (_backupDirHandle) {
-                        const nm = await restoreMediaFromDir(_backupDirHandle);
-                        if (nm > 0) { showToast(`הנתונים ו-${nm} קבצי מדיה שוחזרו — טוען מחדש`); setTimeout(()=>location.reload(), 1800); }
-                    }
                 } catch { showToast('שגיאה בשחזור', true); }
             };
             reader.readAsText(file);
@@ -2647,7 +2655,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         {window.showOpenFilePicker ? (
                             <button onClick={handleRestore} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
                                 <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                                <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">בחירת קובץ גיבוי מהספרייה</div></div>
+                                <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">בחירת קובץ גיבוי מכל מקום (מכשיר / גוגל דרייב)</div></div>
                             </button>
                         ) : (
                             <label className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]">
@@ -2655,6 +2663,19 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
                                 <input type="file" accept=".json" className="hidden" onChange={handleRestoreFallback} />
                             </label>
+                        )}
+                        {window.showDirectoryPicker && (
+                            <button onClick={async ()=>{
+                                try {
+                                    const dir = await window.showDirectoryPicker();
+                                    const nm = await restoreMediaFromDir(dir);
+                                    if (nm > 0) { showToast(`שוחזרו ${nm} קבצי מדיה (סרטונים/מוזיקה) — טוען מחדש`); setTimeout(()=>location.reload(), 1800); }
+                                    else showToast('לא נמצאו קבצי מדיה בתיקייה שנבחרה', true);
+                                } catch {}
+                            }} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
+                                <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
+                                <div><div className="font-black text-sm">שחזור סרטונים ומוזיקה</div><div className="text-[10px] font-bold opacity-70">בחירת התיקייה gym-media-backup (מכל מקום)</div></div>
+                            </button>
                         )}
                     </div>}
                 </section>
@@ -2780,7 +2801,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                             <span className={`font-black text-sm ${uniqEx < 5 ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(items[0].timestamp)}</span>
                                                             {dur>0 && <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5"><Icon name="Clock" size={10}/>{fmtDur(dur)}</span>}
                                                             {bwVal>0 && <span className="text-[10px] font-black text-sky-600">⚖️{bwVal}{bwEnt?.timestamp ? ` (${new Date(bwEnt.timestamp).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})})` : ''}</span>}
-                                                            <span className="text-[10px] font-bold text-blue-500">{items.length} סטים · {uniqEx} מתוך {TOTAL_EX_COUNT()} תרגילים</span>
+                                                            <span className="text-[10px] font-bold text-blue-500">{uniqEx}/{TOTAL_EX_COUNT()}</span>
                                                         </div>
                                                         <Icon name={isExp?'ChevronUp':'ChevronDown'} size={15} className="text-slate-400 shrink-0"/>
                                                     </button>
@@ -2868,14 +2889,6 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                             </button>
                         )}
                     </div>}
-                </section>
-                {/* ── ת: תדירות אימון ── */}
-                <section ref={progressRef} style={{order:ord('progress')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.progress?'':''}`}>
-                    <button onClick={()=>toggleSection('progress')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" size={20} className="text-emerald-500" /> תדירות אימון</h3>
-                        <Icon name={open.progress?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
-                    </button>
-                    {open.progress && <div className="overflow-y-auto no-scrollbar flex-1"><WorkoutProgressCalendar logs={logs} /></div>}
                 </section>
                 {/* ── ת: תרגילים ── */}
                 <section ref={exerciseSectionRef} style={{order:ord('exercises')}} className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.exercises?'':''}`}>
@@ -3118,6 +3131,33 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     });
                                     txt += '\n';
                                 });
+                                if (period === 'all') {
+                                    // דוח כולל = כל נתוני האפליקציה, לא רק יומני האימונים
+                                    const nm = id => customNames[id] || exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===id)?.title || id;
+                                    txt += `${'═'.repeat(40)}\nנתוני האפליקציה (מצב נוכחי)\n${'═'.repeat(40)}\n\n`;
+                                    txt += `הגדרות מנוחה: בין סטים ${settings.normalRest||90} שנ׳ | בין תרגילים ${settings.exerciseRest||70} שנ׳ | סופרסט ${settings.supersetRest||60} שנ׳ | חימום ${settings.warmupRest||60} שנ׳\n`;
+                                    const wsAll = settings.weightSteps || {};
+                                    if (Object.keys(wsAll).length) txt += `מרווחי משקל מותאמים: ${Object.entries(wsAll).map(([k,v])=>`${nm(k)}=${v}`).join(', ')}\n`;
+                                    const weAll = settings.warmupEmbed || {};
+                                    const weOn = Object.keys(weAll).filter(k=>weAll[k]);
+                                    if (weOn.length) txt += `תרגילים עם חימום פתוח: ${weOn.map(nm).join(', ')}\n`;
+                                    if (Object.keys(customNames||{}).length) txt += `שמות מותאמים: ${Object.entries(customNames).map(([k,v])=>`${k}→${v}`).join(', ')}\n`;
+                                    const bwAll = [...(bodyweightLog||[])].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+                                    if (bwAll.length) txt += `\nמשקל גוף (${bwAll.length} שקילות):\n${bwAll.map(b=>`  ${new Date(b.timestamp).toLocaleDateString('he-IL')}: ${b.weight} ק״ג`).join('\n')}\n`;
+                                    const exNotesAll = Object.entries(notes||{}).filter(([,t])=>t && String(t).trim());
+                                    if (exNotesAll.length) txt += `\nהערות תרגילים:\n${exNotesAll.map(([k,t])=>`  ${nm(k)}: ${t}`).join('\n')}\n`;
+                                    const howAll = LS.get('gym-custom-howto', {}) || {}, tipsAll = LS.get('gym-custom-tips', {}) || {};
+                                    const howE = Object.entries(howAll).filter(([,t])=>t && String(t).trim()), tipE = Object.entries(tipsAll).filter(([,t])=>t && String(t).trim());
+                                    if (howE.length) txt += `\n"איך לבצע" מותאם:\n${howE.map(([k,t])=>`  ${nm(k)}: ${t}`).join('\n')}\n`;
+                                    if (tipE.length) txt += `\nטיפים מותאמים:\n${tipE.map(([k,t])=>`  ${nm(k)}: ${t}`).join('\n')}\n`;
+                                    const wnE = Object.entries(workoutNotes||{}).filter(([,v])=>v && v.note);
+                                    if (wnE.length) txt += `\nהערות אימון (סיכום):\n${wnE.map(([k,v])=>`  ${new Date(Number(k)).toLocaleDateString('he-IL')}: ${v.note}`).join('\n')}\n`;
+                                    if ((instructors||[]).length) txt += `\nמדריכים:\n${instructors.map(i=>`  ${i.name||'(ללא שם)'}${i.note?': '+i.note:''}`).join('\n')}\n`;
+                                    const dnE = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
+                                    if (dnE.length) txt += `\nהערות לשיפור פעילות:\n${dnE.map(([k,t])=>`  ${nm(k)} [${devMetaLabel(k)}]: ${t}`).join('\n')}\n`;
+                                    if ((devNotesHistory||[]).length) txt += `\nהיסטוריית תיקונים (${devNotesHistory.length}):\n${devNotesHistory.map(h=>`  ${h.name}${h.verified?' ✓':''}: ${String(h.text||'').replace(/\n/g,' / ')}`).join('\n')}\n`;
+                                    txt += '\n';
+                                }
                                 txt += `${'═'.repeat(40)}\n`;
                                 txt += `הנחיות לניתוח AI\n`;
                                 txt += `${'─'.repeat(40)}\n`;
@@ -3125,7 +3165,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
 
                                 const fname = `gym-report-${period}-${now.toISOString().slice(0,10)}.txt`;
                                 saveTextFile(fname, txt).then(savedToFiling => {
-                                    showToast(`דוח ${periodLabel.split('—')[0].trim()} נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
+                                    showToast(`דוח ${periodLabel.split('—')[0].trim()} נשמר במכשיר${savedToFiling?` וגם בתיקיית ${filingDirName} ✓`:' בלבד — FILING לא מקושר ⚠'}`, !savedToFiling);
                                 });
                             };
                             const generateDevNotesReport = () => {
@@ -3149,7 +3189,7 @@ ${markImplemented(t)}\n\n`; });
                                 // חשוב: ייצוא הדוח *לא* מסמן הערות כ"בוצעו" — סימון בוצע נעשה אך ורק ידנית (כפתור ה-✓
                                 // ליד כל הערה), כי הערה שרק יוצאה בדוח לא בהכרח יושמה בפועל בקוד
                                 saveTextFile(fname, txt).then(savedToFiling => {
-                                    showToast(`דוח הערות לשיפור נשמר${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
+                                    showToast(`דוח הערות לשיפור נשמר במכשיר${savedToFiling?` וגם בתיקיית ${filingDirName} ✓`:' בלבד — FILING לא מקושר ⚠'}`, !savedToFiling);
                                     onPurgeImplemented && onPurgeImplemented();
                                 });
                             };
@@ -3166,7 +3206,7 @@ ${markImplemented(t)}\n\n`; });
                                 });
                                 const fname = `gym-exercise-list-${new Date().toISOString().slice(0,10)}.txt`;
                                 saveTextFile(fname, txt).then(savedToFiling => {
-                                    showToast(`רשימת תרגילים נשמרה${savedToFiling?` בתיקיית ${filingDirName}`:''}`);
+                                    showToast(`רשימת תרגילים נשמרה במכשיר${savedToFiling?` וגם בתיקיית ${filingDirName} ✓`:' בלבד — FILING לא מקושר ⚠'}`, !savedToFiling);
                                 });
                             };
                             return (<>
@@ -3419,7 +3459,6 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
         { key:'history',     label:'היסטוריית אימונים',  icon:'History',      color:'text-teal-500' },
         { key:'instructors', label:'שעות פתיחה ומדריכים',            icon:'BookOpen',     color:'text-rose-500' },
         { key:'music',       label:'מוזיקה',             icon:'Music',        color:'text-purple-500' },
-        { key:'progress',    label:'תדירות אימון',       icon:'CheckCircle2', color:'text-emerald-500' },
         { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
         { key:'devNotes',    label:'הערות לשיפור', icon:'BookOpen', color:'text-amber-500' }
     ].sort((a,b)=>a.label.localeCompare(b.label,'he'));
@@ -3679,6 +3718,7 @@ function App() {
     const [devNotesHistory,  setDevNotesHistory]  = useState(()=>LS.get('gym-dev-notes-history',[]));
     // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
     const [filingDirName, setFilingDirName] = useState(null);
+    const [filingLoaded, setFilingLoaded] = useState(false);
     // האם הרשאת הכתיבה בפועל מאושרת כרגע (בשונה מ-filingDirName, שמציין רק שהתיקייה "מחוברת"/זכורה) —
     // בדפדפנים מסוימים ההרשאה מתאפסת בכל טעינה מחדש (למשל אחרי שדרוג גרסה), גם כשהתיקייה עצמה
     // עדיין זכורה ב-IndexedDB. הבחנה זו מאפשרת להציג תזכורת "יש לאשר מחדש" בלי "לנתק" בטעות.
@@ -3689,6 +3729,7 @@ function App() {
         if (!filingSupported) return;
         (async () => {
             const handle = await IDB.get('filingDirHandle');
+            setFilingLoaded(true);
             if (!handle) return;
             // התיקייה תמיד מוצגת כ"מחוברת" (השם שלה זמין גם בלי הרשאה) — כי כל פונקציית הכתיבה
             // בפועל (saveTextFile וכו') מבקשת הרשאה מחדש לפני כתיבה בכל מקרה. כך החיבור "נשמר"
@@ -5170,7 +5211,7 @@ function App() {
                                             lastWorkoutSec:durSec, showDetails:LS.get('gym-show-details',{}),
                                             sessionDurations:{...sessionDurations,...(durSec>0?{[sumWst]:durSec}:{})},
                                             workoutNote:summaryNote});
-                                        if (ok) { setSummaryBackedUp(true); steps.push('נשמר ב-FILING'); }
+                                        if (ok) { setSummaryBackedUp(true); steps.push('נשמר במכשיר וגם ב-FILING ✓'); }
                                         else { hadFailure = true; steps.push('❌ הגיבוי ל-FILING נכשל'); }
                                     } else {
                                         hadFailure = true;
@@ -5184,6 +5225,7 @@ function App() {
                                         } catch { hadFailure = true; steps.push('❌ ייצוא דוח השיפורים נכשל'); }
                                     }
                                 }
+                                if (!filingDirName) { hadFailure = true; steps.push('⚠ FILING לא מקושר — נשמר רק במכשיר'); }
                                 showToast(steps.join(' · '), hadFailure);
                             }} className={`w-full p-3 rounded-xl font-bold active:scale-95 ${summarySaved ? 'text-slate-400 bg-slate-100' : 'text-white bg-blue-600'}`}>
                                 {summarySaved ? 'נשמר' : 'שמור'}
@@ -5272,8 +5314,14 @@ function App() {
                 <Icon name="Dumbbell" size={16} className="text-blue-400" />
             </div>
             <span className="absolute bottom-1 left-3 text-[11px] text-white/30 font-bold" dir="ltr">v.{APP_VERSION}</span>
+            {!filingDirName && (!filingSupported || filingLoaded) && (
+                <button onClick={e=>{ e.stopPropagation(); if (filingSupported) connectFilingDir(); else showToast('הדפדפן במכשיר זה לא תומך בחיבור תיקיית FILING — הקבצים נשמרים רק במכשיר', true); }}
+                    className="relative w-full bg-red-500 text-white text-[12px] font-black py-1.5 active:scale-[0.99]">
+                    ⚠ תיקיית FILING לא מקושרת{filingSupported ? ' — לחץ לקישור' : ' (נשמר רק במכשיר)'}
+                </button>
+            )}
             {backupAgeDays() > 5 && logs.length > 0 && (
-                <button onClick={async e=>{ e.stopPropagation(); await triggerBackupDownload({}, false); setBackupBannerTick(t=>t+1); }}
+                <button onClick={async e=>{ e.stopPropagation(); await triggerBackupDownload({}, false); setBackupBannerTick(t=>t+1); showToast(backupStatusMsg('הגיבוי'), !_lastFilingOk); }}
                     className="relative w-full bg-amber-500 text-slate-900 text-[12px] font-black py-1.5 active:scale-[0.99]">
                     ⚠ {backupAgeDays() === Infinity ? 'עדיין לא בוצע גיבוי' : `לא בוצע גיבוי ${Math.floor(backupAgeDays())} ימים`} — לחץ לגיבוי עכשיו
                 </button>
@@ -5305,12 +5353,12 @@ function App() {
                     const timerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
 
                     return (
-                        <div className="px-4 mb-1 mt-1 flex items-stretch gap-3">
+                        <div className="px-4 mb-1 mt-1 flex items-stretch justify-between gap-3">
                             {/* תאריכים + מד — מימין */}
                             <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime})}
-                                className="flex-1 rounded-2xl bg-white border border-slate-200 px-3 py-1.5 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
+                                className="shrink-0 rounded-2xl bg-white border border-slate-200 px-3 py-1.5 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
                                 style={{WebkitUserSelect:'none'}}>
-                                <div className="flex justify-between items-start mb-1">
+                                <div className="flex gap-5 items-start mb-1">
                                     <div className="text-right">
                                         <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">התחלה</div>
                                         <div className="text-[15px] font-black text-slate-800 leading-none">{start.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
@@ -5397,17 +5445,17 @@ function App() {
                                 style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
                                     border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
                                     boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
-                                <div className={`flex items-center justify-between p-4 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
-                                    <div className="flex items-start gap-4">
-                                        <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-12 h-12 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-12 h-12 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
-                                            <span className={isNext ? 'text-[10px] font-black text-white px-1.5 py-0.5 rounded-full' : 'text-[10px] font-black text-slate-400'} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
+                                <div className={`flex items-center justify-between px-3 py-2 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="relative shrink-0">
+                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-16 h-16 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-16 h-16 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-3xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
+                                            <span className={isNext ? 'absolute -top-1 -right-1 leading-none text-[10px] font-black text-white px-1.5 py-0.5 rounded-full shadow' : 'absolute -top-1 -right-1 leading-none text-[10px] font-black text-slate-500 bg-white/90 px-1.5 py-0.5 rounded-full shadow'} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
                                         </div>
-                                        <div className="flex flex-col justify-center" style={{minHeight:'3rem'}}>
+                                        <div className="flex flex-col justify-center min-w-0" style={{minHeight:'3rem'}}>
                                             <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
                                             {group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
                                         </div>
-                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                            <div className="flex items-center gap-2 mt-0.5 flex-nowrap">
                                                 <div className={`text-[12px] font-black ${isDone?'text-slate-400':group.badgeColor.replace(/bg-\S+\s*/,'')}`}>{group.category}</div>
                                                 {(()=>{ const lastW = logs.filter(l=>group.exercises.some(e=>e.id===l.exId)&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lastW ? <span className="text-[11px] font-black text-orange-500">{lastW.weight} kg</span> : null; })()}
                                             </div>
