@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.29';
+const APP_VERSION = '10.30';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -4292,7 +4292,14 @@ function App() {
     // באנר ירוק קבוע (עד לחיצה) — נשאר גם אם הדף נטען מחדש פעם נוספת אחרי העדכון
     const [updBanner, setUpdBanner] = useState(() => LS.get('gym-update-pending', null) === APP_VERSION);
     const dismissUpdBanner = () => { LS.set('gym-update-pending', null); setUpdBanner(false); };
-    useEffect(()=>{ if (!updBanner) return; const t = setTimeout(dismissUpdBanner, 20000); return ()=>clearTimeout(t); },[updBanner]);
+    // נשאר עד נגיעה כלשהי במסך — אז נעלם
+    useEffect(()=>{
+        if (!updBanner) return;
+        const h = () => dismissUpdBanner();
+        document.addEventListener('pointerdown', h, true);
+        document.addEventListener('keydown', h, true);
+        return ()=>{ document.removeEventListener('pointerdown', h, true); document.removeEventListener('keydown', h, true); };
+    },[updBanner]);
     useEffect(()=>{ LS.set('gym-dev-notes-history', devNotesHistory); },[devNotesHistory]);
     // קובץ קבוע בספריית FILING עם כל היסטוריית התיקונים (מסונכרן בכל שינוי), כדי שאפשר לבדוק בדיעבד
     useEffect(()=>{
@@ -5324,9 +5331,9 @@ function App() {
                 </div>
             )}
             {updBanner && (
-                <div onClick={dismissUpdBanner} className="fixed left-1/2 -translate-x-1/2 z-[1100] w-[92%] max-w-[360px]" style={{top:'calc(env(safe-area-inset-top) + 0.75rem)'}}>
+                <div className="fixed left-1/2 -translate-x-1/2 z-[1100] w-[92%] max-w-[360px] pointer-events-none" style={{top:'calc(env(safe-area-inset-top) + 0.75rem)'}}>
                     <div className="px-5 py-3 rounded-2xl shadow-2xl font-black text-sm flex items-center justify-center gap-2 bg-emerald-500 text-white">
-                        <Icon name="CheckCircle2" size={20} /> עודכן לגרסה {APP_VERSION} (לחץ לסגירה)
+                        <Icon name="CheckCircle2" size={20} /> עודכן לגרסה {APP_VERSION}
                     </div>
                 </div>
             )}

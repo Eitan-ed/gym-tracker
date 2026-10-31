@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.29';
+var APP_VERSION = '10.30';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -9936,11 +9936,17 @@ function App() {
     LS.set('gym-update-pending', null);
     setUpdBanner(false);
   };
+  // נשאר עד נגיעה כלשהי במסך — אז נעלם
   useEffect(function () {
     if (!updBanner) return;
-    var t = setTimeout(dismissUpdBanner, 20000);
+    var h = function h() {
+      return dismissUpdBanner();
+    };
+    document.addEventListener('pointerdown', h, true);
+    document.addEventListener('keydown', h, true);
     return function () {
-      return clearTimeout(t);
+      document.removeEventListener('pointerdown', h, true);
+      document.removeEventListener('keydown', h, true);
     };
   }, [updBanner]);
   useEffect(function () {
@@ -11769,8 +11775,7 @@ function App() {
     onClick: exitReorderMode,
     className: "shrink-0 bg-white/20 rounded-xl px-3 py-1.5 text-xs font-black active:scale-95"
   }, "\u05E1\u05D9\u05D9\u05DE\u05EA\u05D9"))), updBanner && /*#__PURE__*/React.createElement("div", {
-    onClick: dismissUpdBanner,
-    className: "fixed left-1/2 -translate-x-1/2 z-[1100] w-[92%] max-w-[360px]",
+    className: "fixed left-1/2 -translate-x-1/2 z-[1100] w-[92%] max-w-[360px] pointer-events-none",
     style: {
       top: 'calc(env(safe-area-inset-top) + 0.75rem)'
     }
@@ -11779,7 +11784,7 @@ function App() {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "CheckCircle2",
     size: 20
-  }), " \u05E2\u05D5\u05D3\u05DB\u05DF \u05DC\u05D2\u05E8\u05E1\u05D4 ", APP_VERSION, " (\u05DC\u05D7\u05E5 \u05DC\u05E1\u05D2\u05D9\u05E8\u05D4)")), toast && /*#__PURE__*/React.createElement("div", {
+  }), " \u05E2\u05D5\u05D3\u05DB\u05DF \u05DC\u05D2\u05E8\u05E1\u05D4 ", APP_VERSION)), toast && /*#__PURE__*/React.createElement("div", {
     className: "fixed left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[340px] pointer-events-none",
     style: {
       top: 'calc(env(safe-area-inset-top) + 0.75rem)'
