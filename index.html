@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.23';
+var APP_VERSION = '10.24';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -632,6 +632,10 @@ var PAGE_NOTE_LABELS = {
 };
 
 // הערות כלליות (מפתח general) מוצגות תמיד ראשונות — בדוח, בקובץ ה-FILING וברשימה באפליקציה
+// הערה שנרשמה בתוך תרגיל אבל נשמעת כללית ("כלל", "לכל התרגילים", "בכל מסך"...) — מוצעת להעברה לכללי (לא מועברת אוטומטית)
+var looksGeneral = function looksGeneral(t) {
+  return /כלל|לכל ה|בכל ה|בכל מקום|בכל מסך|בכל תרגיל|תמיד/.test(String(t || ''));
+};
 var generalFirst = function generalFirst(entries) {
   return _toConsumableArray(entries).sort(function (a, b) {
     return (b[0] === GENERAL_NOTE_KEY) - (a[0] === GENERAL_NOTE_KEY);
@@ -3531,14 +3535,31 @@ var appendSkipReason = function appendSkipReason(prev, txt) {
   var t = (txt || '').trim();
   return t ? ((prev || '').trim() ? prev.trim() + '\n' : '') + skipReasonLine(t) : prev;
 };
+// סיבות מהירות — לחיצה אחת מדלגת מיד עם הסיבה, בלי להקליד
+var SKIP_QUICK_REASONS = ['עשיתי תרגיל חלופי', 'כאב'];
 var SkipReasonModal = function SkipReasonModal(_ref17) {
   var title = _ref17.title,
     onConfirm = _ref17.onConfirm,
-    onCancel = _ref17.onCancel;
+    onCancel = _ref17.onCancel,
+    _ref17$setLabel = _ref17.setLabel,
+    setLabel = _ref17$setLabel === void 0 ? null : _ref17$setLabel;
   var _useState37 = useState(''),
     _useState38 = _slicedToArray(_useState37, 2),
     txt = _useState38[0],
     setTxt = _useState38[1];
+  // בדף התרגיל: דילוג על הסט הנבחר או על כל התרגיל (setLabel = שם הסט). מהמסך הראשי — תמיד כל התרגיל
+  var _useState38s = useState('set'),
+    _useState39s = _slicedToArray(_useState38s, 2),
+    scope = _useState39s[0],
+    setScope = _useState39s[1];
+  var scopeBtn = function scopeBtn(v, lbl) {
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setScope(v);
+      },
+      className: "flex-1 py-2 rounded-2xl text-[13px] font-black active:scale-95 ".concat(scope === v ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500')
+    }, lbl);
+  };
   return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     dir: "rtl",
     className: "fixed inset-0 z-[400] bg-black/50 flex items-end sm:items-center justify-center p-3",
@@ -3552,12 +3573,23 @@ var SkipReasonModal = function SkipReasonModal(_ref17) {
     className: "text-[15px] font-black text-slate-800 mb-0.5"
   }, "\u05E1\u05D9\u05D1\u05EA \u05D4\u05D3\u05D9\u05DC\u05D5\u05D2"), title && /*#__PURE__*/React.createElement("div", {
     className: "text-[12px] font-bold text-slate-400 mb-2"
-  }, title), /*#__PURE__*/React.createElement("textarea", {
+  }, title), setLabel && /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 mb-2"
+  }, scopeBtn('set', setLabel), scopeBtn('exercise', 'כל התרגיל')), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 mb-2"
+  }, SKIP_QUICK_REASONS.map(function (r) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: r,
+      onClick: function onClick() {
+        return onConfirm(r, scope);
+      },
+      className: "flex-1 py-2.5 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 font-black text-[13px] active:scale-95"
+    }, r);
+  })), /*#__PURE__*/React.createElement("textarea", {
     value: txt,
     onChange: function onChange(e) {
       return setTxt(e.target.value);
     },
-    autoFocus: true,
     rows: 3,
     placeholder: "\u05DC\u05DE\u05D4 \u05DE\u05D3\u05DC\u05D2\u05D9\u05DD? (\u05E0\u05E9\u05DE\u05E8 \u05D1\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC)",
     className: "w-full bg-amber-50/60 border border-amber-200 rounded-2xl p-3 text-[14px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none"
@@ -3565,7 +3597,7 @@ var SkipReasonModal = function SkipReasonModal(_ref17) {
     className: "flex gap-2 mt-3"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return onConfirm(txt);
+      return onConfirm(txt, scope);
     },
     className: "flex-1 py-2.5 rounded-2xl bg-orange-500 text-white font-black text-[14px] active:scale-95"
   }, "\u05D3\u05DC\u05D2"), /*#__PURE__*/React.createElement("button", {
@@ -3916,11 +3948,26 @@ var DetailView = memo(function DetailView(_ref18) {
       setSkipDlg({
         exId: ex.id,
         title: customNames[ex.id] || ex.title,
+        setLabel: selN === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(selN),
         go: function go() {
           onSave(ex.id, selN, 0, 0, exIsSuperset);
           if (selN === 2 && isLast) setTimeout(function () {
             return onFinish(true);
           }, 800);
+        },
+        // כל התרגיל: מסמנים כדולגו את כל הסטים שעוד לא בוצעו (בזה אחר זה, כדי שכל רישום יישמר)
+        goAll: function goAll() {
+          var left = [1, 2].filter(function (n) {
+            return !(n === 1 ? doneS1Ex : doneS2Ex);
+          });
+          left.forEach(function (n, i) {
+            setTimeout(function () {
+              return onSave(ex.id, n, 0, 0, exIsSuperset);
+            }, i * 250);
+          });
+          if (isLast && left.length) setTimeout(function () {
+            return onFinish(true);
+          }, left.length * 250 + 800);
         }
       });
     };
@@ -4776,7 +4823,9 @@ var DetailView = memo(function DetailView(_ref18) {
       })));
     }(), returnGroup && returnGroup.id !== group.id && /*#__PURE__*/React.createElement("div", {
       className: "text-center mt-1.5"
-    }, /*#__PURE__*/React.createElement("button", {
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-[14px] font-black text-black leading-tight mb-0.5"
+    }, group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         return onReturn === null || onReturn === void 0 ? void 0 : onReturn();
       },
@@ -4813,14 +4862,15 @@ var DetailView = memo(function DetailView(_ref18) {
     size: 22
   }), " \u05E1\u05D5\u05E3 \u05D0\u05D9\u05DE\u05D5\u05DF"))), skipDlg && /*#__PURE__*/React.createElement(SkipReasonModal, {
     title: skipDlg.title,
+    setLabel: skipDlg.setLabel,
     onCancel: function onCancel() {
       return setSkipDlg(null);
     },
-    onConfirm: function onConfirm(txt) {
+    onConfirm: function onConfirm(txt, scope) {
       var d = skipDlg;
       setSkipDlg(null);
       if ((txt || '').trim()) onSaveNote(d.exId, appendSkipReason(notes === null || notes === void 0 ? void 0 : notes[d.exId], txt));
-      d.go();
+      if (scope === 'exercise' && d.goAll) d.goAll();else d.go();
     }
   }), lightbox && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4",
@@ -7251,8 +7301,9 @@ var ManageView = function ManageView(_ref28) {
           setCategoryDraft(g.category);
           setCategoryDraftOther('');
         },
-        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-violet-50 text-violet-500 border border-violet-200"
-      }, "\u05D7\u05DC\u05E7 \u05D2\u05D5\u05E3"), /*#__PURE__*/React.createElement("button", {
+        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all min-w-[3.5rem] max-w-[6.5rem] truncate text-center bg-violet-50 text-violet-500 border border-violet-200",
+        title: "\u05D7\u05DC\u05E7 \u05D1\u05D2\u05D5\u05E3"
+      }, g.category || "\u05D7\u05DC\u05E7 \u05D2\u05D5\u05E3"), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return requestConfirm('למחוק תרגיל זה לצמיתות?', function () {
             return onDeleteCustomExercise && onDeleteCustomExercise(g);
@@ -7954,9 +8005,9 @@ var ManageView = function ManageView(_ref28) {
         onClick: function onClick() {
           return moveToGeneral(exId);
         },
-        className: "text-[10px] font-black bg-sky-100 border border-sky-300 text-sky-700 rounded-full px-2 py-0.5 active:scale-95 whitespace-nowrap shrink-0",
-        title: "העבר לכללי"
-      }, "← כללי"), /*#__PURE__*/React.createElement("button", {
+        className: "text-[10px] font-black rounded-full px-2 py-0.5 active:scale-95 whitespace-nowrap shrink-0 ".concat(looksGeneral(t) ? 'bg-sky-500 border border-sky-600 text-white animate-pulse' : 'bg-sky-100 border border-sky-300 text-sky-700'),
+        title: "\u05D4\u05E2\u05D1\u05E8 \u05DC\u05DB\u05DC\u05DC\u05D9"
+      }, looksGeneral(t) ? "\u05E0\u05E8\u05D0\u05D4 \u05DB\u05DC\u05DC\u05D9 \u2190" : "\u2190 \u05DB\u05DC\u05DC\u05D9"), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return markDone(exId);
         },
