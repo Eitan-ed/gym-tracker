@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.25';
+var APP_VERSION = '10.26';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -2577,7 +2577,7 @@ function ExerciseEntryRow(_ref11) {
       className: "font-bold opacity-70"
     }, getDayNameHe(h.timestamp), " ", dateStr)), /*#__PURE__*/React.createElement("span", {
       className: "font-black"
-    }, h.weight === 0 && h.reps === 0 ? "".concat(h.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(h.setNum), ": \u05D3\u05D5\u05DC\u05D2") : "\u05E1\u05D8 ".concat(h.setNum, ": ").concat(h.weight, "kg \xD7 ").concat(h.reps)));
+    }, h.weight === 0 && h.reps === 0 ? "".concat(h.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(h.setNum), ": \u05D3\u05D5\u05DC\u05D2").concat(h.reason ? " \u2014 ".concat(h.reason) : '') : "\u05E1\u05D8 ".concat(h.setNum, ": ").concat(h.weight, "kg \xD7 ").concat(h.reps)));
   })), /*#__PURE__*/React.createElement("div", {
     id: "sets-area-".concat(ex.id)
   }, showSuggestion && /*#__PURE__*/React.createElement("div", {
@@ -3543,7 +3543,7 @@ var FilmTimerRing = function FilmTimerRing(_ref17) {
   }, children);
 };
 
-// ─── מסך סיבת דילוג: נפתח בלחיצה על "דלג", הסיבה נשמרת בהערות התרגיל ───
+// ─── מסך סיבת דילוג: נפתח בלחיצה על "דלג", הסיבה נשמרת ברישום הדילוג ומוצגת בהיסטוריה בלבד ───
 var skipReasonLine = function skipReasonLine(txt) {
   var d = new Date(),
     p2 = function p2(n) {
@@ -3611,7 +3611,7 @@ var SkipReasonModal = function SkipReasonModal(_ref18) {
       return setTxt(e.target.value);
     },
     rows: 3,
-    placeholder: "\u05DC\u05DE\u05D4 \u05DE\u05D3\u05DC\u05D2\u05D9\u05DD? (\u05E0\u05E9\u05DE\u05E8 \u05D1\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC)",
+    placeholder: "\u05DC\u05DE\u05D4 \u05DE\u05D3\u05DC\u05D2\u05D9\u05DD? (\u05D9\u05D5\u05E4\u05D9\u05E2 \u05D1\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4)",
     className: "w-full bg-amber-50/60 border border-amber-200 rounded-2xl p-3 text-[14px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none"
   }), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-2 mt-3"
@@ -3969,20 +3969,20 @@ var DetailView = memo(function DetailView(_ref19) {
         exId: ex.id,
         title: customNames[ex.id] || ex.title,
         setLabel: selN === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(selN),
-        go: function go() {
-          onSave(ex.id, selN, 0, 0, exIsSuperset);
+        go: function go(reason) {
+          onSave(ex.id, selN, 0, 0, exIsSuperset, reason);
           if (selN === 2 && isLast) setTimeout(function () {
             return onFinish(true);
           }, 800);
         },
-        goAll: function goAll() {
+        goAll: function goAll(reason) {
           // כל התרגיל: מסמנים כדולגו את כל הסטים שעוד לא בוצעו (בזה אחר זה, כדי שכל רישום יישמר)
           var left = [1, 2].filter(function (n) {
             return !(n === 1 ? doneS1Ex : doneS2Ex);
           });
           left.forEach(function (n, i) {
             return setTimeout(function () {
-              return onSave(ex.id, n, 0, 0, exIsSuperset);
+              return onSave(ex.id, n, 0, 0, exIsSuperset, reason);
             }, i * 250);
           });
           if (isLast && left.length) setTimeout(function () {
@@ -4302,7 +4302,11 @@ var DetailView = memo(function DetailView(_ref19) {
         key: o,
         value: o
       }, WEIGHT_SEQ_LABELS[o] || o);
-    }))), /*#__PURE__*/React.createElement("section", {
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: handleSelSkip,
+      disabled: selN == null || selHasLog && !selSkipLog,
+      className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95\n                            ".concat(selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700' : selN == null || selHasLog ? 'bg-slate-100 border-slate-200 text-slate-300' : 'bg-orange-50 border-orange-200 text-orange-500')
+    }, selSkipLog ? '↩ בטל' : 'דלג')), /*#__PURE__*/React.createElement("section", {
       className: "bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden"
     }, showDetails[ex.id] && /*#__PURE__*/React.createElement("div", {
       className: "px-4 pb-4"
@@ -4466,6 +4470,9 @@ var DetailView = memo(function DetailView(_ref19) {
       }));
     }()), /*#__PURE__*/React.createElement("textarea", {
       defaultValue: (notes === null || notes === void 0 ? void 0 : notes[ex.id]) || '',
+      onChange: function onChange(e) {
+        return onSaveNote(ex.id, e.target.value);
+      },
       onBlur: function onBlur(e) {
         return onSaveNote(ex.id, e.target.value);
       },
@@ -4486,6 +4493,9 @@ var DetailView = memo(function DetailView(_ref19) {
       className: "px-4 pb-3"
     }, /*#__PURE__*/React.createElement("textarea", {
       defaultValue: notes[ex.id],
+      onChange: function onChange(e) {
+        return onSaveNote(ex.id, e.target.value);
+      },
       onBlur: function onBlur(e) {
         return onSaveNote(ex.id, e.target.value);
       },
@@ -4561,6 +4571,14 @@ var DetailView = memo(function DetailView(_ref19) {
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-gradient-to-br ".concat(group.color, " py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0")
   }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute top-3 right-4"
+  }, /*#__PURE__*/React.createElement(DevNoteButton, {
+    noteKey: group.exercises[0].id,
+    pageLabel: group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title,
+    devNotes: devNotes,
+    devNotesDone: devNotesDone,
+    onSaveDevNote: onSaveDevNote
+  })), /*#__PURE__*/React.createElement("div", {
     className: "absolute top-3 left-4 flex items-center gap-1.5"
   }, onMusicToggle && /*#__PURE__*/React.createElement("button", {
     onClick: onMusicToggle,
@@ -4568,20 +4586,14 @@ var DetailView = memo(function DetailView(_ref19) {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Music",
     size: 18
-  })), /*#__PURE__*/React.createElement(DevNoteButton, {
-    noteKey: group.exercises[0].id,
-    pageLabel: group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title,
-    devNotes: devNotes,
-    devNotesDone: devNotesDone,
-    onSaveDevNote: onSaveDevNote
-  }), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
     className: "p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Home",
     size: 18
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3 pr-14 pl-9"
+    className: "flex items-center gap-3 pr-14 pl-20"
   }, group.exercises.length === 1 && setCustomNames && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames);
@@ -4727,6 +4739,9 @@ var DetailView = memo(function DetailView(_ref19) {
         return (restTimers[e.id] || 0) === gRt;
       });
       var gTot = gTotEx ? restTimerTotals[gTotEx.id] || 0 : 0;
+      var gFin = !done && gRt === 0 && g.exercises.some(function (e) {
+        return (restTimerTotals[e.id] || 0) > 0 && !(restTimers[e.id] > 0);
+      });
       return /*#__PURE__*/React.createElement("div", {
         key: g.id,
         "data-gid": g.id,
@@ -4764,10 +4779,15 @@ var DetailView = memo(function DetailView(_ref19) {
         style: {
           background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'
         }
-      }, gRt), /*#__PURE__*/React.createElement("span", {
+      }, gRt), gFin && /*#__PURE__*/React.createElement("span", {
+        className: "absolute bottom-0.5 right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[11px] font-black leading-none text-white shadow",
+        style: {
+          background: 'rgba(22,163,74,0.95)'
+        }
+      }, "\u2713"), /*#__PURE__*/React.createElement("span", {
         className: "absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none",
         style: {
-          background: isCur ? '#3b82f6' : 'rgba(15,23,42,0.55)',
+          background: 'rgba(15,23,42,0.55)',
           color: '#ffffff'
         }
       }, i + 1))), /*#__PURE__*/React.createElement("div", {
@@ -4803,6 +4823,9 @@ var DetailView = memo(function DetailView(_ref19) {
           return (restTimers[e.id] || 0) === gRt;
         });
         var gTot = gTotEx ? restTimerTotals[gTotEx.id] || 0 : 0;
+        var gFin = gRt === 0 && g.exercises.some(function (e) {
+          return (restTimerTotals[e.id] || 0) > 0 && !(restTimers[e.id] > 0);
+        });
         var fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
         var shadow = isCur ? '0 0 0 3px #3b82f6' : undefined;
         return /*#__PURE__*/React.createElement("div", {
@@ -4838,10 +4861,15 @@ var DetailView = memo(function DetailView(_ref19) {
           style: {
             background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'
           }
-        }, gRt), /*#__PURE__*/React.createElement("span", {
+        }, gRt), gFin && /*#__PURE__*/React.createElement("span", {
+          className: "absolute bottom-0.5 right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[11px] font-black leading-none text-white shadow",
+          style: {
+            background: 'rgba(22,163,74,0.95)'
+          }
+        }, "\u2713"), /*#__PURE__*/React.createElement("span", {
           className: "absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none",
           style: {
-            background: isCur ? '#3b82f6' : 'rgba(15,23,42,0.55)',
+            background: 'rgba(15,23,42,0.55)',
             color: '#ffffff'
           }
         }, allGroups.findIndex(function (x) {
@@ -4854,13 +4882,13 @@ var DetailView = memo(function DetailView(_ref19) {
     }(), returnGroup && returnGroup.id !== group.id && /*#__PURE__*/React.createElement("div", {
       className: "text-center mt-1.5"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "text-[14px] font-black text-black leading-tight mb-0.5"
-    }, group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title), /*#__PURE__*/React.createElement("button", {
+      className: "text-[14px] font-black text-black leading-tight"
+    }, group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title, ' ', /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         return onReturn === null || onReturn === void 0 ? void 0 : onReturn();
       },
       className: "text-[12px] font-black text-blue-600 underline underline-offset-2 active:opacity-60"
-    }, "\u21A9 \u05D7\u05D6\u05D5\u05E8 \u05DC", returnGroup.title)), targetGroup && targetGroup.id !== group.id && /*#__PURE__*/React.createElement("div", {
+    }, "(\u21A9 \u05D7\u05D6\u05D5\u05E8 \u05DC", returnGroup.title, ")"))), targetGroup && targetGroup.id !== group.id && /*#__PURE__*/React.createElement("div", {
       className: "text-center mt-1 fade-in"
     }, /*#__PURE__*/React.createElement("div", {
       className: "text-[9px] font-black uppercase tracking-wide",
@@ -4899,8 +4927,7 @@ var DetailView = memo(function DetailView(_ref19) {
     onConfirm: function onConfirm(txt, scope) {
       var d = skipDlg;
       setSkipDlg(null);
-      if ((txt || '').trim()) onSaveNote(d.exId, appendSkipReason(notes === null || notes === void 0 ? void 0 : notes[d.exId], txt));
-      if (scope === 'exercise' && d.goAll) d.goAll();else d.go();
+      if (scope === 'exercise' && d.goAll) d.goAll(txt);else d.go(txt);
     }
   }), lightbox && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4",
@@ -4952,7 +4979,9 @@ var HistoryView = function HistoryView(_ref21) {
     _ref21$onSaveDevNote = _ref21.onSaveDevNote,
     onSaveDevNote = _ref21$onSaveDevNote === void 0 ? null : _ref21$onSaveDevNote,
     _ref21$onShowDaySumma = _ref21.onShowDaySummary,
-    onShowDaySummary = _ref21$onShowDaySumma === void 0 ? null : _ref21$onShowDaySumma;
+    onShowDaySummary = _ref21$onShowDaySumma === void 0 ? null : _ref21$onShowDaySumma,
+    _ref21$skipReasons = _ref21.skipReasons,
+    skipReasons = _ref21$skipReasons === void 0 ? {} : _ref21$skipReasons;
   var _useState71 = useState(null),
     _useState72 = _slicedToArray(_useState71, 2),
     expandedDate = _useState72[0],
@@ -5095,7 +5124,23 @@ var HistoryView = function HistoryView(_ref21) {
         className: "bg-sky-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-sky-600"
       }, "\u2696\uFE0F ", wn.bw, " \u05E7\u05F4\u05D2")), wn !== null && wn !== void 0 && wn.note ? /*#__PURE__*/React.createElement("div", {
         className: "bg-amber-50 rounded-2xl px-3 py-2 border border-amber-100 text-[12px] font-bold text-slate-600 whitespace-pre-wrap"
-      }, wn.note) : null, _toConsumableArray(items).sort(function (a, b) {
+      }, wn.note) : null, wst && Object.keys(skipReasons).filter(function (k) {
+        return k.startsWith(wst + ':');
+      }).map(function (k) {
+        var ex = exerciseGroups.flatMap(function (g) {
+          return g.exercises;
+        }).find(function (e) {
+          return e.id === k.slice(wst.length + 1);
+        });
+        return /*#__PURE__*/React.createElement("div", {
+          key: k,
+          className: "flex justify-between items-center text-xs border-b border-slate-50 pb-3"
+        }, /*#__PURE__*/React.createElement("span", {
+          className: "font-black text-slate-700"
+        }, (ex === null || ex === void 0 ? void 0 : ex.title) || 'תרגיל'), /*#__PURE__*/React.createElement("span", {
+          className: "text-orange-600 font-black bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl"
+        }, "\u05D3\u05D5\u05DC\u05D2 \u2014 ", skipReasons[k]));
+      }), _toConsumableArray(items).sort(function (a, b) {
         return new Date(a.timestamp) - new Date(b.timestamp);
       }).map(function (it) {
         var ex = exerciseGroups.flatMap(function (g) {
@@ -5122,7 +5167,7 @@ var HistoryView = function HistoryView(_ref21) {
           className: "font-black text-slate-700"
         }, (ex === null || ex === void 0 ? void 0 : ex.title) || 'תרגיל')), it.weight === 0 && it.reps === 0 ? /*#__PURE__*/React.createElement("span", {
           className: "text-orange-600 font-black bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl"
-        }, it.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(it.setNum), ": \u05D3\u05D5\u05DC\u05D2") : /*#__PURE__*/React.createElement("span", {
+        }, it.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(it.setNum), ": \u05D3\u05D5\u05DC\u05D2", it.reason ? " \u2014 ".concat(it.reason) : '') : /*#__PURE__*/React.createElement("span", {
           className: "text-blue-600 font-black bg-blue-50 px-2.5 py-1 rounded-xl"
         }, "\u05E1\u05D8 ", it.setNum, ": ", it.weight, "kg \xD7 ", it.reps));
       }));
@@ -8290,15 +8335,11 @@ var HamburgerMenu = memo(function (_ref91) {
       return n.length === f.length ? f : n;
     });
   }, [doneExIds]);
-  var windows = [].concat(_toConsumableArray(finished.map(function (t) {
-    return _objectSpread(_objectSpread({}, t), {}, {
-      fin: true
-    });
-  })), _toConsumableArray(activeTimers.filter(function (t) {
-    return !finished.some(function (f) {
-      return f.id === t.id;
-    });
-  })));
+  // עיגול טיימר למעלה: רק במסך הראשי, ורק הטיימר הפעיל הוותיק ביותר (זה שרץ הכי הרבה זמן). בשאר המסכים הטיימרים במניפה
+  var oldestActive = activeTimers.slice().sort(function (a, b) {
+    return b.tot - b.rt - (a.tot - a.rt);
+  })[0];
+  var windows = currentView === 'list' && oldestActive ? [oldestActive] : [];
   var R = 18,
     C = 2 * Math.PI * R;
   var renderWindow = function renderWindow(t) {
@@ -8466,15 +8507,6 @@ var HamburgerMenu = memo(function (_ref91) {
       key: t.id,
       className: "active:scale-95",
       onClick: function onClick() {
-        if (t.fin && t.group) {
-          setFinished(function (f) {
-            return f.filter(function (x) {
-              return x.id !== t.id;
-            });
-          });
-          onOpenGroup === null || onOpenGroup === void 0 || onOpenGroup(t.group);
-          return;
-        }
         if (i === 0 || !t.group) return setOpen(true);
         onOpenGroup === null || onOpenGroup === void 0 || onOpenGroup(t.group);
       }
@@ -10327,10 +10359,10 @@ function App() {
       });
     } catch (e) {}
   };
-  var handleSaveSet = function handleSaveSet(exId, setNum, weight, reps, isSuperset) {
+  var handleSaveSet = function handleSaveSet(exId, setNum, weight, reps, isSuperset, reason) {
     setAutoTransitionSplash(null); // סגירת הופ-אפ המשקל האוטומטי (אם פתוח) בלחיצה על סיום/עדכן של כל סט
     var wst = sstRef.current;
-    var newLog = {
+    var newLog = _objectSpread({
       id: crypto.randomUUID(),
       exId: exId,
       setNum: setNum,
@@ -10338,7 +10370,9 @@ function App() {
       reps: reps,
       timestamp: new Date().toISOString(),
       session: wst
-    };
+    }, (reason || '').trim() ? {
+      reason: reason.trim()
+    } : {});
     var isReplace = logsRef.current.some(function (l) {
       return l.exId === exId && l.setNum === setNum && new Date(l.timestamp).getTime() > wst;
     });
@@ -11075,6 +11109,16 @@ function App() {
     _useState248 = _slicedToArray(_useState247, 2),
     skipGroupDlg = _useState248[0],
     setSkipGroupDlg = _useState248[1];
+  // סיבות דילוג מהמסך הראשי (תרגיל שדולג כולו): { "<תחילת אימון>:<exId>": טקסט } — מוצגות בהיסטוריה בלבד
+  var _useState249 = useState(function () {
+      return LS.get('gym-skip-reasons', {});
+    }),
+    _useState250 = _slicedToArray(_useState249, 2),
+    skipReasons = _useState250[0],
+    setSkipReasons = _useState250[1];
+  useEffect(function () {
+    LS.set('gym-skip-reasons', skipReasons);
+  }, [skipReasons]);
   var handleSkipGroup = useCallback(function (groupId) {
     setSkippedGroups(function (prev) {
       var newSkipped = prev.includes(groupId) ? prev.filter(function (id) {
@@ -11319,6 +11363,24 @@ function App() {
   }, [logs, workoutStartTime, skippedGroups, visibleGroups]);
 
   // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
+  var clearFinishedTimers = React.useCallback(function (g) {
+    if (!g) return;
+    var ids = g.exercises.map(function (e) {
+      return e.id;
+    }).filter(function (id) {
+      return (restTotalsRef.current[id] || 0) > 0 && !((restTimersRef.current[id] || 0) > 0);
+    });
+    if (ids.length) setRestTimerTotals(function (prev) {
+      var n = _objectSpread({}, prev);
+      ids.forEach(function (id) {
+        return delete n[id];
+      });
+      return n;
+    });
+  }, []);
+  useEffect(function () {
+    if (view === 'detail' && activeGroup) clearFinishedTimers(activeGroup);
+  }, [view, activeGroup && activeGroup.id]);
   var hasActiveRest = Object.keys(restTimers).some(function (id) {
     return (restTimers[id] || 0) > 0 && (restTimerTotals[id] || 0) > 0;
   });
@@ -12221,6 +12283,7 @@ function App() {
       prevGroup: _prev,
       onNavigateTo: function onNavigateTo(g) {
         if (!returnGroup && activeGroup && activeGroup.id !== g.id) setReturnGroup(activeGroup);
+        clearFinishedTimers(g);
         setActiveGroup(g);
         setScrollToExId(g.exercises[0].id);
       },
@@ -12303,7 +12366,8 @@ function App() {
     devNotes: devNotes,
     devNotesDone: devNotesDone,
     onSaveDevNote: handleSaveDevNote,
-    onShowDaySummary: handleShowDaySummary
+    onShowDaySummary: handleShowDaySummary,
+    skipReasons: skipReasons
   }));
   if (view === 'manage') return /*#__PURE__*/React.createElement("div", {
     className: "max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl",
@@ -12766,10 +12830,10 @@ function App() {
     onConfirm: function onConfirm(txt) {
       var g = skipGroupDlg;
       setSkipGroupDlg(null);
-      if ((txt || '').trim()) setNotes(function (prev) {
+      if ((txt || '').trim()) setSkipReasons(function (prev) {
         var n = _objectSpread({}, prev);
         g.exercises.forEach(function (e) {
-          n[e.id] = appendSkipReason(n[e.id], txt);
+          n["".concat(workoutStartTime, ":").concat(e.id)] = txt.trim();
         });
         return n;
       });

@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.25';
+const APP_VERSION = '10.26';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1087,7 +1087,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     )}
                                     <span className="font-bold opacity-70">{getDayNameHe(h.timestamp)} {dateStr}</span>
                                 </div>
-                                <span className="font-black">{h.weight===0 && h.reps===0 ? `${h.setNum===0 ? 'חימום' : `סט ${h.setNum}`}: דולג` : `סט ${h.setNum}: ${h.weight}kg × ${h.reps}`}</span>
+                                <span className="font-black">{h.weight===0 && h.reps===0 ? `${h.setNum===0 ? 'חימום' : `סט ${h.setNum}`}: דולג${h.reason ? ` — ${h.reason}` : ''}` : `סט ${h.setNum}: ${h.weight}kg × ${h.reps}`}</span>
                             </div>
                         );
                     })}
@@ -1581,7 +1581,7 @@ const FilmTimerRing = ({ rt=0, tot=0, cur=false, children }) => {
     );
 };
 
-// ─── מסך סיבת דילוג: נפתח בלחיצה על "דלג", הסיבה נשמרת בהערות התרגיל ───
+// ─── מסך סיבת דילוג: נפתח בלחיצה על "דלג", הסיבה נשמרת ברישום הדילוג ומוצגת בהיסטוריה בלבד ───
 const skipReasonLine = txt => { const d = new Date(), p2 = n => String(n).padStart(2,'0'); return `דילוג ${p2(d.getDate())}.${p2(d.getMonth()+1)}.${p2(d.getFullYear()%100)}: ${txt}`; };
 const appendSkipReason = (prev, txt) => { const t = (txt||'').trim(); return t ? ((prev||'').trim() ? prev.trim() + '\n' : '') + skipReasonLine(t) : prev; };
 // סיבות מהירות — לחיצה אחת מדלגת מיד עם הסיבה, בלי להקליד
@@ -1603,7 +1603,7 @@ const SkipReasonModal = ({ title, onConfirm, onCancel, setLabel=null }) => {
                             className="flex-1 py-2.5 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 font-black text-[13px] active:scale-95">{r}</button>
                     ))}
                 </div>
-                <textarea value={txt} onChange={e=>setTxt(e.target.value)} rows={3} placeholder="למה מדלגים? (נשמר בהערות התרגיל)"
+                <textarea value={txt} onChange={e=>setTxt(e.target.value)} rows={3} placeholder="למה מדלגים? (יופיע בהיסטוריה)"
                     className="w-full bg-amber-50/60 border border-amber-200 rounded-2xl p-3 text-[14px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
                 <div className="flex gap-2 mt-3">
                     <button onClick={()=>onConfirm(txt, scope)} className="flex-1 py-2.5 rounded-2xl bg-orange-500 text-white font-black text-[14px] active:scale-95">דלג</button>
@@ -1744,13 +1744,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             if (selN==null) return;
             if (selSkipLog) { onDeleteLog && onDeleteLog(selSkipLog.id); return; }
             if (selHasLog) return;
-            setSkipDlg({ exId: ex.id, title: customNames[ex.id] || ex.title, setLabel: selN===0 ? 'חימום' : `סט ${selN}`, go: () => {
-                onSave(ex.id, selN, 0, 0, exIsSuperset);
+            setSkipDlg({ exId: ex.id, title: customNames[ex.id] || ex.title, setLabel: selN===0 ? 'חימום' : `סט ${selN}`, go: (reason) => {
+                onSave(ex.id, selN, 0, 0, exIsSuperset, reason);
                 if (selN===2 && isLast) setTimeout(()=>onFinish(true), 800);
-            }, goAll: () => {
+            }, goAll: (reason) => {
                 // כל התרגיל: מסמנים כדולגו את כל הסטים שעוד לא בוצעו (בזה אחר זה, כדי שכל רישום יישמר)
                 const left = [1, 2].filter(n => !(n===1 ? doneS1Ex : doneS2Ex));
-                left.forEach((n, i) => setTimeout(()=>onSave(ex.id, n, 0, 0, exIsSuperset), i * 250));
+                left.forEach((n, i) => setTimeout(()=>onSave(ex.id, n, 0, 0, exIsSuperset, reason), i * 250));
                 if (isLast && left.length) setTimeout(()=>onFinish(true), left.length * 250 + 800);
             }});
         };
@@ -1907,6 +1907,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             {['0.25','0.5','1','2','2.5','4','5','4-5','10','seq-bar','seq-stack','seq-thigh','seq-leg'].map(o => <option key={o} value={o}>{WEIGHT_SEQ_LABELS[o] || o}</option>)}
                         </select>
                     )}
+                    <button onClick={handleSelSkip} disabled={selN==null || (selHasLog && !selSkipLog)}
+                        className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95
+                            ${selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700'
+                              : (selN==null || selHasLog) ? 'bg-slate-100 border-slate-200 text-slate-300'
+                              : 'bg-orange-50 border-orange-200 text-orange-500'}`}>
+                        {selSkipLog ? '↩ בטל' : 'דלג'}
+                    </button>
                 </div>
                 {/* how-to */}
                 <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden">
@@ -1990,7 +1997,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     </>);
                                 })()}
                             </div>
-                            <textarea defaultValue={notes?.[ex.id]||''} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                            <textarea defaultValue={notes?.[ex.id]||''} onChange={e=>onSaveNote(ex.id,e.target.value)} onBlur={e=>onSaveNote(ex.id,e.target.value)}
                                 placeholder="הוסף דגשים והערות אישיות..."
                                 rows={1}
                                 onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
@@ -2000,7 +2007,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     )}
                     {!showDetails[ex.id] && notes?.[ex.id] && (
                         <div className="px-4 pb-3">
-                            <textarea defaultValue={notes[ex.id]} onBlur={e=>onSaveNote(ex.id,e.target.value)}
+                            <textarea defaultValue={notes[ex.id]} onChange={e=>onSaveNote(ex.id,e.target.value)} onBlur={e=>onSaveNote(ex.id,e.target.value)}
                                 rows={1}
                                 onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
                                 ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
@@ -2045,6 +2052,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     return (
     <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0`}>
+            <div className="absolute top-3 right-4">
+                <DevNoteButton noteKey={group.exercises[0].id}
+                    pageLabel={group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
+                    devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} />
+            </div>
             <div className="absolute top-3 left-4 flex items-center gap-1.5">
                 {onMusicToggle && (
                     <button onClick={onMusicToggle} className={`p-2 backdrop-blur-xl rounded-full active:scale-90 shadow transition-all
@@ -2052,14 +2064,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         <Icon name="Music" size={18} />
                     </button>
                 )}
-                <DevNoteButton noteKey={group.exercises[0].id}
-                    pageLabel={group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
-                    devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} />
                 <button onClick={onBack} className="p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow">
                     <Icon name="Home" size={18} />
                 </button>
             </div>
-            <div className="flex items-center gap-3 pr-14 pl-9">
+            <div className="flex items-center gap-3 pr-14 pl-20">
                 {group.exercises.length===1 && setCustomNames && (
                     <button onClick={()=>promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames)}
                         className="p-1.5 rounded-full bg-white/25 text-white active:scale-90 shrink-0" title="שנה שם תרגיל"><Icon name="Pencil" size={14} /></button>
@@ -2155,6 +2164,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
                                 const gTotEx = g.exercises.find(e => (restTimers[e.id]||0) === gRt);
                                 const gTot = gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0;
+                                const gFin = !done && gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
                                 return (
                                     <div key={g.id} data-gid={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM, scrollSnapAlign:'center' }}>
                                     <FilmTimerRing rt={gRt} tot={gTot} cur={isCur}>
@@ -2168,9 +2178,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
                                         {gRt > 0 && <span className={`absolute bottom-0.5 right-0.5 px-1 rounded-lg flex items-center justify-center font-black leading-none text-white shadow ${isCur ? 'min-w-[34px] h-[34px] text-[22px]' : 'min-w-[18px] h-[18px] text-[11px] opacity-80'}`} dir="ltr"
                                             style={{background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'}}>{gRt}</span>}
+                                        {gFin && <span className="absolute bottom-0.5 right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[11px] font-black leading-none text-white shadow" style={{background:'rgba(22,163,74,0.95)'}}>✓</span>}
                                         {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
-                                            style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>
+                                            style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>
                                             {i+1}
                                         </span>
                                     </button>
@@ -2196,6 +2207,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                             const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
                                             const gTotEx = g.exercises.find(e => (restTimers[e.id]||0) === gRt);
                                             const gTot = gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0;
+                                            const gFin = gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
                                             const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
                                             const shadow = isCur ? '0 0 0 3px #3b82f6' : undefined;
                                             return (
@@ -2207,8 +2219,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
                                                         {gRt > 0 && <span className="absolute bottom-0.5 right-0.5 min-w-[22px] h-[22px] px-1 rounded-lg flex items-center justify-center font-black text-[14px] leading-none text-white shadow" dir="ltr"
                                                             style={{background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'}}>{gRt}</span>}
+                                                        {gFin && <span className="absolute bottom-0.5 right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[11px] font-black leading-none text-white shadow" style={{background:'rgba(22,163,74,0.95)'}}>✓</span>}
                                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
-                                                            style={{background:isCur?'#3b82f6':'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
+                                                            style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
                                                     </button>
                                                     </FilmTimerRing>
                                                     <div className="text-[14px] font-black leading-none mt-1 h-4 text-orange-500" dir="ltr">
@@ -2223,13 +2236,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         })()}
                         {returnGroup && returnGroup.id !== group.id && (
                             <div className="text-center mt-1.5">
-                                <div className="text-[14px] font-black text-black leading-tight mb-0.5">
+                                <div className="text-[14px] font-black text-black leading-tight">
                                     {group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
+                                    {' '}<button onClick={()=>onReturn?.()}
+                                        className="text-[12px] font-black text-blue-600 underline underline-offset-2 active:opacity-60">
+                                        (↩ חזור ל{returnGroup.title})
+                                    </button>
                                 </div>
-                                <button onClick={()=>onReturn?.()}
-                                    className="text-[12px] font-black text-blue-600 underline underline-offset-2 active:opacity-60">
-                                    ↩ חזור ל{returnGroup.title}
-                                </button>
                             </div>
                         )}
                         {targetGroup && targetGroup.id !== group.id && (
@@ -2261,7 +2274,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             )}
         </div>
         {skipDlg && <SkipReasonModal title={skipDlg.title} setLabel={skipDlg.setLabel} onCancel={()=>setSkipDlg(null)}
-            onConfirm={(txt, scope)=>{ const d=skipDlg; setSkipDlg(null); if ((txt||'').trim()) onSaveNote(d.exId, appendSkipReason(notes?.[d.exId], txt)); if (scope==='exercise' && d.goAll) d.goAll(); else d.go(); }} />}
+            onConfirm={(txt, scope)=>{ const d=skipDlg; setSkipDlg(null); if (scope==='exercise' && d.goAll) d.goAll(txt); else d.go(txt); }} />}
         {lightbox && (
             <div className="fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
                 <img src={lightbox} alt="" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
@@ -2278,7 +2291,7 @@ const fmtDur = sec => { const m=Math.floor(sec/60), s=sec%60; return `${m}:${Str
 
 // סה"כ תרגילים פעילים בתוכנית (בלי מוסתרים) — המכנה של "17/17" בהיסטוריה
 const TOTAL_EX_COUNT = () => { const hid = new Set(LS.get('gym-hidden-exercises', []) || []); return exerciseGroups.reduce((n,g)=>n + (hid.has(g.id) ? 0 : g.exercises.length), 0); };
-const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, devNotesDone={}, onSaveDevNote=null, onShowDaySummary=null }) => {
+const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}, onBack, onDeleteDate, onDeleteOne, requestConfirm, devNotes={}, devNotesDone={}, onSaveDevNote=null, onShowDaySummary=null, skipReasons={} }) => {
     const [expandedDate, setExpandedDate] = useState(null);
     const grouped = useMemo(() => groupLogsBySession(logs), [logs]);
 
@@ -2346,6 +2359,15 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                                 {wn?.note ? (
                                     <div className="bg-amber-50 rounded-2xl px-3 py-2 border border-amber-100 text-[12px] font-bold text-slate-600 whitespace-pre-wrap">{wn.note}</div>
                                 ) : null}
+                                {wst && Object.keys(skipReasons).filter(k => k.startsWith(wst + ':')).map(k => {
+                                    const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===k.slice(wst.length+1));
+                                    return (
+                                        <div key={k} className="flex justify-between items-center text-xs border-b border-slate-50 pb-3">
+                                            <span className="font-black text-slate-700">{ex?.title||'תרגיל'}</span>
+                                            <span className="text-orange-600 font-black bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl">דולג — {skipReasons[k]}</span>
+                                        </div>
+                                    );
+                                })}
                                 {[...items].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).map(it => {
                                     const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===it.exId);
                                     return (
@@ -2357,7 +2379,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                                                 <span className="font-black text-slate-700">{ex?.title||'תרגיל'}</span>
                                             </div>
                                             {it.weight===0 && it.reps===0
-                                                ? <span className="text-orange-600 font-black bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl">{it.setNum===0 ? 'חימום' : `סט ${it.setNum}`}: דולג</span>
+                                                ? <span className="text-orange-600 font-black bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl">{it.setNum===0 ? 'חימום' : `סט ${it.setNum}`}: דולג{it.reason ? ` — ${it.reason}` : ''}</span>
                                                 : <span className="text-blue-600 font-black bg-blue-50 px-2.5 py-1 rounded-xl">סט {it.setNum}: {it.weight}kg × {it.reps}</span>}
                                         </div>
                                     );
@@ -3626,7 +3648,9 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
     useEffect(() => {
         setFinished(f => { const n = f.filter(x => !(doneExIds || []).includes(String(x.id))); return n.length === f.length ? f : n; });
     }, [doneExIds]);
-    const windows = [...finished.map(t => ({ ...t, fin: true })), ...activeTimers.filter(t => !finished.some(f => f.id === t.id))];
+    // עיגול טיימר למעלה: רק במסך הראשי, ורק הטיימר הפעיל הוותיק ביותר (זה שרץ הכי הרבה זמן). בשאר המסכים הטיימרים במניפה
+    const oldestActive = activeTimers.slice().sort((a,b) => (b.tot - b.rt) - (a.tot - a.rt))[0];
+    const windows = currentView === 'list' && oldestActive ? [oldestActive] : [];
     const R = 18, C = 2 * Math.PI * R;
     const renderWindow = t => {
         const isCur = !t.fin && activeGroupId != null && t.group && t.group.id === activeGroupId;
@@ -3691,7 +3715,6 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
                     {windows.map((t, i) => (
                         <button key={t.id} className="active:scale-95"
                             onClick={() => {
-                                if (t.fin && t.group) { setFinished(f => f.filter(x => x.id !== t.id)); onOpenGroup?.(t.group); return; }
                                 if (i === 0 || !t.group) return setOpen(true);
                                 onOpenGroup?.(t.group);
                             }}>
@@ -4540,10 +4563,10 @@ function App() {
         } catch (e) {}
     };
 
-    const handleSaveSet = (exId,setNum,weight,reps,isSuperset) => {
+    const handleSaveSet = (exId,setNum,weight,reps,isSuperset,reason) => {
         setAutoTransitionSplash(null); // סגירת הופ-אפ המשקל האוטומטי (אם פתוח) בלחיצה על סיום/עדכן של כל סט
         const wst = sstRef.current;
-        const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString(), session:wst};
+        const newLog = {id:crypto.randomUUID(), exId, setNum, weight, reps, timestamp:new Date().toISOString(), session:wst, ...((reason||'').trim() ? {reason:reason.trim()} : {})};
         const isReplace = logsRef.current.some(l=>l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst);
         if (isReplace) {
             setLogs(prev=>[...prev.filter(l=>!(l.exId===exId&&l.setNum===setNum&&new Date(l.timestamp).getTime()>wst)), newLog]);
@@ -4974,6 +4997,9 @@ function App() {
     },[view,nextIncompleteIndex]);
 
     const [skipGroupDlg, setSkipGroupDlg] = useState(null);
+    // סיבות דילוג מהמסך הראשי (תרגיל שדולג כולו): { "<תחילת אימון>:<exId>": טקסט } — מוצגות בהיסטוריה בלבד
+    const [skipReasons, setSkipReasons] = useState(()=>LS.get('gym-skip-reasons', {}));
+    useEffect(()=>{ LS.set('gym-skip-reasons', skipReasons); },[skipReasons]);
     const handleSkipGroup = useCallback((groupId)=>{
         setSkippedGroups(prev=>{
             const newSkipped = prev.includes(groupId) ? prev.filter(id=>id!==groupId) : [...prev, groupId];
@@ -5116,6 +5142,12 @@ function App() {
     }, [logs, workoutStartTime, skippedGroups, visibleGroups]);
 
     // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
+    const clearFinishedTimers = React.useCallback((g) => {
+        if (!g) return;
+        const ids = g.exercises.map(e => e.id).filter(id => (restTotalsRef.current[id]||0) > 0 && !((restTimersRef.current[id]||0) > 0));
+        if (ids.length) setRestTimerTotals(prev => { const n = {...prev}; ids.forEach(id => delete n[id]); return n; });
+    }, []);
+    useEffect(() => { if (view==='detail' && activeGroup) clearFinishedTimers(activeGroup); }, [view, activeGroup && activeGroup.id]);
     const hasActiveRest = Object.keys(restTimers).some(id => (restTimers[id]||0) > 0 && (restTimerTotals[id]||0) > 0);
     const overlays = (
         <>
@@ -5570,9 +5602,9 @@ function App() {
         </div>
     );
 
-    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{ if (!returnGroup && activeGroup && activeGroup.id!==g.id) setReturnGroup(activeGroup); setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} returnGroup={returnGroup} onReturn={()=>{ const r=returnGroup; setReturnGroup(null); if(r){ setActiveGroup(r); setScrollToExId(r.exercises[0].id); } }} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} setCustomNames={setCustomNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} imageZoom={imageZoom} onZoomImage={handleZoomImage} /></div>; }
+    if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{ if (!returnGroup && activeGroup && activeGroup.id!==g.id) setReturnGroup(activeGroup); clearFinishedTimers(g); setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} returnGroup={returnGroup} onReturn={()=>{ const r=returnGroup; setReturnGroup(null); if(r){ setActiveGroup(r); setScrollToExId(r.exercises[0].id); } }} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} setCustomNames={setCustomNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} imageZoom={imageZoom} onZoomImage={handleZoomImage} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
-    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} /></div>;
+    if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} skipReasons={skipReasons} /></div>;
     if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} oneTimeEx={oneTimeEx} onToggleOneTime={handleToggleOneTime} onPurgeImplemented={purgeImplementedNotes} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone} devNotesHistory={devNotesHistory} setDevNotesHistory={setDevNotesHistory}
         filingDirName={filingDirName} filingPermGranted={filingPermGranted} ensureFilingPermission={ensureFilingPermission} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
@@ -5754,7 +5786,7 @@ function App() {
                 )}
             </main>
             {skipGroupDlg && <SkipReasonModal title={skipGroupDlg.title} onCancel={()=>setSkipGroupDlg(null)}
-                onConfirm={txt=>{ const g=skipGroupDlg; setSkipGroupDlg(null); if ((txt||'').trim()) setNotes(prev=>{ const n={...prev}; g.exercises.forEach(e=>{ n[e.id]=appendSkipReason(n[e.id], txt); }); return n; }); handleSkipGroup(g.id); }} />}
+                onConfirm={txt=>{ const g=skipGroupDlg; setSkipGroupDlg(null); if ((txt||'').trim()) setSkipReasons(prev=>{ const n={...prev}; g.exercises.forEach(e=>{ n[`${workoutStartTime}:${e.id}`]=txt.trim(); }); return n; }); handleSkipGroup(g.id); }} />}
 
             <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', borderTopColor:'rgba(45,74,111,0.18)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
                 <button onClick={()=>{setManageOpenSection('exercises');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
