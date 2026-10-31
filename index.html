@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.22';
+var APP_VERSION = '10.23';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -664,9 +664,10 @@ var DEFAULT_WEIGHT_STEPS = {
 };
 
 // ─── מרווחי המשקל הקיימים בפועל בתפריט הניהול — כל override שמור שאינו אחד מאלה נחשב לא תקין (למשל שריד מגרסה ישנה) ───
-var ALLOWED_WEIGHT_STEPS = new Set([0.25, 0.5, 1, 2, 2.5, 4, 5, 10, '4-5', 'seq-stack', 'seq-thigh', 'seq-leg']);
+var ALLOWED_WEIGHT_STEPS = new Set([0.25, 0.5, 1, 2, 2.5, 4, 5, 10, '4-5', 'seq-stack', 'seq-thigh', 'seq-leg', 'seq-bar']);
 // רצפי משקל בשם — ניתן לבחור לכל תרגיל (גם תרגילים שנוספו ידנית) דרך תפריט "מרווח משקל": ההגדרה נשמרת בהגדרות, לא בקוד
 var WEIGHT_SEQ_LABELS = {
+  'seq-bar': 'מוט',
   'seq-stack': 'סדרה-5',
   'seq-thigh': 'סדרה-9',
   'seq-leg': 'סדרה-לג'
@@ -740,7 +741,34 @@ var CUSTOM_WEIGHT_VALUES = {
   // פרפר הפוך
   'custom-1790215042100-ex': STACK_FROM_5 // תחליף לפולי עליון
 };
+// ─── תרגילי מוט: מוט 20 ק"ג + זוגות צלחות (1.25 / 2.5 / 5 / 10 / 15 / 20 בכל צד) — כל משקל כולל בקפיצות של 2.5 ───
+var BAR_KG = 20;
+var BAR_PLATES = [20, 15, 10, 5, 2.5, 1.25];
+var BAR_VALUES = function () {
+  var o = [];
+  for (var v = 10; v <= 250; v += 2.5) o.push(v);
+  return o;
+}();
+// פירוק משקל כולל לצלחות בכל צד (מהכבדה לקלה). null = פחות ממשקל המוט / לא מתחלק לצלחות
+var barPlatesPerSide = function barPlatesPerSide(total) {
+  var side = (total - BAR_KG) / 2;
+  if (side < 0) return null;
+  var out = [];
+  BAR_PLATES.forEach(function (pl) {
+    while (side >= pl - 1e-9) {
+      out.push(pl);
+      side = parseFloat((side - pl).toFixed(4));
+    }
+  });
+  return side > 1e-6 ? null : out;
+};
+// תרגיל מוט מזוהה לפי השם ("מוט") — כך גם תרגילים שנוספו ידנית מקבלים את רשת הצלחות בלי הגדרה. ניתן לשנות בתפריט מרווח המשקל
+var isBarExercise = function isBarExercise(exId) {
+  var nm = ((LS.get('gym-custom-names', {}) || {})[exId] || '') + ' ' + ((typeof exById === 'function' ? (exById(exId) || {}).title : '') || '');
+  return /מוט/.test(nm);
+};
 var WEIGHT_SEQUENCES = {
+  'seq-bar': BAR_VALUES,
   'seq-stack': STACK_FROM_5,
   'seq-thigh': THIGH_VALUES,
   'seq-leg': LEG_PRESS_VALUES
@@ -825,6 +853,7 @@ function resolveWeightGrid(exId, stepOverrides) {
   if (typeof ov === 'string' && WEIGHT_SEQUENCES[ov]) wv = WEIGHT_SEQUENCES[ov];else if (ov === '4-5' || ov === undefined) {
     wv = CUSTOM_WEIGHT_VALUES[exId] || null;
     if (ov === '4-5' && !wv) wv = THIGH_VALUES;
+    if (ov === undefined && !wv && isBarExercise(exId)) wv = BAR_VALUES;
   }
   var ws = wv ? 1 : ov !== undefined && ov !== '4-5' ? ov : DEFAULT_WEIGHT_STEPS[exId] !== undefined ? DEFAULT_WEIGHT_STEPS[exId] : 1;
   return {
@@ -1580,6 +1609,43 @@ var Roller = memo(function (_ref0) {
         className: "shrink-0 px-3 py-1.5 rounded-xl text-sm font-black active:scale-95 transition-all\n                                                ".concat(p === localVal ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700')
       }, p);
     }));
+  }(), values === BAR_VALUES && function () {
+    // מוט: פירוק המשקל לצלחות בכל צד + הוספת זוג צלחות בלחיצה. לחיצה על צלחת בפירוק מורידה את הזוג
+    var per = barPlatesPerSide(localVal);
+    var setV = function setV(v) {
+      fromBtn.current = true;
+      setLocalVal(Math.min(Math.max(parseFloat(v.toFixed(4)), min), max));
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      className: "px-5 pb-3",
+      dir: "rtl"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1.5 flex-wrap text-[12px] font-black text-slate-500 mb-2"
+    }, /*#__PURE__*/React.createElement("span", null, "בכל צד (מוט ", BAR_KG, "):"), per === null ? /*#__PURE__*/React.createElement("span", {
+      className: "text-amber-600"
+    }, "לא מתחלק לצלחות") : per.length === 0 ? /*#__PURE__*/React.createElement("span", null, "מוט בלבד") : per.map(function (pl, i) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: i,
+        onClick: function onClick() {
+          return setV(localVal - 2 * pl);
+        },
+        className: "px-2 py-0.5 rounded-full bg-slate-800 text-white active:scale-95",
+        title: "הסר זוג"
+      }, pl);
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-1.5 justify-center",
+      dir: "ltr"
+    }, _toConsumableArray(BAR_PLATES).reverse().map(function (pl) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: pl,
+        onClick: function onClick() {
+          // משקל שאינו מתחלק לצלחות (או קטן ממשקל המוט) — מתחילים מהמוט / מהמשקל התקין הקרוב
+          var base = per !== null ? localVal : localVal < BAR_KG ? BAR_KG : BAR_KG + Math.round((localVal - BAR_KG) / 2.5) * 2.5;
+          return setV(base + 2 * pl);
+        },
+        className: "flex-1 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-black text-sm active:scale-95 active:bg-indigo-100"
+      }, "+", pl);
+    })));
   }(), /*#__PURE__*/React.createElement("div", {
     className: "px-4 pb-3 flex items-center gap-1.5 justify-center",
     dir: "ltr"
@@ -4157,14 +4223,14 @@ var DetailView = memo(function DetailView(_ref18) {
       },
       className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((_warmupOpenMap$ex$id2 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id2 !== void 0 ? _warmupOpenMap$ex$id2 : !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600')
     }, "\uD83D\uDD25"), onUpdateSettings && /*#__PURE__*/React.createElement("select", {
-      value: String((weightStepsOverrides === null || weightStepsOverrides === void 0 ? void 0 : weightStepsOverrides[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id]) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
+      value: String((weightStepsOverrides === null || weightStepsOverrides === void 0 ? void 0 : weightStepsOverrides[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id]) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
       onChange: function onChange(e) {
         var v = parseStepVal(e.target.value);
         onUpdateSettings('weightSteps', _objectSpread(_objectSpread({}, weightStepsOverrides || {}), {}, _defineProperty({}, ex.id, v)));
       },
       title: "\u05DE\u05E8\u05D5\u05D5\u05D7 \u05DE\u05E9\u05E7\u05DC",
       className: "shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center"
-    }, ['0.25', '0.5', '1', '2', '2.5', '4', '5', '4-5', '10', 'seq-stack', 'seq-thigh', 'seq-leg'].map(function (o) {
+    }, ['0.25', '0.5', '1', '2', '2.5', '4', '5', '4-5', '10', 'seq-bar', 'seq-stack', 'seq-thigh', 'seq-leg'].map(function (o) {
       return /*#__PURE__*/React.createElement("option", {
         key: o,
         value: o
@@ -4381,6 +4447,7 @@ var DetailView = memo(function DetailView(_ref18) {
       if (typeof _ov === 'string' && WEIGHT_SEQUENCES[_ov]) _wv = WEIGHT_SEQUENCES[_ov];else if (_ov === '4-5' || _ov === undefined) {
         _wv = CUSTOM_WEIGHT_VALUES[ex.id] || null;
         if (_ov === '4-5' && !_wv) _wv = THIGH_VALUES;
+        if (_ov === undefined && !_wv && isBarExercise(ex.id)) _wv = BAR_VALUES;
       }
       var _ws = _wv ? 1 : _ov !== undefined && _ov !== '4-5' ? _ov : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1;
       return /*#__PURE__*/React.createElement(ExerciseEntryRow, {
@@ -7123,7 +7190,7 @@ var ManageView = function ManageView(_ref28) {
       }, "\u05E1\u05D5\u05E4\u05E8\u05E1\u05D8"))), /*#__PURE__*/React.createElement("div", {
         className: "flex items-center gap-1.5 flex-wrap"
       }, /*#__PURE__*/React.createElement("select", {
-        value: String(((_settings$weightSteps = settings.weightSteps) === null || _settings$weightSteps === void 0 ? void 0 : _settings$weightSteps[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id]) ? effectiveStepOv(ex.id, settings.weightSteps[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
+        value: String(((_settings$weightSteps = settings.weightSteps) === null || _settings$weightSteps === void 0 ? void 0 : _settings$weightSteps[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id]) ? effectiveStepOv(ex.id, settings.weightSteps[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
         onChange: function onChange(e) {
           var v = parseStepVal(e.target.value);
           onUpdateSettings('weightSteps', _objectSpread(_objectSpread({}, settings.weightSteps || {}), {}, _defineProperty({}, ex.id, v)));
@@ -7150,6 +7217,8 @@ var ManageView = function ManageView(_ref28) {
       }, "5"), /*#__PURE__*/React.createElement("option", {
         value: "4-5"
       }, "4-5"), /*#__PURE__*/React.createElement("option", {
+        value: "seq-bar"
+      }, "\u05DE\u05D5\u05D8 (20 + \u05E6\u05DC\u05D7\u05D5\u05EA 1.25\u202620)"), /*#__PURE__*/React.createElement("option", {
         value: "seq-stack"
       }, "\u05E1\u05D3\u05E8\u05D4-5 (5,9,14,18\u2026109)"), /*#__PURE__*/React.createElement("option", {
         value: "seq-thigh"
