@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.28';
+var APP_VERSION = '10.29';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -595,6 +595,7 @@ var IMPLEMENTED_NOTES = LS.get('gym-impl-notes', []);
 var UPDATED_FROM_VERSION = function () {
   var last = LS.get('gym-last-version', null);
   LS.set('gym-last-version', APP_VERSION);
+  if (last && last !== APP_VERSION) LS.set('gym-update-pending', APP_VERSION);
   return last && last !== APP_VERSION ? last : null;
 }();
 var markImplemented = function markImplemented(t) {
@@ -9924,16 +9925,24 @@ function App() {
     syncDevNotesFile(devNotes, devNotesDone);
   }, [devNotes, devNotesDone, filingDirName, implTick]);
   // הודעה אחרי עדכון גרסה — כדי לדעת שהגרסה החדשה אכן נטענה
+  // באנר ירוק קבוע (עד לחיצה) — נשאר גם אם הדף נטען מחדש פעם נוספת אחרי העדכון
+  var _useState245 = useState(function () {
+      return LS.get('gym-update-pending', null) === APP_VERSION;
+    }),
+    _useState246 = _slicedToArray(_useState245, 2),
+    updBanner = _useState246[0],
+    setUpdBanner = _useState246[1];
+  var dismissUpdBanner = function dismissUpdBanner() {
+    LS.set('gym-update-pending', null);
+    setUpdBanner(false);
+  };
   useEffect(function () {
-    if (!UPDATED_FROM_VERSION || window.__updToastShown) return;
-    var t = setTimeout(function () {
-      window.__updToastShown = true;
-      showToast('עודכן לגרסה ' + APP_VERSION);
-    }, 1500);
+    if (!updBanner) return;
+    var t = setTimeout(dismissUpdBanner, 20000);
     return function () {
       return clearTimeout(t);
     };
-  }, []);
+  }, [updBanner]);
   useEffect(function () {
     LS.set('gym-dev-notes-history', devNotesHistory);
   }, [devNotesHistory]);
@@ -10834,10 +10843,10 @@ function App() {
   }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, showToast]);
 
   // ─── מצב סידור זמני: מאפשר להזיז תרגילים בחצים בלי אישור על כל תזוזה, לחלון זמן קצוב ───
-  var _useState245 = useState(null),
-    _useState246 = _slicedToArray(_useState245, 2),
-    reorderMode = _useState246[0],
-    setReorderMode = _useState246[1]; // {groupId, secondsLeft}
+  var _useState247 = useState(null),
+    _useState248 = _slicedToArray(_useState247, 2),
+    reorderMode = _useState248[0],
+    setReorderMode = _useState248[1]; // {groupId, secondsLeft}
   var enterReorderMode = useCallback(function (groupId) {
     return setReorderMode({
       groupId: groupId,
@@ -11086,17 +11095,17 @@ function App() {
       });
     }, 250);
   }, [view, nextIncompleteIndex]);
-  var _useState247 = useState(null),
-    _useState248 = _slicedToArray(_useState247, 2),
-    skipGroupDlg = _useState248[0],
-    setSkipGroupDlg = _useState248[1];
+  var _useState249 = useState(null),
+    _useState250 = _slicedToArray(_useState249, 2),
+    skipGroupDlg = _useState250[0],
+    setSkipGroupDlg = _useState250[1];
   // סיבות דילוג מהמסך הראשי (תרגיל שדולג כולו): { "<תחילת אימון>:<exId>": טקסט } — מוצגות בהיסטוריה בלבד
-  var _useState249 = useState(function () {
+  var _useState251 = useState(function () {
       return LS.get('gym-skip-reasons', {});
     }),
-    _useState250 = _slicedToArray(_useState249, 2),
-    skipReasons = _useState250[0],
-    setSkipReasons = _useState250[1];
+    _useState252 = _slicedToArray(_useState251, 2),
+    skipReasons = _useState252[0],
+    setSkipReasons = _useState252[1];
   useEffect(function () {
     LS.set('gym-skip-reasons', skipReasons);
   }, [skipReasons]);
@@ -11759,7 +11768,18 @@ function App() {
   }, "\uD83D\uDD00 \u05DE\u05E6\u05D1 \u05E1\u05D9\u05D3\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC \u2014 \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05D7\u05E6\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D6\u05D9\u05D6 \u05D0\u05EA \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC \xB7 ", reorderMode.secondsLeft, " \u05E9\u05E0\u05F3"), /*#__PURE__*/React.createElement("button", {
     onClick: exitReorderMode,
     className: "shrink-0 bg-white/20 rounded-xl px-3 py-1.5 text-xs font-black active:scale-95"
-  }, "\u05E1\u05D9\u05D9\u05DE\u05EA\u05D9"))), toast && /*#__PURE__*/React.createElement("div", {
+  }, "\u05E1\u05D9\u05D9\u05DE\u05EA\u05D9"))), updBanner && /*#__PURE__*/React.createElement("div", {
+    onClick: dismissUpdBanner,
+    className: "fixed left-1/2 -translate-x-1/2 z-[1100] w-[92%] max-w-[360px]",
+    style: {
+      top: 'calc(env(safe-area-inset-top) + 0.75rem)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-3 rounded-2xl shadow-2xl font-black text-sm flex items-center justify-center gap-2 bg-emerald-500 text-white"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "CheckCircle2",
+    size: 20
+  }), " \u05E2\u05D5\u05D3\u05DB\u05DF \u05DC\u05D2\u05E8\u05E1\u05D4 ", APP_VERSION, " (\u05DC\u05D7\u05E5 \u05DC\u05E1\u05D2\u05D9\u05E8\u05D4)")), toast && /*#__PURE__*/React.createElement("div", {
     className: "fixed left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[340px] pointer-events-none",
     style: {
       top: 'calc(env(safe-area-inset-top) + 0.75rem)'
