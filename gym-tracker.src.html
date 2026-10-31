@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.26';
+const APP_VERSION = '10.27';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -776,7 +776,7 @@ function PlankTimer() {
 
 // ─── DevNoteButton — כפתור "הערת שיפור" גנרי לכל עמוד באפליקציה ─────
 // נשמר במפורש בסגירה (לא מסתמך רק על onBlur). הכותרת (pageLabel) מוצגת בפאנל בלבד, לא מוזרקת לטקסט.
-function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSaveDevNote, className='', dark=true, square=false }) {
+function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSaveDevNote, className='', dark=true, square=false, alignRight=false }) {
     const [open, setOpen] = useState(false);
     const [text, setText] = useState('');
     // בורר יעד ההערה: 'general' (ברירת מחדל, רקע בהיר) = לכל האפליקציה, או 'page' (רקע לבן) = על המסך/התרגיל הזה
@@ -824,7 +824,7 @@ function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSav
                 {hasNote && <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-red-500" />}
             </button>
             {open && (
-                <div className={`absolute left-0 top-full mt-2 w-72 rounded-2xl p-3 shadow-2xl z-[950] ${isGeneral ? 'bg-sky-100' : 'bg-white'}`} dir="rtl">
+                <div className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-2 w-72 rounded-2xl p-3 shadow-2xl z-[950] ${isGeneral ? 'bg-sky-100' : 'bg-white'}`} dir="rtl">
                     <div className="flex gap-1.5 mb-2">
                         <button onClick={()=>switchScope('general')} className={tabCls(isGeneral)}>כללי לכל האפליקציה</button>
                         <button onClick={()=>switchScope('page')} className={tabCls(!isGeneral)}>{pageLabel || 'המסך הזה'}</button>
@@ -2053,7 +2053,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     <div className="flex flex-col flex-1 bg-white overflow-hidden fade-in" dir="rtl">
         <div className={`bg-gradient-to-br ${group.color} py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0`}>
             <div className="absolute top-3 right-4">
-                <DevNoteButton noteKey={group.exercises[0].id}
+                <DevNoteButton alignRight noteKey={group.exercises[0].id}
                     pageLabel={group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
                     devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} />
             </div>
