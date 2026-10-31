@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.27';
+var APP_VERSION = '10.28';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -4267,7 +4267,7 @@ var DetailView = memo(function DetailView(_ref19) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, !p[ex.id]));
         });
       },
-      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600')
+      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((notes === null || notes === void 0 ? void 0 : notes[ex.id]) || '').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600')
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "BookOpen",
       size: 13
@@ -4308,7 +4308,7 @@ var DetailView = memo(function DetailView(_ref19) {
       onClick: handleSelSkip,
       disabled: selN == null || selHasLog && !selSkipLog,
       className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95\n                            ".concat(selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700' : selN == null || selHasLog ? 'bg-slate-100 border-slate-200 text-slate-300' : 'bg-orange-50 border-orange-200 text-orange-500')
-    }, selSkipLog ? '↩ בטל' : 'דלג')), /*#__PURE__*/React.createElement("section", {
+    }, selSkipLog ? '↩ בטל' : 'דלג')), showDetails[ex.id] && /*#__PURE__*/React.createElement("section", {
       className: "bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden"
     }, showDetails[ex.id] && /*#__PURE__*/React.createElement("div", {
       className: "px-4 pb-4"
@@ -4479,28 +4479,6 @@ var DetailView = memo(function DetailView(_ref19) {
         return onSaveNote(ex.id, e.target.value);
       },
       placeholder: "\u05D4\u05D5\u05E1\u05E3 \u05D3\u05D2\u05E9\u05D9\u05DD \u05D5\u05D4\u05E2\u05E8\u05D5\u05EA \u05D0\u05D9\u05E9\u05D9\u05D5\u05EA...",
-      rows: 1,
-      onInput: function onInput(e) {
-        e.target.style.height = 'auto';
-        e.target.style.height = e.target.scrollHeight + 'px';
-      },
-      ref: function ref(el) {
-        if (el) {
-          el.style.height = 'auto';
-          el.style.height = el.scrollHeight + 'px';
-        }
-      },
-      className: "w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden"
-    })), !showDetails[ex.id] && (notes === null || notes === void 0 ? void 0 : notes[ex.id]) && /*#__PURE__*/React.createElement("div", {
-      className: "px-4 pb-3"
-    }, /*#__PURE__*/React.createElement("textarea", {
-      defaultValue: notes[ex.id],
-      onChange: function onChange(e) {
-        return onSaveNote(ex.id, e.target.value);
-      },
-      onBlur: function onBlur(e) {
-        return onSaveNote(ex.id, e.target.value);
-      },
       rows: 1,
       onInput: function onInput(e) {
         e.target.style.height = 'auto';

@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.27';
+const APP_VERSION = '10.28';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1881,7 +1881,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 <div className="flex items-center gap-1.5 mt-2 mb-1.5">
                     <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
-                            ${showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
+                            ${(notes?.[ex.id]||'').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
                         <Icon name="BookOpen" size={13} /> איך
                     </button>
                     <button onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}
@@ -1916,7 +1916,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </button>
                 </div>
                 {/* how-to */}
-                <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden">
+                {showDetails[ex.id] && <section className="bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden">
                     {showDetails[ex.id] && (
                         <div className="px-4 pb-4">
                             {(()=>{
@@ -2005,16 +2005,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden" />
                         </div>
                     )}
-                    {!showDetails[ex.id] && notes?.[ex.id] && (
-                        <div className="px-4 pb-3">
-                            <textarea defaultValue={notes[ex.id]} onChange={e=>onSaveNote(ex.id,e.target.value)} onBlur={e=>onSaveNote(ex.id,e.target.value)}
-                                rows={1}
-                                onInput={e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';}}
-                                ref={el=>{if(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}}}
-                                className="w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden" />
-                        </div>
-                    )}
-                </section>
+                </section>}
                 {(() => {
                     // מתעלמים מערך override ישן/לא תקין שנשמר בגרסה קודמת של האפליקציה ואינו אחת האפשרויות הנוכחיות בתפריט —
                     // כדי שלא ליצור קפיצות מוזרות (למשל "9") שאינן ניתנות לבחירה יותר. במקרה כזה חוזרים לברירת המחדל.
