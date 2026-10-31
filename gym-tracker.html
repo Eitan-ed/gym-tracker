@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.21';
+var APP_VERSION = '10.22';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -895,6 +895,43 @@ function getNextSetInfo(exId, logs, sst, warmupEmbedMap, stepOverrides) {
 var spokenName = function spokenName(ex) {
   return (LS.get("gym-custom-names", {}) || {})[ex.id] || ex.title || "";
 };
+// כל הכרזה קולית מנמיכה את השיר ברקע לכל משך ההקראה (ולא רק לצפצוף) — כך הכרוז נשמע חזק ביחס למוזיקה.
+// עטיפה אחת של speechSynthesis.speak מכסה את כל ההכרזות בכל התרגילים
+(function () {
+  if (typeof window === 'undefined' || !window.speechSynthesis || window.speechSynthesis.__ducked) return;
+  var ss = window.speechSynthesis;
+  var orig = ss.speak.bind(ss);
+  var active = 0,
+    safety = null;
+  var release = function release() {
+    setTimeout(function () {
+      if (active > 0 || ss.speaking) return;
+      window.__musicDuck && window.__musicDuck(false);
+    }, 350);
+  };
+  ss.speak = function (u) {
+    active++;
+    window.__musicDuck && window.__musicDuck(true);
+    var done = false;
+    var end = function end() {
+      if (done) return;
+      done = true;
+      active = Math.max(0, active - 1);
+      release();
+    };
+    try {
+      u.addEventListener('end', end);
+      u.addEventListener('error', end);
+    } catch (e) {}
+    clearTimeout(safety);
+    safety = setTimeout(function () {
+      active = 0;
+      release();
+    }, 15000);
+    return orig(u);
+  };
+  ss.__ducked = true;
+})();
 // קול גברי (או נמוך) לטיימר הבטן — כדי להבדיל אותו מטיימר המנוחה של שאר התרגילים
 function speakBelly(txt) {
   var rate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1.0;
@@ -2390,9 +2427,8 @@ function ExerciseEntryRow(_ref11) {
       return o;
     }
     var deg = rt / tot * 360;
-    // הפנים נצבעים לפי שליש הזמן שחלף: אדום → כתום → צהוב (המסגרת ממשיכה לרוץ כרגיל)
-    var f = rt / tot,
-      tint = f > 2 / 3 ? '#fecaca' : f > 1 / 3 ? '#fed7aa' : '#fef08a';
+    // המסגרת רצה כרגיל; צבעי השלבים (אדום → כתום → צהוב → ירוק) מוצגים רק בעיגול הטיימר למעלה
+    var tint = '#ffffff';
     return {
       border: '4px solid transparent',
       borderRadius: '1.6rem',
@@ -8002,7 +8038,9 @@ var HamburgerMenu = memo(function (_ref90) {
     _ref90$activeGroupId = _ref90.activeGroupId,
     activeGroupId = _ref90$activeGroupId === void 0 ? null : _ref90$activeGroupId,
     _ref90$onOpenGroup = _ref90.onOpenGroup,
-    onOpenGroup = _ref90$onOpenGroup === void 0 ? null : _ref90$onOpenGroup;
+    onOpenGroup = _ref90$onOpenGroup === void 0 ? null : _ref90$onOpenGroup,
+    _ref90$doneExIds = _ref90.doneExIds,
+    doneExIds = _ref90$doneExIds === void 0 ? [] : _ref90$doneExIds;
   var _useState93 = useState(false),
     _useState94 = _slicedToArray(_useState93, 2),
     open = _useState94[0],
@@ -8060,7 +8098,7 @@ var HamburgerMenu = memo(function (_ref90) {
     }
     prevRtRef.current = _objectSpread({}, restTimers);
   }, [restTimers]);
-  // וי ירוק של טיימר שהסתיים נשאר עד שקורה משהו: נכנסים לתרגיל שלו מבחוץ, נשמר בו סט (הטיימר נמחק/מתחדש) או מתחיל אימון חדש
+  // (ראה גם הסרה בפעולה בתוך התרגיל ובסיום התרגיל, למטה) וי ירוק של טיימר שהסתיים נשאר עד שקורה משהו: נכנסים לתרגיל שלו מבחוץ, נשמר בו סט (הטיימר נמחק/מתחדש) או מתחיל אימון חדש
   useEffect(function () {
     setFinished(function (f) {
       var n = f.filter(function (x) {
@@ -8069,18 +8107,37 @@ var HamburgerMenu = memo(function (_ref90) {
       return n.length === f.length ? f : n;
     });
   }, [restTimerTotals, restTimers]);
-  var prevActiveRef = React.useRef(activeGroupId);
+  // הוי נשאר גם כשמגיעים לתרגיל באיחור (או בקפיצה אוטומטית) — הוא נעלם רק אחרי פעולה כלשהי בתוך התרגיל
+  // (לחיצה על כפתור, גלילה במניפה וכו'), כדי שתמיד יהיה ברור שהמנוחה בו הסתיימה
+  var activeGroupRefH = React.useRef(activeGroupId);
+  activeGroupRefH.current = activeGroupId;
   useEffect(function () {
-    if (prevActiveRef.current !== activeGroupId && activeGroupId != null) {
+    var onAction = function onAction(e) {
+      var gid = activeGroupRefH.current;
+      if (gid == null) return;
+      // לחיצה על העיגולים עצמם אינה "פעולה בתרגיל"
+      if (e.target && e.target.closest && e.target.closest('[data-rest-windows]')) return;
       setFinished(function (f) {
         var n = f.filter(function (x) {
-          return !(x.group && x.group.id === activeGroupId);
+          return !(x.group && x.group.id === gid);
         });
         return n.length === f.length ? f : n;
       });
-    }
-    prevActiveRef.current = activeGroupId;
-  }, [activeGroupId]);
+    };
+    document.addEventListener('pointerdown', onAction, true);
+    return function () {
+      return document.removeEventListener('pointerdown', onAction, true);
+    };
+  }, []);
+  // תרגיל שהסתיים (או דולג) — הוי שלו יורד מיד, כדי שלא תיווצר שורת וים ירוקים
+  useEffect(function () {
+    setFinished(function (f) {
+      var n = f.filter(function (x) {
+        return !(doneExIds || []).includes(String(x.id));
+      });
+      return n.length === f.length ? f : n;
+    });
+  }, [doneExIds]);
   var windows = [].concat(_toConsumableArray(finished.map(function (t) {
     return _objectSpread(_objectSpread({}, t), {}, {
       fin: true
@@ -8095,8 +8152,9 @@ var HamburgerMenu = memo(function (_ref90) {
   var renderWindow = function renderWindow(t) {
     var isCur = !t.fin && activeGroupId != null && t.group && t.group.id === activeGroupId;
     var dim = !t.fin && activeGroupId != null && !isCur;
-    var ring = t.fin ? '#22c55e' : t.rt <= 20 ? '#ef4444' : '#f97316';
     var frac = t.fin ? 1 : t.rt / t.tot;
+    // שלבי המנוחה לפי שליש הזמן: אדום (התחלה) → כתום → צהוב, וירוק עם ✓ רק כשהטיימר הסתיים
+    var ring = t.fin ? '#22c55e' : frac > 2 / 3 ? '#ef4444' : frac > 1 / 3 ? '#f97316' : '#eab308';
     return /*#__PURE__*/React.createElement("span", {
       key: t.id,
       className: "relative flex items-center justify-center w-11 h-11 rounded-full shadow-lg text-white transition-all ".concat(!t.fin && t.rt <= 3 ? 'animate-pulse' : ''),
@@ -8233,18 +8291,34 @@ var HamburgerMenu = memo(function (_ref90) {
     return a.label.localeCompare(b.label, 'he');
   });
   var topOffset = 'calc(env(safe-area-inset-top) + 0.75rem)';
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, windows.length === 0 ? /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setOpen(true);
     },
-    className: windows.length ? "fixed right-2 z-[650] flex flex-row-reverse gap-2 pt-1 active:scale-95" : "fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90",
+    className: "fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90",
     style: {
       top: topOffset
     }
-  }, windows.length === 0 && /*#__PURE__*/React.createElement(Icon, {
+  }, /*#__PURE__*/React.createElement(Icon, {
     name: "Menu",
     size: 20
-  }), windows.map(renderWindow)), open && /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("div", {
+    "data-rest-windows": "1",
+    className: "fixed right-2 z-[650] flex flex-row-reverse gap-2 pt-1",
+    style: {
+      top: topOffset
+    }
+  }, windows.map(function (t, i) {
+    // העיגול הראשון יושב על כפתור התפריט — הוא פותח את התפריט; כל השאר נכנסים לתרגיל של הטיימר שלהם
+    return /*#__PURE__*/React.createElement("button", {
+      key: t.id,
+      onClick: function onClick() {
+        if (i === 0 || !t.group) return setOpen(true);
+        onOpenGroup === null || onOpenGroup === void 0 || onOpenGroup(t.group);
+      },
+      className: "active:scale-95"
+    }, renderWindow(t));
+  })), open && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-[900] flex",
     onClick: function onClick() {
       return setOpen(false);
@@ -9574,6 +9648,14 @@ function App() {
     };
   }, [isWorkoutActive]);
 
+  // הנמכת השיר בזמן הקראה (ראה עטיפת speechSynthesis.speak)
+  useEffect(function () {
+    window.__musicDuck = function (on) {
+      if (!audioRef.current || !musicPlayingRef.current) return;
+      audioRef.current.volume = on ? 0.07 : 1;
+    };
+  }, []);
+
   // שמירה אוטומטית ב-localStorage
   useEffect(function () {
     LS.set('gym-logs', logs);
@@ -9935,7 +10017,8 @@ function App() {
         audioRef.current.volume = 0.07;
         clearTimeout(_muteTimeout);
         _muteTimeout = setTimeout(function () {
-          if (audioRef.current) audioRef.current.volume = 1;
+          // לא מחזירים עוצמה באמצע הקראה — ההחזרה תתבצע בסיום ההקראה
+          if (audioRef.current && !(window.speechSynthesis && window.speechSynthesis.speaking)) audioRef.current.volume = 1;
         }, 2400);
       }
       if (doCountdown) {
@@ -11054,6 +11137,27 @@ function App() {
     }
   };
 
+  // תרגילים שהסתיימו (שני סטים) או דולגו באימון הנוכחי — הוי הירוק שלהם לא נשאר בשורת הטיימרים
+  var doneExIdsForTimers = React.useMemo(function () {
+    var sst = workoutStartTime ? new Date(workoutStartTime).getTime() : 0;
+    var out = [];
+    visibleGroups.forEach(function (g) {
+      var skipped = (skippedGroups || []).includes(g.id);
+      g.exercises.forEach(function (ex) {
+        var sl = (logs || []).filter(function (l) {
+          return l.exId === ex.id && new Date(l.timestamp).getTime() > sst;
+        });
+        var done = sl.some(function (l) {
+          return l.setNum === 1;
+        }) && sl.some(function (l) {
+          return l.setNum === 2;
+        });
+        if (skipped || done) out.push(String(ex.id));
+      });
+    });
+    return out;
+  }, [logs, workoutStartTime, skippedGroups, visibleGroups]);
+
   // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
   var hasActiveRest = Object.keys(restTimers).some(function (id) {
     return (restTimers[id] || 0) > 0 && (restTimerTotals[id] || 0) > 0;
@@ -11066,6 +11170,7 @@ function App() {
     groups: visibleGroups,
     images: images,
     activeGroupId: view === 'detail' && activeGroup ? activeGroup.id : null,
+    doneExIds: doneExIdsForTimers,
     onOpenGroup: function onOpenGroup(g) {
       handleOpenExercise(g);
       setScrollToExId(g.exercises[0].id);
