@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.20';
+const APP_VERSION = '10.24';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -201,7 +201,13 @@ const formatDevNotesHistory = (hist) => {
     list.forEach(h => { t += `• ${h.name} — ${DEV_HIST_VIA[h.via]||h.via} ב-${fmtHistAt(h.sentAt)} — ${h.verified?'אומת ✓':'טרם אומת'}:\n${h.text}\n\n`; });
     return t;
 };
-const PAGE_NOTE_LABELS = { 'page-list':'מסך הבית', 'page-exercises':'רשימת תרגילים', 'page-history':'היסטוריה', 'page-manage':'ניהול והגדרות' };
+const GENERAL_NOTE_KEY = 'general';
+const PAGE_NOTE_LABELS = { 'general':'כלליות — לכל האפליקציה', 'page-list':'מסך הבית', 'page-exercises':'רשימת תרגילים', 'page-history':'היסטוריה', 'page-manage':'ניהול והגדרות' };
+
+// הערה שנרשמה בתוך תרגיל אבל נשמעת כללית ("כלל", "לכל התרגילים", "בכל מסך"...) — מוצעת להעברה לכללי (לא מועברת אוטומטית)
+const looksGeneral = t => /כלל|לכל ה|בכל ה|בכל מקום|בכל מסך|בכל תרגיל|תמיד/.test(String(t || ''));
+// הערות כלליות (מפתח general) מוצגות תמיד ראשונות — בדוח, בקובץ ה-FILING וברשימה באפליקציה
+const generalFirst = entries => [...entries].sort((a, b) => (b[0] === GENERAL_NOTE_KEY) - (a[0] === GENERAL_NOTE_KEY));
 
 // ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
 const DEFAULT_WEIGHT_STEPS = {
@@ -219,9 +225,9 @@ const DEFAULT_WEIGHT_STEPS = {
 };
 
 // ─── מרווחי המשקל הקיימים בפועל בתפריט הניהול — כל override שמור שאינו אחד מאלה נחשב לא תקין (למשל שריד מגרסה ישנה) ───
-const ALLOWED_WEIGHT_STEPS = new Set([0.25, 0.5, 1, 2, 2.5, 4, 5, 10, '4-5', 'seq-stack', 'seq-thigh', 'seq-leg']);
+const ALLOWED_WEIGHT_STEPS = new Set([0.25, 0.5, 1, 2, 2.5, 4, 5, 10, '4-5', 'seq-stack', 'seq-thigh', 'seq-leg', 'seq-bar']);
 // רצפי משקל בשם — ניתן לבחור לכל תרגיל (גם תרגילים שנוספו ידנית) דרך תפריט "מרווח משקל": ההגדרה נשמרת בהגדרות, לא בקוד
-const WEIGHT_SEQ_LABELS = { 'seq-stack':'סדרה-5', 'seq-thigh':'סדרה-9', 'seq-leg':'סדרה-לג' };
+const WEIGHT_SEQ_LABELS = { 'seq-bar':'מוט', 'seq-stack':'סדרה-5', 'seq-thigh':'סדרה-9', 'seq-leg':'סדרה-לג' };
 const parseStepVal = v => (v === '4-5' || String(v).startsWith('seq-')) ? v : parseFloat(v);
 
 // ─── משקל התחלתי ברירת מחדל (כשאין היסטוריה) ───────────────
@@ -268,7 +274,24 @@ const CUSTOM_WEIGHT_VALUES = {
     'custom-1790215042100-ex': STACK_FROM_5,     // תחליף לפולי עליון
 };
 
-const WEIGHT_SEQUENCES = { 'seq-stack': STACK_FROM_5, 'seq-thigh': THIGH_VALUES, 'seq-leg': LEG_PRESS_VALUES };
+// ─── תרגילי מוט: מוט 20 ק"ג + זוגות צלחות (1.25 / 2.5 / 5 / 10 / 15 / 20 בכל צד) — כל משקל כולל בקפיצות של 2.5 ───
+const BAR_KG = 20;
+const BAR_PLATES = [20, 15, 10, 5, 2.5, 1.25];
+const BAR_VALUES = (() => { const o = []; for (let v = 10; v <= 250; v += 2.5) o.push(v); return o; })();
+// פירוק משקל כולל לצלחות בכל צד (מהכבדה לקלה). null = פחות ממשקל המוט / לא מתחלק לצלחות
+const barPlatesPerSide = total => {
+    let side = (total - BAR_KG) / 2;
+    if (side < 0) return null;
+    const out = [];
+    BAR_PLATES.forEach(pl => { while (side >= pl - 1e-9) { out.push(pl); side = parseFloat((side - pl).toFixed(4)); } });
+    return side > 1e-6 ? null : out;
+};
+// תרגיל מוט מזוהה לפי השם ("מוט") — כך גם תרגילים שנוספו ידנית מקבלים את רשת הצלחות בלי הגדרה. ניתן לשנות בתפריט מרווח המשקל
+const isBarExercise = exId => {
+    const nm = ((LS.get('gym-custom-names', {}) || {})[exId] || '') + ' ' + ((typeof exById === 'function' ? (exById(exId) || {}).title : '') || '');
+    return /מוט/.test(nm);
+};
+const WEIGHT_SEQUENCES = { 'seq-bar': BAR_VALUES, 'seq-stack': STACK_FROM_5, 'seq-thigh': THIGH_VALUES, 'seq-leg': LEG_PRESS_VALUES };
 // קפיצה קבועה של 4 שנשמרה ידנית לתרגיל שיש לו רצף משקלים (4/5 לסירוגין) יוצרת משקלים שלא קיימים במכשיר (37, 40, 20.5...) — מתייחסים אליה כרצף
 const effectiveStepOv = (exId, v) => (v === 4 && CUSTOM_WEIGHT_VALUES[exId]) ? '4-5' : v;
 
@@ -318,6 +341,7 @@ function resolveWeightGrid(exId, stepOverrides) {
     else if (ov === '4-5' || ov === undefined) {
         wv = CUSTOM_WEIGHT_VALUES[exId] || null;
         if (ov === '4-5' && !wv) wv = THIGH_VALUES;
+        if (ov === undefined && !wv && isBarExercise(exId)) wv = BAR_VALUES;
     }
     const ws = wv ? 1 : ((ov !== undefined && ov !== '4-5') ? ov : (DEFAULT_WEIGHT_STEPS[exId] !== undefined ? DEFAULT_WEIGHT_STEPS[exId] : 1));
     return { wv, ws };
@@ -352,6 +376,26 @@ function getNextSetInfo(exId, logs, sst, warmupEmbedMap, stepOverrides) {
 }
 // שם התרגיל להכרזה קולית (שם מותאם אישית אם הוגדר)
 const spokenName = ex => ((LS.get("gym-custom-names", {}) || {})[ex.id]) || ex.title || "";
+// כל הכרזה קולית מנמיכה את השיר ברקע לכל משך ההקראה (ולא רק לצפצוף) — כך הכרוז נשמע חזק ביחס למוזיקה.
+// עטיפה אחת של speechSynthesis.speak מכסה את כל ההכרזות בכל התרגילים
+(function () {
+    if (typeof window === 'undefined' || !window.speechSynthesis || window.speechSynthesis.__ducked) return;
+    const ss = window.speechSynthesis;
+    const orig = ss.speak.bind(ss);
+    let active = 0, safety = null;
+    const release = () => setTimeout(() => { if (active > 0 || ss.speaking) return; window.__musicDuck && window.__musicDuck(false); }, 350);
+    ss.speak = function (u) {
+        active++;
+        window.__musicDuck && window.__musicDuck(true);
+        let done = false;
+        const end = () => { if (done) return; done = true; active = Math.max(0, active - 1); release(); };
+        try { u.addEventListener('end', end); u.addEventListener('error', end); } catch (e) {}
+        clearTimeout(safety);
+        safety = setTimeout(() => { active = 0; release(); }, 15000);
+        return orig(u);
+    };
+    ss.__ducked = true;
+})();
 // קול גברי (או נמוך) לטיימר הבטן — כדי להבדיל אותו מטיימר המנוחה של שאר התרגילים
 function speakBelly(txt, rate=1.0) {
     if (!window.speechSynthesis) return;
@@ -586,6 +630,34 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                                 </div>
                             );
                         })()}
+                        {values === BAR_VALUES && (() => {
+                            // מוט: פירוק המשקל לצלחות בכל צד + הוספת זוג צלחות בלחיצה. לחיצה על צלחת בפירוק מורידה את הזוג
+                            const per = barPlatesPerSide(localVal);
+                            const setV = v => { fromBtn.current = true; setLocalVal(Math.min(Math.max(parseFloat(v.toFixed(4)), min), max)); };
+                            return (
+                                <div className="px-5 pb-3" dir="rtl">
+                                    <div className="flex items-center gap-1.5 flex-wrap text-[12px] font-black text-slate-500 mb-2">
+                                        <span>בכל צד (מוט {BAR_KG}):</span>
+                                        {per === null ? <span className="text-amber-600">לא מתחלק לצלחות</span>
+                                            : per.length === 0 ? <span>מוט בלבד</span>
+                                            : per.map((pl, i) => (
+                                                <button key={i} onClick={() => setV(localVal - 2 * pl)} title="הסר זוג"
+                                                    className="px-2 py-0.5 rounded-full bg-slate-800 text-white active:scale-95">{pl}</button>
+                                            ))}
+                                    </div>
+                                    <div className="flex gap-1.5 justify-center" dir="ltr">
+                                        {[...BAR_PLATES].reverse().map(pl => (
+                                            <button key={pl} className="flex-1 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-black text-sm active:scale-95 active:bg-indigo-100"
+                                                onClick={() => {
+                                                    // משקל שאינו מתחלק לצלחות (או קטן ממשקל המוט) — מתחילים מהמוט / מהמשקל התקין הקרוב
+                                                    const base = per !== null ? localVal : localVal < BAR_KG ? BAR_KG : BAR_KG + Math.round((localVal - BAR_KG) / 2.5) * 2.5;
+                                                    setV(base + 2 * pl);
+                                                }}>+{pl}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         {/* כפתורי קפיצה */}
                         <div className="px-4 pb-3 flex items-center gap-1.5 justify-center" dir="ltr">
                             {[...jumpSteps].reverse().map(s => (
@@ -707,23 +779,41 @@ function PlankTimer() {
 function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSaveDevNote, className='', dark=true, square=false }) {
     const [open, setOpen] = useState(false);
     const [text, setText] = useState('');
+    // בורר יעד ההערה: 'general' (ברירת מחדל, רקע בהיר) = לכל האפליקציה, או 'page' (רקע לבן) = על המסך/התרגיל הזה
+    const [scope, setScope] = useState('general');
+    const keyOf = sc => sc === 'general' ? GENERAL_NOTE_KEY : noteKey;
+    const activeKey = keyOf(scope);
+    const isGeneral = scope === 'general';
     // הערה שסומנה כ"בוצעה" בדוח לא צריכה להמשיך להופיע כאינדיקציה פעילה בעמוד עצמו
-    const hasNote = !!(devNotes[noteKey] && devNotes[noteKey].trim()) && !devNotesDone[noteKey];
+    const hasNote = [noteKey, GENERAL_NOTE_KEY].some(k => !!(devNotes[k] && devNotes[k].trim()) && !devNotesDone[k]);
 
     const taRef = React.useRef(null);
+    const withTail = k => { const existing = devNotes[k] || ''; return existing ? existing + '\n\n' : ''; };
+    const focusEnd = next => setTimeout(() => { if (taRef.current) { taRef.current.focus(); taRef.current.setSelectionRange(next.length, next.length); } }, 0);
     const openPanel = () => {
-        const existing = devNotes[noteKey] || '';
-        const next = existing ? existing + '\n\n' : '';
+        // תמיד נפתח על "כללי"
+        const next = withTail(GENERAL_NOTE_KEY);
+        setScope('general');
         setText(next);
         setOpen(true);
-        setTimeout(() => { if (taRef.current) { taRef.current.focus(); taRef.current.setSelectionRange(next.length, next.length); } }, 0);
+        focusEnd(next);
     };
     const closePanel = () => {
-        onSaveDevNote?.(noteKey, text);
+        onSaveDevNote?.(activeKey, text);
         setOpen(false);
+    };
+    const switchScope = sc => {
+        if (sc === scope) return;
+        // שומרים את מה שנכתב ביעד הנוכחי ואז טוענים את היעד השני
+        onSaveDevNote?.(activeKey, text);
+        const next = withTail(keyOf(sc));
+        setScope(sc);
+        setText(next);
+        focusEnd(next);
     };
 
     if (!onSaveDevNote) return null;
+    const tabCls = on => `flex-1 text-[11px] font-black rounded-lg py-1 active:scale-95 ${on ? 'bg-amber-500 text-white' : 'bg-white/70 text-slate-500 border border-slate-200'}`;
     return (
         <div className={`relative ${className}`}>
             <button onClick={()=>{ open ? closePanel() : openPanel(); }}
@@ -734,11 +824,14 @@ function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSav
                 {hasNote && <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-red-500" />}
             </button>
             {open && (
-                <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-2xl p-3 shadow-2xl z-[950]" dir="rtl">
-                    <div className="text-[11px] font-black text-amber-600 mb-1">{pageLabel}</div>
-                    <textarea ref={taRef} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>onSaveDevNote(noteKey, text)}
-                        rows={4} placeholder="הערת שיפור..."
-                        className="w-full text-[13px] font-bold text-slate-700 bg-amber-50 border border-amber-200 rounded-xl p-2 outline-none resize-none" />
+                <div className={`absolute left-0 top-full mt-2 w-72 rounded-2xl p-3 shadow-2xl z-[950] ${isGeneral ? 'bg-sky-100' : 'bg-white'}`} dir="rtl">
+                    <div className="flex gap-1.5 mb-2">
+                        <button onClick={()=>switchScope('general')} className={tabCls(isGeneral)}>כללי לכל האפליקציה</button>
+                        <button onClick={()=>switchScope('page')} className={tabCls(!isGeneral)}>{pageLabel || 'המסך הזה'}</button>
+                    </div>
+                    <textarea ref={taRef} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>onSaveDevNote(activeKey, text)}
+                        rows={4} placeholder={isGeneral ? 'הערה כללית לכל האפליקציה...' : 'הערת שיפור על המסך הזה...'}
+                        className={`w-full text-[13px] font-bold text-slate-700 rounded-xl p-2 outline-none resize-none border ${isGeneral ? 'bg-sky-50 border-sky-300' : 'bg-white border-slate-300'}`} />
                     <button onClick={closePanel} className="mt-1.5 text-[11px] font-black text-slate-500 active:text-slate-700">סגור ושמור</button>
                 </div>
             )}
@@ -955,8 +1048,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         if (!tot) return null;
         if (rt === 0) { const o = { border:'4px solid #22c55e', borderRadius:'1.6rem', background:'linear-gradient(#dcfce7,#dcfce7) padding-box, linear-gradient(#22c55e,#22c55e) border-box', boxShadow:'0 2px 12px #22c55e55' }; _finTimerStyles.add(o); return o; }
         const deg = (rt / tot) * 360;
-        // הפנים נצבעים לפי שליש הזמן שחלף: אדום → כתום → צהוב (המסגרת ממשיכה לרוץ כרגיל)
-        const f = rt / tot, tint = f > 2/3 ? '#fecaca' : f > 1/3 ? '#fed7aa' : '#fef08a';
+        // המסגרת רצה כרגיל; צבעי השלבים (אדום → כתום → צהוב → ירוק) מוצגים רק בעיגול הטיימר למעלה
+        const tint = '#ffffff';
         return {
             border:'4px solid transparent', borderRadius:'1.6rem',
             background:`linear-gradient(${tint},${tint}) padding-box, conic-gradient(from -90deg, ${accentColor} 0deg, ${accentColor} ${deg}deg, #e2e8f0 ${deg}deg, #e2e8f0 360deg) border-box`
@@ -1477,17 +1570,29 @@ const VideoModal = ({ src, onClose }) => {
 // ─── מסך סיבת דילוג: נפתח בלחיצה על "דלג", הסיבה נשמרת בהערות התרגיל ───
 const skipReasonLine = txt => { const d = new Date(), p2 = n => String(n).padStart(2,'0'); return `דילוג ${p2(d.getDate())}.${p2(d.getMonth()+1)}.${p2(d.getFullYear()%100)}: ${txt}`; };
 const appendSkipReason = (prev, txt) => { const t = (txt||'').trim(); return t ? ((prev||'').trim() ? prev.trim() + '\n' : '') + skipReasonLine(t) : prev; };
-const SkipReasonModal = ({ title, onConfirm, onCancel }) => {
+// סיבות מהירות — לחיצה אחת מדלגת מיד עם הסיבה, בלי להקליד
+const SKIP_QUICK_REASONS = ['עשיתי תרגיל חלופי', 'כאב'];
+const SkipReasonModal = ({ title, onConfirm, onCancel, setLabel=null }) => {
     const [txt, setTxt] = useState('');
+    // בדף התרגיל: דילוג על הסט הנבחר או על כל התרגיל (setLabel = שם הסט). מהמסך הראשי — תמיד כל התרגיל
+    const [scope, setScope] = useState('set');
+    const scopeBtn = (v, lbl) => <button onClick={()=>setScope(v)} className={`flex-1 py-2 rounded-2xl text-[13px] font-black active:scale-95 ${scope===v ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'}`}>{lbl}</button>;
     return ReactDOM.createPortal(
         <div dir="rtl" className="fixed inset-0 z-[400] bg-black/50 flex items-end sm:items-center justify-center p-3" onClick={onCancel}>
             <div className="w-full max-w-md bg-white rounded-3xl p-4 shadow-2xl" onClick={e=>e.stopPropagation()}>
                 <div className="text-[15px] font-black text-slate-800 mb-0.5">סיבת הדילוג</div>
                 {title && <div className="text-[12px] font-bold text-slate-400 mb-2">{title}</div>}
-                <textarea value={txt} onChange={e=>setTxt(e.target.value)} autoFocus rows={3} placeholder="למה מדלגים? (נשמר בהערות התרגיל)"
+                {setLabel && <div className="flex gap-2 mb-2">{scopeBtn('set', setLabel)}{scopeBtn('exercise', 'כל התרגיל')}</div>}
+                <div className="flex gap-2 mb-2">
+                    {SKIP_QUICK_REASONS.map(r => (
+                        <button key={r} onClick={()=>onConfirm(r, scope)}
+                            className="flex-1 py-2.5 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 font-black text-[13px] active:scale-95">{r}</button>
+                    ))}
+                </div>
+                <textarea value={txt} onChange={e=>setTxt(e.target.value)} rows={3} placeholder="למה מדלגים? (נשמר בהערות התרגיל)"
                     className="w-full bg-amber-50/60 border border-amber-200 rounded-2xl p-3 text-[14px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
                 <div className="flex gap-2 mt-3">
-                    <button onClick={()=>onConfirm(txt)} className="flex-1 py-2.5 rounded-2xl bg-orange-500 text-white font-black text-[14px] active:scale-95">דלג</button>
+                    <button onClick={()=>onConfirm(txt, scope)} className="flex-1 py-2.5 rounded-2xl bg-orange-500 text-white font-black text-[14px] active:scale-95">דלג</button>
                     <button onClick={onCancel} className="px-5 py-2.5 rounded-2xl bg-slate-100 text-slate-500 font-black text-[14px] active:scale-95">ביטול</button>
                 </div>
             </div>
@@ -1625,9 +1730,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             if (selN==null) return;
             if (selSkipLog) { onDeleteLog && onDeleteLog(selSkipLog.id); return; }
             if (selHasLog) return;
-            setSkipDlg({ exId: ex.id, title: customNames[ex.id] || ex.title, go: () => {
+            setSkipDlg({ exId: ex.id, title: customNames[ex.id] || ex.title, setLabel: selN===0 ? 'חימום' : `סט ${selN}`, go: () => {
                 onSave(ex.id, selN, 0, 0, exIsSuperset);
                 if (selN===2 && isLast) setTimeout(()=>onFinish(true), 800);
+            }, goAll: () => {
+                // כל התרגיל: מסמנים כדולגו את כל הסטים שעוד לא בוצעו (בזה אחר זה, כדי שכל רישום יישמר)
+                const left = [1, 2].filter(n => !(n===1 ? doneS1Ex : doneS2Ex));
+                left.forEach((n, i) => setTimeout(()=>onSave(ex.id, n, 0, 0, exIsSuperset), i * 250));
+                if (isLast && left.length) setTimeout(()=>onFinish(true), left.length * 250 + 800);
             }});
         };
         const handleHowToSkip = skipActiveNum!=null ? () => {
@@ -1776,11 +1886,11 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </button>
                     {onUpdateSettings && (
                         <select
-                            value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
+                            value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                             onChange={e => { const v = parseStepVal(e.target.value); onUpdateSettings('weightSteps', {...(weightStepsOverrides||{}), [ex.id]: v}); }}
                             title="מרווח משקל"
                             className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center">
-                            {['0.25','0.5','1','2','2.5','4','5','4-5','10','seq-stack','seq-thigh','seq-leg'].map(o => <option key={o} value={o}>{WEIGHT_SEQ_LABELS[o] || o}</option>)}
+                            {['0.25','0.5','1','2','2.5','4','5','4-5','10','seq-bar','seq-stack','seq-thigh','seq-leg'].map(o => <option key={o} value={o}>{WEIGHT_SEQ_LABELS[o] || o}</option>)}
                         </select>
                     )}
                     <button onClick={handleSelSkip} disabled={selN==null || (selHasLog && !selSkipLog)}
@@ -1901,6 +2011,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     else if (_ov === '4-5' || _ov === undefined) {
                         _wv = CUSTOM_WEIGHT_VALUES[ex.id] || null;
                         if (_ov === '4-5' && !_wv) _wv = THIGH_VALUES;
+                        if (_ov === undefined && !_wv && isBarExercise(ex.id)) _wv = BAR_VALUES;
                     }
                     const _ws = _wv ? 1 : ((_ov !== undefined && _ov !== '4-5')
                         ? _ov
@@ -2099,6 +2210,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         })()}
                         {returnGroup && returnGroup.id !== group.id && (
                             <div className="text-center mt-1.5">
+                                <div className="text-[14px] font-black text-black leading-tight mb-0.5">
+                                    {group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
+                                </div>
                                 <button onClick={()=>onReturn?.()}
                                     className="text-[12px] font-black text-blue-600 underline underline-offset-2 active:opacity-60">
                                     ↩ חזור ל{returnGroup.title}
@@ -2133,8 +2247,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 </div>
             )}
         </div>
-        {skipDlg && <SkipReasonModal title={skipDlg.title} onCancel={()=>setSkipDlg(null)}
-            onConfirm={txt=>{ const d=skipDlg; setSkipDlg(null); if ((txt||'').trim()) onSaveNote(d.exId, appendSkipReason(notes?.[d.exId], txt)); d.go(); }} />}
+        {skipDlg && <SkipReasonModal title={skipDlg.title} setLabel={skipDlg.setLabel} onCancel={()=>setSkipDlg(null)}
+            onConfirm={(txt, scope)=>{ const d=skipDlg; setSkipDlg(null); if ((txt||'').trim()) onSaveNote(d.exId, appendSkipReason(notes?.[d.exId], txt)); if (scope==='exercise' && d.goAll) d.goAll(); else d.go(); }} />}
         {lightbox && (
             <div className="fixed inset-0 z-[500] bg-black/90 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
                 <img src={lightbox} alt="" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
@@ -2999,7 +3113,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                             </button>
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <select
-                                                    value={String((settings.weightSteps?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id])) ? effectiveStepOv(ex.id, settings.weightSteps[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
+                                                    value={String((settings.weightSteps?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id])) ? effectiveStepOv(ex.id, settings.weightSteps[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                                                     onChange={e => { const v = parseStepVal(e.target.value); onUpdateSettings('weightSteps', {...(settings.weightSteps||{}), [ex.id]: v}); }}
                                                     onClick={e => e.stopPropagation()}
                                                     title="מרווח משקל"
@@ -3012,6 +3126,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                     <option value="4">4</option>
                                                     <option value="5">5</option>
                                                     <option value="4-5">4-5</option>
+                                                    <option value="seq-bar">מוט (20 + צלחות 1.25…20)</option>
                                                     <option value="seq-stack">סדרה-5 (5,9,14,18…109)</option>
                                                     <option value="seq-thigh">סדרה-9 (9,14,18…109)</option>
                                                     <option value="seq-leg">סדרה-לג (9,18,27…127)</option>
@@ -3039,8 +3154,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                 </button>
                                                 <button
                                                     onClick={() => { setEditingCategoryId(ex.id); setCategoryDraft(g.category); setCategoryDraftOther(''); }}
-                                                    className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-violet-50 text-violet-500 border border-violet-200">
-                                                    חלק גוף
+                                                    title="חלק בגוף"
+                                                    className="shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all min-w-[3.5rem] max-w-[6.5rem] truncate text-center bg-violet-50 text-violet-500 border border-violet-200">
+                                                    {g.category || 'חלק גוף'}
                                                 </button>
                                                 <button
                                                     onClick={() => requestConfirm('למחוק תרגיל זה לצמיתות?', () => onDeleteCustomExercise && onDeleteCustomExercise(g))}
@@ -3211,7 +3327,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     const ex = exerciseGroups.flatMap(g=>g.exercises).find(e=>e.id===exId);
                                     return customNames[exId] || ex?.title || exId;
                                 };
-                                const pending = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
+                                const pending = generalFirst(Object.entries(devNotes||{}).filter(([,t])=>t && t.trim()));
                                 if (!pending.length && !(devNotesHistory||[]).length) { showToast('אין הערות לשיפור', true); return; }
                                 let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
                                 txt += `${'═'.repeat(40)}\n\n`;
@@ -3325,7 +3441,7 @@ ${markImplemented(t)}\n\n`; });
                             return customNames[exId] || ex?.title || exId;
                         };
                         const allEntries = Object.entries(devNotes||{}).filter(([,t])=>t && t.trim());
-                        const pending = allEntries;
+                        const pending = generalFirst(allEntries);
                         const history = [...(devNotesHistory||[])].sort((a,b)=>String(b.sentAt||'').localeCompare(String(a.sentAt||'')));
                         const pendingText = pending.map(([exId,t])=>`• ${nameOf(exId)} [${devMetaLabel(exId)}]:\n${t}`).join('\n\n');
                         const fmtAt = iso => iso ? new Date(iso).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'ללא תאריך (מלפני ההיסטוריה)';
@@ -3339,6 +3455,14 @@ ${markImplemented(t)}\n\n`; });
                         };
                         const markDone = (exId) => archive(pending.filter(([k])=>k===exId), 'manual');
                         const toggleVerified = (id) => setDevNotesHistory(prev=>prev.map(h=>h.id===id ? {...h, verified:!h.verified, verifiedAt:!h.verified ? new Date().toISOString() : null} : h));
+                        // הערה שנרשמה בתוך תרגיל אבל מיועדת לכלל האפליקציה — מצורפת להערה הכללית ויוצאת מהתרגיל
+                        const moveToGeneral = (exId) => setDevNotes(prev => {
+                            const n = {...prev};
+                            const moved = (n[exId] || '').trim();
+                            delete n[exId];
+                            if (moved) { const cur = (n[GENERAL_NOTE_KEY] || '').trim(); n[GENERAL_NOTE_KEY] = cur ? cur + '\n\n' + moved : moved; }
+                            return n;
+                        });
                         const deleteNote = (exId) => { setDevNotes(prev=>{const n={...prev};delete n[exId];return n;}); };
                         const addNewNote = () => {
                             const t = newDevNoteText.trim();
@@ -3361,12 +3485,18 @@ ${markImplemented(t)}\n\n`; });
                             ) : (
                                 <div className="space-y-2">
                                     {pending.map(([exId,t]) => (
-                                        <div key={exId} className="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                                        <div key={exId} className={exId === GENERAL_NOTE_KEY ? "bg-sky-100 border border-sky-300 rounded-2xl p-3" : "bg-white border border-slate-300 rounded-2xl p-3"}>
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-xs font-black text-amber-700">{nameOf(exId)}</span>
                                                 <div className="flex items-center gap-2">
                                                     <button onClick={()=>{ setDevMeta(exId, { status: DEV_STATUS_NEXT[getDevMeta(exId)?.status||'new'] }); setDevNotes(prev=>({...prev})); }}
                                                         className="text-[10px] font-black bg-white border border-amber-300 text-amber-700 rounded-full px-2 py-0.5 active:scale-95" title="החלף סטטוס">{devMetaLabel(exId)}</button>
+                                                    {exId !== GENERAL_NOTE_KEY && (
+                                                        <button onClick={()=>moveToGeneral(exId)} title="העבר לכללי"
+                                                            className={`text-[10px] font-black rounded-full px-2 py-0.5 active:scale-95 whitespace-nowrap shrink-0 ${looksGeneral(t) ? 'bg-sky-500 border border-sky-600 text-white animate-pulse' : 'bg-sky-100 border border-sky-300 text-sky-700'}`}>
+                                                            {looksGeneral(t) ? 'נראה כללי ←' : '← כללי'}
+                                                        </button>
+                                                    )}
                                                     <button onClick={()=>markDone(exId)} className="text-emerald-500 active:text-emerald-700" title="סמן כבוצע"><Icon name="CheckCircle2" size={16} /></button>
                                                     <button onClick={()=>deleteNote(exId)} className="text-red-300 active:text-red-500"><Icon name="Trash2" size={14} /></button>
                                                 </div>
@@ -3433,7 +3563,7 @@ ${markImplemented(t)}\n\n`; });
 
 
 // ─── HamburgerMenu ─────────────────────────────────────────
-const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, restTimers={}, restTimerTotals={}, groups=[], images={}, activeGroupId=null, onOpenGroup=null }) => {
+const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, restTimers={}, restTimerTotals={}, groups=[], images={}, activeGroupId=null, onOpenGroup=null, doneExIds=[] }) => {
     const [open, setOpen] = useState(false);
     // טיימר מנוחה לכל תרגיל בנפרד — במקום פסי התפריט. כל חלון: תמונת התרגיל, מספרו מעליו, שניות והיקף כתום
     const timerInfo = id => {
@@ -3462,20 +3592,33 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
     useEffect(() => {
         setFinished(f => { const n = f.filter(x => (restTimerTotals[x.id] || 0) > 0 && !(restTimers[x.id] > 0)); return n.length === f.length ? f : n; });
     }, [restTimerTotals, restTimers]);
-    const prevActiveRef = React.useRef(activeGroupId);
+    // הוי נשאר גם כשמגיעים לתרגיל באיחור (או בקפיצה אוטומטית) — הוא נעלם רק אחרי פעולה כלשהי בתוך התרגיל
+    // (לחיצה על כפתור, גלילה במניפה וכו'), כדי שתמיד יהיה ברור שהמנוחה בו הסתיימה
+    const activeGroupRefH = React.useRef(activeGroupId);
+    activeGroupRefH.current = activeGroupId;
     useEffect(() => {
-        if (prevActiveRef.current !== activeGroupId && activeGroupId != null) {
-            setFinished(f => { const n = f.filter(x => !(x.group && x.group.id === activeGroupId)); return n.length === f.length ? f : n; });
-        }
-        prevActiveRef.current = activeGroupId;
-    }, [activeGroupId]);
+        const onAction = e => {
+            const gid = activeGroupRefH.current;
+            if (gid == null) return;
+            // לחיצה על העיגולים עצמם אינה "פעולה בתרגיל"
+            if (e.target && e.target.closest && e.target.closest('[data-rest-windows]')) return;
+            setFinished(f => { const n = f.filter(x => !(x.group && x.group.id === gid)); return n.length === f.length ? f : n; });
+        };
+        document.addEventListener('pointerdown', onAction, true);
+        return () => document.removeEventListener('pointerdown', onAction, true);
+    }, []);
+    // תרגיל שהסתיים (או דולג) — הוי שלו יורד מיד, כדי שלא תיווצר שורת וים ירוקים
+    useEffect(() => {
+        setFinished(f => { const n = f.filter(x => !(doneExIds || []).includes(String(x.id))); return n.length === f.length ? f : n; });
+    }, [doneExIds]);
     const windows = [...finished.map(t => ({ ...t, fin: true })), ...activeTimers.filter(t => !finished.some(f => f.id === t.id))];
     const R = 18, C = 2 * Math.PI * R;
     const renderWindow = t => {
         const isCur = !t.fin && activeGroupId != null && t.group && t.group.id === activeGroupId;
         const dim = !t.fin && activeGroupId != null && !isCur;
-        const ring = t.fin ? '#22c55e' : t.rt <= 20 ? '#ef4444' : '#f97316';
         const frac = t.fin ? 1 : t.rt / t.tot;
+        // שלבי המנוחה לפי שליש הזמן: אדום (התחלה) → כתום → צהוב, וירוק עם ✓ רק כשהטיימר הסתיים
+        const ring = t.fin ? '#22c55e' : frac > 2/3 ? '#ef4444' : frac > 1/3 ? '#f97316' : '#eab308';
         return (
             <span key={t.id} className={`relative flex items-center justify-center w-11 h-11 rounded-full shadow-lg text-white transition-all ${!t.fin && t.rt <= 3 ? 'animate-pulse' : ''}`}
                   style={{ opacity: dim ? 0.6 : 1, transform: isCur ? 'scale(1.4)' : dim ? 'scale(0.78)' : 'scale(1)', margin: isCur ? '0 0.35rem' : undefined }}>
@@ -3521,12 +3664,23 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
     const topOffset = 'calc(env(safe-area-inset-top) + 0.75rem)';
     return (
         <>
-            <button onClick={()=>setOpen(true)}
-                className={windows.length ? "fixed right-2 z-[650] flex flex-row-reverse gap-2 pt-1 active:scale-95" : "fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"}
-                style={{top: topOffset}}>
-                {windows.length === 0 && <Icon name="Menu" size={20} />}
-                {windows.map(renderWindow)}
-            </button>
+            {windows.length === 0 ? (
+                <button onClick={()=>setOpen(true)}
+                    className="fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
+                    style={{top: topOffset}}>
+                    <Icon name="Menu" size={20} />
+                </button>
+            ) : (
+                <div data-rest-windows="1" className="fixed right-2 z-[650] flex flex-row-reverse gap-2 pt-1" style={{top: topOffset}}>
+                    {/* העיגול הראשון יושב על כפתור התפריט — הוא פותח את התפריט; כל השאר נכנסים לתרגיל של הטיימר שלהם */}
+                    {windows.map((t, i) => (
+                        <button key={t.id} className="active:scale-95"
+                            onClick={() => { if (i === 0 || !t.group) return setOpen(true); onOpenGroup?.(t.group); }}>
+                            {renderWindow(t)}
+                        </button>
+                    ))}
+                </div>
+            )}
             {open && (
                 <div className="fixed inset-0 z-[900] flex" onClick={()=>setOpen(false)}>
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
@@ -3862,7 +4016,7 @@ function App() {
     };
     const syncDevNotesFile = useCallback((notesObj, doneObj) => {
         if (!filingDirRef.current) return;
-        const pending = Object.entries(notesObj||{}).filter(([k,t])=>t && t.trim() && !doneObj?.[k]);
+        const pending = generalFirst(Object.entries(notesObj||{}).filter(([k,t])=>t && t.trim() && !doneObj?.[k]));
         const txt = pending.length
             ? pending.map(([exId,t])=>`• ${nameOfNoteKey(exId)}:\n${markImplemented(t)}`).join('\n\n')
             : '(אין הערות חדשות)';
@@ -3876,7 +4030,7 @@ function App() {
         // הדוח האוטומטי כולל רק הערות שטרם יוצאו (לפי טקסט) — הערות שכבר יוצאו לא חוזרות, גם אם לא נמחקו מהרשימה.
         // ההיסטוריה המלאה נשארת זמינה בניהול ← הערות לשיפור.
         const exportedMap = LS.get('gym-dev-notes-exported', {});
-        const pending = Object.entries(devNotes||{}).filter(([k,t])=>t && t.trim() && exportedMap[k] !== t);
+        const pending = generalFirst(Object.entries(devNotes||{}).filter(([k,t])=>t && t.trim() && exportedMap[k] !== t));
         if (!pending.length) return { exported:false };
         let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
         txt += `${'═'.repeat(40)}\n\n`;
@@ -4060,6 +4214,10 @@ function App() {
     }, [isWorkoutActive]);
 
     // שמירה אוטומטית ב-localStorage
+    // הנמכת השיר בזמן הקראה (ראה עטיפת speechSynthesis.speak)
+    useEffect(() => {
+        window.__musicDuck = on => { if (!audioRef.current || !musicPlayingRef.current) return; audioRef.current.volume = on ? 0.07 : 1; };
+    }, []);
     useEffect(()=>{ LS.set('gym-logs',           logs);             },[logs]);
     useEffect(()=>{ LS.set('gym-notes',          notes);            },[notes]);
     useEffect(()=>{ LS.set('gym-dev-notes',      devNotes);         },[devNotes]);
@@ -4255,7 +4413,8 @@ function App() {
             if ((doCountdown || doWarning || completedExId) && musicPlayingRef.current && audioRef.current) {
                 audioRef.current.volume = 0.07;
                 clearTimeout(_muteTimeout);
-                _muteTimeout = setTimeout(() => { if (audioRef.current) audioRef.current.volume = 1; }, 2400);
+                // לא מחזירים עוצמה באמצע הקראה — ההחזרה תתבצע בסיום ההקראה
+                _muteTimeout = setTimeout(() => { if (audioRef.current && !(window.speechSynthesis && window.speechSynthesis.speaking)) audioRef.current.volume = 1; }, 2400);
             }
             if (doCountdown) {
                 playCountdownBeep();
@@ -4922,11 +5081,26 @@ function App() {
         } else { setActiveGroup(group); setView('detail'); }
     };
 
+    // תרגילים שהסתיימו (שני סטים) או דולגו באימון הנוכחי — הוי הירוק שלהם לא נשאר בשורת הטיימרים
+    const doneExIdsForTimers = React.useMemo(() => {
+        const sst = workoutStartTime ? new Date(workoutStartTime).getTime() : 0;
+        const out = [];
+        visibleGroups.forEach(g => {
+            const skipped = (skippedGroups || []).includes(g.id);
+            g.exercises.forEach(ex => {
+                const sl = (logs || []).filter(l => l.exId === ex.id && new Date(l.timestamp).getTime() > sst);
+                const done = sl.some(l => l.setNum === 1) && sl.some(l => l.setNum === 2);
+                if (skipped || done) out.push(String(ex.id));
+            });
+        });
+        return out;
+    }, [logs, workoutStartTime, skippedGroups, visibleGroups]);
+
     // Overlays — תמיד מעל (כולל audio — נשאר פעיל בכל view)
     const hasActiveRest = Object.keys(restTimers).some(id => (restTimers[id]||0) > 0 && (restTimerTotals[id]||0) > 0);
     const overlays = (
         <>
-            <HamburgerMenu currentView={view} hasActiveRest={hasActiveRest} restTimers={restTimers} restTimerTotals={restTimerTotals} groups={visibleGroups} images={images} activeGroupId={view==='detail' && activeGroup ? activeGroup.id : null} onOpenGroup={g=>{ handleOpenExercise(g); setScrollToExId(g.exercises[0].id); }} onNavigate={(v)=>{
+            <HamburgerMenu currentView={view} hasActiveRest={hasActiveRest} restTimers={restTimers} restTimerTotals={restTimerTotals} groups={visibleGroups} images={images} activeGroupId={view==='detail' && activeGroup ? activeGroup.id : null} doneExIds={doneExIdsForTimers} onOpenGroup={g=>{ handleOpenExercise(g); setScrollToExId(g.exercises[0].id); }} onNavigate={(v)=>{
                 if (v==='checkUpdate') {
                     showToast('בודק עדכון...');
                     const reload = () => location.reload();
