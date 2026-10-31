@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.20';
+var APP_VERSION = '10.21';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -622,11 +622,20 @@ var formatDevNotesHistory = function formatDevNotesHistory(hist) {
   });
   return t;
 };
+var GENERAL_NOTE_KEY = 'general';
 var PAGE_NOTE_LABELS = {
+  'general': 'כלליות — לכל האפליקציה',
   'page-list': 'מסך הבית',
   'page-exercises': 'רשימת תרגילים',
   'page-history': 'היסטוריה',
   'page-manage': 'ניהול והגדרות'
+};
+
+// הערות כלליות (מפתח general) מוצגות תמיד ראשונות — בדוח, בקובץ ה-FILING וברשימה באפליקציה
+var generalFirst = function generalFirst(entries) {
+  return _toConsumableArray(entries).sort(function (a, b) {
+    return (b[0] === GENERAL_NOTE_KEY) - (a[0] === GENERAL_NOTE_KEY);
+  });
 };
 
 // ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
@@ -1733,14 +1742,25 @@ function DevNoteButton(_ref1) {
     _useState12 = _slicedToArray(_useState11, 2),
     text = _useState12[0],
     setText = _useState12[1];
-  // הערה שסומנה כ"בוצעה" בדוח לא צריכה להמשיך להופיע כאינדיקציה פעילה בעמוד עצמו
-  var hasNote = !!(devNotes[noteKey] && devNotes[noteKey].trim()) && !devNotesDone[noteKey];
+  // בורר יעד ההערה: 'general' (ברירת מחדל, רקע בהיר) = לכל האפליקציה, או 'page' (רקע לבן) = על המסך/התרגיל הזה
+  var _useState13s = useState('general'),
+    _useState14s = _slicedToArray(_useState13s, 2),
+    scope = _useState14s[0],
+    setScope = _useState14s[1];
+  var keyOf = function keyOf(sc) {
+    return sc === 'general' ? GENERAL_NOTE_KEY : noteKey;
+  };
+  var activeKey = keyOf(scope);
+  var isGeneral = scope === 'general';
+  var hasNote = [noteKey, GENERAL_NOTE_KEY].some(function (k) {
+    return !!(devNotes[k] && devNotes[k].trim()) && !devNotesDone[k];
+  });
   var taRef = React.useRef(null);
-  var openPanel = function openPanel() {
-    var existing = devNotes[noteKey] || '';
-    var next = existing ? existing + '\n\n' : '';
-    setText(next);
-    setOpen(true);
+  var withTail = function withTail(k) {
+    var existing = devNotes[k] || '';
+    return existing ? existing + '\n\n' : '';
+  };
+  var focusEnd = function focusEnd(next) {
     setTimeout(function () {
       if (taRef.current) {
         taRef.current.focus();
@@ -1748,11 +1768,31 @@ function DevNoteButton(_ref1) {
       }
     }, 0);
   };
+  var openPanel = function openPanel() {
+    // תמיד נפתח על "כללי"
+    var next = withTail(GENERAL_NOTE_KEY);
+    setScope('general');
+    setText(next);
+    setOpen(true);
+    focusEnd(next);
+  };
   var closePanel = function closePanel() {
-    onSaveDevNote === null || onSaveDevNote === void 0 || onSaveDevNote(noteKey, text);
+    onSaveDevNote === null || onSaveDevNote === void 0 || onSaveDevNote(activeKey, text);
     setOpen(false);
   };
+  var switchScope = function switchScope(sc) {
+    if (sc === scope) return;
+    // שומרים את מה שנכתב ביעד הנוכחי ואז טוענים את היעד השני
+    onSaveDevNote === null || onSaveDevNote === void 0 || onSaveDevNote(activeKey, text);
+    var next = withTail(keyOf(sc));
+    setScope(sc);
+    setText(next);
+    focusEnd(next);
+  };
   if (!onSaveDevNote) return null;
+  var tabCls = function tabCls(on) {
+    return "flex-1 text-[11px] font-black rounded-lg py-1 active:scale-95 ".concat(on ? 'bg-amber-500 text-white' : 'bg-white/70 text-slate-500 border border-slate-200');
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "relative ".concat(className)
   }, /*#__PURE__*/React.createElement("button", {
@@ -1766,26 +1806,36 @@ function DevNoteButton(_ref1) {
   }), hasNote && /*#__PURE__*/React.createElement("span", {
     className: "absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-red-500"
   })), open && /*#__PURE__*/React.createElement("div", {
-    className: "absolute left-0 top-full mt-2 w-72 bg-white rounded-2xl p-3 shadow-2xl z-[950]",
+    className: "absolute left-0 top-full mt-2 w-72 rounded-2xl p-3 shadow-2xl z-[950] ".concat(isGeneral ? 'bg-sky-100' : 'bg-white'),
     dir: "rtl"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "text-[11px] font-black text-amber-600 mb-1"
-  }, pageLabel), /*#__PURE__*/React.createElement("textarea", {
+    className: "flex gap-1.5 mb-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return switchScope('general');
+    },
+    className: tabCls(isGeneral)
+  }, "כללי לכל האפליקציה"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return switchScope('page');
+    },
+    className: tabCls(!isGeneral)
+  }, pageLabel || 'המסך הזה')), /*#__PURE__*/React.createElement("textarea", {
     ref: taRef,
     value: text,
     onChange: function onChange(e) {
       return setText(e.target.value);
     },
     onBlur: function onBlur() {
-      return onSaveDevNote(noteKey, text);
+      return onSaveDevNote(activeKey, text);
     },
     rows: 4,
-    placeholder: "\u05D4\u05E2\u05E8\u05EA \u05E9\u05D9\u05E4\u05D5\u05E8...",
-    className: "w-full text-[13px] font-bold text-slate-700 bg-amber-50 border border-amber-200 rounded-xl p-2 outline-none resize-none"
+    placeholder: isGeneral ? "הערה כללית לכל האפליקציה..." : "הערת שיפור על המסך הזה...",
+    className: "w-full text-[13px] font-bold text-slate-700 rounded-xl p-2 outline-none resize-none border ".concat(isGeneral ? 'bg-sky-50 border-sky-300' : 'bg-white border-slate-300')
   }), /*#__PURE__*/React.createElement("button", {
     onClick: closePanel,
     className: "mt-1.5 text-[11px] font-black text-slate-500 active:text-slate-700"
-  }, "\u05E1\u05D2\u05D5\u05E8 \u05D5\u05E9\u05DE\u05D5\u05E8")));
+  }, "סגור ושמור")));
 }
 function VideoInput(_ref10) {
   var exId = _ref10.exId,
@@ -7448,11 +7498,11 @@ var ManageView = function ManageView(_ref28) {
         });
         return customNames[exId] || (ex === null || ex === void 0 ? void 0 : ex.title) || exId;
       };
-      var pending = Object.entries(devNotes || {}).filter(function (_ref71) {
+      var pending = generalFirst(Object.entries(devNotes || {}).filter(function (_ref71) {
         var _ref72 = _slicedToArray(_ref71, 2),
           t = _ref72[1];
         return t && t.trim();
-      });
+      }));
       if (!pending.length && !(devNotesHistory || []).length) {
         showToast('אין הערות לשיפור', true);
         return;
@@ -7647,7 +7697,7 @@ var ManageView = function ManageView(_ref28) {
         t = _ref77[1];
       return t && t.trim();
     });
-    var pending = allEntries;
+    var pending = generalFirst(allEntries);
     var history = _toConsumableArray(devNotesHistory || []).sort(function (a, b) {
       return String(b.sentAt || '').localeCompare(String(a.sentAt || ''));
     });
@@ -7722,6 +7772,19 @@ var ManageView = function ManageView(_ref28) {
         });
       });
     };
+    // הערה שנרשמה בתוך תרגיל אבל מיועדת לכלל האפליקציה — מצורפת להערה הכללית ויוצאת מהתרגיל
+    var moveToGeneral = function moveToGeneral(exId) {
+      setDevNotes(function (prev) {
+        var n = _objectSpread({}, prev);
+        var moved = (n[exId] || '').trim();
+        delete n[exId];
+        if (moved) {
+          var cur = (n[GENERAL_NOTE_KEY] || '').trim();
+          n[GENERAL_NOTE_KEY] = cur ? cur + '\n\n' + moved : moved;
+        }
+        return n;
+      });
+    };
     var deleteNote = function deleteNote(exId) {
       setDevNotes(function (prev) {
         var n = _objectSpread({}, prev);
@@ -7763,7 +7826,7 @@ var ManageView = function ManageView(_ref28) {
         t = _ref87[1];
       return /*#__PURE__*/React.createElement("div", {
         key: exId,
-        className: "bg-amber-50 border border-amber-200 rounded-2xl p-3"
+        className: exId === GENERAL_NOTE_KEY ? "bg-sky-100 border border-sky-300 rounded-2xl p-3" : "bg-white border border-slate-300 rounded-2xl p-3"
       }, /*#__PURE__*/React.createElement("div", {
         className: "flex items-center justify-between mb-1"
       }, /*#__PURE__*/React.createElement("span", {
@@ -7782,7 +7845,13 @@ var ManageView = function ManageView(_ref28) {
         },
         className: "text-[10px] font-black bg-white border border-amber-300 text-amber-700 rounded-full px-2 py-0.5 active:scale-95",
         title: "\u05D4\u05D7\u05DC\u05E3 \u05E1\u05D8\u05D8\u05D5\u05E1"
-      }, devMetaLabel(exId)), /*#__PURE__*/React.createElement("button", {
+      }, devMetaLabel(exId)), exId !== GENERAL_NOTE_KEY && /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
+          return moveToGeneral(exId);
+        },
+        className: "text-[10px] font-black bg-sky-100 border border-sky-300 text-sky-700 rounded-full px-2 py-0.5 active:scale-95 whitespace-nowrap shrink-0",
+        title: "העבר לכללי"
+      }, "← כללי"), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return markDone(exId);
         },
@@ -9046,12 +9115,12 @@ function App() {
   };
   var syncDevNotesFile = useCallback(function (notesObj, doneObj) {
     if (!filingDirRef.current) return;
-    var pending = Object.entries(notesObj || {}).filter(function (_ref95) {
+    var pending = generalFirst(Object.entries(notesObj || {}).filter(function (_ref95) {
       var _ref96 = _slicedToArray(_ref95, 2),
         k = _ref96[0],
         t = _ref96[1];
       return t && t.trim() && !(doneObj !== null && doneObj !== void 0 && doneObj[k]);
-    });
+    }));
     var txt = pending.length ? pending.map(function (_ref97) {
       var _ref98 = _slicedToArray(_ref97, 2),
         exId = _ref98[0],
@@ -9073,12 +9142,12 @@ function App() {
             // הדוח האוטומטי כולל רק הערות שטרם יוצאו (לפי טקסט) — הערות שכבר יוצאו לא חוזרות, גם אם לא נמחקו מהרשימה.
             // ההיסטוריה המלאה נשארת זמינה בניהול ← הערות לשיפור.
             exportedMap = LS.get('gym-dev-notes-exported', {});
-            pending = Object.entries(devNotes || {}).filter(function (_ref99) {
+            pending = generalFirst(Object.entries(devNotes || {}).filter(function (_ref99) {
               var _ref100 = _slicedToArray(_ref99, 2),
                 k = _ref100[0],
                 t = _ref100[1];
               return t && t.trim() && exportedMap[k] !== t;
-            });
+            }));
             if (pending.length) {
               _context27.n = 1;
               break;
