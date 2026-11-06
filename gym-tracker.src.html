@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.30';
+const APP_VERSION = '10.31';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -518,6 +518,13 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
     const settling   = React.useRef(false);
     const timerRef   = React.useRef(null);
     const fromBtn    = React.useRef(false);
+    // גלגלת שבר (0 / .25 / .5 / .75) — רק בשדה המשקל; הגלגלת הראשית נשארת בקילוגרמים שלמים
+    const isWeight   = label === 'ק״ג';
+    const FRAC_OPTS  = [0, 0.25, 0.5, 0.75];
+    const fracRef    = React.useRef(null);
+    const fracTimer  = React.useRef(null);
+    const fracOf     = v => parseFloat((v - Math.floor(v + 1e-9)).toFixed(4));
+    const nearFracIdx = v => { const f = fracOf(v); return FRAC_OPTS.reduce((b,o,i) => Math.abs(o-f) < Math.abs(FRAC_OPTS[b]-f) ? i : b, 0); };
 
     const effDrumStep = drumStep !== null ? drumStep : step;
     // options: הבסיס לצ'יפים "קרובים" ולכפתורי הקפיצה — משתמש ברשימת ערכים מותאמת (values) אם קיימת לתרגיל
@@ -552,11 +559,13 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
     // כשlocalVal משתנה (מכפתור/צ'יפ/גלילה) — גלול את הגלגלת למיקום המתאים בתוך drumOptions
     useEffect(() => {
         if (!open) return;
-        let idx = drumOptions.indexOf(localVal);
-        if (idx < 0) idx = drumOptions.reduce((b,o,i) => Math.abs(o-localVal)<Math.abs(drumOptions[b]-localVal)?i:b, 0);
+        const baseVal = isWeight ? Math.floor(localVal + 1e-9) : localVal;
+        let idx = drumOptions.indexOf(baseVal);
+        if (idx < 0) idx = drumOptions.reduce((b,o,i) => Math.abs(o-baseVal)<Math.abs(drumOptions[b]-baseVal)?i:b, 0);
         settling.current = true;
         requestAnimationFrame(() => {
             scrollTo(idx, fromBtn.current);
+            if (isWeight && fracRef.current) fracRef.current.scrollTo({ top: nearFracIdx(localVal) * DRUM_H, behavior: fromBtn.current ? 'smooth' : 'instant' });
             fromBtn.current = false;
             setTimeout(() => { settling.current = false; }, 400);
         });
@@ -571,10 +580,24 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
             const c   = Math.min(Math.max(idx, 0), drumOptions.length - 1);
             settling.current = true;
             scrollTo(c, true);
-            setLocalVal(drumOptions[c]);
+            if (isWeight) setLocalVal(prev => Math.min(max, parseFloat((drumOptions[c] + fracOf(prev)).toFixed(4))));
+            else setLocalVal(drumOptions[c]);
             setTimeout(() => { settling.current = false; }, 250);
         }, 80);
-    }, [drumOptions, scrollTo]);
+    }, [drumOptions, scrollTo, isWeight, max]);
+
+    const handleFracScroll = useCallback(() => {
+        if (settling.current) return;
+        if (fracTimer.current) clearTimeout(fracTimer.current);
+        fracTimer.current = setTimeout(() => {
+            if (!fracRef.current) return;
+            const idx = Math.min(Math.max(Math.round(fracRef.current.scrollTop / DRUM_H), 0), FRAC_OPTS.length - 1);
+            settling.current = true;
+            fracRef.current.scrollTo({ top: idx * DRUM_H, behavior: 'smooth' });
+            setLocalVal(prev => Math.min(max, parseFloat((Math.floor(prev + 1e-9) + FRAC_OPTS[idx]).toFixed(4))));
+            setTimeout(() => { settling.current = false; }, 250);
+        }, 80);
+    }, [max]);
 
     const adjust = useCallback((delta) => {
         setLocalVal(prev => {
@@ -676,27 +699,47 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                                 </button>
                             ))}
                         </div>
-                        {/* גלגלת לכוונון עדין */}
-                        <div className="relative mx-6 mb-6" style={{height: DRUM_VIS * DRUM_H + 'px'}}>
+                        {/* גלגלת לכוונון עדין — במשקל: שתי גלגלות (קילוגרמים שלמים + שבר 0/.25/.5/.75) */}
+                        <div className="relative mx-6 mb-6 flex gap-2" dir="ltr" style={{height: DRUM_VIS * DRUM_H + 'px'}}>
                             <div className="absolute inset-x-0 pointer-events-none z-10"
                                 style={{top: DRUM_HALF * DRUM_H + 'px', height: DRUM_H + 'px',
                                     background:'rgba(59,130,246,0.07)',
                                     borderTop:'2px solid rgba(59,130,246,0.3)',
                                     borderBottom:'2px solid rgba(59,130,246,0.3)'}} />
                             <div ref={listRef} onScroll={handleScroll}
-                                className="h-full overflow-y-scroll no-scrollbar"
+                                className="h-full overflow-y-scroll no-scrollbar flex-1"
                                 style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
                                 <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
-                                {drumOptions.map(o => (
-                                    <div key={o} onClick={() => { if (o === localVal) { confirm(); return; } fromBtn.current=true; setLocalVal(o); }}
+                                {drumOptions.map(o => {
+                                    const cur = isWeight ? Math.floor(localVal + 1e-9) : localVal;
+                                    return (
+                                    <div key={o} onClick={() => { if (o === cur) { confirm(); return; } fromBtn.current=true; setLocalVal(isWeight ? Math.min(max, parseFloat((o + fracOf(localVal)).toFixed(4))) : o); }}
                                         style={{height: DRUM_H + 'px', scrollSnapAlign:'center'}}
                                         className={`flex items-center justify-center select-none cursor-pointer transition-all
-                                            ${o===localVal ? 'font-black text-[22px] text-slate-900' : 'font-medium text-[15px] text-slate-400'}`}>
+                                            ${o===cur ? 'font-black text-[22px] text-slate-900' : 'font-medium text-[15px] text-slate-400'}`}>
                                         {o}
-                                    </div>
-                                ))}
+                                    </div>);
+                                })}
                                 <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
                             </div>
+                            {isWeight && (
+                                <div ref={fracRef} onScroll={handleFracScroll}
+                                    className="h-full overflow-y-scroll no-scrollbar w-24 shrink-0 border-r border-slate-200"
+                                    style={{scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch'}}>
+                                    <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
+                                    {FRAC_OPTS.map((f, fi) => {
+                                        const on = fi === nearFracIdx(localVal);
+                                        return (
+                                        <div key={f} onClick={() => { fromBtn.current=true; setLocalVal(Math.min(max, parseFloat((Math.floor(localVal + 1e-9) + f).toFixed(4)))); }}
+                                            style={{height: DRUM_H + 'px', scrollSnapAlign:'center'}}
+                                            className={`flex items-center justify-center select-none cursor-pointer transition-all
+                                                ${on ? 'font-black text-[22px] text-blue-700' : 'font-medium text-[15px] text-slate-400'}`}>
+                                            .{String(Math.round(f*100)).padStart(2,'0')}
+                                        </div>);
+                                    })}
+                                    <div style={{height: DRUM_HALF * DRUM_H + 'px'}} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,
@@ -824,14 +867,14 @@ function DevNoteButton({ noteKey, pageLabel, devNotes={}, devNotesDone={}, onSav
                 {hasNote && <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-red-500" />}
             </button>
             {open && (
-                <div className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-2 w-72 rounded-2xl p-3 shadow-2xl z-[950] ${isGeneral ? 'bg-sky-100' : 'bg-white'}`} dir="rtl">
+                <div className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-2 w-72 rounded-2xl p-3 shadow-2xl z-[950] ${isGeneral ? (text.trim() ? 'bg-sky-100' : 'bg-slate-200') : 'bg-white'}`} dir="rtl">
                     <div className="flex gap-1.5 mb-2">
                         <button onClick={()=>switchScope('general')} className={tabCls(isGeneral)}>כללי לכל האפליקציה</button>
                         <button onClick={()=>switchScope('page')} className={tabCls(!isGeneral)}>{pageLabel || 'המסך הזה'}</button>
                     </div>
                     <textarea ref={taRef} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>onSaveDevNote(activeKey, text)}
                         rows={4} placeholder={isGeneral ? 'הערה כללית לכל האפליקציה...' : 'הערת שיפור על המסך הזה...'}
-                        className={`w-full text-[13px] font-bold text-slate-700 rounded-xl p-2 outline-none resize-none border ${isGeneral ? 'bg-sky-50 border-sky-300' : 'bg-white border-slate-300'}`} />
+                        className={`w-full text-[13px] font-bold text-slate-700 rounded-xl p-2 outline-none resize-none border ${isGeneral ? (text.trim() ? 'bg-sky-50 border-sky-300' : 'bg-slate-100 border-slate-300') : 'bg-white border-slate-300'}`} />
                     <button onClick={closePanel} className="mt-1.5 text-[11px] font-black text-slate-500 active:text-slate-700">סגור ושמור</button>
                 </div>
             )}
@@ -969,12 +1012,21 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
         setExtraVals(p => { const n={...p}; delete n[num]; return n; });
     };
 
+    // צעד מהיר ל-▲▼ של המשקל (0.25 / 0.5 / 1 / 2.5 / 5) — null = ברירת המחדל של התרגיל. לחיצה על התווית מעל ▲▼ מחליפה.
+    const [quickStep, setQuickStep] = useState(null);
+    const QUICK_STEPS = [0.25, 0.5, 1, 2.5, 5];
+    const cycleQuickStep = () => setQuickStep(q => {
+        const seq = [null, ...QUICK_STEPS.filter(x => x !== weightStep || weightValues)];
+        const i = seq.indexOf(q);
+        return seq[(i + 1) % seq.length];
+    });
     const stepW = useCallback((w, dir) => {
+        if (quickStep) return parseFloat((dir>0?Math.min(250,w+quickStep):Math.max(0,w-quickStep)).toFixed(4));
         if (!weightValues) return parseFloat((dir>0?Math.min(250,w+weightStep):Math.max(0,w-weightStep)).toFixed(4));
         const idx = weightValues.findIndex(v=>Math.abs(v-w)<0.01);
         const si  = idx>=0?idx:weightValues.reduce((b,v,i)=>Math.abs(v-w)<Math.abs(weightValues[b]-w)?i:b,0);
         return weightValues[Math.max(0,Math.min(weightValues.length-1,si+dir))];
-    },[weightValues,weightStep]);
+    },[weightValues,weightStep,quickStep]);
 
     // הצעת העלאת משקל: אם באימון הקודם (לפני האימון הנוכחי) בוצעו כל הסטים הרגילים בלפחות יעד החזרות (ברירת מחדל 12),
     // מציעים את המשקל הבא ברצף/במרווח של התרגיל. מוצגת רק לפני שהתחלת סט באימון הנוכחי, ואפשר להחיל בלחיצה או לסגור.
@@ -1298,7 +1350,9 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             })()}
                         </div>
                         <div className="flex flex-col gap-1 shrink-0" style={{width:52}}>
-                            <span className="text-[11px] font-black text-blue-600 text-center leading-none">{stepField==='w' ? 'ק״ג' : (isTimerEx && selInfo && !selInfo.isWarm ? 'שניות' : 'חזרות')}</span>
+                            {stepField==='w'
+                                ? <button onClick={cycleQuickStep} className="text-[10px] font-black text-blue-600 text-center leading-none py-0.5 rounded-md bg-blue-50 active:scale-95 whitespace-nowrap">ק״ג ±{quickStep || (weightValues ? 'מכשיר' : weightStep)}</button>
+                                : <span className="text-[11px] font-black text-blue-600 text-center leading-none">{(isTimerEx && selInfo && !selInfo.isWarm ? 'שניות' : 'חזרות')}</span>}
                             {stepBtn(1)}{stepBtn(-1)}
                         </div>
                     </div>
@@ -1599,7 +1653,7 @@ const SkipReasonModal = ({ title, onConfirm, onCancel, setLabel=null }) => {
                 {setLabel && <div className="flex gap-2 mb-2">{scopeBtn('set', setLabel)}{scopeBtn('exercise', 'כל התרגיל')}</div>}
                 <div className="flex gap-2 mb-2">
                     {SKIP_QUICK_REASONS.map(r => (
-                        <button key={r} onClick={()=>onConfirm(r, scope)}
+                        <button key={r} onClick={()=>onConfirm(r, r === 'עשיתי תרגיל חלופי' ? 'exercise' : scope)}
                             className="flex-1 py-2.5 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 font-black text-[13px] active:scale-95">{r}</button>
                     ))}
                 </div>
@@ -2138,6 +2192,24 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         if (g && g.id !== group.id) goTo(g);
                     }, 130);
                 };
+                // תרגילים "בעבודה": יש בהם התקדמות/טיימר בסשן הנוכחי (או שהם התרגיל הפתוח עכשיו וכבר נגעו בו, כולל דילוג/חימום)
+                const startedG = g => !isGroupDoneHere(g) && !skippedGroups.includes(g.id) && g.exercises.some(ex => (restTimers[ex.id]||0) > 0 || logs.some(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime && ((l.setNum>=0 && (l.weight>0 || l.reps>0)) || (g.id===group.id && l.setNum>=0))));
+                const inProgIds = new Set(allGroups.filter(startedG).map(g => g.id));
+                // טיימר של תרגיל שהסתיים/דולג עובר להופיע על התרגיל הבא ברשימה שטרם הסתיים
+                const fwdTimers = {};
+                allGroups.forEach((g, i) => {
+                    if (!(isGroupDoneHere(g) || skippedGroups.includes(g.id))) return;
+                    const rt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
+                    if (rt <= 0) return;
+                    const tex = g.exercises.find(e => (restTimers[e.id]||0) === rt);
+                    const tot = tex ? (restTimerTotals[tex.id]||0) : 0;
+                    for (let j = i+1; j < allGroups.length; j++) {
+                        const n = allGroups[j];
+                        if (isGroupDoneHere(n) || skippedGroups.includes(n.id)) continue;
+                        if (!fwdTimers[n.id] || fwdTimers[n.id].rt < rt) fwdTimers[n.id] = { rt, tot };
+                        break;
+                    }
+                });
                 return (
                     <div className="mt-3 rounded-[1.6rem] border-2 border-slate-300 px-1 pt-2 pb-1"
                          style={{background:'linear-gradient(180deg,#f8fafc,#e2e8f0)', boxShadow:'inset 0 2px 6px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.08)'}}>
@@ -2152,10 +2224,15 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
                                 const fWarm = fInfo.isWarmup;
                                 const fW = done ? 0 : (fInfo.weight || g.exercises[0].startW || DEFAULT_STARTING_WEIGHTS[g.exercises[0].id] || 0);
-                                const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
-                                const gTotEx = g.exercises.find(e => (restTimers[e.id]||0) === gRt);
-                                const gTot = gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0;
-                                const gFin = !done && gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
+                                const gRt0 = done ? 0 : Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
+                                const gTotEx = g.exercises.find(e => (restTimers[e.id]||0) === gRt0);
+                                const gTot0 = gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0;
+                                const fw = fwdTimers[g.id];
+                                // אם התרגיל כבר מוצג בשורת "בעבודה" — הטיימר שלו מוצג שם בלבד ולא כאן
+                                const hideT = inProgIds.has(g.id);
+                                const gRt  = hideT ? 0 : (fw && fw.rt > gRt0 ? fw.rt  : gRt0);
+                                const gTot = hideT ? 0 : (fw && fw.rt > gRt0 ? fw.tot : gTot0);
+                                const gFin = !done && !hideT && gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
                                 return (
                                     <div key={g.id} data-gid={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM, scrollSnapAlign:'center' }}>
                                     <FilmTimerRing rt={gRt} tot={gTot} cur={isCur}>
@@ -2185,8 +2262,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             })}
                         </div>
                         {(()=>{
-                            const started = g => !isGroupDoneHere(g) && !skippedGroups.includes(g.id) && g.exercises.some(ex => (restTimers[ex.id]||0) > 0 || logs.some(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime && l.setNum>=0 && (l.weight>0 || l.reps>0)));
-                            const inProg = allGroups.filter(g => started(g) || (g.id===group.id && started(g)));
+                            const inProg = allGroups.filter(g => inProgIds.has(g.id));
                             if (!inProg.length) return null;
                             return (
                                 <div className="-mt-1">
@@ -3166,6 +3242,12 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                         ${settings.warmupEmbed?.[ex.id] ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-400 border border-amber-200'}`}>
                                                     {settings.warmupEmbed?.[ex.id] ? '🔥 פתוח' : '🔥 סגור'}
                                                 </button>
+                                                <button
+                                                    onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
+                                                    className={`shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center
+                                                        ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                    {isHidden ? 'הפעל' : 'הסתר'}
+                                                </button>
                                                 {isHidden && onToggleOneTime && (
                                                     <button
                                                         onClick={() => { onToggleOneTime(ex.id); showToast(oneTimeEx.has(ex.id) ? 'הוסר מהאימון של היום' : 'נוסף לאימון של היום בלבד'); }}
@@ -3174,12 +3256,6 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                         {oneTimeEx.has(ex.id) ? '✓ באימון היום' : '+ לאימון היום'}
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
-                                                    className={`shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center
-                                                        ${isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                    {isHidden ? 'הפעל' : 'הסתר'}
-                                                </button>
                                                 <button
                                                     onClick={() => { setEditingCategoryId(ex.id); setCategoryDraft(g.category); setCategoryDraftOther(''); }}
                                                     title="חלק בגוף"
@@ -5079,6 +5155,10 @@ function App() {
     // ובשקט לתיקיית FILING (אם מחוברת — כמו בקישור שנעשה לשמירת דוחות), בלי לפתוח מסך סיכום או
     // לדרוש עוד לחיצה, ותמיד ממשיכה מיד לפתוח אימון חדש.
     const handleNewWorkoutClick = () => {
+        requestConfirm('אזהרה: אימון חדש יאפס את מצב האימון הנוכחי (טיימרים, דילוגים, סיכום). הסטים שנשמרו נשארים בהיסטוריה. להמשיך?',
+            () => setTimeout(handleNewWorkoutProceed, 60));
+    };
+    const handleNewWorkoutProceed = () => {
         if (workoutSec > 0) setSessionDurations(prev=>({...prev,[workoutStartTime]:workoutSec}));
         const hasCurrentSessionData = workoutSec > 0 || logsRef.current.some(l=>l.session===workoutStartTime);
         const alreadySaved = !!workoutNotes[workoutStartTime];
@@ -5112,7 +5192,7 @@ function App() {
         const isNewDay = new Date(workoutStartTime).toDateString() !== new Date().toDateString();
         if (!isWorkoutActive) {
             requestConfirm('להפעיל טיימר?',
-                ()=>{ if (isNewDay) resetSessionState(); const wst=Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); },
+                ()=>{ if (isNewDay) resetSessionState(); const hasSessData = !isNewDay && logsRef.current.some(l=>new Date(l.timestamp).getTime()>workoutStartTime); const wst = hasSessData ? workoutStartTime : Date.now(); setWorkoutStartTime(wst); setIsWorkoutActive(true); setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); },
                 ()=>{ if (isNewDay) { resetSessionState(); setWorkoutStartTime(Date.now()); } setWorkoutDecisionMade(true); setActiveGroup(group); setView('detail'); }
             );
         } else if (isNewDay) {
@@ -5752,19 +5832,21 @@ function App() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 shrink-0">
+                                    <div className="flex items-center gap-1.5 shrink-0">
                                         {!isDoneReal && (
                                             <button onClick={e=>{e.stopPropagation(); if (isSkipped) handleSkipGroup(group.id); else setSkipGroupDlg(group);}}
-                                                className={`text-[11px] font-bold px-3 py-1.5 rounded-full active:scale-95 transition-all
+                                                className={`text-[11px] font-bold px-2.5 py-1.5 rounded-full active:scale-95 transition-all
                                                     ${isSkipped?'bg-orange-200 text-orange-600':'text-slate-500'}`}
                                                 style={isSkipped?{}:{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'2px 2px 4px rgba(0,0,0,0.1), -1px -1px 3px rgba(255,255,255,0.5)'}}>
                                                 {isSkipped ? '↩ בטל' : 'דלג'}
                                             </button>
                                         )}
+                                        <button onClick={e=>{e.stopPropagation(); requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', ()=>group.exercises.forEach(ex=>handleToggleExercise(ex.id)));}}
+                                            className="text-[11px] font-bold px-2.5 py-1.5 rounded-full text-slate-400 active:scale-95 bg-slate-100">הסתר</button>
                                         {isDoneReal
-                                            ? <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.1)'}}><Icon name="CheckCircle2" size={20} /></div>
+                                            ? <div className="flex flex-col items-center gap-0.5 w-9"><div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.1)'}}><Icon name="CheckCircle2" size={20} /></div><span className="text-[9px] font-black text-emerald-600 leading-none">בוצע</span></div>
                                             : isSkipped
-                                            ? <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-400 font-black text-lg">–</div>
+                                            ? <div className="flex flex-col items-center gap-0.5 w-9"><div className="w-9 h-9 bg-orange-200 rounded-full flex items-center justify-center text-orange-600 font-black text-lg" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.12)'}}>✕</div><span className="text-[9px] font-black text-orange-600 leading-none">דולג</span></div>
                                             : null}
                                     </div>
                                 </div>
