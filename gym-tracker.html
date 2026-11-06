@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.31';
+var APP_VERSION = '10.32';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -2373,11 +2373,7 @@ function ExerciseEntryRow(_ref11) {
   var QUICK_STEPS = [0.25, 0.5, 1, 2.5, 5];
   var cycleQuickStep = function cycleQuickStep() {
     return setQuickStep(function (q) {
-      var seq = [null].concat(_toConsumableArray(QUICK_STEPS.filter(function (x) {
-        return x !== weightStep || weightValues;
-      })));
-      var i = seq.indexOf(q);
-      return seq[(i + 1) % seq.length];
+      return q === 0.25 ? 1 : 0.25;
     });
   };
   var stepW = useCallback(function (w, dir) {
@@ -2966,7 +2962,12 @@ function ExerciseEntryRow(_ref11) {
         dimDone = i.dimDone,
         isWarm = i.isWarm;
       var isSel = num === selEff;
-      var borderSt = isWarm ? isDone ? {
+      var isSkipC = isDone && logs.some(function (l) {
+        return l.exId === ex.id && l.setNum === num && new Date(l.timestamp).getTime() > sessionStartTime && l.weight === 0 && l.reps === 0;
+      });
+      var borderSt = isSkipC ? {
+        border: '2px solid #fb923c'
+      } : isWarm ? isDone ? {
         border: '2px solid #d97706'
       } : {
         border: '2px dashed #f59e0b'
@@ -2990,13 +2991,13 @@ function ExerciseEntryRow(_ref11) {
         },
         style: _objectSpread(_objectSpread(_objectSpread({}, borderSt), {}, {
           borderRadius: '1rem'
-        }, dimDone ? {
+        }, dimDone && !isSkipC ? {
           filter: 'grayscale(0.85) opacity(0.65)'
         } : {}), isSel ? {
           outline: '3px solid #3b82f6',
           outlineOffset: '1px'
         } : {}),
-        className: "relative p-1 flex items-center gap-1 transition-all ".concat(isWarm ? 'bg-amber-50' : isDone ? 'bg-slate-300' : 'bg-white')
+        className: "relative p-1 flex items-center gap-1 transition-all ".concat(isSkipC ? 'bg-orange-100' : isWarm ? 'bg-amber-50' : isDone ? 'bg-slate-300' : 'bg-white')
       }, /*#__PURE__*/React.createElement("button", {
         onClick: function onClick(e) {
           e.stopPropagation();
@@ -3020,15 +3021,15 @@ function ExerciseEntryRow(_ref11) {
           handleSetSave(num, state);
         },
         "aria-disabled": !canActFinal,
-        className: "w-10 h-[56px] rounded-xl flex flex-col items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
+        className: "w-10 h-[56px] rounded-xl flex flex-col items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
         style: !isWarm && !isDone && !showCDown && canAct ? {
           background: isActive ? accentColor : '#16a34a'
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[19px] leading-none"
-      }, showCDown ? countdown : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num), /*#__PURE__*/React.createElement("span", {
+      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num), /*#__PURE__*/React.createElement("span", {
         className: "text-[9px] leading-none mt-1 opacity-90"
-      }, changed ? 'עדכן' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום')), /*#__PURE__*/React.createElement("div", {
+      }, changed ? 'עדכן' : isSkipC ? 'דולג' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום')), /*#__PURE__*/React.createElement("div", {
         className: "flex flex-col flex-1 gap-1 min-w-0"
       }, /*#__PURE__*/React.createElement(Roller, {
         label: "\u05E7\u05F4\u05D2",
@@ -3064,9 +3065,8 @@ function ExerciseEntryRow(_ref11) {
           if (!(selNum === num && selField === 'r')) {
             setSelNum(num);
             setSelField('r');
-            return;
           }
-          if (isDone) return;
+          if (isDone || !canAct) return;
           if ((timerState === null || timerState === void 0 ? void 0 : timerState.num) === num) {
             clearInterval(timerIntervalRef.current);
             setTimerState(null);
@@ -3815,7 +3815,9 @@ var DetailView = memo(function DetailView(_ref19) {
     _ref19$returnGroup = _ref19.returnGroup,
     returnGroup = _ref19$returnGroup === void 0 ? null : _ref19$returnGroup,
     _ref19$onReturn = _ref19.onReturn,
-    onReturn = _ref19$onReturn === void 0 ? null : _ref19$onReturn;
+    onReturn = _ref19$onReturn === void 0 ? null : _ref19$onReturn,
+    _ref19$onHideGroup = _ref19.onHideGroup,
+    onHideGroup = _ref19$onHideGroup === void 0 ? null : _ref19$onHideGroup;
   var handleWarmupOpened = function handleWarmupOpened(exId) {
     if (!onUpdateSettings || warmupEmbed[exId]) return;
     onUpdateSettings('warmupEmbed', _objectSpread(_objectSpread({}, warmupEmbed), {}, _defineProperty({}, exId, true)));
@@ -4401,7 +4403,12 @@ var DetailView = memo(function DetailView(_ref19) {
       onClick: handleSelSkip,
       disabled: selN == null || selHasLog && !selSkipLog,
       className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95\n                            ".concat(selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700' : selN == null || selHasLog ? 'bg-slate-100 border-slate-200 text-slate-300' : 'bg-orange-50 border-orange-200 text-orange-500')
-    }, selSkipLog ? '↩ בטל' : 'דלג')), showDetails[ex.id] && /*#__PURE__*/React.createElement("section", {
+    }, selSkipLog ? '↩ בטל' : 'דלג'), onHideGroup && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return onHideGroup(group);
+      },
+      className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-500 active:scale-95"
+    }, "\u05D4\u05E1\u05EA\u05E8")), showDetails[ex.id] && /*#__PURE__*/React.createElement("section", {
       className: "bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden"
     }, showDetails[ex.id] && /*#__PURE__*/React.createElement("div", {
       className: "px-4 pb-4"
@@ -4645,14 +4652,13 @@ var DetailView = memo(function DetailView(_ref19) {
     className: "bg-gradient-to-br ".concat(group.color, " py-3 px-4 rounded-b-2xl shadow-lg relative shrink-0")
   }, /*#__PURE__*/React.createElement("div", {
     className: "absolute top-3 right-4"
-  }, /*#__PURE__*/React.createElement(DevNoteButton, {
-    alignRight: true,
-    noteKey: group.exercises[0].id,
-    pageLabel: group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title,
-    devNotes: devNotes,
-    devNotesDone: devNotesDone,
-    onSaveDevNote: onSaveDevNote
-  })), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    className: "p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Home",
+    size: 18
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "absolute top-3 left-4 flex items-center gap-1.5"
   }, onMusicToggle && /*#__PURE__*/React.createElement("button", {
     onClick: onMusicToggle,
@@ -4660,14 +4666,14 @@ var DetailView = memo(function DetailView(_ref19) {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Music",
     size: 18
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: onBack,
-    className: "p-2 bg-white/20 backdrop-blur-xl rounded-full text-white active:scale-90 shadow"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Home",
-    size: 18
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3 pr-14 pl-20"
+  })), /*#__PURE__*/React.createElement(DevNoteButton, {
+    noteKey: group.exercises[0].id,
+    pageLabel: group.exercises.length === 1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title,
+    devNotes: devNotes,
+    devNotesDone: devNotesDone,
+    onSaveDevNote: onSaveDevNote
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 pr-14 pl-24"
   }, group.exercises.length === 1 && setCustomNames && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames);
@@ -7420,7 +7426,7 @@ var ManageView = function ManageView(_ref29) {
       }(), g.exercises.length === 2 && /*#__PURE__*/React.createElement("span", {
         className: "text-[9px] font-black text-indigo-300 uppercase tracking-tight"
       }, "\u05E1\u05D5\u05E4\u05E8\u05E1\u05D8"))), /*#__PURE__*/React.createElement("div", {
-        className: "flex items-center gap-1.5 flex-wrap"
+        className: "flex items-center gap-1"
       }, /*#__PURE__*/React.createElement("select", {
         value: String(((_settings$weightSteps = settings.weightSteps) === null || _settings$weightSteps === void 0 ? void 0 : _settings$weightSteps[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(settings.weightSteps[ex.id]) ? effectiveStepOv(ex.id, settings.weightSteps[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
         onChange: function onChange(e) {
@@ -7431,7 +7437,7 @@ var ManageView = function ManageView(_ref29) {
           return e.stopPropagation();
         },
         title: "\u05DE\u05E8\u05D5\u05D5\u05D7 \u05DE\u05E9\u05E7\u05DC",
-        className: "shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-2 py-1.5 text-[10px] font-black outline-none w-14 text-center"
+        className: "flex-1 min-w-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-1 py-1.5 text-[10px] font-black outline-none text-center"
       }, /*#__PURE__*/React.createElement("option", {
         value: "0.25"
       }, "0.25"), /*#__PURE__*/React.createElement("option", {
@@ -7463,35 +7469,37 @@ var ManageView = function ManageView(_ref29) {
           var cur = settings.warmupEmbed || {};
           onUpdateSettings('warmupEmbed', _objectSpread(_objectSpread({}, cur), {}, _defineProperty({}, ex.id, !cur[ex.id])));
         },
-        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center\n                                                        ".concat((_settings$warmupEmbed = settings.warmupEmbed) !== null && _settings$warmupEmbed !== void 0 && _settings$warmupEmbed[ex.id] ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-400 border border-amber-200')
+        className: "flex-1 min-w-0 truncate px-1 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all text-center\n                                                        ".concat((_settings$warmupEmbed = settings.warmupEmbed) !== null && _settings$warmupEmbed !== void 0 && _settings$warmupEmbed[ex.id] ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-400 border border-amber-200')
       }, (_settings$warmupEmbed2 = settings.warmupEmbed) !== null && _settings$warmupEmbed2 !== void 0 && _settings$warmupEmbed2[ex.id] ? '🔥 פתוח' : '🔥 סגור'), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', function () {
             return onToggleExercise(ex.id);
           });
         },
-        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center\n                                                        ".concat(isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500')
-      }, isHidden ? 'הפעל' : 'הסתר'), isHidden && onToggleOneTime && /*#__PURE__*/React.createElement("button", {
+        className: "flex-1 min-w-0 truncate px-1 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all text-center\n                                                        ".concat(isHidden ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500')
+      }, isHidden ? 'הפעל' : 'הסתר'), isHidden && onToggleOneTime ? /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           onToggleOneTime(ex.id);
           showToast(oneTimeEx.has(ex.id) ? 'הוסר מהאימון של היום' : 'נוסף לאימון של היום בלבד');
         },
-        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all text-center\n                                                            ".concat(oneTimeEx.has(ex.id) ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-      }, oneTimeEx.has(ex.id) ? '✓ באימון היום' : '+ לאימון היום'), /*#__PURE__*/React.createElement("button", {
+        className: "flex-1 min-w-0 truncate px-1 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all text-center\n                                                            ".concat(oneTimeEx.has(ex.id) ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+      }, oneTimeEx.has(ex.id) ? '✓ היום' : '+ היום') : /*#__PURE__*/React.createElement("span", {
+        className: "flex-1 min-w-0"
+      }), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           setEditingCategoryId(ex.id);
           setCategoryDraft(g.category);
           setCategoryDraftOther('');
         },
         title: "\u05D7\u05DC\u05E7 \u05D1\u05D2\u05D5\u05E3",
-        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all min-w-[3.5rem] max-w-[6.5rem] truncate text-center bg-violet-50 text-violet-500 border border-violet-200"
+        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all flex-1 min-w-0 truncate text-center bg-violet-50 text-violet-500 border border-violet-200"
       }, g.category || 'חלק גוף'), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return requestConfirm('למחוק תרגיל זה לצמיתות?', function () {
             return onDeleteCustomExercise && onDeleteCustomExercise(g);
           });
         },
-        className: "shrink-0 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all w-14 text-center bg-rose-50 text-rose-500 border border-rose-200"
+        className: "flex-1 min-w-0 truncate px-1 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all text-center bg-rose-50 text-rose-500 border border-rose-200"
       }, "\u05DE\u05D7\u05E7")), editingCategoryId === ex.id && /*#__PURE__*/React.createElement("div", {
         className: "flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-2xl px-3 py-2.5",
         dir: "rtl"
@@ -12465,7 +12473,16 @@ function App() {
       skippedGroups: skippedGroups,
       onMoveGroup: handleReorderClick,
       imageZoom: imageZoom,
-      onZoomImage: handleZoomImage
+      onZoomImage: handleZoomImage,
+      onHideGroup: function onHideGroup(g) {
+        return requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', function () {
+          g.exercises.forEach(function (ex) {
+            return handleToggleExercise(ex.id);
+          });
+          setActiveGroup(null);
+          setView('list');
+        });
+      }
     }));
   }
   if (view === 'exercises') return /*#__PURE__*/React.createElement("div", {
