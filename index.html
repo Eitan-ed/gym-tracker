@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.33';
+var APP_VERSION = '10.34';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -3155,7 +3155,11 @@ function ExerciseEntryRow(_ref11) {
         }
       }, "+ \u05E1\u05D8");
       var order = warm ? [cell(warm)].concat(_toConsumableArray(sets.map(cell)), [addBtn]) : [].concat(_toConsumableArray(sets.map(cell)), [addBtn]);
-      var rowsN = Math.ceil(order.length / 2);
+      // החצים צמודים לשורת הסט הנבחר בלבד (ולא נמתחים על כל השורות)
+      var selK = Math.max(0, order.findIndex(function (el) {
+        return el && String(el.key) === String(selEff);
+      }));
+      var arrowRow = Math.floor(selK / 2) + 1;
       // חצי המשקל/חזרות בעמודה אמצעית — בין שני הסטים בכל שורה
       return [].concat(_toConsumableArray(order.map(function (el, k) {
         var _el$key;
@@ -3172,7 +3176,8 @@ function ExerciseEntryRow(_ref11) {
         className: "flex flex-col gap-1",
         style: {
           gridColumn: 2,
-          gridRow: "1 / span ".concat(rowsN)
+          gridRow: arrowRow,
+          minHeight: 92
         }
       }, stepField === 'w' ? /*#__PURE__*/React.createElement("button", {
         onClick: cycleQuickStep,
