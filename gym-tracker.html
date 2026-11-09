@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.35';
+var APP_VERSION = '10.36';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -5366,6 +5366,17 @@ var collectAllGymData = function collectAllGymData() {
   } catch (_unused7) {}
   return all;
 };
+// סיכום תוכן הגיבוי — מוצג אחרי כל גיבוי כדי שיהיה ברור מה נכנס אליו
+var backupContentsSummary = function backupContentsSummary() {
+  var a = collectAllGymData();
+  var n = function n(v) {
+    return Array.isArray(v) ? v.length : v && _typeof(v) === 'object' ? Object.keys(v).length : 0;
+  };
+  var days = new Set((a['gym-logs'] || []).map(function (l) {
+    return String(l.timestamp || '').slice(0, 10);
+  })).size;
+  return "".concat(days, " \u05D9\u05DE\u05D9 \u05D0\u05D9\u05DE\u05D5\u05DF \xB7 ").concat(n(a['gym-images']), " \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \xB7 ").concat(n(a['gym-custom-exercises']), " \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05E9\u05E0\u05D5\u05E1\u05E4\u05D5 \xB7 ").concat(n(a['gym-casual-workouts']), " \u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05DE\u05D6\u05D3\u05DE\u05E0\u05D9\u05DD \xB7 ").concat(n(a['gym-uploaded-video-ids']), " \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD");
+};
 var _backupDirHandle = null;
 // האם הכתיבה האחרונה לתיקיית FILING הצליחה — להודעת "נשמר גם ב-FILING / רק במכשיר"
 var _lastFilingOk = false;
@@ -5428,7 +5439,7 @@ var saveBackupDirHandle = /*#__PURE__*/function () {
 // קובץ שכבר קיים באותו גודל לא נכתב מחדש. מחזיר מספר קבצים שנכתבו, או -1 בכשל.
 var backupMediaToDir = /*#__PURE__*/function () {
   var _backupMediaToDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dirHandle) {
-    var sub, extOf, items, _i, _exerciseGroups, g, _iterator4, _step4, e, b, music, _iterator5, _step5, m, _b, written, _i2, _items, it, same, f, w, idx, _t5, _t6, _t7, _t8;
+    var sub, extOf, items, vidIds, _i, _exerciseGroups, g, _iterator4, _step4, e, _iterator5, _step5, id, b, music, _iterator6, _step6, m, _b, written, _i2, _items, it, same, f, w, idx, _t5, _t6, _t7, _t8;
     return _regenerator().w(function (_context0) {
       while (1) switch (_context0.p = _context0.n) {
         case 0:
@@ -5443,143 +5454,147 @@ var backupMediaToDir = /*#__PURE__*/function () {
             return (String(b.type || '').split('/')[1] || 'bin').split(';')[0].replace(/[^a-z0-9]/gi, '') || 'bin';
           };
           items = [];
-          _i = 0, _exerciseGroups = exerciseGroups;
-        case 2:
-          if (!(_i < _exerciseGroups.length)) {
-            _context0.n = 11;
+          vidIds = new Set(LS.get('gym-uploaded-video-ids', []).map(String));
+          for (_i = 0, _exerciseGroups = exerciseGroups; _i < _exerciseGroups.length; _i++) {
+            g = _exerciseGroups[_i];
+            _iterator4 = _createForOfIteratorHelper(g.exercises);
+            try {
+              for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+                e = _step4.value;
+                vidIds.add(String(e.id));
+              }
+            } catch (err) {
+              _iterator4.e(err);
+            } finally {
+              _iterator4.f();
+            }
+          }
+          _iterator5 = _createForOfIteratorHelper(vidIds);
+          _context0.p = 2;
+          _iterator5.s();
+        case 3:
+          if ((_step5 = _iterator5.n()).done) {
+            _context0.n = 6;
             break;
           }
-          g = _exerciseGroups[_i];
-          _iterator4 = _createForOfIteratorHelper(g.exercises);
-          _context0.p = 3;
-          _iterator4.s();
+          id = _step5.value;
+          _context0.n = 4;
+          return IDB.get("video-".concat(id));
         case 4:
-          if ((_step4 = _iterator4.n()).done) {
-            _context0.n = 7;
-            break;
-          }
-          e = _step4.value;
-          _context0.n = 5;
-          return IDB.get("video-".concat(e.id));
-        case 5:
           b = _context0.v;
           if (b && b.size) items.push({
-            fname: "video-".concat(e.id, ".").concat(extOf(b)),
+            fname: "video-".concat(id, ".").concat(extOf(b)),
             blob: b
           });
+        case 5:
+          _context0.n = 3;
+          break;
         case 6:
-          _context0.n = 4;
+          _context0.n = 8;
           break;
         case 7:
-          _context0.n = 9;
-          break;
+          _context0.p = 7;
+          _t5 = _context0.v;
+          _iterator5.e(_t5);
         case 8:
           _context0.p = 8;
-          _t5 = _context0.v;
-          _iterator4.e(_t5);
+          _iterator5.f();
+          return _context0.f(8);
         case 9:
-          _context0.p = 9;
-          _iterator4.f();
-          return _context0.f(9);
-        case 10:
-          _i++;
-          _context0.n = 2;
-          break;
-        case 11:
           music = LS.get('gym-music-list', []);
-          _iterator5 = _createForOfIteratorHelper(music);
-          _context0.p = 12;
-          _iterator5.s();
-        case 13:
-          if ((_step5 = _iterator5.n()).done) {
-            _context0.n = 16;
+          _iterator6 = _createForOfIteratorHelper(music);
+          _context0.p = 10;
+          _iterator6.s();
+        case 11:
+          if ((_step6 = _iterator6.n()).done) {
+            _context0.n = 14;
             break;
           }
-          m = _step5.value;
-          _context0.n = 14;
+          m = _step6.value;
+          _context0.n = 12;
           return IDB.get("music-".concat(m.id));
-        case 14:
+        case 12:
           _b = _context0.v;
           if (_b && _b.size) items.push({
             fname: "music-".concat(m.id, ".").concat(extOf(_b)),
             blob: _b
           });
+        case 13:
+          _context0.n = 11;
+          break;
+        case 14:
+          _context0.n = 16;
+          break;
         case 15:
-          _context0.n = 13;
-          break;
-        case 16:
-          _context0.n = 18;
-          break;
-        case 17:
-          _context0.p = 17;
+          _context0.p = 15;
           _t6 = _context0.v;
-          _iterator5.e(_t6);
-        case 18:
-          _context0.p = 18;
-          _iterator5.f();
-          return _context0.f(18);
-        case 19:
+          _iterator6.e(_t6);
+        case 16:
+          _context0.p = 16;
+          _iterator6.f();
+          return _context0.f(16);
+        case 17:
           written = 0;
           _i2 = 0, _items = items;
-        case 20:
+        case 18:
           if (!(_i2 < _items.length)) {
-            _context0.n = 32;
+            _context0.n = 30;
             break;
           }
           it = _items[_i2];
           same = false;
-          _context0.p = 21;
-          _context0.n = 22;
+          _context0.p = 19;
+          _context0.n = 20;
           return sub.getFileHandle(it.fname);
-        case 22:
-          _context0.n = 23;
+        case 20:
+          _context0.n = 21;
           return _context0.v.getFile();
-        case 23:
+        case 21:
           f = _context0.v;
           same = f.size === it.blob.size;
-          _context0.n = 25;
+          _context0.n = 23;
           break;
-        case 24:
-          _context0.p = 24;
+        case 22:
+          _context0.p = 22;
           _t7 = _context0.v;
-        case 25:
+        case 23:
           if (!same) {
-            _context0.n = 26;
+            _context0.n = 24;
             break;
           }
-          return _context0.a(3, 31);
-        case 26:
-          _context0.n = 27;
+          return _context0.a(3, 29);
+        case 24:
+          _context0.n = 25;
           return sub.getFileHandle(it.fname, {
             create: true
           });
+        case 25:
+          _context0.n = 26;
+          return _context0.v.createWritable();
+        case 26:
+          w = _context0.v;
+          _context0.n = 27;
+          return w.write(it.blob);
         case 27:
           _context0.n = 28;
-          return _context0.v.createWritable();
-        case 28:
-          w = _context0.v;
-          _context0.n = 29;
-          return w.write(it.blob);
-        case 29:
-          _context0.n = 30;
           return w.close();
-        case 30:
+        case 28:
           written++;
-        case 31:
+        case 29:
           _i2++;
-          _context0.n = 20;
+          _context0.n = 18;
           break;
-        case 32:
-          _context0.n = 33;
+        case 30:
+          _context0.n = 31;
           return sub.getFileHandle('index.json', {
             create: true
           });
-        case 33:
-          _context0.n = 34;
+        case 31:
+          _context0.n = 32;
           return _context0.v.createWritable();
-        case 34:
+        case 32:
           idx = _context0.v;
-          _context0.n = 35;
+          _context0.n = 33;
           return idx.write(JSON.stringify({
             at: new Date().toISOString(),
             music: music,
@@ -5587,17 +5602,17 @@ var backupMediaToDir = /*#__PURE__*/function () {
               return i.fname;
             })
           }, null, 2));
-        case 35:
-          _context0.n = 36;
+        case 33:
+          _context0.n = 34;
           return idx.close();
-        case 36:
+        case 34:
           return _context0.a(2, written);
-        case 37:
-          _context0.p = 37;
+        case 35:
+          _context0.p = 35;
           _t8 = _context0.v;
           return _context0.a(2, -1);
       }
-    }, _callee0, null, [[21, 24], [12, 17, 18, 19], [3, 8, 9, 10], [0, 37]]);
+    }, _callee0, null, [[19, 22], [10, 15, 16, 17], [2, 7, 8, 9], [0, 35]]);
   }));
   function backupMediaToDir(_x9) {
     return _backupMediaToDir.apply(this, arguments);
@@ -6500,7 +6515,7 @@ var ManageView = function ManageView(_ref30) {
           case 1:
             ok = _context14.v;
             if (ok) {
-              showToast(backupStatusMsg('הגיבוי'), !_lastFilingOk);
+              showToast(backupStatusMsg('הגיבוי') + ' — ' + backupContentsSummary(), !_lastFilingOk);
               setBackupDir(getBackupDirName());
             }
           case 2:
@@ -6518,14 +6533,14 @@ var ManageView = function ManageView(_ref30) {
       var reader = new FileReader();
       reader.onload = /*#__PURE__*/function () {
         var _ref32 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(ev) {
-          var data, _t19;
+          var data, mediaN, needMedia, perm, _t19, _t20;
           return _regenerator().w(function (_context15) {
             while (1) switch (_context15.p = _context15.n) {
               case 0:
                 _context15.p = 0;
                 data = JSON.parse(ev.target.result);
                 if (!(data._all && _typeof(data._all) === 'object')) {
-                  _context15.n = 1;
+                  _context15.n = 9;
                   break;
                 }
                 Object.entries(data._all).forEach(function (_ref33) {
@@ -6534,18 +6549,57 @@ var ManageView = function ManageView(_ref30) {
                     v = _ref34[1];
                   if (k.startsWith('gym-') && !BACKUP_SKIP_KEYS.has(k)) LS.set(k, v);
                 });
-                showToast('הנתונים שוחזרו — טוען מחדש...');
+                // שחזור אוטומטי של סרטונים ומוזיקה מתיקיית הגיבוי המחוברת (gym-media-backup), בלי צעד ידני נוסף
+                mediaN = 0, needMedia = (data._all['gym-uploaded-video-ids'] || []).length > 0 || (data._all['gym-music-list'] || []).length > 0;
+                if (!_backupDirHandle) {
+                  _context15.n = 8;
+                  break;
+                }
+                _context15.p = 1;
+                _context15.n = 2;
+                return _backupDirHandle.queryPermission({
+                  mode: 'read'
+                });
+              case 2:
+                perm = _context15.v;
+                if (!(perm !== 'granted')) {
+                  _context15.n = 4;
+                  break;
+                }
+                _context15.n = 3;
+                return _backupDirHandle.requestPermission({
+                  mode: 'read'
+                });
+              case 3:
+                perm = _context15.v;
+              case 4:
+                if (!(perm === 'granted')) {
+                  _context15.n = 6;
+                  break;
+                }
+                _context15.n = 5;
+                return restoreMediaFromDir(_backupDirHandle);
+              case 5:
+                mediaN = _context15.v;
+              case 6:
+                _context15.n = 8;
+                break;
+              case 7:
+                _context15.p = 7;
+                _t19 = _context15.v;
+              case 8:
+                showToast(mediaN > 0 ? "\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05D5\u05D7\u05D6\u05E8\u05D5 + ".concat(mediaN, " \u05E7\u05D1\u05E6\u05D9 \u05DE\u05D3\u05D9\u05D4 \u2014 \u05D8\u05D5\u05E2\u05DF \u05DE\u05D7\u05D3\u05E9...") : needMedia ? 'הנתונים שוחזרו. סרטונים/מוזיקה: השתמש ב"שחזור סרטונים ומוזיקה" ובחר gym-media-backup' : 'הנתונים שוחזרו — טוען מחדש...', mediaN === 0 && needMedia);
                 setTimeout(function () {
                   return location.reload();
-                }, 900);
+                }, needMedia && mediaN === 0 ? 3500 : 900);
                 return _context15.a(2);
-              case 1:
+              case 9:
                 if (data.logs) {
-                  _context15.n = 2;
+                  _context15.n = 10;
                   break;
                 }
                 throw new Error();
-              case 2:
+              case 10:
                 if (data.logs) setLogs(data.logs);
                 if (data.notes) setNotes(data.notes);
                 if (data.images) setImages(data.images);
@@ -6585,16 +6639,16 @@ var ManageView = function ManageView(_ref30) {
                   setCustomNames === null || setCustomNames === void 0 || setCustomNames(data.customNames);
                 }
                 showToast('הנתונים שוחזרו בהצלחה');
-                _context15.n = 4;
+                _context15.n = 12;
                 break;
-              case 3:
-                _context15.p = 3;
-                _t19 = _context15.v;
+              case 11:
+                _context15.p = 11;
+                _t20 = _context15.v;
                 showToast('שגיאה בשחזור', true);
-              case 4:
+              case 12:
                 return _context15.a(2);
             }
-          }, _callee15, null, [[0, 3]]);
+          }, _callee15, null, [[1, 7], [0, 11]]);
         }));
         return function (_x15) {
           return _ref32.apply(this, arguments);
@@ -6663,20 +6717,20 @@ var ManageView = function ManageView(_ref30) {
     onSaveDevNote: onSaveDevNote
   }))), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
-    className: "flex-1 overflow-y-auto p-4 flex flex-col gap-2 no-scrollbar pb-32 relative"
+    className: "flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-1.5 no-scrollbar pb-32 relative"
   }, /*#__PURE__*/React.createElement("section", {
     ref: backupRef,
     style: {
       order: ord('backup')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.backup ? '' : '')
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.backup ? '' : '')
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('backup');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Database",
     size: 20,
@@ -6686,10 +6740,10 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.backup && /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1"
+    className: "px-4 pb-3 space-y-2.5 overflow-y-auto no-scrollbar flex-1"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17() {
-      var h, _t20;
+      var h, _t21;
       return _regenerator().w(function (_context17) {
         while (1) switch (_context17.p = _context17.n) {
           case 0:
@@ -6707,7 +6761,7 @@ var ManageView = function ManageView(_ref30) {
             break;
           case 3:
             _context17.p = 3;
-            _t20 = _context17.v;
+            _t21 = _context17.v;
           case 4:
             return _context17.a(2);
         }
@@ -6767,7 +6821,7 @@ var ManageView = function ManageView(_ref30) {
     onChange: handleRestoreFallback
   })), window.showDirectoryPicker && /*#__PURE__*/React.createElement("button", {
     onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee18() {
-      var dir, nm, _t21;
+      var dir, nm, _t22;
       return _regenerator().w(function (_context18) {
         while (1) switch (_context18.p = _context18.n) {
           case 0:
@@ -6790,7 +6844,7 @@ var ManageView = function ManageView(_ref30) {
             break;
           case 3:
             _context18.p = 3;
-            _t21 = _context18.v;
+            _t22 = _context18.v;
           case 4:
             return _context18.a(2);
         }
@@ -6811,14 +6865,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('settings')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.settings ? '' : '')
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.settings ? '' : '')
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('settings');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Settings",
     size: 20,
@@ -6828,7 +6882,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.settings && /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-5 space-y-4 overflow-y-auto no-scrollbar flex-1"
+    className: "px-4 pb-3 space-y-2.5 overflow-y-auto no-scrollbar flex-1"
   }, [{
     label: 'מנוחה בין סטים',
     key: 'normalRest',
@@ -6879,14 +6933,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('instructors')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.instructors ? '' : '')
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.instructors ? '' : '')
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('instructors');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "BookOpen",
     size: 20,
@@ -7056,14 +7110,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('history')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.history ? '' : '')
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.history ? '' : '')
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('history');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "History",
     size: 20,
@@ -7216,14 +7270,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('casual')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('casual');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Dumbbell",
     size: 20,
@@ -7233,7 +7287,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.casual && /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-5 space-y-3"
+    className: "px-4 pb-3 space-y-2"
   }, !casualEdit && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("p", {
     className: "text-[12px] font-bold text-slate-500"
   }, "\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05E7\u05E6\u05E8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD (\u05DC\u05DE\u05E9\u05DC \"\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD\"). \u05D1\u05D7\u05D9\u05E8\u05D4 \u05D1\u05D0\u05D9\u05DE\u05D5\u05DF \u05DE\u05E8\u05D9\u05E6\u05D4 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D0\u05D9\u05DE\u05D5\u05DF \u05D4\u05E8\u05D2\u05D9\u05DC, \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05EA \u05D4\u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05D4\u05E7\u05D1\u05D5\u05E2\u05D4. \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05DB\u05E8\u05D2\u05D9\u05DC."), activeCasual && /*#__PURE__*/React.createElement("button", {
@@ -7308,10 +7362,11 @@ var ManageView = function ManageView(_ref30) {
   }), /*#__PURE__*/React.createElement("div", {
     className: "text-[12px] font-black text-slate-500"
   }, "\u05D1\u05D7\u05E8 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD (", casualEdit.exIds.length, "):"), /*#__PURE__*/React.createElement("div", {
-    className: "max-h-80 overflow-y-auto space-y-1 no-scrollbar"
+    className: "max-h-96 overflow-y-auto no-scrollbar grid grid-cols-3 gap-2"
   }, exerciseGroups.map(function (g) {
     return g.exercises.map(function (ex) {
       var on = casualEdit.exIds.map(String).includes(String(ex.id));
+      var src = (images === null || images === void 0 ? void 0 : images[ex.id]) || (EXERCISE_IMAGES[ex.id] ? "images/".concat(EXERCISE_IMAGES[ex.id]) : null);
       return /*#__PURE__*/React.createElement("button", {
         key: ex.id,
         onClick: function onClick() {
@@ -7323,12 +7378,19 @@ var ManageView = function ManageView(_ref30) {
             });
           });
         },
-        className: "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-right text-[13px] font-bold active:scale-[0.99] ".concat(on ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-50 text-slate-600')
-      }, /*#__PURE__*/React.createElement("span", {
-        className: "w-5 text-center"
-      }, on ? '☑' : '☐'), /*#__PURE__*/React.createElement("span", {
-        className: "flex-1"
-      }, spokenName(ex)));
+        className: "relative rounded-2xl overflow-hidden border-2 active:scale-95 ".concat(on ? 'border-emerald-500' : 'border-slate-200')
+      }, src ? /*#__PURE__*/React.createElement("img", {
+        src: src,
+        alt: "",
+        className: "w-full aspect-[4/3] object-cover ".concat(on ? '' : 'opacity-70'),
+        draggable: false
+      }) : /*#__PURE__*/React.createElement("div", {
+        className: "w-full aspect-[4/3] flex items-center justify-center text-2xl bg-slate-100"
+      }, ex.icon || g.icon || '🏋️'), /*#__PURE__*/React.createElement("div", {
+        className: "px-1 py-1 text-[11px] font-black leading-tight text-center ".concat(on ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-slate-600')
+      }, spokenName(ex)), on && /*#__PURE__*/React.createElement("span", {
+        className: "absolute top-1 left-1 w-6 h-6 rounded-full bg-emerald-500 text-white text-[14px] font-black flex items-center justify-center shadow"
+      }, "\u2713"));
     });
   })), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-2"
@@ -7371,14 +7433,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('music')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.music ? '' : '')
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.music ? '' : '')
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('music');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Music",
     size: 20,
@@ -7388,7 +7450,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.music && /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1"
+    className: "px-4 pb-3 space-y-2 overflow-y-auto no-scrollbar flex-1"
   }, musicList.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "space-y-1.5"
   }, musicList.map(function (t, ti) {
@@ -7473,14 +7535,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('exercises')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.exercises ? '' : '')
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ".concat(open.exercises ? '' : '')
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('exercises');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Dumbbell",
     size: 20,
@@ -7776,14 +7838,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('reports')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('reports');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Download",
     size: 20,
@@ -7793,7 +7855,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.reports && /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-5 space-y-3"
+    className: "px-4 pb-3 space-y-2"
   }, function () {
     var generateReport = function generateReport(period) {
       var now = new Date();
@@ -8243,14 +8305,14 @@ var ManageView = function ManageView(_ref30) {
     style: {
       order: ord('devNotes')
     },
-    className: "bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
+    className: "bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return toggleSection('devNotes');
     },
-    className: "w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0"
+    className: "w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-slate-800 flex items-center gap-2"
+    className: "text-[15px] font-black text-slate-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "BookOpen",
     size: 20,
@@ -8377,7 +8439,7 @@ var ManageView = function ManageView(_ref30) {
       setNewDevNoteText('');
     };
     return /*#__PURE__*/React.createElement("div", {
-      className: "px-5 pb-5 space-y-3"
+      className: "px-4 pb-3 space-y-2"
     }, /*#__PURE__*/React.createElement("div", {
       className: "bg-amber-50/60 border border-amber-200 rounded-2xl p-3"
     }, /*#__PURE__*/React.createElement("textarea", {
@@ -8458,7 +8520,7 @@ var ManageView = function ManageView(_ref30) {
       }));
     })), pending.length > 0 && /*#__PURE__*/React.createElement("button", {
       onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
-        var _t22, _t23;
+        var _t23, _t24;
         return _regenerator().w(function (_context19) {
           while (1) switch (_context19.p = _context19.n) {
             case 0:
@@ -8470,7 +8532,7 @@ var ManageView = function ManageView(_ref30) {
               break;
             case 2:
               _context19.p = 2;
-              _t22 = _context19.v;
+              _t23 = _context19.v;
             case 3:
               if (!navigator.share) {
                 _context19.n = 7;
@@ -8487,7 +8549,7 @@ var ManageView = function ManageView(_ref30) {
               break;
             case 6:
               _context19.p = 6;
-              _t23 = _context19.v;
+              _t24 = _context19.v;
             case 7:
               archive(pending, 'tiktik');
               showToast('ההערות הועתקו ונרשמו בהיסטוריית התיקונים');
@@ -8538,7 +8600,7 @@ var ManageView = function ManageView(_ref30) {
       }, h.text));
     })), /*#__PURE__*/React.createElement("button", {
       onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee20() {
-        var _t24;
+        var _t25;
         return _regenerator().w(function (_context20) {
           while (1) switch (_context20.p = _context20.n) {
             case 0:
@@ -8551,7 +8613,7 @@ var ManageView = function ManageView(_ref30) {
               break;
             case 2:
               _context20.p = 2;
-              _t24 = _context20.v;
+              _t25 = _context20.v;
               showToast('העתקה נכשלה, נסה שוב', true);
             case 3:
               return _context20.a(2);
@@ -9445,7 +9507,7 @@ function App() {
   useEffect(function () {
     if (!filingSupported) return;
     _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21() {
-      var handle, perm, _t25;
+      var handle, perm, _t26;
       return _regenerator().w(function (_context21) {
         while (1) switch (_context21.p = _context21.n) {
           case 0:
@@ -9477,7 +9539,7 @@ function App() {
             break;
           case 5:
             _context21.p = 5;
-            _t25 = _context21.v;
+            _t26 = _context21.v;
             setFilingPermGranted(false);
           case 6:
             return _context21.a(2);
@@ -9489,7 +9551,7 @@ function App() {
   // (user gesture), אחרת הדפדפן עלול לחסום את הבקשה בשקט.
   var ensureFilingPermission = /*#__PURE__*/function () {
     var _ensureFilingPermission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
-      var perm, _t26;
+      var perm, _t27;
       return _regenerator().w(function (_context22) {
         while (1) switch (_context22.p = _context22.n) {
           case 0:
@@ -9521,7 +9583,7 @@ function App() {
             return _context22.a(2, perm === 'granted');
           case 5:
             _context22.p = 5;
-            _t26 = _context22.v;
+            _t27 = _context22.v;
             setFilingPermGranted(false);
             return _context22.a(2, false);
         }
@@ -9534,7 +9596,7 @@ function App() {
   }();
   var connectFilingDir = /*#__PURE__*/function () {
     var _connectFilingDir = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23() {
-      var handle, perm, _t27;
+      var handle, perm, _t28;
       return _regenerator().w(function (_context23) {
         while (1) switch (_context23.p = _context23.n) {
           case 0:
@@ -9570,7 +9632,7 @@ function App() {
             break;
           case 6:
             _context23.p = 6;
-            _t27 = _context23.v;
+            _t28 = _context23.v;
           case 7:
             return _context23.a(2);
         }
@@ -9607,7 +9669,7 @@ function App() {
   // מחזיר true אם הכתיבה ל-FILING הצליחה (למטרות הודעת סטטוס בלבד).
   var saveTextFile = /*#__PURE__*/function () {
     var _saveTextFile = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee25(fname, txt) {
-      var filingOk, perm, fh, w, blob, url, a, _t28;
+      var filingOk, perm, fh, w, blob, url, a, _t29;
       return _regenerator().w(function (_context25) {
         while (1) switch (_context25.p = _context25.n) {
           case 0:
@@ -9662,7 +9724,7 @@ function App() {
             break;
           case 10:
             _context25.p = 10;
-            _t28 = _context25.v;
+            _t29 = _context25.v;
           case 11:
             blob = new Blob(['﻿' + txt], {
               type: 'text/plain;charset=utf-8'
@@ -9685,7 +9747,7 @@ function App() {
   // כתיבה שקטה ל-FILING בלבד (ללא הורדה מקומית) — לשימוש בסנכרון אוטומטי ברקע, לא בפעולה יזומה של המשתמש
   var syncTextFileToFilingOnly = /*#__PURE__*/function () {
     var _syncTextFileToFilingOnly = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee26(fname, txt) {
-      var perm, fh, w, _t29;
+      var perm, fh, w, _t30;
       return _regenerator().w(function (_context26) {
         while (1) switch (_context26.p = _context26.n) {
           case 0:
@@ -9740,7 +9802,7 @@ function App() {
             return _context26.a(2, true);
           case 10:
             _context26.p = 10;
-            _t29 = _context26.v;
+            _t30 = _context26.v;
             return _context26.a(2, false);
         }
       }, _callee26, null, [[1, 10]]);
@@ -11073,11 +11135,11 @@ function App() {
             ch = img.height * cover;
           try {
             ctx.filter = 'blur(24px)';
-          } catch (_unused30) {}
+          } catch (_unused31) {}
           ctx.drawImage(img, (canvas.width - cw) / 2, (canvas.height - ch) / 2, cw, ch);
           try {
             ctx.filter = 'none';
-          } catch (_unused31) {}
+          } catch (_unused32) {}
           ctx.fillStyle = 'rgba(255,255,255,0.15)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           var fit = Math.min(canvas.width / img.width, canvas.height / img.height);
@@ -12396,7 +12458,7 @@ function App() {
       }, b.weight, " \u05E7\u05F4\u05D2"));
     }))), /*#__PURE__*/React.createElement("button", {
       onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31() {
-        var bw, steps, hadFailure, granted, ok, devRes, _t30;
+        var bw, steps, hadFailure, granted, ok, devRes, _t31;
         return _regenerator().w(function (_context31) {
           while (1) switch (_context31.p = _context31.n) {
             case 0:
@@ -12481,7 +12543,7 @@ function App() {
               break;
             case 7:
               _context31.p = 7;
-              _t30 = _context31.v;
+              _t31 = _context31.v;
               hadFailure = true;
               steps.push('❌ ייצוא דוח השיפורים נכשל');
             case 8:
