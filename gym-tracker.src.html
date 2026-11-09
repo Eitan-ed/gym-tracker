@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.34';
+const APP_VERSION = '10.35';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1807,7 +1807,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 if (selN===2 && isLast) setTimeout(()=>onFinish(true), 800);
             }, goAll: (reason) => {
                 // כל התרגיל: מסמנים כדולגו את כל הסטים שעוד לא בוצעו (בזה אחר זה, כדי שכל רישום יישמר)
-                const left = [1, 2].filter(n => !(n===1 ? doneS1Ex : doneS2Ex));
+                const left = [0, 1, 2].filter(n => n===0 ? (warmupOpenEx && !doneWEx) : !(n===1 ? doneS1Ex : doneS2Ex));
                 left.forEach((n, i) => setTimeout(()=>onSave(ex.id, n, 0, 0, exIsSuperset, reason), i * 250));
                 if (isLast && left.length) setTimeout(()=>onFinish(true), left.length * 250 + 800);
             }});
@@ -2203,6 +2203,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     }, 130);
                 };
                 // תרגילים "בעבודה": יש בהם התקדמות/טיימר בסשן הנוכחי (או שהם התרגיל הפתוח עכשיו וכבר נגעו בו, כולל דילוג/חימום)
+                const isSkipG = g => !!g && (skippedGroups.includes(g.id) || g.exercises.every(ex => { const sl = logs.filter(l=>l.exId===ex.id && l.setNum>=0 && new Date(l.timestamp).getTime()>sessionStartTime); return sl.length>0 && sl.every(l=>l.weight===0 && l.reps===0) && sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2); }));
                 const startedG = g => !isGroupDoneHere(g) && !skippedGroups.includes(g.id) && g.exercises.some(ex => (restTimers[ex.id]||0) > 0 || logs.some(l=>l.exId===ex.id && new Date(l.timestamp).getTime()>sessionStartTime && ((l.setNum>=0 && (l.weight>0 || l.reps>0)) || (g.id===group.id && l.setNum>=0))));
                 const inProgIds = new Set(allGroups.filter(startedG).map(g => g.id));
                 // טיימר של תרגיל שהסתיים/דולג עובר להופיע על התרגיל הבא ברשימה שטרם הסתיים
@@ -2226,9 +2227,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar" dir="rtl"
                             style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInlineStart:8, paddingInlineEnd:`calc(50% - ${ITEM/2}px)`}}
                             onScroll={handleFilmScroll}>
-                            {[...allGroups.map((g,i)=>({g,i})).filter(o=>!isGroupDoneHere(o.g)), ...allGroups.map((g,i)=>({g,i})).filter(o=>isGroupDoneHere(o.g))].map(({g,i}) => {
+                            {[...allGroups.map((g,i)=>({g,i})).filter(o=>!isGroupDoneHere(o.g) && !isSkipG(o.g)), ...allGroups.map((g,i)=>({g,i})).filter(o=>isGroupDoneHere(o.g) || isSkipG(o.g))].map(({g,i}) => {
                                 const isCur = g.id === targetId;
-                                const done = isGroupDoneHere(g);
+                                const skipX = isSkipG(g);
+                                const done = isGroupDoneHere(g) || skipX;
                                 const img = imgOf(g);
                                 // כיתוב המשקל הבא (קטן, מתחת לתמונה): חימום אם ממתין, אחרת הסט הבא
                                 const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
@@ -2257,6 +2259,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         {gRt > 0 && <span className={`absolute bottom-0.5 right-0.5 px-1 rounded-lg flex items-center justify-center font-black leading-none text-white shadow ${isCur ? 'min-w-[34px] h-[34px] text-[22px]' : 'min-w-[18px] h-[18px] text-[11px] opacity-80'}`} dir="ltr"
                                             style={{background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'}}>{gRt}</span>}
                                         {gFin && <span className="absolute bottom-0.5 right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[11px] font-black leading-none text-white shadow" style={{background:'rgba(22,163,74,0.95)'}}>✓</span>}
+                                        {skipX && <span className="absolute inset-0 flex items-center justify-center text-[34px] font-black leading-none" style={{color:'#ef4444', textShadow:'0 0 3px #fff, 0 0 6px #fff'}}>✕</span>}
                                         {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                             style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>
@@ -2748,7 +2751,7 @@ const WorkoutProgressCalendar = ({ logs }) => {
 
 // ─── ManageView ────────────────────────────────────────────
 const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, sessionEndTime, groupOrder, onBack, onBackToPrev, canBackToPrev=false, onUpdateSettings, requestConfirm, showToast, setLogs, setNotes, setImages, setVideos, setSessionStartTime, setSessionEndTime, setGroupOrder,
-    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicMove=null, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, oneTimeEx=new Set(), onToggleOneTime=null, onPurgeImplemented=null, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onChangeCategory=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null, devNotesHistory=[], setDevNotesHistory=null,
+    musicList=[], onMusicUpload, onMusicRemoveOne, onMusicRemoveAll, onMusicMove=null, onMusicPlay=null, musicPlayingId=null, hiddenExercises=new Set(), onToggleExercise, oneTimeEx=new Set(), onToggleOneTime=null, onPurgeImplemented=null, onNavigateToGroup, onAddExercise=null, onDeleteCustomExercise=null, onChangeCategory=null, onNavigateToHistory, sessionDurations={}, setSessionDurations=null, workoutNotes={}, setWorkoutNotes=null, bodyweightLog=[], setBodyweightLog=null, instructors=[], setInstructors=null, setHiddenExercises=null, setSummaryData=null, customNames={}, setCustomNames=null, initialOpenSection=null, onClearOpenSection=null, casualWorkouts=[], setCasualWorkouts=null, activeCasual=null, setActiveCasual=null, devNotes={}, setDevNotes=null, onSaveDevNote=null, devNotesDone={}, setDevNotesDone=null, devNotesHistory=[], setDevNotesHistory=null,
     filingDirName=null, filingPermGranted=true, ensureFilingPermission=null, filingSupported=false, connectFilingDir=null, disconnectFilingDir=null, saveTextFile=null }) => {
     const DEFAULT_REPORT_PREAMBLE = `אתה מאמן כושר בוגר עם תעודת וינגייט, דיאטן ומומחה בתזונה, בעל הכשרה כרופא ספורט, מומחה באימון אנשים מבוגרים מעל גיל 50, בעל ניסיון של 15 שנים.\nאתה המאמן כושר של איתן והתפקיד שלך זה לגרום לו להשיג 3 מטרות:\n1. חיטוב של הגוף לרמה של שרירים וחיטוב יפים\n2. הורדה במשקל (בעיקר באמצעות תזונה ולא סיבולת לב ריאה באימונים)\n3. שמירה על העצמות, שמירה מפציעות, התייחסות לכך שמדובר באדם בגיל 50\n\nנא לנתח את הדוח ולספק:\n\n1. סיכום כללי — מגמות עיקריות, התקדמות, ונקודות חוזק.\n   אם יש נקודה שדורשת שיפור — תן המלצה מפורטת ומעשית (מה בדיוק לעשות, כמה, ואיך).\n\n2. ניתוח עומסים — האם יש עלייה עקבית במשקלים? היכן יש סטגנציה?\n   בכל מקום שמזוהה בעיה — תן המלצה קונקרטית לשיפור.\n\n3. זמני מנוחה — האם זמני המנוחה בין הסטים מתאימים לסוג התרגיל ולמטרות?\n   אם לא — המלץ על זמן מנוחה ספציפי לכל תרגיל.\n\n4. איזון שרירי — האם יש קבוצות שריר שמקבלות פחות תשומת לב?\n   אם כן — המלץ על תרגילים ספציפיים להוספה.\n\n5. תדירות ונפח — האם תדירות האימונים ומספר הסטים מתאימים?\n\n6. המלצות — שינויים מוצעים בתוכנית, משקלים, או מבנה האימון.\n   המלצות מפורטות בלבד — מה לעשות, איפה, וכמה.\n\n7. הערות בטיחות — סימנים לעומס יתר או סיכון לפציעה.\n\nעקרונות מנחים:\n• כבד תוכנית שנמשכת לפרק זמן ללא שינוי מהותי — התמדה עדיפה על שלמות.\n• אל תמליץ על שינוי רק כי ניתן לשפר. המלץ רק כשיש צורך אמיתי.\n• שים לב להערות שנרשמו לגבי תרגילים ואימונים — הן מכילות מידע חשוב.`;
     const [reportPreamble, setReportPreamble] = useState(()=>LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE));
@@ -2757,7 +2760,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const [newDevNoteText, setNewDevNoteText] = useState('');
 
     const [open, setOpen] = useState(()=>{
-        const base = {exercises:false, backup:false, music:false, settings:false, history:false, instructors:false, reports:false, devNotes:false};
+        const base = {casual:false, exercises:false, backup:false, music:false, settings:false, history:false, instructors:false, reports:false, devNotes:false};
         if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
         return base;
     });
@@ -2789,7 +2792,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
     const instructorsRef = React.useRef(null);
     const reportsRef = React.useRef(null);
     const devNotesRef = React.useRef(null);
-    const sectionRefs  = { exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, instructors: instructorsRef, reports: reportsRef, devNotes: devNotesRef };
+    const casualRef = React.useRef(null);
+    const [casualEdit, setCasualEdit] = useState(null); // {id|null, name, exIds:[]}
+    const sectionRefs  = { casual: casualRef, exercises: exerciseSectionRef, backup: backupRef, settings: settingsRef, history: historyRef, music: musicRef, instructors: instructorsRef, reports: reportsRef, devNotes: devNotesRef };
     React.useEffect(()=>{
         if (initialOpenSection && sectionRefs[initialOpenSection]) {
             setOpen(p => ({...p, [initialOpenSection]: true}));
@@ -2801,7 +2806,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         }
     }, [initialOpenSection]);
     // ─── סידור אלפביתי (א"ב) של קטגוריות הניהול — אוטומטי בכל הוספת קטגוריה ───
-    const SECTION_TITLES = { backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'שעות פתיחה ומדריכים', music:'מוזיקה', exercises:'תרגילים', reports:'דוחות', devNotes:'הערות לשיפור' };
+    const SECTION_TITLES = { casual:'אימונים מזדמנים', backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'שעות פתיחה ומדריכים', music:'מוזיקה', exercises:'תרגילים', reports:'דוחות', devNotes:'הערות לשיפור' };
     const sectionOrder = Object.entries(SECTION_TITLES).sort((a,b)=>a[1].localeCompare(b[1],'he')).map(e=>e[0]);
     const ord = key => sectionOrder.indexOf(key);
     const toggleSection = key => {
@@ -3102,6 +3107,62 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 </>
                             );
                         })()}
+                    </div>}
+                </section>
+                {/* ── אימונים מזדמנים ── */}
+                <section ref={casualRef} style={{order:ord('casual')}} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden shrink-0">
+                    <button onClick={()=>toggleSection('casual')} className="w-full flex items-center justify-between px-5 py-4 active:bg-slate-50 shrink-0">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-emerald-500" /> אימונים מזדמנים ({casualWorkouts.length})</h3>
+                        <Icon name={open.casual?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
+                    </button>
+                    {open.casual && <div className="px-5 pb-5 space-y-3">
+                        {!casualEdit && (<>
+                            <p className="text-[12px] font-bold text-slate-500">אימונים קצרים שמורים (למשל "רגליים"). בחירה באימון מריצה אותו במקום האימון הרגיל, בלי לשנות את התוכנית הקבועה. הנתונים נשמרים בהיסטוריה כרגיל.</p>
+                            {activeCasual && <button onClick={()=>{ setActiveCasual(null); showToast('חזרת לאימון הרגיל'); }} className="w-full py-2.5 rounded-2xl bg-slate-100 text-slate-700 font-black text-[13px] active:scale-95">↩ חזור לאימון הרגיל</button>}
+                            {casualWorkouts.map(w => (
+                                <div key={w.id} className={`rounded-2xl border px-3 py-2.5 ${activeCasual===w.id ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-100'}`}>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <div className="text-[14px] font-black text-slate-800 truncate">{w.name}{activeCasual===w.id ? ' ✓ פעיל' : ''}</div>
+                                            <div className="text-[11px] font-bold text-slate-400">{w.exIds.length} תרגילים</div>
+                                        </div>
+                                        <div className="flex gap-1.5 shrink-0">
+                                            <button onClick={()=>{ setActiveCasual(w.id); showToast(`אימון מזדמן: ${w.name}`); onBack && onBack(); }} className="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[12px] font-black active:scale-95">בחר</button>
+                                            <button onClick={()=>setCasualEdit({id:w.id, name:w.name, exIds:[...w.exIds]})} className="px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 text-[12px] font-black active:scale-95">ערוך</button>
+                                            <button onClick={()=>requestConfirm(`למחוק את האימון המזדמן "${w.name}"? (התרגילים והיסטוריית האימונים לא נמחקים)`, ()=>{ setCasualWorkouts(p=>p.filter(x=>x.id!==w.id)); if (activeCasual===w.id) setActiveCasual(null); })} className="px-2.5 py-1.5 rounded-full bg-red-50 text-red-500 text-[12px] font-black active:scale-95">מחק</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <button onClick={()=>setCasualEdit({id:null, name:'', exIds:[]})} className="w-full py-2.5 rounded-2xl bg-emerald-500 text-white font-black text-[13px] active:scale-95">+ אימון מזדמן חדש</button>
+                        </>)}
+                        {casualEdit && (<>
+                            <input value={casualEdit.name} onChange={e=>setCasualEdit(c=>({...c, name:e.target.value}))} placeholder="שם האימון (למשל: רגליים)" className="w-full px-3 py-2 rounded-xl border border-slate-200 text-[14px] font-bold" />
+                            <div className="text-[12px] font-black text-slate-500">בחר תרגילים ({casualEdit.exIds.length}):</div>
+                            <div className="max-h-80 overflow-y-auto space-y-1 no-scrollbar">
+                                {exerciseGroups.map(g => g.exercises.map(ex => {
+                                    const on = casualEdit.exIds.map(String).includes(String(ex.id));
+                                    return (
+                                        <button key={ex.id} onClick={()=>setCasualEdit(c=>({...c, exIds: on ? c.exIds.filter(x=>String(x)!==String(ex.id)) : [...c.exIds, ex.id]}))}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-right text-[13px] font-bold active:scale-[0.99] ${on ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-50 text-slate-600'}`}>
+                                            <span className="w-5 text-center">{on ? '☑' : '☐'}</span>
+                                            <span className="flex-1">{spokenName(ex)}</span>
+                                        </button>
+                                    );
+                                }))}
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={()=>{
+                                    const name = casualEdit.name.trim();
+                                    if (!name) { showToast('חסר שם לאימון', true); return; }
+                                    if (!casualEdit.exIds.length) { showToast('בחר לפחות תרגיל אחד', true); return; }
+                                    if (casualEdit.id) setCasualWorkouts(p=>p.map(w=>w.id===casualEdit.id ? {...w, name, exIds:casualEdit.exIds} : w));
+                                    else setCasualWorkouts(p=>[...p, {id:'cw'+Date.now(), name, exIds:casualEdit.exIds}]);
+                                    setCasualEdit(null); showToast('האימון נשמר');
+                                }} className="flex-1 py-2.5 rounded-2xl bg-emerald-500 text-white font-black text-[13px] active:scale-95">שמור</button>
+                                <button onClick={()=>setCasualEdit(null)} className="flex-1 py-2.5 rounded-2xl bg-slate-200 text-slate-700 font-black text-[13px] active:scale-95">ביטול</button>
+                            </div>
+                        </>)}
                     </div>}
                 </section>
                 {/* ── מ: מוזיקה ── */}
@@ -3698,7 +3759,7 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
         const prev = prevRtRef.current;
         const ended = Object.keys(prev).filter(id => prev[id] === 1 && !(restTimers[id] > 0));
         if (ended.length) {
-            setFinished(f => [...f.filter(x => !ended.includes(x.id)), ...ended.map(id => ({ id, ...timerInfo(id) }))]);
+            setFinished(f => [...f.filter(x => !ended.includes(x.id)), ...ended.map(id => ({ id, fin:true, rt:0, tot:1, ...timerInfo(id) }))]);
         }
         prevRtRef.current = { ...restTimers };
     }, [restTimers]);
@@ -3725,9 +3786,11 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
     useEffect(() => {
         setFinished(f => { const n = f.filter(x => !(doneExIds || []).includes(String(x.id))); return n.length === f.length ? f : n; });
     }, [doneExIds]);
-    // עיגול טיימר למעלה: רק במסך הראשי, ורק הטיימר הפעיל הוותיק ביותר (זה שרץ הכי הרבה זמן). בשאר המסכים הטיימרים במניפה
-    const oldestActive = activeTimers.slice().sort((a,b) => (b.tot - b.rt) - (a.tot - a.rt))[0];
-    const windows = currentView === 'list' && oldestActive ? [oldestActive] : [];
+    // עיגול טיימר למעלה בכל המסכים: רק טיימר אחד — זה שעומד להסתיים הכי מהר (טיימר שהסתיים קודם לכולם).
+    // הוא יושב ליד כפתור התפריט ולא מסתיר אותו. טיימר שהסתיים ונמצאים כבר בתרגיל שלו — לא מוצג.
+    const finShown = finished.filter(x => !(x.group && activeGroupId != null && x.group.id === activeGroupId));
+    const soonestActive = activeTimers.slice().sort((a,b) => a.rt - b.rt)[0];
+    const topTimer = finShown.length ? finShown[finShown.length - 1] : (soonestActive || null);
     const R = 18, C = 2 * Math.PI * R;
     const renderWindow = t => {
         const isCur = !t.fin && activeGroupId != null && t.group && t.group.id === activeGroupId;
@@ -3763,6 +3826,7 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
         { key:'settings',    label:'הגדרות אימון',      icon:'Settings',     color:'text-orange-500' },
         { key:'history',     label:'היסטוריית אימונים',  icon:'History',      color:'text-teal-500' },
         { key:'instructors', label:'שעות פתיחה ומדריכים',            icon:'BookOpen',     color:'text-rose-500' },
+        { key:'casual',      label:'אימונים מזדמנים',   icon:'Dumbbell',     color:'text-emerald-500' },
         { key:'music',       label:'מוזיקה',             icon:'Music',        color:'text-purple-500' },
         { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
         { key:'devNotes',    label:'הערות לשיפור', icon:'BookOpen', color:'text-amber-500' }
@@ -3780,25 +3844,19 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
     const topOffset = 'calc(env(safe-area-inset-top) + 0.75rem)';
     return (
         <>
-            {windows.length === 0 ? (
-                <button onClick={()=>setOpen(true)}
-                    className="fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
-                    style={{top: topOffset}}>
-                    <Icon name="Menu" size={20} />
+            <button onClick={()=>setOpen(true)}
+                className="fixed right-2 z-[650] p-2 bg-slate-900/40 backdrop-blur-md rounded-full text-white shadow-lg active:scale-90"
+                style={{top: topOffset}}>
+                <Icon name="Menu" size={20} />
+            </button>
+            {topTimer && (
+                <button data-rest-windows="1" className="fixed z-[650] active:scale-95" style={{top: `calc(${topOffset} - 4px)`, right: '3.4rem'}}
+                    onClick={() => {
+                        if (topTimer.fin) setFinished(f => f.filter(x => x.id !== topTimer.id));
+                        if (topTimer.group) onOpenGroup?.(topTimer.group); else setOpen(true);
+                    }}>
+                    {renderWindow(topTimer)}
                 </button>
-            ) : (
-                <div data-rest-windows="1" className="fixed right-2 z-[650] flex flex-row-reverse gap-2 pt-1" style={{top: topOffset}}>
-                    {/* העיגול הראשון יושב על כפתור התפריט — הוא פותח את התפריט; כל השאר נכנסים לתרגיל של הטיימר שלהם */}
-                    {windows.map((t, i) => (
-                        <button key={t.id} className="active:scale-95"
-                            onClick={() => {
-                                if (i === 0 || !t.group) return setOpen(true);
-                                onOpenGroup?.(t.group);
-                            }}>
-                            {renderWindow(t)}
-                        </button>
-                    ))}
-                </div>
             )}
             {open && (
                 <div className="fixed inset-0 z-[900] flex" onClick={()=>setOpen(false)}>
@@ -3971,6 +4029,12 @@ function App() {
     const handleToggleOneTime = useCallback((exId) => {
         setOneTimeEx(prev => { const n = new Set(prev); if (n.has(exId)) n.delete(exId); else n.add(exId); return n; });
     }, []);
+    // אימונים מזדמנים: רשימה שמורה של אימונים קצרים [{id,name,exIds}] ואימון פעיל (או null = האימון הרגיל). לא נוגע בתוכנית הקבועה
+    const [casualWorkouts, setCasualWorkouts] = useState(()=>LS.get('gym-casual-workouts', []));
+    useEffect(()=>{ LS.set('gym-casual-workouts', casualWorkouts); },[casualWorkouts]);
+    const [activeCasual, setActiveCasual] = useState(()=>LS.get('gym-casual-active', null));
+    useEffect(()=>{ LS.set('gym-casual-active', activeCasual); },[activeCasual]);
+    const activeCasualObj = useMemo(()=>casualWorkouts.find(w=>w.id===activeCasual) || null,[casualWorkouts, activeCasual]);
     const [groupOrder,       setGroupOrder]       = useState(()=>{
         const saved = LS.get('gym-group-order', null);
         if (saved && saved.length === exerciseGroups.length) return saved;
@@ -4980,11 +5044,14 @@ function App() {
 
     const visibleGroups = useMemo(()=>
         sortedGroups.map(g => {
-            const visExs = g.exercises.filter(e => !hiddenExercises.has(e.id) || oneTimeEx.has(e.id));
+            const casualIds = activeCasualObj ? new Set(activeCasualObj.exIds.map(String)) : null;
+            const visExs = casualIds
+                ? g.exercises.filter(e => casualIds.has(String(e.id)))
+                : g.exercises.filter(e => !hiddenExercises.has(e.id) || oneTimeEx.has(e.id));
             if (!visExs.length) return null;
             return {...g, exercises: visExs};
         }).filter(Boolean)
-    ,[sortedGroups, hiddenExercises, oneTimeEx]);
+    ,[sortedGroups, hiddenExercises, oneTimeEx, activeCasualObj]);
 
     // מזיזה תרגיל לפי ה-id שלו (לא לפי אינדקס!) — כי idx במסך הבית הוא מיקום בתוך visibleGroups
     // (שלא כולל תרגילים מוסתרים), בעוד ש-groupOrder כולל גם אותם. מדלגים על מוסתרים
@@ -5699,7 +5766,7 @@ function App() {
     if (view==='detail'&&activeGroup) { const _gi=visibleGroups.findIndex(g=>g.id===activeGroup.id); const _next=visibleGroups[_gi+1]||null; const _prev=_gi>0?visibleGroups[_gi-1]:null; return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<DetailView group={activeGroup} logs={logs} restTimers={restTimers} restTimerTotals={restTimerTotals} sessionStartTime={workoutStartTime} notes={notes} onSaveNote={handleSaveNote} images={images} onSaveImage={handleSaveImage} onRemoveImage={handleRemoveImage} videos={videos} onSaveVideo={handleSaveVideo} onDeleteVideo={handleDeleteVideo} uploadedVideos={uploadedVideos} onUploadVideo={handleUploadVideo} onDeleteUploadedVideo={handleDeleteUploadedVideo} onBack={()=>{setView('list');setActiveGroup(null);}} onFinish={handleExerciseComplete} onSave={handleSaveSet} scrollToExId={scrollToExId} onScrollDone={()=>setScrollToExId(null)} onDeleteLog={handleDeleteLog} requestConfirm={requestConfirm} groupIdx={_gi} totalGroups={visibleGroups.length} nextGroup={_next} prevGroup={_prev} onNavigateTo={(g)=>{ if (!returnGroup && activeGroup && activeGroup.id!==g.id) setReturnGroup(activeGroup); clearFinishedTimers(g); setActiveGroup(g);setScrollToExId(g.exercises[0].id);}} returnGroup={returnGroup} onReturn={()=>{ const r=returnGroup; setReturnGroup(null); if(r){ setActiveGroup(r); setScrollToExId(r.exercises[0].id); } }} musicList={musicList} musicPlaying={musicPlaying} onMusicToggle={()=>setMusicPanelOpen(o=>!o)} weightStepsOverrides={settings.weightSteps||{}} onOpenSummary={handleOpenSummaryManual} allGroupsDone={allGroupsDone} workoutSec={workoutSec} isWorkoutActive={isWorkoutActive} onToggleWorkout={()=>setIsWorkoutActive(v=>!v)} customNames={customNames} setCustomNames={setCustomNames} customHowTo={customHowTo} setCustomHowTo={setCustomHowTo} customTips={customTips} setCustomTips={setCustomTips} warmupEmbed={settings.warmupEmbed||{}} onUpdateSettings={handleUpdateSettings} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} allGroups={visibleGroups} skippedGroups={skippedGroups} onMoveGroup={handleReorderClick} imageZoom={imageZoom} onZoomImage={handleZoomImage} onHideGroup={(g)=>requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', ()=>{ g.exercises.forEach(ex=>handleToggleExercise(ex.id)); setActiveGroup(null); setView('list'); })} /></div>; }
     if (view==='exercises') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ExercisesListView logs={logs} images={images} onBack={()=>setView('list')} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} /></div>;
     if (view==='history') return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<HistoryView logs={logs} sessionDurations={sessionDurations} bodyweightLog={bodyweightLog} workoutNotes={workoutNotes} onBack={()=>setView('list')} onDeleteDate={handleDeleteDate} onDeleteOne={handleDeleteLog} requestConfirm={requestConfirm} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} onShowDaySummary={handleShowDaySummary} skipReasons={skipReasons} /></div>;
-    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} oneTimeEx={oneTimeEx} onToggleOneTime={handleToggleOneTime} onPurgeImplemented={purgeImplementedNotes} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone} devNotesHistory={devNotesHistory} setDevNotesHistory={setDevNotesHistory}
+    if (view==='manage')  return <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">{appTitleBar}{overlays}<ManageView  logs={logs} notes={notes} images={images} videos={videos} settings={settings} sessionStartTime={sessionStartTime} sessionEndTime={sessionEndTime} groupOrder={groupOrder} onUpdateSettings={handleUpdateSettings} onBack={()=>setView('list')} onBackToPrev={backToPrev} canBackToPrev={prevView !== 'manage' && prevView !== view} requestConfirm={requestConfirm} showToast={showToast} setLogs={setLogs} setNotes={setNotes} setImages={setImages} setVideos={setVideos} setSessionStartTime={setSessionStartTime} setSessionEndTime={setSessionEndTime} setGroupOrder={setGroupOrder} musicList={musicList} onMusicUpload={handleMusicUpload} onMusicRemoveOne={handleMusicRemoveOne} onMusicRemoveAll={handleMusicRemoveAll} onMusicMove={handleMusicMove} onMusicPlay={(t)=>{ const a=audioRef.current; if(!a)return; if(musicPlaying&&musicList[musicIndex]?.id===t.id){a.pause();}else{ const idx=musicList.findIndex(m=>m.id===t.id); if(idx>=0){setMusicIndex(idx); a.src=t.url; a.load(); a.play().catch(()=>{}); } } }} musicPlayingId={musicPlaying?musicList[musicIndex]?.id:null} hiddenExercises={hiddenExercises} onToggleExercise={handleToggleExercise} oneTimeEx={oneTimeEx} onToggleOneTime={handleToggleOneTime} onPurgeImplemented={purgeImplementedNotes} onNavigateToGroup={(g)=>{setActiveGroup(g);navigateTo('detail');setScrollToExId(g.exercises[0].id);}} onAddExercise={handleAddCustomExercise} onDeleteCustomExercise={handleDeleteCustomExercise} onChangeCategory={handleChangeCategory} onNavigateToHistory={()=>navigateTo('history')} sessionDurations={sessionDurations} setSessionDurations={setSessionDurations} workoutNotes={workoutNotes} setWorkoutNotes={setWorkoutNotes} bodyweightLog={bodyweightLog} setBodyweightLog={setBodyweightLog} instructors={instructors} setInstructors={setInstructors} setHiddenExercises={setHiddenExercises} setSummaryData={setSummaryData} customNames={customNames} setCustomNames={setCustomNames} initialOpenSection={manageOpenSection} onClearOpenSection={()=>setManageOpenSection(null)} casualWorkouts={casualWorkouts} setCasualWorkouts={setCasualWorkouts} activeCasual={activeCasual} setActiveCasual={setActiveCasual} devNotes={devNotes} setDevNotes={setDevNotes} onSaveDevNote={handleSaveDevNote} devNotesDone={devNotesDone} setDevNotesDone={setDevNotesDone} devNotesHistory={devNotesHistory} setDevNotesHistory={setDevNotesHistory}
         filingDirName={filingDirName} filingPermGranted={filingPermGranted} ensureFilingPermission={ensureFilingPermission} filingSupported={filingSupported} connectFilingDir={connectFilingDir} disconnectFilingDir={disconnectFilingDir} saveTextFile={saveTextFile} /></div>;
 
     // List view
@@ -5707,6 +5774,12 @@ function App() {
         <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden shadow-2xl" dir="rtl">
         {appTitleBar}
         {overlays}
+        {activeCasualObj && (
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-1.5 bg-emerald-600 text-white text-[12px] font-black">
+                <span>🏃 אימון מזדמן: {activeCasualObj.name}</span>
+                <button onClick={()=>{ setActiveCasual(null); showToast('חזרת לאימון הרגיל'); }} className="px-2.5 py-1 rounded-full bg-white/20 active:scale-95">חזור לאימון הרגיל</button>
+            </div>
+        )}
         <div className="flex-1 flex flex-col overflow-hidden relative" style={{background:'#eef2f6'}}>
             <header className="bg-white pb-2 rounded-b-[2rem] shadow-lg sticky top-0 z-10 border-b-2 shrink-0 relative" style={{borderBottomColor:'rgba(45,74,111,0.18)'}}>
                 {(() => {
