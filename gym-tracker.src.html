@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.39';
+const APP_VERSION = '10.40';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1343,7 +1343,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     );
                 };
                 return (
-                    <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 40px 1fr', maxWidth:'19rem', marginLeft:'auto', marginRight:'auto'}}>
+                    <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 46px 1fr'}}>
                             {(()=>{
                                 // סדר התאים (מימין לשמאל, שורה אחר שורה): חימום (אם יש) בפינה הימנית העליונה;
                                 // עם חימום ועד 2 סטים — השורה השנייה היא סט 1 מימין וסט 2 משמאלו; עם סט 3+ הסטים נמשכים

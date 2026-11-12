@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.39';
+var APP_VERSION = '10.40';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -3156,10 +3156,7 @@ function ExerciseEntryRow(_ref11) {
       className: "grid gap-1.5 items-stretch",
       dir: "rtl",
       style: {
-        gridTemplateColumns: '1fr 40px 1fr',
-        maxWidth: '19rem',
-        marginLeft: 'auto',
-        marginRight: 'auto'
+        gridTemplateColumns: '1fr 46px 1fr'
       }
     }, function () {
       // סדר התאים (מימין לשמאל, שורה אחר שורה): חימום (אם יש) בפינה הימנית העליונה;
