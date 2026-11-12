@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.41';
+var APP_VERSION = '10.42';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -3198,8 +3198,9 @@ function ExerciseEntryRow(_ref11) {
         className: "flex flex-col gap-1",
         style: {
           gridColumn: 2,
-          gridRow: arrowRow,
-          minHeight: 92
+          gridRow: "".concat(arrowRow, " / span 2"),
+          minHeight: 92,
+          alignSelf: 'start'
         }
       }, stepField === 'w' ? /*#__PURE__*/React.createElement("button", {
         onClick: cycleQuickStep,
