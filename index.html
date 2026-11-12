@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.40';
+var APP_VERSION = '10.41';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -13047,8 +13047,8 @@ function App() {
       var gs = new Date(gymStartTime !== null && gymStartTime !== void 0 ? gymStartTime : sessionStartTime);
       // מרווחים של חצי חודש (ח')
       var mo = Math.max(0, Math.floor((now.getTime() - gs.getTime()) / 86400000 / 15.2) / 2);
-      return /*#__PURE__*/React.createElement("div", {
-        className: "flex items-baseline gap-4 flex-wrap mb-1.5 pb-1.5 border-b border-slate-100"
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+        className: "flex items-baseline gap-4 flex-wrap"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[9px] font-bold text-slate-400 tracking-wide"
       }, "\u05DE\u05D0\u05D6"), /*#__PURE__*/React.createElement("span", {
@@ -13066,7 +13066,13 @@ function App() {
         style: {
           fontSize: '10px'
         }
-      }, " \u05D7\u05F3")));
+      }, " \u05D7\u05F3"))), /*#__PURE__*/React.createElement("div", {
+        className: "my-2 h-px w-full",
+        style: {
+          background: 'linear-gradient(to left, transparent, #94a3b8 20%, #94a3b8 80%, transparent)',
+          opacity: 0.55
+        }
+      }));
     }(), /*#__PURE__*/React.createElement("div", {
       className: "flex gap-5 items-start mb-1"
     }, /*#__PURE__*/React.createElement("div", {

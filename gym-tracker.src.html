@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.40';
+const APP_VERSION = '10.41';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -5843,11 +5843,14 @@ function App() {
                                     // מרווחים של חצי חודש (ח')
                                     const mo = Math.max(0, Math.floor(((now.getTime() - gs.getTime()) / 86400000) / 15.2) / 2);
                                     return (
-                                        <div className="flex items-baseline gap-4 flex-wrap mb-1.5 pb-1.5 border-b border-slate-100">
+                                        <>
+                                        <div className="flex items-baseline gap-4 flex-wrap">
                                             <span className="text-[9px] font-bold text-slate-400 tracking-wide">מאז</span>
                                             <span className="text-[13px] font-black text-slate-800 leading-none">{gs.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
                                             <span className="text-[16px] font-black leading-none" style={{color:'#0d9488'}}>{mo === 0 ? 'פחות מ-½' : mo}<span style={{fontSize:'10px'}}> ח׳</span></span>
                                         </div>
+                                        <div className="my-2 h-px w-full" style={{background:'linear-gradient(to left, transparent, #94a3b8 20%, #94a3b8 80%, transparent)', opacity:0.55}} />
+                                        </>
                                     );
                                 })()}
                                 <div className="flex gap-5 items-start mb-1">
