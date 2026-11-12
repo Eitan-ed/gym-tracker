@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.37';
+var APP_VERSION = '10.38';
 var getDayNameHe = function getDayNameHe(ts) {
   return ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][new Date(ts).getDay()];
 };
@@ -3027,9 +3027,7 @@ function ExerciseEntryRow(_ref11) {
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[17px] leading-none"
-      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num), /*#__PURE__*/React.createElement("span", {
-        className: "text-[10px] leading-none opacity-90"
-      }, isWarm ? 'חימום' : "\u05E1\u05D8 ".concat(num), " \xB7 ", changed ? 'עדכן' : isSkipC ? 'דולג' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום')), /*#__PURE__*/React.createElement("div", {
+      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num)), /*#__PURE__*/React.createElement("div", {
         className: "flex flex-row gap-1 min-w-0"
       }, /*#__PURE__*/React.createElement("div", {
         className: "flex-1 min-w-0"
@@ -4265,19 +4263,13 @@ var DetailView = memo(function DetailView(_ref19) {
       className: "flex-1 flex flex-col gap-1.5 min-w-0"
     }, /*#__PURE__*/React.createElement("div", {
       className: "text-sm font-black text-slate-800 leading-tight px-0.5",
-      onDoubleClick: function onDoubleClick() {
-        return promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames);
-      }
-    }, customNames[ex.id] || ex.title, setCustomNames && /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames);
+        return setCustomNames && promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames);
       },
-      className: "mr-1.5 align-middle text-slate-400 active:text-indigo-600",
-      title: "\u05E9\u05E0\u05D4 \u05E9\u05DD"
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: "Pencil",
-      size: 13
-    }))), dispImgSrc ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        cursor: setCustomNames ? 'pointer' : undefined
+      }
+    }, customNames[ex.id] || ex.title), dispImgSrc ? /*#__PURE__*/React.createElement("div", {
       className: "relative flex-1 min-w-0 overflow-hidden rounded-2xl",
       style: {
         height: '5rem'
@@ -4389,8 +4381,8 @@ var DetailView = memo(function DetailView(_ref19) {
       className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((notes === null || notes === void 0 ? void 0 : notes[ex.id]) || '').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600')
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "BookOpen",
-      size: 13
-    }), " \u05D0\u05D9\u05DA"), /*#__PURE__*/React.createElement("button", {
+      size: 15
+    })), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         return setHistoryOpen(function (p) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, !p[ex.id]));
@@ -4503,7 +4495,7 @@ var DetailView = memo(function DetailView(_ref19) {
       }, "\u05D0\u05D9\u05E4\u05D5\u05E1"))) : /*#__PURE__*/React.createElement("div", {
         className: "relative mb-3"
       }, /*#__PURE__*/React.createElement("p", {
-        className: "text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 font-medium"
+        className: "text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 pl-24 rounded-2xl border border-slate-200/50 font-medium min-h-[3.5rem]"
       }, customHowTo[ex.id] || ex.howTo), /*#__PURE__*/React.createElement("div", {
         className: "absolute top-2 left-2 flex items-center gap-2.5"
       }, /*#__PURE__*/React.createElement("button", {
@@ -4683,7 +4675,7 @@ var DetailView = memo(function DetailView(_ref19) {
     name: "Home",
     size: 18
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "absolute top-3 left-4 flex items-center gap-1.5"
+    className: "absolute top-3 left-4 flex flex-col items-center gap-1.5"
   }, onMusicToggle && /*#__PURE__*/React.createElement("button", {
     onClick: onMusicToggle,
     className: "p-2 backdrop-blur-xl rounded-full active:scale-90 shadow transition-all\n                        ".concat(musicPlaying ? 'bg-purple-500 text-white' : musicList.length > 0 ? 'bg-white/20 text-white' : 'bg-white/10 text-white')
@@ -4697,18 +4689,18 @@ var DetailView = memo(function DetailView(_ref19) {
     devNotesDone: devNotesDone,
     onSaveDevNote: onSaveDevNote
   })), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3 pr-14 pl-24"
-  }, group.exercises.length === 1 && setCustomNames && /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
+    className: "flex items-center gap-3 pr-14 pl-14",
+    style: {
+      minHeight: '5.2rem'
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-base font-black text-white leading-none tracking-tight",
+    onClick: group.exercises.length === 1 && setCustomNames ? function () {
       return promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames);
-    },
-    className: "p-1.5 rounded-full bg-white/25 text-white active:scale-90 shrink-0",
-    title: "\u05E9\u05E0\u05D4 \u05E9\u05DD \u05EA\u05E8\u05D2\u05D9\u05DC"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Pencil",
-    size: 14
-  })), /*#__PURE__*/React.createElement("h2", {
-    className: "text-base font-black text-white leading-none tracking-tight"
+    } : undefined,
+    style: group.exercises.length === 1 && setCustomNames ? {
+      cursor: 'pointer'
+    } : undefined
   }, /*#__PURE__*/React.createElement("span", {
     className: "font-black text-xl ml-1.5"
   }, groupIdx + 1), /*#__PURE__*/React.createElement("span", {
@@ -6740,7 +6732,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.backup && /*#__PURE__*/React.createElement("div", {
-    className: "px-4 pb-3 space-y-2.5 overflow-y-auto no-scrollbar flex-1"
+    className: "px-4 pb-3 grid grid-cols-2 gap-2 overflow-y-auto no-scrollbar flex-1"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17() {
       var h, _t21;
@@ -6767,7 +6759,7 @@ var ManageView = function ManageView(_ref30) {
         }
       }, _callee17, null, [[0, 3]]);
     })),
-    className: "w-full flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]"
+    className: "w-full flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-200 p-2 rounded-xl"
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -6781,40 +6773,34 @@ var ManageView = function ManageView(_ref30) {
     className: "text-[10px] font-bold opacity-70"
   }, backupDir || 'לחץ לבחירת ספרייה'))), /*#__PURE__*/React.createElement("button", {
     onClick: handleBackup,
-    className: "w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]"
+    className: "w-full flex items-center gap-2 bg-blue-50 p-2.5 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-blue-100 p-2 rounded-xl"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Download",
     size: 20
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-sm"
-  }, "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD"), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] font-bold opacity-70"
-  }, backupDir ? 'שמירה לספרייה' : 'שמירת קובץ'))), window.showOpenFilePicker ? /*#__PURE__*/React.createElement("button", {
+    className: "font-black text-xs"
+  }, "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD"))), window.showOpenFilePicker ? /*#__PURE__*/React.createElement("button", {
     onClick: handleRestore,
-    className: "w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]"
+    className: "w-full flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-100 p-2 rounded-xl"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Upload",
     size: 20
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-sm"
-  }, "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD"), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] font-bold opacity-70"
-  }, "\u05D1\u05D7\u05D9\u05E8\u05EA \u05E7\u05D5\u05D1\u05E5 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05DE\u05DB\u05DC \u05DE\u05E7\u05D5\u05DD (\u05DE\u05DB\u05E9\u05D9\u05E8 / \u05D2\u05D5\u05D2\u05DC \u05D3\u05E8\u05D9\u05D9\u05D1)"))) : /*#__PURE__*/React.createElement("label", {
-    className: "w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]"
+    className: "font-black text-xs"
+  }, "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD"))) : /*#__PURE__*/React.createElement("label", {
+    className: "w-full flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-100 p-2 rounded-xl"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Upload",
     size: 20
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-sm"
-  }, "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD"), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] font-bold opacity-70"
-  }, "\u05D4\u05E2\u05DC\u05D0\u05EA \u05E7\u05D5\u05D1\u05E5 \u05D2\u05D9\u05D1\u05D5\u05D9")), /*#__PURE__*/React.createElement("input", {
+    className: "font-black text-xs"
+  }, "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD")), /*#__PURE__*/React.createElement("input", {
     type: "file",
     accept: ".json",
     className: "hidden",
@@ -6850,17 +6836,15 @@ var ManageView = function ManageView(_ref30) {
         }
       }, _callee18, null, [[0, 3]]);
     })),
-    className: "w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]"
+    className: "w-full flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-100 p-2 rounded-xl"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Upload",
     size: 20
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-sm"
-  }, "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD \u05D5\u05DE\u05D5\u05D6\u05D9\u05E7\u05D4"), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] font-bold opacity-70"
-  }, "\u05D1\u05D7\u05D9\u05E8\u05EA \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 gym-media-backup (\u05DE\u05DB\u05DC \u05DE\u05E7\u05D5\u05DD)"))))), /*#__PURE__*/React.createElement("section", {
+    className: "font-black text-xs"
+  }, "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD \u05D5\u05DE\u05D5\u05D6\u05D9\u05E7\u05D4"))))), /*#__PURE__*/React.createElement("section", {
     ref: settingsRef,
     style: {
       order: ord('settings')
@@ -6882,7 +6866,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.settings && /*#__PURE__*/React.createElement("div", {
-    className: "px-4 pb-3 space-y-2.5 overflow-y-auto no-scrollbar flex-1"
+    className: "px-4 pb-3 space-y-1 overflow-y-auto no-scrollbar flex-1"
   }, [{
     label: 'מנוחה בין סטים',
     key: 'normalRest',
@@ -6910,7 +6894,7 @@ var ManageView = function ManageView(_ref30) {
       max = _ref37.max;
     return /*#__PURE__*/React.createElement("div", {
       key: key,
-      className: "flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100"
+      className: "flex justify-between items-center bg-slate-50 px-3 py-1 rounded-2xl border border-slate-100"
     }, /*#__PURE__*/React.createElement("span", {
       className: "font-bold text-sm text-slate-700"
     }, label), /*#__PURE__*/React.createElement("div", {
@@ -7855,7 +7839,7 @@ var ManageView = function ManageView(_ref30) {
     size: 18,
     className: "text-slate-400"
   })), open.reports && /*#__PURE__*/React.createElement("div", {
-    className: "px-4 pb-3 space-y-2"
+    className: "px-4 pb-3 space-y-1"
   }, function () {
     var generateReport = function generateReport(period) {
       var now = new Date();
@@ -8264,7 +8248,7 @@ var ManageView = function ManageView(_ref30) {
         onClick: function onClick() {
           return generateReport(period);
         },
-        className: "w-full flex items-center gap-3 bg-slate-50 border-slate-200 text-slate-700 p-4 rounded-2xl border active:scale-[0.98]"
+        className: "w-full flex items-center gap-3 bg-slate-50 border-slate-200 text-slate-700 p-2.5 rounded-2xl border active:scale-[0.98]"
       }, /*#__PURE__*/React.createElement("div", {
         className: "bg-slate-200 p-2 rounded-xl"
       }, /*#__PURE__*/React.createElement(Icon, {
@@ -8277,7 +8261,7 @@ var ManageView = function ManageView(_ref30) {
       }, desc)));
     }), /*#__PURE__*/React.createElement("button", {
       onClick: generateExerciseListReport,
-      className: "w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-4 rounded-2xl border active:scale-[0.98]"
+      className: "w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-2.5 rounded-2xl border active:scale-[0.98]"
     }, /*#__PURE__*/React.createElement("div", {
       className: "bg-indigo-200 p-2 rounded-xl"
     }, /*#__PURE__*/React.createElement(Icon, {
@@ -8289,7 +8273,7 @@ var ManageView = function ManageView(_ref30) {
       className: "text-[10px] font-bold opacity-70"
     }, "\u05DB\u05DC \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D4\u05E1\u05D3\u05E8 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9"))), /*#__PURE__*/React.createElement("button", {
       onClick: generateDevNotesReport,
-      className: "w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-4 rounded-2xl border active:scale-[0.98]"
+      className: "w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-2.5 rounded-2xl border active:scale-[0.98]"
     }, /*#__PURE__*/React.createElement("div", {
       className: "bg-amber-200 p-2 rounded-xl"
     }, /*#__PURE__*/React.createElement(Icon, {
@@ -9497,7 +9481,13 @@ function App() {
     _useState216 = _slicedToArray(_useState215, 2),
     devNotesDone = _useState216[0],
     setDevNotesDone = _useState216[1];
+  // v10.38: איפוס חד-פעמי של כל היסטוריית התיקונים (לפי בקשת איתן 12.11.26) — מכאן והלאה הערות שהוטמעו נכנסות להיסטוריה אוטומטית
   var _useState217 = useState(function () {
+      if (!LS.get('gym-hist-wiped-1038', false)) {
+        LS.set('gym-hist-wiped-1038', true);
+        LS.set('gym-dev-notes-history', []);
+        return [];
+      }
       return LS.get('gym-dev-notes-history', []);
     }),
     _useState218 = _slicedToArray(_useState217, 2),
@@ -12618,7 +12608,7 @@ function App() {
     className: "space-y-3"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     className: "block text-sm font-bold text-slate-600 mb-2"
-  }, "\u05EA\u05D7\u05D9\u05DC\u05EA \u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05D1\u05DE\u05DB\u05D5\u05DF"), /*#__PURE__*/React.createElement("input", {
+  }, "\u05EA\u05D7\u05D9\u05DC\u05EA \u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     value: new Date((_editingDates$gymStar = editingDates.gymStart) !== null && _editingDates$gymStar !== void 0 ? _editingDates$gymStar : sessionStartTime).toISOString().split('T')[0],
     onChange: function onChange(e) {
@@ -13038,25 +13028,24 @@ function App() {
       }
     }, function () {
       var gs = new Date(gymStartTime !== null && gymStartTime !== void 0 ? gymStartTime : sessionStartTime);
-      var mo = (now.getFullYear() - gs.getFullYear()) * 12 + (now.getMonth() - gs.getMonth());
-      if (now.getDate() < gs.getDate()) mo--;
-      mo = Math.max(0, mo);
+      // מרווחים של חצי חודש (ח')
+      var mo = Math.max(0, Math.floor((now.getTime() - gs.getTime()) / 86400000 / 15.2) / 2);
       return /*#__PURE__*/React.createElement("div", {
         className: "flex items-baseline gap-1.5 flex-wrap mb-1.5 pb-1.5 border-b border-slate-100"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[9px] font-bold text-slate-400 tracking-wide"
-      }, "\u05EA\u05D7\u05D9\u05DC\u05EA \u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05D1\u05DE\u05DB\u05D5\u05DF"), /*#__PURE__*/React.createElement("span", {
+      }, "\u05EA\u05D7\u05D9\u05DC\u05EA \u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD"), /*#__PURE__*/React.createElement("span", {
         className: "text-[13px] font-black text-slate-800 leading-none"
       }, gs.toLocaleDateString('he-IL', {
         day: '2-digit',
         month: '2-digit',
         year: '2-digit'
       })), /*#__PURE__*/React.createElement("span", {
-        className: "text-[11px] font-black leading-none",
+        className: "text-[16px] font-black leading-none",
         style: {
           color: '#0d9488'
         }
-      }, mo === 0 ? 'פחות מחודש' : "\u05DB-".concat(mo, " \u05D7\u05D5\u05D3\u05E9\u05D9\u05DD")));
+      }, mo === 0 ? 'פחות מ-½ ח׳' : "".concat(mo, " \u05D7\u05F3")));
     }(), /*#__PURE__*/React.createElement("div", {
       className: "flex gap-5 items-start mb-1"
     }, /*#__PURE__*/React.createElement("div", {
@@ -13414,7 +13403,7 @@ function App() {
       handleSkipGroup(g.id);
     }
   }), /*#__PURE__*/React.createElement("nav", {
-    className: "fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl",
+    className: "fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-3 pt-4 flex justify-around items-center z-50 rounded-t-3xl",
     style: {
       paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
       background: '#ffffff',
@@ -13437,19 +13426,18 @@ function App() {
     className: "text-[11px] font-black"
   }, "\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      setManageOpenSection('reports');
-      navigateTo('manage');
+      return navigateTo('history');
     },
     className: "flex flex-col items-center gap-1 active:opacity-70",
     style: {
       color: '#2d4a6f'
     }
   }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Download",
+    name: "History",
     size: 24
   }), /*#__PURE__*/React.createElement("span", {
     className: "text-[11px] font-black"
-  }, "\u05D3\u05D5\u05D7\u05D5\u05EA")), /*#__PURE__*/React.createElement("button", {
+  }, "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4")), /*#__PURE__*/React.createElement("button", {
     onClick: handleNewWorkoutClick,
     className: "flex flex-col items-center gap-1 active:opacity-70",
     style: {
@@ -13466,6 +13454,20 @@ function App() {
   })), /*#__PURE__*/React.createElement("span", {
     className: "text-[11px] font-black"
   }, "\u05D0\u05D9\u05DE\u05D5\u05DF \u05D7\u05D3\u05E9")), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setManageOpenSection('reports');
+      navigateTo('manage');
+    },
+    className: "flex flex-col items-center gap-1 active:opacity-70",
+    style: {
+      color: '#2d4a6f'
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Download",
+    size: 24
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-black"
+  }, "\u05D3\u05D5\u05D7\u05D5\u05EA")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return navigateTo('manage');
     },

@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.37';
+const APP_VERSION = '10.38';
 
 const getDayNameHe   = ts => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(ts).getDay()];
 const getDayLetterHe = ts => ['א','ב','ג','ד','ה','ו','ש'][new Date(ts).getDay()];
@@ -1286,7 +1286,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     : ''}`}
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
                                 <span className="text-[17px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
-                                <span className="text-[10px] leading-none opacity-90">{isWarm ? 'חימום' : `סט ${num}`} · {changed ? 'עדכן' : isSkipC ? 'דולג' : isDone ? 'בוצע' : isSaving ? '...' : showCDown ? 'המתן' : 'סיום'}</span>
                             </button>
                             <div className="flex flex-row gap-1 min-w-0">
                                 <div className="flex-1 min-w-0"><Roller label="ק״ג" compact selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ if (selNum===num && selField==='w') return true; setSelNum(num); setSelField('w'); return false; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
@@ -1889,7 +1888,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     /* סופרסט: שמאל = כותרת + תמונה, ימין = וידאו */
                     <div className="flex gap-2 mb-0" style={{minHeight:'7rem'}}>
                         <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                            <div className="text-sm font-black text-slate-800 leading-tight px-0.5" onDoubleClick={()=>promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames)}>{customNames[ex.id] || ex.title}{setCustomNames && <button onClick={()=>promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames)} className="mr-1.5 align-middle text-slate-400 active:text-indigo-600" title="שנה שם"><Icon name="Pencil" size={13} /></button>}</div>
+                            <div className="text-sm font-black text-slate-800 leading-tight px-0.5" onClick={()=>setCustomNames && promptRenameExercise(ex.id, customNames[ex.id] || ex.title, setCustomNames)} style={{cursor:setCustomNames?'pointer':undefined}}>{customNames[ex.id] || ex.title}</div>
                             {dispImgSrc ? (
                                 <div className="relative flex-1 min-w-0 overflow-hidden rounded-2xl" style={{height:'5rem'}}>
                                     <img src={dispImgSrc} alt="" aria-hidden="true" draggable={false} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{filter:'blur(14px) brightness(0.92)', transform:'scale(1.25)'}} />
@@ -1940,7 +1939,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${(notes?.[ex.id]||'').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
-                        <Icon name="BookOpen" size={13} /> איך
+                        <Icon name="BookOpen" size={15} />
                     </button>
                     <button onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
@@ -2014,7 +2013,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 </div>
                             ) : (
                                 <div className="relative mb-3">
-                                    <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 rounded-2xl border border-slate-200/50 font-medium">
+                                    <p className="text-[13px] text-slate-600 leading-relaxed bg-white/60 p-3 pl-24 rounded-2xl border border-slate-200/50 font-medium min-h-[3.5rem]">
                                         {customHowTo[ex.id] || ex.howTo}
                                     </p>
                                     <div className="absolute top-2 left-2 flex items-center gap-2.5">
@@ -2112,7 +2111,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     <Icon name="Home" size={18} />
                 </button>
             </div>
-            <div className="absolute top-3 left-4 flex items-center gap-1.5">
+            <div className="absolute top-3 left-4 flex flex-col items-center gap-1.5">
                 {onMusicToggle && (
                     <button onClick={onMusicToggle} className={`p-2 backdrop-blur-xl rounded-full active:scale-90 shadow transition-all
                         ${musicPlaying ? 'bg-purple-500 text-white' : musicList.length > 0 ? 'bg-white/20 text-white' : 'bg-white/10 text-white'}`}>
@@ -2123,12 +2122,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     pageLabel={group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
                     devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} />
             </div>
-            <div className="flex items-center gap-3 pr-14 pl-24">
-                {group.exercises.length===1 && setCustomNames && (
-                    <button onClick={()=>promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames)}
-                        className="p-1.5 rounded-full bg-white/25 text-white active:scale-90 shrink-0" title="שנה שם תרגיל"><Icon name="Pencil" size={14} /></button>
-                )}
-                <h2 className="text-base font-black text-white leading-none tracking-tight">
+            <div className="flex items-center gap-3 pr-14 pl-14" style={{minHeight:'5.2rem'}}>
+                <h2 className="text-base font-black text-white leading-none tracking-tight" onClick={group.exercises.length===1 && setCustomNames ? ()=>promptRenameExercise(group.exercises[0].id, customNames[group.exercises[0].id] || group.exercises[0].title, setCustomNames) : undefined} style={group.exercises.length===1 && setCustomNames ? {cursor:'pointer'} : undefined}>
                     <span className="font-black text-xl ml-1.5">{groupIdx+1}</span><span className="opacity-60 font-bold text-sm">/{totalGroups}</span>
                     <span className="opacity-60 font-bold text-xs mx-1">({group.category})</span>
                     {group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
@@ -2926,28 +2921,28 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Database" size={20} className="text-sky-500" /> גיבוי ושחזור</h3>
                         <Icon name={open.backup?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.backup && <div className="px-4 pb-3 space-y-2.5 overflow-y-auto no-scrollbar flex-1">
+                    {open.backup && <div className="px-4 pb-3 grid grid-cols-2 gap-2 overflow-y-auto no-scrollbar flex-1">
                         <button onClick={async()=>{try{const h=await window.showDirectoryPicker();await saveBackupDirHandle(h);setBackupDir(h.name);showToast('ספריית גיבוי נשמרה');}catch{}}}
-                            className="w-full flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]">
+                            className="w-full flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 text-slate-600 active:scale-[0.98]">
                             <div className="bg-slate-200 p-2 rounded-xl"><Icon name="FolderOpen" size={20} /></div>
                             <div className="flex-1 text-right">
                                 <div className="font-black text-sm">ספריית גיבוי</div>
                                 <div className="text-[10px] font-bold opacity-70">{backupDir || 'לחץ לבחירת ספרייה'}</div>
                             </div>
                         </button>
-                        <button onClick={handleBackup} className="w-full flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
+                        <button onClick={handleBackup} className="w-full flex items-center gap-2 bg-blue-50 p-2.5 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
-                            <div><div className="font-black text-sm">גיבוי נתונים</div><div className="text-[10px] font-bold opacity-70">{backupDir ? 'שמירה לספרייה' : 'שמירת קובץ'}</div></div>
+                            <div><div className="font-black text-xs">גיבוי נתונים</div></div>
                         </button>
                         {window.showOpenFilePicker ? (
-                            <button onClick={handleRestore} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
+                            <button onClick={handleRestore} className="w-full flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
                                 <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                                <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">בחירת קובץ גיבוי מכל מקום (מכשיר / גוגל דרייב)</div></div>
+                                <div><div className="font-black text-xs">שחזור נתונים</div></div>
                             </button>
                         ) : (
-                            <label className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]">
+                            <label className="w-full flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100 text-indigo-700 cursor-pointer active:scale-[0.98]">
                                 <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                                <div><div className="font-black text-sm">שחזור נתונים</div><div className="text-[10px] font-bold opacity-70">העלאת קובץ גיבוי</div></div>
+                                <div><div className="font-black text-xs">שחזור נתונים</div></div>
                                 <input type="file" accept=".json" className="hidden" onChange={handleRestoreFallback} />
                             </label>
                         )}
@@ -2959,9 +2954,9 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                     if (nm > 0) { showToast(`שוחזרו ${nm} קבצי מדיה (סרטונים/מוזיקה) — טוען מחדש`); setTimeout(()=>location.reload(), 1800); }
                                     else showToast('לא נמצאו קבצי מדיה בתיקייה שנבחרה', true);
                                 } catch {}
-                            }} className="w-full flex items-center gap-3 bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
+                            }} className="w-full flex items-center gap-2 bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100 text-indigo-700 active:scale-[0.98]">
                                 <div className="bg-indigo-100 p-2 rounded-xl"><Icon name="Upload" size={20} /></div>
-                                <div><div className="font-black text-sm">שחזור סרטונים ומוזיקה</div><div className="text-[10px] font-bold opacity-70">בחירת התיקייה gym-media-backup (מכל מקום)</div></div>
+                                <div><div className="font-black text-xs">שחזור סרטונים ומוזיקה</div></div>
                             </button>
                         )}
                     </div>}
@@ -2972,14 +2967,14 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Settings" size={20} className="text-orange-500" /> הגדרות אימון</h3>
                         <Icon name={open.settings?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.settings && <div className="px-4 pb-3 space-y-2.5 overflow-y-auto no-scrollbar flex-1">
+                    {open.settings && <div className="px-4 pb-3 space-y-1 overflow-y-auto no-scrollbar flex-1">
                         {[
                             {label:'מנוחה בין סטים',      key:'normalRest',   min:30, max:300},
                             {label:'מנוחה בין תרגילים',   key:'exerciseRest', min:30, max:300},
                             {label:'מנוחה לסופר-סט',      key:'supersetRest', min:20, max:180},
                             {label:'מנוחה לתרגיל חימום',  key:'warmupRest',   min:20, max:180}
                         ].map(({label,key,min,max})=>(
-                            <div key={key} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <div key={key} className="flex justify-between items-center bg-slate-50 px-3 py-1 rounded-2xl border border-slate-100">
                                 <span className="font-bold text-sm text-slate-700">{label}</span>
                                 <div className="flex items-center gap-2">
                                     <button onClick={()=>onUpdateSettings(key,Math.max(min,(settings[key]||90)-10))}
@@ -3398,7 +3393,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Download" size={20} className="text-cyan-500" /> דוחות</h3>
                         <Icon name={open.reports?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
-                    {open.reports && <div className="px-4 pb-3 space-y-2">
+                    {open.reports && <div className="px-4 pb-3 space-y-1">
                         {(()=>{
                             const generateReport = (period) => {
                                 const now = new Date();
@@ -3606,16 +3601,16 @@ ${markImplemented(t)}\n\n`; });
                                     {period:'month', label:'דוח חודשי', desc:'30 ימים אחרונים'},
                                     {period:'all', label:'דוח כולל', desc:'כל הנתונים'}
                                 ].map(({period,label,desc}) => (
-                                    <button key={period} onClick={()=>generateReport(period)} className="w-full flex items-center gap-3 bg-slate-50 border-slate-200 text-slate-700 p-4 rounded-2xl border active:scale-[0.98]">
+                                    <button key={period} onClick={()=>generateReport(period)} className="w-full flex items-center gap-3 bg-slate-50 border-slate-200 text-slate-700 p-2.5 rounded-2xl border active:scale-[0.98]">
                                         <div className="bg-slate-200 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
                                         <div><div className="font-black text-sm">{label}</div><div className="text-[10px] font-bold opacity-70">{desc}</div></div>
                                     </button>
                                 ))}
-                                <button onClick={generateExerciseListReport} className="w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-4 rounded-2xl border active:scale-[0.98]">
+                                <button onClick={generateExerciseListReport} className="w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-2.5 rounded-2xl border active:scale-[0.98]">
                                     <div className="bg-indigo-200 p-2 rounded-xl"><Icon name="Dumbbell" size={20} /></div>
                                     <div><div className="font-black text-sm">רשימת תרגילים</div><div className="text-[10px] font-bold opacity-70">כל התרגילים לפי הסדר הנוכחי</div></div>
                                 </button>
-                                <button onClick={generateDevNotesReport} className="w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-4 rounded-2xl border active:scale-[0.98]">
+                                <button onClick={generateDevNotesReport} className="w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-2.5 rounded-2xl border active:scale-[0.98]">
                                     <div className="bg-amber-200 p-2 rounded-xl"><Icon name="BookOpen" size={20} /></div>
                                     <div><div className="font-black text-sm">הערות לשיפור</div><div className="text-[10px] font-bold opacity-70">חדשות + היסטוריית תיקונים עם תאריכים</div></div>
                                 </button>
@@ -4123,7 +4118,8 @@ function App() {
     const [notes,            setNotes]            = useState(()=>LS.get('gym-notes',{}));
     const [devNotes,         setDevNotes]         = useState(()=>LS.get('gym-dev-notes',{}));
     const [devNotesDone,     setDevNotesDone]     = useState(()=>LS.get('gym-dev-notes-done',{}));
-    const [devNotesHistory,  setDevNotesHistory]  = useState(()=>LS.get('gym-dev-notes-history',[]));
+    // v10.38: איפוס חד-פעמי של כל היסטוריית התיקונים (לפי בקשת איתן 12.11.26) — מכאן והלאה הערות שהוטמעו נכנסות להיסטוריה אוטומטית
+    const [devNotesHistory,  setDevNotesHistory]  = useState(()=>{ if (!LS.get('gym-hist-wiped-1038', false)) { LS.set('gym-hist-wiped-1038', true); LS.set('gym-dev-notes-history', []); return []; } return LS.get('gym-dev-notes-history',[]); });
     // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
     const [filingDirName, setFilingDirName] = useState(null);
     const [filingLoaded, setFilingLoaded] = useState(false);
@@ -5718,7 +5714,7 @@ function App() {
                         <h3 className="text-lg font-black text-slate-800 text-center">עדכון תאריכים</h3>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-bold text-slate-600 mb-2">תחילת אימונים במכון</label>
+                                <label className="block text-sm font-bold text-slate-600 mb-2">תחילת אימונים</label>
                                 <input type="date" value={new Date(editingDates.gymStart ?? sessionStartTime).toISOString().split('T')[0]}
                                     onChange={e=>{ if (e.target.value) setEditingDates({...editingDates, gymStart: new Date(e.target.value).getTime()}); }}
                                     className="w-full p-3 border border-slate-200 rounded-2xl font-bold text-slate-800" />
@@ -5834,14 +5830,13 @@ function App() {
                                 style={{WebkitUserSelect:'none'}}>
                                 {(()=>{
                                     const gs = new Date(gymStartTime ?? sessionStartTime);
-                                    let mo = (now.getFullYear()-gs.getFullYear())*12 + (now.getMonth()-gs.getMonth());
-                                    if (now.getDate() < gs.getDate()) mo--;
-                                    mo = Math.max(0, mo);
+                                    // מרווחים של חצי חודש (ח')
+                                    const mo = Math.max(0, Math.floor(((now.getTime() - gs.getTime()) / 86400000) / 15.2) / 2);
                                     return (
                                         <div className="flex items-baseline gap-1.5 flex-wrap mb-1.5 pb-1.5 border-b border-slate-100">
-                                            <span className="text-[9px] font-bold text-slate-400 tracking-wide">תחילת אימונים במכון</span>
+                                            <span className="text-[9px] font-bold text-slate-400 tracking-wide">תחילת אימונים</span>
                                             <span className="text-[13px] font-black text-slate-800 leading-none">{gs.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
-                                            <span className="text-[11px] font-black leading-none" style={{color:'#0d9488'}}>{mo === 0 ? 'פחות מחודש' : `כ-${mo} חודשים`}</span>
+                                            <span className="text-[16px] font-black leading-none" style={{color:'#0d9488'}}>{mo === 0 ? 'פחות מ-½ ח׳' : `${mo} ח׳`}</span>
                                         </div>
                                     );
                                 })()}
@@ -6004,17 +5999,20 @@ function App() {
             {skipGroupDlg && <SkipReasonModal title={skipGroupDlg.title} onCancel={()=>setSkipGroupDlg(null)}
                 onConfirm={txt=>{ const g=skipGroupDlg; setSkipGroupDlg(null); if ((txt||'').trim()) setSkipReasons(prev=>{ const n={...prev}; g.exercises.forEach(e=>{ n[`${workoutStartTime}:${e.id}`]=txt.trim(); }); return n; }); handleSkipGroup(g.id); }} />}
 
-            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-8 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', borderTopColor:'rgba(45,74,111,0.18)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
+            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-3 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', borderTopColor:'rgba(45,74,111,0.18)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
                 <button onClick={()=>{setManageOpenSection('exercises');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
                     <Icon name="Dumbbell" size={24} /><span className="text-[11px] font-black">תרגילים</span>
                 </button>
-                <button onClick={()=>{setManageOpenSection('reports');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
-                    <Icon name="Download" size={24} /><span className="text-[11px] font-black">דוחות</span>
+                <button onClick={()=>navigateTo('history')} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
+                    <Icon name="History" size={24} /><span className="text-[11px] font-black">היסטוריה</span>
                 </button>
                 <button onClick={handleNewWorkoutClick}
                     className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-white" style={{background:'linear-gradient(145deg, #3b5998, #2d4a6f)'}}><Icon name="Plus" size={16} /></div>
                     <span className="text-[11px] font-black">אימון חדש</span>
+                </button>
+                <button onClick={()=>{setManageOpenSection('reports');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
+                    <Icon name="Download" size={24} /><span className="text-[11px] font-black">דוחות</span>
                 </button>
                 <button onClick={()=>navigateTo('manage')} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
                     <Icon name="Settings" size={24} /><span className="text-[11px] font-black">ניהול</span>
