@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.43';
+const APP_VERSION = '10.44';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1283,13 +1283,13 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     return (
                         <div key={num} onClick={(e)=>{ if (e.target.closest && e.target.closest('button')) return; if (selNum !== num) { setSelNum(num); setSelField(null); } }}
                             style={{...borderSt, borderRadius:'1rem', ...(dimDone && !isSkipC ? {filter:'grayscale(0.85) opacity(0.65)'} : {}), ...(isSel ? {outline:'3px solid #3b82f6', outlineOffset:'1px'} : {})}}
-                            className={`relative p-1 flex flex-col gap-1 transition-all ${isSkipC ? 'bg-orange-100' : isWarm ? 'bg-amber-50' : isDone ? 'bg-slate-300' : 'bg-white'}`}>
+                            className={`relative p-1 flex flex-row gap-1 items-stretch transition-all ${isSkipC ? 'bg-orange-100' : isWarm ? 'bg-amber-50' : isDone ? 'bg-slate-300' : 'bg-white'}`}>
                             <button onClick={(e)=>{ e.stopPropagation(); if (!canActFinal) return; setSelNum(null); setSelField(null);
                                 if (isWarm) { handleWarmupSave(); return; }
                                 if (isTimerEx) { if (timerState?.num===num) { clearInterval(timerIntervalRef.current); setTimerState(null); } handleSetSave(num, {...state, r: isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs}); return; }
                                 handleSetSave(num, state); }}
                                 aria-disabled={!canActFinal}
-                                className={`w-full h-[30px] rounded-xl flex flex-row gap-1.5 items-center justify-center shrink-0 font-black text-white active:scale-95 transition-all
+                                className={`flex-1 min-w-0 min-h-[40px] rounded-xl flex flex-row gap-1.5 items-center justify-center font-black text-white active:scale-95 transition-all
                                     ${changed ? 'bg-amber-400 !text-amber-900'
                                     : isSkipC ? 'bg-orange-500'
                                     : isWarm && isDone ? 'bg-amber-700'
@@ -1301,7 +1301,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
                                 <span className="text-[17px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
                             </button>
-                            <div className="flex flex-row gap-1 min-w-0">
+                            <div className="contents">
                                 <div className="flex-1 min-w-0"><Roller label="ק״ג" compact selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ if (selNum===num && selField==='w') return true; setSelNum(num); setSelField('w'); return false; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
                                     onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
                                     presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} /></div>
@@ -1343,7 +1343,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     );
                 };
                 return (
-                    <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 46px 1fr'}}>
+                    <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 46px'}}>
                             {(()=>{
                                 // סדר התאים (מימין לשמאל, שורה אחר שורה): חימום (אם יש) בפינה הימנית העליונה;
                                 // עם חימום ועד 2 סטים — השורה השנייה היא סט 1 מימין וסט 2 משמאלו; עם סט 3+ הסטים נמשכים
@@ -1353,17 +1353,17 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 const addBtn = (
                                     <button key="add" onClick={handleAddExtraSet}
                                         className="rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-[13px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center"
-                                        style={{minHeight:64}}>+ סט</button>
+                                        style={{minHeight:36}}>+ סט</button>
                                 );
                                 const order = warm
                                     ? [cell(warm), ...sets.map(cell), addBtn]
                                     : [...sets.map(cell), addBtn];
                                 // החצים צמודים לשורת הסט הנבחר בלבד (ולא נמתחים על כל השורות)
                                 const selK = Math.max(0, order.findIndex(el => el && String(el.key) === String(selEff)));
-                                const arrowRow = Math.floor(selK/2) + 1;
+                                const arrowRow = selK + 1;
                                 // חצי המשקל/חזרות בעמודה אמצעית — בין שני הסטים בכל שורה
                                 return [
-                                    ...order.map((el, k) => <div key={el.key ?? k} className="min-w-0 flex flex-col" style={{gridColumn: k%2===0 ? 1 : 3, gridRow: Math.floor(k/2)+1}}>{el}</div>),
+                                    ...order.map((el, k) => <div key={el.key ?? k} className="min-w-0 flex flex-col" style={{gridColumn: 1, gridRow: k+1}}>{el}</div>),
                                     <div key="arrows" className="flex flex-col gap-1" style={{gridColumn:2, gridRow:`${arrowRow} / span 2`, minHeight:92, alignSelf:'start'}}>
                                         {stepField==='w'
                                             ? <button onClick={cycleQuickStep} className="text-[10px] font-black text-blue-600 text-center leading-none py-0.5 rounded-md bg-blue-50 active:scale-95 whitespace-nowrap">±{quickStep || (weightValues ? 'מכשיר' : weightStep)}</button>
@@ -2241,12 +2241,15 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 });
                 // התרגיל הבא לפי סדר האימון (הראשון שטרם הסתיים אחרי התרגיל הנוכחי) מופיע גם בשורת "בעבודה" למטה
                 const curIdxF = allGroups.findIndex(g => g.id === group.id);
-                const nextOrdG = allGroups.find((g, i) => i > curIdxF && !isGroupDoneHere(g) && !isSkipG(g) && g.id !== group.id);
+                // אחרי התרגיל הנוכחי; ואם אין — חוזרים להתחלה (למשל התרגיל הראשון שטרם בוצע)
+                const nextPend = (g, i) => !isGroupDoneHere(g) && !isSkipG(g) && g.id !== group.id;
+                const nextOrdG = allGroups.find((g, i) => i > curIdxF && nextPend(g, i)) || allGroups.find((g, i) => i < curIdxF && nextPend(g, i));
                 const belowIds = new Set([...inProgIds, ...(nextOrdG ? [nextOrdG.id] : [])]);
                 const rtOfBelow = g => { const own = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0)); const f = fwdTimers[g.id]; return Math.max(own, f ? f.rt : 0); };
                 // מסגרת הטיימר הכתומה בשורת "בעבודה" — רק על המד המתקדם ביותר (זה שנשאר לו הכי מעט זמן); השניות מוצגות בכולם
                 let ringBestId = null, ringBestRt = Infinity;
-                allGroups.forEach(g => { if (!belowIds.has(g.id)) return; const r = rtOfBelow(g); if (r > 0 && r < ringBestRt) { ringBestRt = r; ringBestId = g.id; } });
+                // המסגרת אחת בלבד בכל המניפה (סרט + שורת "בעבודה") — על התרגיל שנשאר לו הכי מעט זמן
+                allGroups.forEach(g => { if (isGroupDoneHere(g) || skippedGroups.includes(g.id)) return; const r = rtOfBelow(g); if (r > 0 && r < ringBestRt) { ringBestRt = r; ringBestId = g.id; } });
                 return (
                     <div className="mt-3 rounded-[1.6rem] border-2 border-slate-300 px-1 pt-2 pb-1"
                          style={{background:'linear-gradient(180deg,#f8fafc,#e2e8f0)', boxShadow:'inset 0 2px 6px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.08)'}}>
@@ -2273,7 +2276,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 const gFin = !done && !hideT && gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
                                 return (
                                     <div key={g.id} data-gid={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM, scrollSnapAlign:'center' }}>
-                                    <FilmTimerRing rt={gRt} tot={gTot} cur={isCur}>
+                                    <FilmTimerRing rt={g.id === ringBestId ? gRt : 0} tot={gTot} cur={isCur}>
                                     <button onClick={()=>goTo(g)}
                                         className="relative rounded-2xl overflow-hidden bg-slate-100 fade-in transition-all active:scale-95"
                                         style={{ width:ITEM, height:ITEM,
@@ -4040,6 +4043,8 @@ function App() {
     const [backupBannerTick, setBackupBannerTick] = useState(0); // רק לרענון הבאנר אחרי גיבוי
     const [manageOpenSection, setManageOpenSection] = useState(null);
     const navigateTo = useCallback((newView) => {
+        // אין דף היסטוריה נפרד — "היסטוריה" פותחת את חלק ההיסטוריה שבתוך "ניהול"
+        if (newView === 'history') { setManageOpenSection('history'); newView = 'manage'; }
         setView(currentView => {
             if (currentView !== newView) setPrevView(currentView);
             return newView;
