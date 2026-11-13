@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.44';
+const APP_VERSION = '10.45';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1289,7 +1289,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 if (isTimerEx) { if (timerState?.num===num) { clearInterval(timerIntervalRef.current); setTimerState(null); } handleSetSave(num, {...state, r: isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs}); return; }
                                 handleSetSave(num, state); }}
                                 aria-disabled={!canActFinal}
-                                className={`flex-1 min-w-0 min-h-[40px] rounded-xl flex flex-row gap-1.5 items-center justify-center font-black text-white active:scale-95 transition-all
+                                className={`w-[30px] h-[26px] self-center shrink-0 rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all
                                     ${changed ? 'bg-amber-400 !text-amber-900'
                                     : isSkipC ? 'bg-orange-500'
                                     : isWarm && isDone ? 'bg-amber-700'
@@ -1299,10 +1299,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     : !canAct ? 'bg-slate-300'
                                     : ''}`}
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
-                                <span className="text-[17px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
+                                <span className="text-[15px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
                             </button>
                             <div className="contents">
-                                <div className="flex-1 min-w-0"><Roller label="ק״ג" compact selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ if (selNum===num && selField==='w') return true; setSelNum(num); setSelField('w'); return false; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
+                                <div className="flex-1 min-w-0"><Roller label="ק״ג" compact selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ setSelNum(num); setSelField('w'); return true; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
                                     onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
                                     presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1321,7 +1321,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                         </button>
                                     </div>
                                 ) : (
-                                <Roller label="חז׳" compact selected={isSel && selNum===num && selField==='r'} onTap={()=>{ if (selNum===num && selField==='r') return true; setSelNum(num); setSelField('r'); return false; }} min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
+                                <Roller label="חז׳" compact selected={isSel && selNum===num && selField==='r'} onTap={()=>{ setSelNum(num); setSelField('r'); return true; }} min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
                                     onChange={v=>setState(p=>({...p,r:v,rC:true}))}
                                     presets={repsPresets} jumpSteps={repsJumpSteps} />
                                 )}
@@ -1343,7 +1343,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     );
                 };
                 return (
-                    <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 46px'}}>
+                    <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 1fr'}}>
                             {(()=>{
                                 // סדר התאים (מימין לשמאל, שורה אחר שורה): חימום (אם יש) בפינה הימנית העליונה;
                                 // עם חימום ועד 2 סטים — השורה השנייה היא סט 1 מימין וסט 2 משמאלו; עם סט 3+ הסטים נמשכים
@@ -1352,8 +1352,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 const sets = infos.filter(i => !i.isWarm);
                                 const addBtn = (
                                     <button key="add" onClick={handleAddExtraSet}
-                                        className="rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-[13px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center"
-                                        style={{minHeight:36}}>+ סט</button>
+                                        className="rounded-xl border border-dashed border-slate-300 text-slate-400 text-[12px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center"
+                                        style={{height:36}}>+ סט</button>
                                 );
                                 const order = warm
                                     ? [cell(warm), ...sets.map(cell), addBtn]
@@ -1363,13 +1363,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 const arrowRow = selK + 1;
                                 // חצי המשקל/חזרות בעמודה אמצעית — בין שני הסטים בכל שורה
                                 return [
-                                    ...order.map((el, k) => <div key={el.key ?? k} className="min-w-0 flex flex-col" style={{gridColumn: 1, gridRow: k+1}}>{el}</div>),
-                                    <div key="arrows" className="flex flex-col gap-1" style={{gridColumn:2, gridRow:`${arrowRow} / span 2`, minHeight:92, alignSelf:'start'}}>
-                                        {stepField==='w'
-                                            ? <button onClick={cycleQuickStep} className="text-[10px] font-black text-blue-600 text-center leading-none py-0.5 rounded-md bg-blue-50 active:scale-95 whitespace-nowrap">±{quickStep || (weightValues ? 'מכשיר' : weightStep)}</button>
-                                            : <span className="text-[11px] font-black text-blue-600 text-center leading-none">{(isTimerEx && selInfo && !selInfo.isWarm ? 'שניות' : 'חזרות')}</span>}
-                                        {stepBtn(1)}{stepBtn(-1)}
-                                    </div>
+                                    ...order.map((el, k) => <div key={el.key ?? k} className="min-w-0 flex flex-col" style={{gridColumn: (k%2)+1, gridRow: Math.floor(k/2)+1}}>{el}</div>),
                                 ];
                             })()}
                     </div>
@@ -2244,7 +2238,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 // אחרי התרגיל הנוכחי; ואם אין — חוזרים להתחלה (למשל התרגיל הראשון שטרם בוצע)
                 const nextPend = (g, i) => !isGroupDoneHere(g) && !isSkipG(g) && g.id !== group.id;
                 const nextOrdG = allGroups.find((g, i) => i > curIdxF && nextPend(g, i)) || allGroups.find((g, i) => i < curIdxF && nextPend(g, i));
-                const belowIds = new Set([...inProgIds, ...(nextOrdG ? [nextOrdG.id] : [])]);
+                const belowIds = new Set([...inProgIds, group.id, ...(nextOrdG ? [nextOrdG.id] : [])]);
                 const rtOfBelow = g => { const own = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0)); const f = fwdTimers[g.id]; return Math.max(own, f ? f.rt : 0); };
                 // מסגרת הטיימר הכתומה בשורת "בעבודה" — רק על המד המתקדם ביותר (זה שנשאר לו הכי מעט זמן); השניות מוצגות בכולם
                 let ringBestId = null, ringBestRt = Infinity;

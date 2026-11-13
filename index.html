@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.44';
+var APP_VERSION = '10.45';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -3045,12 +3045,12 @@ function ExerciseEntryRow(_ref11) {
           handleSetSave(num, state);
         },
         "aria-disabled": !canActFinal,
-        className: "flex-1 min-w-0 min-h-[40px] rounded-xl flex flex-row gap-1.5 items-center justify-center font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
+        className: "w-[30px] h-[26px] self-center shrink-0 rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
         style: !isWarm && !isDone && !showCDown && canAct ? {
           background: isActive ? accentColor : '#16a34a'
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
-        className: "text-[17px] leading-none"
+        className: "text-[15px] leading-none"
       }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num)), /*#__PURE__*/React.createElement("div", {
         className: "contents"
       }, /*#__PURE__*/React.createElement("div", {
@@ -3060,10 +3060,9 @@ function ExerciseEntryRow(_ref11) {
         compact: true,
         selected: isSel && stepField === 'w' && selNum === num && selField === 'w',
         onTap: function onTap() {
-          if (selNum === num && selField === 'w') return true;
           setSelNum(num);
           setSelField('w');
-          return false;
+          return true;
         },
         min: 0,
         max: 250,
@@ -3112,10 +3111,9 @@ function ExerciseEntryRow(_ref11) {
         compact: true,
         selected: isSel && selNum === num && selField === 'r',
         onTap: function onTap() {
-          if (selNum === num && selField === 'r') return true;
           setSelNum(num);
           setSelField('r');
-          return false;
+          return true;
         },
         min: 1,
         max: 120,
@@ -3156,7 +3154,7 @@ function ExerciseEntryRow(_ref11) {
       className: "grid gap-1.5 items-stretch",
       dir: "rtl",
       style: {
-        gridTemplateColumns: '1fr 46px'
+        gridTemplateColumns: '1fr 1fr'
       }
     }, function () {
       // סדר התאים (מימין לשמאל, שורה אחר שורה): חימום (אם יש) בפינה הימנית העליונה;
@@ -3171,9 +3169,9 @@ function ExerciseEntryRow(_ref11) {
       var addBtn = /*#__PURE__*/React.createElement("button", {
         key: "add",
         onClick: handleAddExtraSet,
-        className: "rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-[13px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center",
+        className: "rounded-xl border border-dashed border-slate-300 text-slate-400 text-[12px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center",
         style: {
-          minHeight: 36
+          height: 36
         }
       }, "+ \u05E1\u05D8");
       var order = warm ? [cell(warm)].concat(_toConsumableArray(sets.map(cell)), [addBtn]) : [].concat(_toConsumableArray(sets.map(cell)), [addBtn]);
@@ -3183,31 +3181,17 @@ function ExerciseEntryRow(_ref11) {
       }));
       var arrowRow = selK + 1;
       // חצי המשקל/חזרות בעמודה אמצעית — בין שני הסטים בכל שורה
-      return [].concat(_toConsumableArray(order.map(function (el, k) {
+      return _toConsumableArray(order.map(function (el, k) {
         var _el$key;
         return /*#__PURE__*/React.createElement("div", {
           key: (_el$key = el.key) !== null && _el$key !== void 0 ? _el$key : k,
           className: "min-w-0 flex flex-col",
           style: {
-            gridColumn: 1,
-            gridRow: k + 1
+            gridColumn: k % 2 + 1,
+            gridRow: Math.floor(k / 2) + 1
           }
         }, el);
-      })), [/*#__PURE__*/React.createElement("div", {
-        key: "arrows",
-        className: "flex flex-col gap-1",
-        style: {
-          gridColumn: 2,
-          gridRow: "".concat(arrowRow, " / span 2"),
-          minHeight: 92,
-          alignSelf: 'start'
-        }
-      }, stepField === 'w' ? /*#__PURE__*/React.createElement("button", {
-        onClick: cycleQuickStep,
-        className: "text-[10px] font-black text-blue-600 text-center leading-none py-0.5 rounded-md bg-blue-50 active:scale-95 whitespace-nowrap"
-      }, "\xB1", quickStep || (weightValues ? 'מכשיר' : weightStep)) : /*#__PURE__*/React.createElement("span", {
-        className: "text-[11px] font-black text-blue-600 text-center leading-none"
-      }, isTimerEx && selInfo && !selInfo.isWarm ? 'שניות' : 'חזרות'), stepBtn(1), stepBtn(-1))]);
+      }));
     }());
   }(), false && [1, 2].map(function (num) {
     var state = num === 1 ? s1 : s2;
@@ -4899,7 +4883,7 @@ var DetailView = memo(function DetailView(_ref19) {
     }) || allGroups.find(function (g, i) {
       return i < curIdxF && nextPend(g, i);
     });
-    var belowIds = new Set([].concat(_toConsumableArray(inProgIds), _toConsumableArray(nextOrdG ? [nextOrdG.id] : [])));
+    var belowIds = new Set([].concat(_toConsumableArray(inProgIds), [group.id], _toConsumableArray(nextOrdG ? [nextOrdG.id] : [])));
     var rtOfBelow = function rtOfBelow(g) {
       var own = Math.max.apply(Math, [0].concat(_toConsumableArray(g.exercises.map(function (e) {
         return restTimers[e.id] || 0;
