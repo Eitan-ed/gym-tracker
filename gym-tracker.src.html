@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.45';
+const APP_VERSION = '10.46';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -631,7 +631,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                 className={`w-full ${compact ? 'h-[26px] rounded-lg text-[19px] flex-row gap-1' : 'h-12 rounded-xl text-[22px] flex-col gap-0.5'} font-black flex items-center justify-center active:scale-95 transition-all
                     ${selected ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500' : isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800'}`}>
                 <span className={compact ? 'leading-none' : ''}>{value}</span>
-                <span className={`font-black opacity-50 tracking-tighter uppercase ${compact ? 'text-[9px] leading-none' : 'text-[9px]'}`}>{label}</span>
+                <span className={`font-black opacity-50 tracking-tighter uppercase ${compact ? 'text-[9px] leading-none' : 'text-[9px]'}`}>{isWeight ? 'קג' : label}</span>
             </button>
             {/* התפריט התחתון נפתח דרך Portal ישירות ל-document.body — כי כרטיס הסט העוטף אותו
                 מקבל לפעמים filter (grayscale/opacity) כשהסט "בוצע" (dimDone למעלה), ו-CSS filter
@@ -644,7 +644,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                     <div className="relative w-full bg-white rounded-t-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
                         {/* כותרת */}
                         <div className="flex justify-between items-center px-5 pt-5 pb-2" dir="rtl">
-                            <span className="text-base font-black text-slate-700">{label}</span>
+                            <span className="text-base font-black text-slate-700">{isWeight ? 'קג' : label}</span>
                             <button onClick={confirm} className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">אישור</button>
                         </div>
                         {/* מספרים קרובים */}
@@ -1289,7 +1289,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 if (isTimerEx) { if (timerState?.num===num) { clearInterval(timerIntervalRef.current); setTimerState(null); } handleSetSave(num, {...state, r: isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs}); return; }
                                 handleSetSave(num, state); }}
                                 aria-disabled={!canActFinal}
-                                className={`w-[30px] h-[26px] self-center shrink-0 rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all
+                                className={`flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all
                                     ${changed ? 'bg-amber-400 !text-amber-900'
                                     : isSkipC ? 'bg-orange-500'
                                     : isWarm && isDone ? 'bg-amber-700'
@@ -1299,7 +1299,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     : !canAct ? 'bg-slate-300'
                                     : ''}`}
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
-                                <span className="text-[15px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
+                                <span className="text-[19px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
                             </button>
                             <div className="contents">
                                 <div className="flex-1 min-w-0"><Roller label="ק״ג" compact selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ setSelNum(num); setSelField('w'); return true; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
@@ -2235,9 +2235,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 });
                 // התרגיל הבא לפי סדר האימון (הראשון שטרם הסתיים אחרי התרגיל הנוכחי) מופיע גם בשורת "בעבודה" למטה
                 const curIdxF = allGroups.findIndex(g => g.id === group.id);
-                // אחרי התרגיל הנוכחי; ואם אין — חוזרים להתחלה (למשל התרגיל הראשון שטרם בוצע)
-                const nextPend = (g, i) => !isGroupDoneHere(g) && !isSkipG(g) && g.id !== group.id;
-                const nextOrdG = allGroups.find((g, i) => i > curIdxF && nextPend(g, i)) || allGroups.find((g, i) => i < curIdxF && nextPend(g, i));
+                // התרגיל הבא לפי סדר האימון = הראשון שטרם הסתיים (בתחילת אימון זה התרגיל הראשון עצמו, לא השני)
+                const nextOrdG = allGroups.find(g => !isGroupDoneHere(g) && !isSkipG(g));
                 const belowIds = new Set([...inProgIds, group.id, ...(nextOrdG ? [nextOrdG.id] : [])]);
                 const rtOfBelow = g => { const own = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0)); const f = fwdTimers[g.id]; return Math.max(own, f ? f.rt : 0); };
                 // מסגרת הטיימר הכתומה בשורת "בעבודה" — רק על המד המתקדם ביותר (זה שנשאר לו הכי מעט זמן); השניות מוצגות בכולם
@@ -2250,7 +2249,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar" dir="rtl"
                             style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInlineStart:8, paddingInlineEnd:`calc(50% - ${ITEM/2}px)`}}
                             onScroll={handleFilmScroll}>
-                            {[...allGroups.map((g,i)=>({g,i})).filter(o=>!isGroupDoneHere(o.g) && !isSkipG(o.g)), ...allGroups.map((g,i)=>({g,i})).filter(o=>isGroupDoneHere(o.g) || isSkipG(o.g))].map(({g,i}) => {
+                            {allGroups.map((g,i)=>({g,i})).filter(o=>!isGroupDoneHere(o.g) && !isSkipG(o.g)).map(({g,i}) => {
                                 const isCur = g.id === targetId;
                                 const skipX = isSkipG(g);
                                 const done = isGroupDoneHere(g) || skipX;
@@ -2333,6 +2332,32 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                     <div className="text-[14px] font-black leading-none mt-1 h-4 text-orange-500" dir="ltr">
                                                         {fInfo.weight > 0 ? `${fInfo.isWarmup ? '🔥' : ''}${fInfo.weight}` : ''}
                                                     </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                        {(()=>{
+                            const closed = allGroups.filter(g => (isGroupDoneHere(g) || isSkipG(g)) && !belowIds.has(g.id));
+                            if (!closed.length) return null;
+                            return (
+                                <div className="mt-1">
+                                    <div className="text-[9px] font-black text-slate-400 px-1 leading-none mb-0.5">סגורים</div>
+                                    <div className="flex flex-wrap gap-2" dir="rtl">
+                                        {closed.map(g => {
+                                            const img = imgOf(g);
+                                            return (
+                                                <div key={g.id} className="shrink-0" style={{ width:ITEM }}>
+                                                    <button onClick={()=>goTo(g)} className="relative rounded-2xl overflow-hidden bg-slate-100 active:scale-95"
+                                                        style={{ width:ITEM, height:ITEM, filter:'grayscale(100%)', opacity:0.55 }}>
+                                                        {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
+                                                             : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
+                                                        {isSkipG(g) && <span className="absolute inset-0 flex items-center justify-center text-[34px] font-black leading-none" style={{color:'#ef4444', textShadow:'0 0 3px #fff, 0 0 6px #fff'}}>✕</span>}
+                                                        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
+                                                            style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
+                                                    </button>
                                                 </div>
                                             );
                                         })}
@@ -4644,11 +4669,13 @@ function App() {
             if (Object.keys(cur).length === 0) return;
             const next = {};
             let doCountdown = false, doWarning = false, completedExId = null, warnId = null, cdId = null;
+            // הקראה והתראות קוליות — רק של הטיימר המתקדם ביותר (שנשאר לו הכי מעט זמן)
+            let leadKey = null; Object.entries(cur).forEach(([k,v]) => { if (v >= 1 && (leadKey === null || v < cur[leadKey])) leadKey = k; });
             Object.entries(cur).forEach(([k,v])=>{
                 if (v > 1) {
                     next[k] = v - 1;
                     if (v <= 3) { doCountdown = true; if (cdId === null || v - 1 < next[cdId]) cdId = k; }
-                    if (v === 21) { doWarning = true; warnId = k; }
+                    if (v === 21 && k === leadKey) { doWarning = true; warnId = k; }
                 } else if (v === 1) {
                     completedExId = k;
                 }
@@ -6036,11 +6063,11 @@ function App() {
                 onConfirm={txt=>{ const g=skipGroupDlg; setSkipGroupDlg(null); if ((txt||'').trim()) setSkipReasons(prev=>{ const n={...prev}; g.exercises.forEach(e=>{ n[`${workoutStartTime}:${e.id}`]=txt.trim(); }); return n; }); handleSkipGroup(g.id); }} />}
 
             <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-md border-t px-3 pt-4 flex justify-around items-center z-50 rounded-t-3xl" style={{paddingBottom:'calc(1rem + env(safe-area-inset-bottom))', background:'#ffffff', borderTopColor:'rgba(45,74,111,0.18)', boxShadow:'0 -4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}}>
+                <button onClick={()=>navigateTo('manage')} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
+                    <Icon name="Settings" size={24} /><span className="text-[11px] font-black">ניהול</span>
+                </button>
                 <button onClick={()=>{setManageOpenSection('exercises');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
                     <Icon name="Dumbbell" size={24} /><span className="text-[11px] font-black">תרגילים</span>
-                </button>
-                <button onClick={()=>navigateTo('history')} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
-                    <Icon name="History" size={24} /><span className="text-[11px] font-black">היסטוריה</span>
                 </button>
                 <button onClick={handleNewWorkoutClick}
                     className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
@@ -6050,8 +6077,8 @@ function App() {
                 <button onClick={()=>{setManageOpenSection('reports');navigateTo('manage');}} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
                     <Icon name="Download" size={24} /><span className="text-[11px] font-black">דוחות</span>
                 </button>
-                <button onClick={()=>navigateTo('manage')} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
-                    <Icon name="Settings" size={24} /><span className="text-[11px] font-black">ניהול</span>
+                <button onClick={()=>navigateTo('history')} className="flex flex-col items-center gap-1 active:opacity-70" style={{color:'#2d4a6f'}}>
+                    <Icon name="History" size={24} /><span className="text-[11px] font-black">היסטוריה</span>
                 </button>
             </nav>
         </div>

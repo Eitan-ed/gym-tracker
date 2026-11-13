@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.45';
+var APP_VERSION = '10.46';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -1626,7 +1626,7 @@ var Roller = memo(function (_ref0) {
     className: compact ? 'leading-none' : ''
   }, value), /*#__PURE__*/React.createElement("span", {
     className: "font-black opacity-50 tracking-tighter uppercase ".concat(compact ? 'text-[9px] leading-none' : 'text-[9px]')
-  }, label)), open && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+  }, isWeight ? 'קג' : label)), open && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-[800] flex items-end",
     onClick: confirm
   }, /*#__PURE__*/React.createElement("div", {
@@ -1641,7 +1641,7 @@ var Roller = memo(function (_ref0) {
     dir: "rtl"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-base font-black text-slate-700"
-  }, label), /*#__PURE__*/React.createElement("button", {
+  }, isWeight ? 'קג' : label), /*#__PURE__*/React.createElement("button", {
     onClick: confirm,
     className: "px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95"
   }, "\u05D0\u05D9\u05E9\u05D5\u05E8")), function () {
@@ -3045,12 +3045,12 @@ function ExerciseEntryRow(_ref11) {
           handleSetSave(num, state);
         },
         "aria-disabled": !canActFinal,
-        className: "w-[30px] h-[26px] self-center shrink-0 rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
+        className: "flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : showCDown ? 'bg-blue-600' : !canAct ? 'bg-slate-300' : ''),
         style: !isWarm && !isDone && !showCDown && canAct ? {
           background: isActive ? accentColor : '#16a34a'
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
-        className: "text-[15px] leading-none"
+        className: "text-[19px] leading-none"
       }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num)), /*#__PURE__*/React.createElement("div", {
         className: "contents"
       }, /*#__PURE__*/React.createElement("div", {
@@ -4874,14 +4874,9 @@ var DetailView = memo(function DetailView(_ref19) {
     var curIdxF = allGroups.findIndex(function (g) {
       return g.id === group.id;
     });
-    // אחרי התרגיל הנוכחי; ואם אין — חוזרים להתחלה (למשל התרגיל הראשון שטרם בוצע)
-    var nextPend = function nextPend(g, i) {
-      return !isGroupDoneHere(g) && !isSkipG(g) && g.id !== group.id;
-    };
-    var nextOrdG = allGroups.find(function (g, i) {
-      return i > curIdxF && nextPend(g, i);
-    }) || allGroups.find(function (g, i) {
-      return i < curIdxF && nextPend(g, i);
+    // התרגיל הבא לפי סדר האימון = הראשון שטרם הסתיים (בתחילת אימון זה התרגיל הראשון עצמו, לא השני)
+    var nextOrdG = allGroups.find(function (g) {
+      return !isGroupDoneHere(g) && !isSkipG(g);
     });
     var belowIds = new Set([].concat(_toConsumableArray(inProgIds), [group.id], _toConsumableArray(nextOrdG ? [nextOrdG.id] : [])));
     var rtOfBelow = function rtOfBelow(g) {
@@ -4920,21 +4915,14 @@ var DetailView = memo(function DetailView(_ref19) {
         paddingInlineEnd: "calc(50% - ".concat(ITEM / 2, "px)")
       },
       onScroll: handleFilmScroll
-    }, [].concat(_toConsumableArray(allGroups.map(function (g, i) {
+    }, allGroups.map(function (g, i) {
       return {
         g: g,
         i: i
       };
     }).filter(function (o) {
       return !isGroupDoneHere(o.g) && !isSkipG(o.g);
-    })), _toConsumableArray(allGroups.map(function (g, i) {
-      return {
-        g: g,
-        i: i
-      };
-    }).filter(function (o) {
-      return isGroupDoneHere(o.g) || isSkipG(o.g);
-    }))).map(function (_ref21) {
+    }).map(function (_ref21) {
       var g = _ref21.g,
         i = _ref21.i;
       var isCur = g.id === targetId;
@@ -5098,6 +5086,60 @@ var DetailView = memo(function DetailView(_ref19) {
           className: "text-[14px] font-black leading-none mt-1 h-4 text-orange-500",
           dir: "ltr"
         }, fInfo.weight > 0 ? "".concat(fInfo.isWarmup ? '🔥' : '').concat(fInfo.weight) : ''));
+      })));
+    }(), function () {
+      var closed = allGroups.filter(function (g) {
+        return (isGroupDoneHere(g) || isSkipG(g)) && !belowIds.has(g.id);
+      });
+      if (!closed.length) return null;
+      return /*#__PURE__*/React.createElement("div", {
+        className: "mt-1"
+      }, /*#__PURE__*/React.createElement("div", {
+        className: "text-[9px] font-black text-slate-400 px-1 leading-none mb-0.5"
+      }, "\u05E1\u05D2\u05D5\u05E8\u05D9\u05DD"), /*#__PURE__*/React.createElement("div", {
+        className: "flex flex-wrap gap-2",
+        dir: "rtl"
+      }, closed.map(function (g) {
+        var img = imgOf(g);
+        return /*#__PURE__*/React.createElement("div", {
+          key: g.id,
+          className: "shrink-0",
+          style: {
+            width: ITEM
+          }
+        }, /*#__PURE__*/React.createElement("button", {
+          onClick: function onClick() {
+            return goTo(g);
+          },
+          className: "relative rounded-2xl overflow-hidden bg-slate-100 active:scale-95",
+          style: {
+            width: ITEM,
+            height: ITEM,
+            filter: 'grayscale(100%)',
+            opacity: 0.55
+          }
+        }, img ? /*#__PURE__*/React.createElement("img", {
+          src: img,
+          alt: "",
+          className: "w-full h-full object-cover",
+          draggable: false
+        }) : /*#__PURE__*/React.createElement("div", {
+          className: "w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400"
+        }, g.icon || '🏋️'), isSkipG(g) && /*#__PURE__*/React.createElement("span", {
+          className: "absolute inset-0 flex items-center justify-center text-[34px] font-black leading-none",
+          style: {
+            color: '#ef4444',
+            textShadow: '0 0 3px #fff, 0 0 6px #fff'
+          }
+        }, "\u2715"), /*#__PURE__*/React.createElement("span", {
+          className: "absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none",
+          style: {
+            background: 'rgba(15,23,42,0.55)',
+            color: '#ffffff'
+          }
+        }, allGroups.findIndex(function (x) {
+          return x.id === g.id;
+        }) + 1)));
       })));
     }(), returnGroup && returnGroup.id !== group.id && /*#__PURE__*/React.createElement("div", {
       className: "text-center mt-1.5"
@@ -10714,17 +10756,25 @@ function App() {
         completedExId = null,
         warnId = null,
         cdId = null;
+      // הקראה והתראות קוליות — רק של הטיימר המתקדם ביותר (שנשאר לו הכי מעט זמן)
+      var leadKey = null;
       Object.entries(cur).forEach(function (_ref123) {
         var _ref124 = _slicedToArray(_ref123, 2),
           k = _ref124[0],
           v = _ref124[1];
+        if (v >= 1 && (leadKey === null || v < cur[leadKey])) leadKey = k;
+      });
+      Object.entries(cur).forEach(function (_ref125) {
+        var _ref126 = _slicedToArray(_ref125, 2),
+          k = _ref126[0],
+          v = _ref126[1];
         if (v > 1) {
           next[k] = v - 1;
           if (v <= 3) {
             doCountdown = true;
             if (cdId === null || v - 1 < next[cdId]) cdId = k;
           }
-          if (v === 21) {
+          if (v === 21 && k === leadKey) {
             doWarning = true;
             warnId = k;
           }
@@ -11495,9 +11545,9 @@ function App() {
       }
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       var next = _toConsumableArray(prev);
-      var _ref125 = [next[targetIdx], next[curIdx]];
-      next[curIdx] = _ref125[0];
-      next[targetIdx] = _ref125[1];
+      var _ref127 = [next[targetIdx], next[curIdx]];
+      next[curIdx] = _ref127[0];
+      next[targetIdx] = _ref127[1];
       return next;
     });
   };
@@ -12501,10 +12551,10 @@ function App() {
         strokeWidth: "2",
         strokeLinejoin: "round",
         strokeLinecap: "round"
-      }), pts.map(function (_ref127, i) {
-        var _ref128 = _slicedToArray(_ref127, 2),
-          x = _ref128[0],
-          y = _ref128[1];
+      }), pts.map(function (_ref129, i) {
+        var _ref130 = _slicedToArray(_ref129, 2),
+          x = _ref130[0],
+          y = _ref130[1];
         return /*#__PURE__*/React.createElement("circle", {
           key: i,
           cx: x,
@@ -12777,7 +12827,7 @@ function App() {
     className: "relative w-full bg-red-500 text-white text-[12px] font-black py-1.5 active:scale-[0.99]"
   }, "\u26A0 \u05EA\u05D9\u05E7\u05D9\u05D9\u05EA FILING \u05DC\u05D0 \u05DE\u05E7\u05D5\u05E9\u05E8\u05EA", filingSupported ? ' — לחץ לקישור' : ' (נשמר רק במכשיר)'), backupAgeDays() > 5 && logs.length > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: (/*#__PURE__*/function () {
-      var _ref132 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(e) {
+      var _ref134 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(e) {
         return _regenerator().w(function (_context32) {
           while (1) switch (_context32.n) {
             case 0:
@@ -12795,7 +12845,7 @@ function App() {
         }, _callee32);
       }));
       return function (_x21) {
-        return _ref132.apply(this, arguments);
+        return _ref134.apply(this, arguments);
       };
     }()),
     className: "relative w-full bg-amber-500 text-slate-900 text-[12px] font-black py-1.5 active:scale-[0.99]"
@@ -13483,6 +13533,19 @@ function App() {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
+      return navigateTo('manage');
+    },
+    className: "flex flex-col items-center gap-1 active:opacity-70",
+    style: {
+      color: '#2d4a6f'
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Settings",
+    size: 24
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-black"
+  }, "\u05E0\u05D9\u05D4\u05D5\u05DC")), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
       setManageOpenSection('exercises');
       navigateTo('manage');
     },
@@ -13496,19 +13559,6 @@ function App() {
   }), /*#__PURE__*/React.createElement("span", {
     className: "text-[11px] font-black"
   }, "\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD")), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return navigateTo('history');
-    },
-    className: "flex flex-col items-center gap-1 active:opacity-70",
-    style: {
-      color: '#2d4a6f'
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "History",
-    size: 24
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "text-[11px] font-black"
-  }, "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4")), /*#__PURE__*/React.createElement("button", {
     onClick: handleNewWorkoutClick,
     className: "flex flex-col items-center gap-1 active:opacity-70",
     style: {
@@ -13540,18 +13590,18 @@ function App() {
     className: "text-[11px] font-black"
   }, "\u05D3\u05D5\u05D7\u05D5\u05EA")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return navigateTo('manage');
+      return navigateTo('history');
     },
     className: "flex flex-col items-center gap-1 active:opacity-70",
     style: {
       color: '#2d4a6f'
     }
   }, /*#__PURE__*/React.createElement(Icon, {
-    name: "Settings",
+    name: "History",
     size: 24
   }), /*#__PURE__*/React.createElement("span", {
     className: "text-[11px] font-black"
-  }, "\u05E0\u05D9\u05D4\u05D5\u05DC")))));
+  }, "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4")))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
 </script>
