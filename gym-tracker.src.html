@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.47';
+const APP_VERSION = '10.48';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -534,7 +534,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
     const fromBtn    = React.useRef(false);
     // גלגלת שבר (0 / .25 / .5 / .75) — רק בשדה המשקל; הגלגלת הראשית נשארת בקילוגרמים שלמים
     const isWeight   = label === 'ק״ג';
-    const FRAC_OPTS  = [0, 0.25, 0.5, 0.75];
+    const FRAC_OPTS  = [0.75, 0.5, 0.25, 0]; // הגלגלת הפוכה: גבוה למעלה, נמוך למטה (כמו החצים)
     const fracRef    = React.useRef(null);
     const fracTimer  = React.useRef(null);
     const fracOf     = v => parseFloat((v - Math.floor(v + 1e-9)).toFixed(4));
@@ -556,7 +556,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
         const o = [];
         for (let v = min; v <= max; v = parseFloat((v + 1).toFixed(10)))
             o.push(parseFloat(v.toFixed(4)));
-        return o;
+        return o.reverse();
     }, [min, max]);
 
     const scrollTo = useCallback((idx, smooth=false) => {
@@ -2514,7 +2514,7 @@ const backupContentsSummary = () => {
     const a = collectAllGymData();
     const n = v => Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0);
     const days = new Set((a['gym-logs'] || []).map(l => String(l.timestamp || '').slice(0, 10))).size;
-    return `${days} ימי אימון · ${n(a['gym-images'])} תמונות · ${n(a['gym-custom-exercises'])} תרגילים שנוספו · ${n(a['gym-casual-workouts'])} אימונים מזדמנים · ${n(a['gym-uploaded-video-ids'])} סרטונים`;
+    return `${days} ימי אימון · ${n(a['gym-images'])} תמונות · ${n(a['gym-custom-exercises'])} תרגילים שנוספו · ${n(a['gym-casual-workouts'])} אימונים מיוחדים · ${n(a['gym-uploaded-video-ids'])} סרטונים`;
 };
 let _backupDirHandle = null;
 // האם הכתיבה האחרונה לתיקיית FILING הצליחה — להודעת "נשמר גם ב-FILING / רק במכשיר"
@@ -2834,7 +2834,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
         }
     }, [initialOpenSection]);
     // ─── סידור אלפביתי (א"ב) של קטגוריות הניהול — אוטומטי בכל הוספת קטגוריה ───
-    const SECTION_TITLES = { casual:'אימונים מזדמנים', backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'שעות פתיחה ומדריכים', music:'מוזיקה', exercises:'תרגילים', reports:'דוחות', devNotes:'הערות לשיפור' };
+    const SECTION_TITLES = { casual:'אימונים מיוחדים', backup:'גיבוי ושחזור', settings:'הגדרות אימון', history:'היסטוריית אימונים', instructors:'שעות פתיחה ומדריכים', music:'מוזיקה', exercises:'תרגילים', reports:'דוחות', devNotes:'הערות לשיפור' };
     const sectionOrder = Object.entries(SECTION_TITLES).sort((a,b)=>a[1].localeCompare(b[1],'he')).map(e=>e[0]);
     const ord = key => sectionOrder.indexOf(key);
     const toggleSection = key => {
@@ -3027,14 +3027,16 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 <div className="flex justify-between"><span>ש׳</span><span className="font-black text-slate-800" dir="ltr">08:00 – 13:00</span></div>
                             </div>
                         </div>
-                        <a href="tel:*6628" className="flex items-center gap-3 bg-green-50 p-4 rounded-2xl border border-green-100 text-green-700 active:scale-[0.98]">
+                        <div className="grid grid-cols-2 gap-2">
+                        <a href="tel:*6628" className="flex items-center gap-2 bg-green-50 p-3 rounded-2xl border border-green-100 text-green-700 active:scale-[0.98] min-w-0">
                             <div className="bg-green-100 p-2 rounded-xl"><Icon name="Phone" size={20} /></div>
                             <div><div className="font-black text-sm">טלפון</div><div className="text-[13px] font-bold" dir="ltr">*6628</div></div>
                         </a>
-                        <a href="https://www.iconfitness.co.il/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98]">
+                        <a href="https://www.iconfitness.co.il/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-blue-50 p-3 rounded-2xl border border-blue-100 text-blue-700 active:scale-[0.98] min-w-0">
                             <div className="bg-blue-100 p-2 rounded-xl"><Icon name="Globe" size={20} /></div>
-                            <div><div className="font-black text-sm">אתר המכון</div><div className="text-[11px] font-bold opacity-70">iconfitness.co.il</div></div>
+                            <div className="min-w-0"><div className="font-black text-sm">אתר המכון</div><div className="text-[10px] font-bold opacity-70 truncate">iconfitness.co.il</div></div>
                         </a>
+                        </div>
                     </div>
                         {instructors.map(ins => (
                             editInstId===ins.id ? (
@@ -3146,10 +3148,10 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                         })()}
                     </div>}
                 </section>
-                {/* ── אימונים מזדמנים ── */}
+                {/* ── אימונים מיוחדים ── */}
                 <section ref={casualRef} style={{order:ord('casual')}} className="bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0">
                     <button onClick={()=>toggleSection('casual')} className="w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0">
-                        <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-emerald-500" /> אימונים מזדמנים ({casualWorkouts.length})</h3>
+                        <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-emerald-500" /> אימונים מיוחדים ({casualWorkouts.length})</h3>
                         <Icon name={open.casual?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.casual && <div className="px-4 pb-3 space-y-2">
@@ -3164,14 +3166,14 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                             <div className="text-[11px] font-bold text-slate-400">{w.exIds.length} תרגילים</div>
                                         </div>
                                         <div className="flex gap-1.5 shrink-0">
-                                            <button onClick={()=>{ setActiveCasual(w.id); showToast(`אימון מזדמן: ${w.name}`); onBack && onBack(); }} className="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[12px] font-black active:scale-95">בחר</button>
+                                            <button onClick={()=>{ setActiveCasual(w.id); showToast(`אימון מיוחד: ${w.name}`); onBack && onBack(); }} className="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[12px] font-black active:scale-95">בחר</button>
                                             <button onClick={()=>setCasualEdit({id:w.id, name:w.name, exIds:[...w.exIds]})} className="px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 text-[12px] font-black active:scale-95">ערוך</button>
-                                            <button onClick={()=>requestConfirm(`למחוק את האימון המזדמן "${w.name}"? (התרגילים והיסטוריית האימונים לא נמחקים)`, ()=>{ setCasualWorkouts(p=>p.filter(x=>x.id!==w.id)); if (activeCasual===w.id) setActiveCasual(null); })} className="px-2.5 py-1.5 rounded-full bg-red-50 text-red-500 text-[12px] font-black active:scale-95">מחק</button>
+                                            <button onClick={()=>requestConfirm(`למחוק את האימון המיוחד "${w.name}"? (התרגילים והיסטוריית האימונים לא נמחקים)`, ()=>{ setCasualWorkouts(p=>p.filter(x=>x.id!==w.id)); if (activeCasual===w.id) setActiveCasual(null); })} className="px-2.5 py-1.5 rounded-full bg-red-50 text-red-500 text-[12px] font-black active:scale-95">מחק</button>
                                         </div>
                                     </div>
                                 </div>
                             ))}
-                            <button onClick={()=>setCasualEdit({id:null, name:'', exIds:[]})} className="w-full py-2.5 rounded-2xl bg-emerald-500 text-white font-black text-[13px] active:scale-95">+ אימון מזדמן חדש</button>
+                            <button onClick={()=>setCasualEdit({id:null, name:'', exIds:[]})} className="w-full py-2.5 rounded-2xl bg-emerald-500 text-white font-black text-[13px] active:scale-95">+ אימון מיוחד חדש</button>
                         </>)}
                         {casualEdit && (<>
                             <input value={casualEdit.name} onChange={e=>setCasualEdit(c=>({...c, name:e.target.value}))} placeholder="שם האימון (למשל: רגליים)" className="w-full px-3 py-2 rounded-xl border border-slate-200 text-[14px] font-bold" />
@@ -3258,7 +3260,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                 {/* ── ת: תרגילים ── */}
                 <section ref={exerciseSectionRef} style={{order:ord('exercises')}} className={`bg-white rounded-[1.4rem] shadow-sm border border-slate-100 overflow-hidden shrink-0 ${open.exercises?'':''}`}>
                     <button onClick={()=>toggleSection('exercises')} className="w-full flex items-center justify-between px-4 py-2 active:bg-slate-50 shrink-0">
-                        <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים</h3>
+                        <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-2"><Icon name="Dumbbell" size={20} className="text-indigo-500" /> תרגילים ({exerciseGroups.reduce((n,g)=>n+g.exercises.length,0)})</h3>
                         <Icon name={open.exercises?'ChevronUp':'ChevronDown'} size={18} className="text-slate-400" />
                     </button>
                     {open.exercises && <div className="px-4 pb-5 space-y-3 overflow-y-auto no-scrollbar flex-1">
@@ -3577,6 +3579,14 @@ ${markImplemented(t)}\n\n`; });
                                 });
                             };
                             return (<>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <button onClick={generateExerciseListReport} className="flex items-center justify-center gap-2 bg-indigo-50 border-indigo-200 text-indigo-700 p-2.5 rounded-2xl border active:scale-[0.98] min-w-0">
+                                        <Icon name="Dumbbell" size={18} /><span className="font-black text-sm">רשימת תרגילים</span>
+                                    </button>
+                                    <button onClick={generateDevNotesReport} className="flex items-center justify-center gap-2 bg-amber-50 border-amber-200 text-amber-700 p-2.5 rounded-2xl border active:scale-[0.98] min-w-0">
+                                        <Icon name="BookOpen" size={18} /><span className="font-black text-sm">הערות לשיפור</span>
+                                    </button>
+                                </div>
                                 {filingSupported ? (
                                     <div className={`mb-3 rounded-2xl p-3 flex items-center justify-between gap-2 border ${filingDirName && !filingPermGranted ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
                                         <div className="min-w-0">
@@ -3619,25 +3629,19 @@ ${markImplemented(t)}\n\n`; });
                                         </div>
                                     )}
                                 </div>
+                                <div className="grid grid-cols-4 gap-2 mb-1">
                                 {[
-                                    {period:'day', label:'דוח יומי', desc:'סטים ומשקלים של היום'},
-                                    {period:'week', label:'דוח שבועי', desc:'7 ימים אחרונים'},
-                                    {period:'month', label:'דוח חודשי', desc:'30 ימים אחרונים'},
-                                    {period:'all', label:'דוח כולל', desc:'כל הנתונים'}
-                                ].map(({period,label,desc}) => (
-                                    <button key={period} onClick={()=>generateReport(period)} className="w-full flex items-center gap-3 bg-slate-50 border-slate-200 text-slate-700 p-2.5 rounded-2xl border active:scale-[0.98]">
-                                        <div className="bg-slate-200 p-2 rounded-xl"><Icon name="Download" size={20} /></div>
-                                        <div><div className="font-black text-sm">{label}</div><div className="text-[10px] font-bold opacity-70">{desc}</div></div>
+                                    {period:'day', label:'דוח יומי'},
+                                    {period:'week', label:'דוח שבועי'},
+                                    {period:'month', label:'דוח חודשי'},
+                                    {period:'all', label:'דוח כולל'}
+                                ].map(({period,label}) => (
+                                    <button key={period} onClick={()=>generateReport(period)} className="flex flex-col items-center gap-1 bg-slate-50 border-slate-200 text-slate-700 py-2 px-1 rounded-2xl border active:scale-[0.98] min-w-0">
+                                        <Icon name="Download" size={18} />
+                                        <span className="font-black text-[12px] leading-tight text-center">{label}</span>
                                     </button>
                                 ))}
-                                <button onClick={generateExerciseListReport} className="w-full flex items-center gap-3 bg-indigo-50 border-indigo-200 text-indigo-700 p-2.5 rounded-2xl border active:scale-[0.98]">
-                                    <div className="bg-indigo-200 p-2 rounded-xl"><Icon name="Dumbbell" size={20} /></div>
-                                    <div><div className="font-black text-sm">רשימת תרגילים</div><div className="text-[10px] font-bold opacity-70">כל התרגילים לפי הסדר הנוכחי</div></div>
-                                </button>
-                                <button onClick={generateDevNotesReport} className="w-full flex items-center gap-3 bg-amber-50 border-amber-200 text-amber-700 p-2.5 rounded-2xl border active:scale-[0.98]">
-                                    <div className="bg-amber-200 p-2 rounded-xl"><Icon name="BookOpen" size={20} /></div>
-                                    <div><div className="font-black text-sm">הערות לשיפור</div><div className="text-[10px] font-bold opacity-70">חדשות + היסטוריית תיקונים עם תאריכים</div></div>
-                                </button>
+                                </div>
                             </>);
                         })()}
                     </div>}
@@ -3866,7 +3870,7 @@ const HamburgerMenu = memo(({ onNavigate, currentView, hasActiveRest=false, rest
         { key:'settings',    label:'הגדרות אימון',      icon:'Settings',     color:'text-orange-500' },
         { key:'history',     label:'היסטוריית אימונים',  icon:'History',      color:'text-teal-500' },
         { key:'instructors', label:'שעות פתיחה ומדריכים',            icon:'BookOpen',     color:'text-rose-500' },
-        { key:'casual',      label:'אימונים מזדמנים',   icon:'Dumbbell',     color:'text-emerald-500' },
+        { key:'casual',      label:'אימונים מיוחדים',   icon:'Dumbbell',     color:'text-emerald-500' },
         { key:'music',       label:'מוזיקה',             icon:'Music',        color:'text-purple-500' },
         { key:'exercises',   label:'תרגילים',            icon:'Dumbbell',     color:'text-indigo-500' },
         { key:'devNotes',    label:'הערות לשיפור', icon:'BookOpen', color:'text-amber-500' }
@@ -4071,7 +4075,7 @@ function App() {
     const handleToggleOneTime = useCallback((exId) => {
         setOneTimeEx(prev => { const n = new Set(prev); if (n.has(exId)) n.delete(exId); else n.add(exId); return n; });
     }, []);
-    // אימונים מזדמנים: רשימה שמורה של אימונים קצרים [{id,name,exIds}] ואימון פעיל (או null = האימון הרגיל). לא נוגע בתוכנית הקבועה
+    // אימונים מיוחדים: רשימה שמורה של אימונים קצרים [{id,name,exIds}] ואימון פעיל (או null = האימון הרגיל). לא נוגע בתוכנית הקבועה
     const [casualWorkouts, setCasualWorkouts] = useState(()=>LS.get('gym-casual-workouts', []));
     useEffect(()=>{ LS.set('gym-casual-workouts', casualWorkouts); },[casualWorkouts]);
     const [activeCasual, setActiveCasual] = useState(()=>LS.get('gym-casual-active', null));
@@ -5834,7 +5838,7 @@ function App() {
         {overlays}
         {activeCasualObj && (
             <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-1.5 bg-emerald-600 text-white text-[12px] font-black">
-                <span>🏃 אימון מזדמן: {activeCasualObj.name}</span>
+                <span>🏃 אימון מיוחד: {activeCasualObj.name}</span>
                 <button onClick={()=>{ setActiveCasual(null); showToast('חזרת לאימון הרגיל'); }} className="px-2.5 py-1 rounded-full bg-white/20 active:scale-95">חזור לאימון הרגיל</button>
             </div>
         )}
