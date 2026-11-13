@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.42';
+const APP_VERSION = '10.43';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1944,7 +1944,20 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     <span className={`text-[10px] font-black mt-0.5 ${tileWarm ? 'text-amber-300' : 'text-orange-300'}`}>ק״ג</span>
                                 </div>
                             ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
-                            <div className="bg-slate-50 border border-slate-100 rounded-2xl" />
+                            {/* הריבוע הרביעי: טיימר המנוחה של התרגיל עצמו, תמיד בכתום */}
+                            {(() => {
+                                const exRt = restTimers[ex.id]||0, exTot = restTimerTotals[ex.id]||0;
+                                if (!(exRt > 0 && exTot > 0)) return <div className="bg-slate-50 border border-slate-100 rounded-2xl" />;
+                                const deg = Math.min(360, (exRt / exTot) * 360);
+                                return (
+                                    <div className="rounded-2xl p-[3px] flex" style={{background:`conic-gradient(from -90deg, #f97316 0deg, #f97316 ${deg}deg, rgba(148,163,184,0.35) ${deg}deg, rgba(148,163,184,0.35) 360deg)`}}>
+                                        <div className="flex-1 rounded-[13px] bg-orange-50 flex flex-col items-center justify-center">
+                                            <span className="text-3xl font-black leading-none text-orange-500" dir="ltr">{exRt}</span>
+                                            <span className="text-[9px] font-black text-orange-400 mt-0.5">מנוחה</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
@@ -2226,6 +2239,14 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         break;
                     }
                 });
+                // התרגיל הבא לפי סדר האימון (הראשון שטרם הסתיים אחרי התרגיל הנוכחי) מופיע גם בשורת "בעבודה" למטה
+                const curIdxF = allGroups.findIndex(g => g.id === group.id);
+                const nextOrdG = allGroups.find((g, i) => i > curIdxF && !isGroupDoneHere(g) && !isSkipG(g) && g.id !== group.id);
+                const belowIds = new Set([...inProgIds, ...(nextOrdG ? [nextOrdG.id] : [])]);
+                const rtOfBelow = g => { const own = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0)); const f = fwdTimers[g.id]; return Math.max(own, f ? f.rt : 0); };
+                // מסגרת הטיימר הכתומה בשורת "בעבודה" — רק על המד המתקדם ביותר (זה שנשאר לו הכי מעט זמן); השניות מוצגות בכולם
+                let ringBestId = null, ringBestRt = Infinity;
+                allGroups.forEach(g => { if (!belowIds.has(g.id)) return; const r = rtOfBelow(g); if (r > 0 && r < ringBestRt) { ringBestRt = r; ringBestId = g.id; } });
                 return (
                     <div className="mt-3 rounded-[1.6rem] border-2 border-slate-300 px-1 pt-2 pb-1"
                          style={{background:'linear-gradient(180deg,#f8fafc,#e2e8f0)', boxShadow:'inset 0 2px 6px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.08)'}}>
@@ -2246,7 +2267,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                 const gTot0 = gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0;
                                 const fw = fwdTimers[g.id];
                                 // אם התרגיל כבר מוצג בשורת "בעבודה" — הטיימר שלו מוצג שם בלבד ולא כאן
-                                const hideT = inProgIds.has(g.id);
+                                const hideT = belowIds.has(g.id);
                                 const gRt  = hideT ? 0 : (fw && fw.rt > gRt0 ? fw.rt  : gRt0);
                                 const gTot = hideT ? 0 : (fw && fw.rt > gRt0 ? fw.tot : gTot0);
                                 const gFin = !done && !hideT && gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
@@ -2280,7 +2301,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             })}
                         </div>
                         {(()=>{
-                            const inProg = allGroups.filter(g => inProgIds.has(g.id));
+                            const inProg = allGroups.filter(g => belowIds.has(g.id));
                             if (!inProg.length) return null;
                             return (
                                 <div className="-mt-1">
@@ -2289,15 +2310,18 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         {inProg.map(g => {
                                             const img = imgOf(g);
                                             const isCur = g.id === group.id;
-                                            const gRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
-                                            const gTotEx = g.exercises.find(e => (restTimers[e.id]||0) === gRt);
-                                            const gTot = gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0;
+                                            const ownRt = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0));
+                                            const fwB = fwdTimers[g.id];
+                                            const useFw = !!fwB && fwB.rt > ownRt;
+                                            const gRt = useFw ? fwB.rt : ownRt;
+                                            const gTotEx = g.exercises.find(e => (restTimers[e.id]||0) === ownRt);
+                                            const gTot = useFw ? fwB.tot : (gTotEx ? (restTimerTotals[gTotEx.id]||0) : 0);
                                             const gFin = gRt === 0 && g.exercises.some(e => (restTimerTotals[e.id]||0) > 0 && !(restTimers[e.id] > 0));
                                             const fInfo = getNextSetInfo(g.exercises[0].id, logs, sessionStartTime, warmupEmbed, weightStepsOverrides);
                                             const shadow = isCur ? '0 0 0 3px #3b82f6' : undefined;
                                             return (
                                                 <div key={g.id} className="shrink-0 flex flex-col items-center" style={{ width:ITEM }}>
-                                                    <FilmTimerRing rt={gRt} tot={gTot} cur={isCur}>
+                                                    <FilmTimerRing rt={g.id === ringBestId ? gRt : 0} tot={gTot} cur={isCur}>
                                                     <button onClick={()=>goTo(g)} className="relative rounded-2xl overflow-hidden bg-slate-100 active:scale-95"
                                                         style={{ width:ITEM, height:ITEM, boxShadow: shadow }}>
                                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
@@ -2387,7 +2411,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                 <h2 className="text-base font-black text-white">היסטוריה</h2>
                 <div className="absolute left-4"><DevNoteButton noteKey="page-history" pageLabel={PAGE_NOTE_LABELS['page-history']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={onSaveDevNote} /></div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-32">
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5 no-scrollbar pb-32">
                 <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden"><WorkoutProgressCalendar logs={logs} /></div>
                 {grouped.length===0 ? (
                     <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400">
@@ -2403,11 +2427,11 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                     const isShort = exCount < 5;
                     return (
                     <div key={gkey} className={`rounded-[2.2rem] border shadow-sm overflow-hidden ${isShort ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
-                        <div className="flex justify-between items-center bg-white p-1">
-                            <button onClick={()=>setExpandedDate(expandedDate===gkey?null:gkey)} className="flex-1 flex justify-between items-center p-4">
-                                <div className="flex items-center gap-4">
+                        <div className="flex justify-between items-center bg-white px-1 py-0">
+                            <button onClick={()=>setExpandedDate(expandedDate===gkey?null:gkey)} className="flex-1 min-w-0 flex justify-between items-center gap-1 px-3 py-2">
+                                <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                                     <div className={`w-3 h-3 rounded-full shrink-0 ${isShort ? 'bg-red-500' : 'bg-blue-500'}`} />
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                                         <span className="font-black text-slate-500 text-base shrink-0">{getDayLetterHe(items[0].timestamp)}</span>
                                         <span className={`font-black ${isShort ? 'text-red-600' : 'text-slate-800'}`}>{fmtDateShort(items[0].timestamp)}</span>
                                         <span className={`text-[11px] font-black ${isShort ? 'text-red-500' : 'text-slate-400'}`}>{exCount}/{TOTAL_EX_COUNT()}</span>
@@ -2419,14 +2443,14 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                                         })()}
                                     </div>
                                 </div>
-                                <Icon name="ChevronDown" size={20} className={`text-slate-400 transition-transform duration-300 ${expandedDate===gkey?'rotate-180':''}`} />
+                                <Icon name="ChevronDown" size={20} className={`shrink-0 text-slate-400 transition-transform duration-300 ${expandedDate===gkey?'rotate-180':''}`} />
                             </button>
                             {onShowDaySummary && (
-                                <button onClick={()=>onShowDaySummary(date, items, wst)} className="p-4 text-blue-300 active:text-blue-500" title="הצג סיכום אימון">
+                                <button onClick={()=>onShowDaySummary(date, items, wst)} className="shrink-0 px-2.5 py-2 text-blue-300 active:text-blue-500" title="הצג סיכום אימון">
                                     <Icon name="Download" size={20} />
                                 </button>
                             )}
-                            <button onClick={()=>requestConfirm('למחוק את כל יום האימון?',()=>onDeleteDate(items))} className="p-4 text-red-300 active:text-red-500">
+                            <button onClick={()=>requestConfirm('למחוק את כל יום האימון?',()=>onDeleteDate(items))} className="shrink-0 px-2.5 py-2 text-red-300 active:text-red-500">
                                 <Icon name="Trash" size={20} />
                             </button>
                         </div>
@@ -2434,7 +2458,7 @@ const HistoryView = ({ logs, sessionDurations, bodyweightLog=[], workoutNotes={}
                             const wn=wst?workoutNotes[wst]:null;
                             const uniqueEx=[...new Set(items.map(i=>i.exId))].length;
                             return (
-                            <div className="p-4 bg-white border-t border-slate-100 space-y-3">
+                            <div className="p-3 bg-white border-t border-slate-100 space-y-2">
                                 {/* סיכום אימון */}
                                 <div className="flex flex-wrap gap-1.5 mb-1">
                                     {dur > 0 && <span className="flex items-center gap-1 bg-blue-50 rounded-xl px-2.5 py-1 text-[11px] font-black text-blue-600"><Icon name="Clock" size={11}/>{fmtDur(dur)}</span>}
