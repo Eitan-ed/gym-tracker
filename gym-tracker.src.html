@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.48';
+const APP_VERSION = '10.49';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -645,7 +645,10 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
                         {/* כותרת */}
                         <div className="flex justify-between items-center px-5 pt-4 pb-2" dir="rtl">
                             <span className="text-base font-black text-slate-700">{isWeight ? 'קג' : label}</span>
-                            <button onClick={confirm} className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">אישור</button>
+                            <div className="flex gap-2">
+                                <button onClick={() => setOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm active:scale-95">ביטול</button>
+                                <button onClick={confirm} className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">אישור</button>
+                            </div>
                         </div>
                         {values === BAR_VALUES && (() => {
                             // מוט: פירוק המשקל לצלחות בכל צד + הוספת זוג צלחות בלחיצה. לחיצה על צלחת בפירוק מורידה את הזוג
@@ -3579,6 +3582,29 @@ ${markImplemented(t)}\n\n`; });
                                 });
                             };
                             return (<>
+                                {filingSupported ? (
+                                    <div className={`mb-2 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 border ${filingDirName && !filingPermGranted ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                                        <div className={`text-xs font-black min-w-0 truncate ${filingDirName && !filingPermGranted ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                            {!filingDirName ? 'ייצוא אוט׳ לא מחובר — דוחות יורדו כרגיל'
+                                                : `ייצוא אוט׳ לתיקיית ${filingDirName} בגוגל דרייב${filingPermGranted ? '' : ' — יש לאשר גישה'}`}
+                                        </div>
+                                        {filingDirName && !filingPermGranted ? (
+                                            <button onClick={()=>ensureFilingPermission&&ensureFilingPermission().then(ok=>showToast(ok?'הגישה אושרה':'הגישה לא אושרה', !ok))}
+                                                className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 bg-amber-500 text-white">
+                                                אשר גישה
+                                            </button>
+                                        ) : (
+                                            <button onClick={filingDirName ? disconnectFilingDir : connectFilingDir}
+                                                className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black active:scale-95 ${filingDirName ? 'bg-white text-red-500 border border-red-200' : 'bg-emerald-600 text-white'}`}>
+                                                {filingDirName ? 'נתק' : 'חבר תיקיית FILING'}
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="mb-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-[11px] font-bold text-slate-400">
+                                        ייצוא אוט׳ לתיקייה לא נתמך בדפדפן זה
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-2 mb-2">
                                     <button onClick={generateExerciseListReport} className="flex items-center justify-center gap-2 bg-indigo-50 border-indigo-200 text-indigo-700 p-2.5 rounded-2xl border active:scale-[0.98] min-w-0">
                                         <Icon name="Dumbbell" size={18} /><span className="font-black text-sm">רשימת תרגילים</span>
@@ -3587,34 +3613,6 @@ ${markImplemented(t)}\n\n`; });
                                         <Icon name="BookOpen" size={18} /><span className="font-black text-sm">הערות לשיפור</span>
                                     </button>
                                 </div>
-                                {filingSupported ? (
-                                    <div className={`mb-3 rounded-2xl p-3 flex items-center justify-between gap-2 border ${filingDirName && !filingPermGranted ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
-                                        <div className="min-w-0">
-                                            <div className={`text-xs font-black ${filingDirName && !filingPermGranted ? 'text-amber-700' : 'text-emerald-700'}`}>ייצוא אוטומטי לגוגל דרייב</div>
-                                            <div className={`text-[10px] font-bold truncate ${filingDirName && !filingPermGranted ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                                {!filingDirName ? 'לא מחובר — דוחות יורדו כרגיל'
-                                                    : !filingPermGranted ? `מחובר לתיקיית "${filingDirName}" — יש לאשר גישה מחדש`
-                                                    : `מחובר לתיקיית "${filingDirName}"`}
-                                            </div>
-                                            {filingDirName && filingPermGranted && <div className="text-[10px] font-bold text-emerald-500 mt-0.5">הערות השיפור מסתנכרנות אוטומטית לקובץ gym-dev-notes-current.txt</div>}
-                                        </div>
-                                        {filingDirName && !filingPermGranted ? (
-                                            <button onClick={()=>ensureFilingPermission&&ensureFilingPermission().then(ok=>showToast(ok?'הגישה אושרה':'הגישה לא אושרה', !ok))}
-                                                className="shrink-0 px-3 py-2 rounded-xl text-[11px] font-black active:scale-95 bg-amber-500 text-white">
-                                                אשר גישה מחדש
-                                            </button>
-                                        ) : (
-                                            <button onClick={filingDirName ? disconnectFilingDir : connectFilingDir}
-                                                className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black active:scale-95 ${filingDirName ? 'bg-white text-red-500 border border-red-200' : 'bg-emerald-600 text-white'}`}>
-                                                {filingDirName ? 'נתק' : 'חבר תיקיית FILING'}
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="mb-3 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-[11px] font-bold text-slate-400">
-                                        ייצוא אוטומטי לתיקייה לא נתמך בדפדפן זה — הדוחות יורדו כקובץ רגיל
-                                    </div>
-                                )}
                                 <div className="mb-3 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
                                     <button onClick={()=>setPreambleOpen(p=>!p)} className="w-full flex items-center justify-between px-3 py-2.5 active:bg-slate-100">
                                         <span className="text-sm font-black text-slate-600">הנחיות מקדמיות</span>
