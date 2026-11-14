@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.53';
+const APP_VERSION = '10.54';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -2114,7 +2114,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         🔥
                     </button>
                     {!isTimerEx && (
-                        <button onClick={()=>togglePerHand(ex.id, isPH)} title="ביחד / יד-יד"
+                        <button onClick={()=>togglePerHand(ex.id, isPH)} title="יחד / יד"
                             className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                                 ${isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600'}`}>
                             {isPH ? 'יד' : 'יחד'}
@@ -5701,8 +5701,8 @@ function App() {
                                 </select>
                             </div>
                             <div className="flex rounded-xl overflow-hidden border border-slate-200 text-[12px] font-black">
-                                <button type="button" onClick={()=>setNewExPerHand(false)} className={`flex-1 py-2 ${!newExPerHand ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-500'}`}>ביחד</button>
-                                <button type="button" onClick={()=>setNewExPerHand(true)} className={`flex-1 py-2 ${newExPerHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-50 text-slate-500'}`}>יד-יד</button>
+                                <button type="button" onClick={()=>setNewExPerHand(false)} className={`flex-1 py-2 ${!newExPerHand ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-500'}`}>יחד</button>
+                                <button type="button" onClick={()=>setNewExPerHand(true)} className={`flex-1 py-2 ${newExPerHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-50 text-slate-500'}`}>יד</button>
                             </div>
                         </div>
                         <div className="flex gap-3">

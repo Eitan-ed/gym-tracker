@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.53';
+var APP_VERSION = '10.54';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -4901,7 +4901,7 @@ var DetailView = memo(function DetailView(_ref23) {
       onClick: function onClick() {
         return togglePerHand(ex.id, isPH);
       },
-      title: "\u05D1\u05D9\u05D7\u05D3 / \u05D9\u05D3-\u05D9\u05D3",
+      title: "\u05D9\u05D7\u05D3 / \u05D9\u05D3",
       className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                                ".concat(isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600')
     }, isPH ? 'יד' : 'יחד'), onUpdateSettings && /*#__PURE__*/React.createElement("select", {
       value: String((weightStepsOverrides === null || weightStepsOverrides === void 0 ? void 0 : weightStepsOverrides[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id]) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
@@ -12855,13 +12855,13 @@ function App() {
       return setNewExPerHand(false);
     },
     className: "flex-1 py-2 ".concat(!newExPerHand ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-500')
-  }, "\u05D1\u05D9\u05D7\u05D3"), /*#__PURE__*/React.createElement("button", {
+  }, "\u05D9\u05D7\u05D3"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: function onClick() {
       return setNewExPerHand(true);
     },
     className: "flex-1 py-2 ".concat(newExPerHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-50 text-slate-500')
-  }, "\u05D9\u05D3-\u05D9\u05D3"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u05D9\u05D3"))), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-3"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
