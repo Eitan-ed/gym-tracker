@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.52';
+var APP_VERSION = '10.53';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -2402,7 +2402,9 @@ function ExerciseEntryRow(_ref15) {
     _ref15$onNextWeight = _ref15.onNextWeight,
     onNextWeight = _ref15$onNextWeight === void 0 ? null : _ref15$onNextWeight,
     _ref15$onSelectedSet = _ref15.onSelectedSet,
-    onSelectedSet = _ref15$onSelectedSet === void 0 ? null : _ref15$onSelectedSet;
+    onSelectedSet = _ref15$onSelectedSet === void 0 ? null : _ref15$onSelectedSet,
+    _ref15$perHand = _ref15.perHand,
+    perHand = _ref15$perHand === void 0 ? false : _ref15$perHand;
   var isTimerEx = TIMER_EXERCISES.has(ex.id);
   var defW = (_ref16 = (_ex$startW = ex.startW) !== null && _ex$startW !== void 0 ? _ex$startW : DEFAULT_STARTING_WEIGHTS[ex.id]) !== null && _ref16 !== void 0 ? _ref16 : weightValues ? weightValues[0] : 10;
   var defR = (_ref17 = (_ex$startR = ex.startR) !== null && _ex$startR !== void 0 ? _ex$startR : DEFAULT_STARTING_REPS[ex.id]) !== null && _ref17 !== void 0 ? _ref17 : 10;
@@ -2454,30 +2456,45 @@ function ExerciseEntryRow(_ref15) {
   useEffect(function () {
     if (onSelectedSet && selEffRef.current != null) onSelectedSet(ex.id, selEffRef.current);
   });
-  // v10.51: יד-יד — חזרות נפרדות לכל יד (ימין = reps, שמאל = repsL); הסימון נשמר לכל תרגיל
+  // v10.53: יד-יד — כל סט מורכב משני תאים (ימין ואז שמאל). תא ימין "נסגר" מקומית (pend) ורק סגירת תא שמאל שומרת סט אחד
+  // עם חזרות לכל יד (reps = ימין, repsL = שמאל), כך שכל שאר הלוגיקה (סיום תרגיל, טיימר, היסטוריה) נשארת כמו שהייתה.
   var _useState39 = useState(function () {
-      return !!LS.get('gym-per-hand', {})[ex.id];
+      var m = LS.get('gym-ph-pend', {})[ex.id];
+      return m && m.sst === sessionStartTime ? m.nums : {};
     }),
     _useState40 = _slicedToArray(_useState39, 2),
-    perHand = _useState40[0],
-    setPerHand = _useState40[1];
-  var togglePerHand = function togglePerHand() {
-    return setPerHand(function (v) {
-      var nv = !v;
-      var m = LS.get('gym-per-hand', {});
-      if (nv) m[ex.id] = true;else delete m[ex.id];
-      LS.set('gym-per-hand', m);
-      return nv;
-    });
-  };
+    pend = _useState40[0],
+    setPend = _useState40[1];
+  var pendInit = React.useRef(true);
+  useEffect(function () {
+    if (pendInit.current) {
+      pendInit.current = false;
+      return;
+    }
+    setPend({});
+  }, [sessionStartTime]);
+  useEffect(function () {
+    var all = LS.get('gym-ph-pend', {});
+    if (Object.keys(pend).some(function (k) {
+      return pend[k];
+    })) all[ex.id] = {
+      sst: sessionStartTime,
+      nums: pend
+    };else delete all[ex.id];
+    LS.set('gym-ph-pend', all);
+  }, [pend]);
   var _useState41 = useState(null),
     _useState42 = _slicedToArray(_useState41, 2),
     pickerNum = _useState42[0],
     setPickerNum = _useState42[1]; // סט שנפתחה עבורו הגלגלת הכפולה
   var _useState43 = useState(null),
     _useState44 = _slicedToArray(_useState43, 2),
-    selField = _useState44[0],
-    setSelField = _useState44[1]; // 'w' / 'r' — השדה שנבחר (null = ברירת מחדל: משקל, בלי סימון מפורש)
+    pickerSide = _useState44[0],
+    setPickerSide = _useState44[1]; // 'R' / 'L' במצב יד-יד
+  var _useState45 = useState(null),
+    _useState46 = _slicedToArray(_useState45, 2),
+    selField = _useState46[0],
+    setSelField = _useState46[1]; // 'w' / 'r' — השדה שנבחר (null = ברירת מחדל: משקל, בלי סימון מפורש)
 
   var weightPresets = useMemo(function () {
     return _toConsumableArray(new Set(_toConsumableArray(logs).filter(function (l) {
@@ -2501,20 +2518,20 @@ function ExerciseEntryRow(_ref15) {
       return r > 0;
     }))).slice(0, 5);
   }, [logs, ex.id]);
-  var _useState45 = useState(false),
-    _useState46 = _slicedToArray(_useState45, 2),
-    isSaving = _useState46[0],
-    setIsSaving = _useState46[1];
-  var _useState47 = useState(function () {
+  var _useState47 = useState(false),
+    _useState48 = _slicedToArray(_useState47, 2),
+    isSaving = _useState48[0],
+    setIsSaving = _useState48[1];
+  var _useState49 = useState(function () {
       return LS.get('gym-belly-timer', 60);
     }),
-    _useState48 = _slicedToArray(_useState47, 2),
-    bellyTimerSecs = _useState48[0],
-    setBellyTimerSecs = _useState48[1];
-  var _useState49 = useState(null),
     _useState50 = _slicedToArray(_useState49, 2),
-    timerState = _useState50[0],
-    setTimerState = _useState50[1]; // {num,remaining,total}
+    bellyTimerSecs = _useState50[0],
+    setBellyTimerSecs = _useState50[1];
+  var _useState51 = useState(null),
+    _useState52 = _slicedToArray(_useState51, 2),
+    timerState = _useState52[0],
+    setTimerState = _useState52[1]; // {num,remaining,total}
   var timerIntervalRef = React.useRef(null);
   var s1Ref = React.useRef(null);
   var s2Ref = React.useRef(null);
@@ -2692,10 +2709,10 @@ function ExerciseEntryRow(_ref15) {
   };
 
   // צעד מהיר ל-▲▼ של המשקל (0.25 / 0.5 / 1 / 2.5 / 5) — null = ברירת המחדל של התרגיל. לחיצה על התווית מעל ▲▼ מחליפה.
-  var _useState51 = useState(null),
-    _useState52 = _slicedToArray(_useState51, 2),
-    quickStep = _useState52[0],
-    setQuickStep = _useState52[1];
+  var _useState53 = useState(null),
+    _useState54 = _slicedToArray(_useState53, 2),
+    quickStep = _useState54[0],
+    setQuickStep = _useState54[1];
   var QUICK_STEPS = [0.25, 0.5, 1, 2.5, 5];
   var cycleQuickStep = function cycleQuickStep() {
     return setQuickStep(function (q) {
@@ -2716,10 +2733,10 @@ function ExerciseEntryRow(_ref15) {
 
   // הצעת העלאת משקל: אם באימון הקודם (לפני האימון הנוכחי) בוצעו כל הסטים הרגילים בלפחות יעד החזרות (ברירת מחדל 12),
   // מציעים את המשקל הבא ברצף/במרווח של התרגיל. מוצגת רק לפני שהתחלת סט באימון הנוכחי, ואפשר להחיל בלחיצה או לסגור.
-  var _useState53 = useState(false),
-    _useState54 = _slicedToArray(_useState53, 2),
-    sugDismissed = _useState54[0],
-    setSugDismissed = _useState54[1];
+  var _useState55 = useState(false),
+    _useState56 = _slicedToArray(_useState55, 2),
+    sugDismissed = _useState56[0],
+    setSugDismissed = _useState56[1];
   var suggestion = useMemo(function () {
     // ההצעה מגיעה רק אחרי עקביות: בכל אחד מ-3 האימונים האחרונים של התרגיל, גם סט 1 וגם סט 2 הגיעו ל-15+ חזרות
     var target = 15,
@@ -2816,6 +2833,9 @@ function ExerciseEntryRow(_ref15) {
                           return onFinish(true);
                         }, 800);
                       }
+                      setPend(function (p) {
+                        return p[num] ? _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, num, false)) : p;
+                      });
                       if (num === 1) setS1(function (p) {
                         return _objectSpread(_objectSpread({}, p), {}, {
                           wC: false,
@@ -3145,21 +3165,7 @@ function ExerciseEntryRow(_ref15) {
     }, isDoneW && (sW.wC || sW.rC) ? 'עדכן' : isDoneW ? 'בוצע' : isSaving ? '...' : 'סיום')), /*#__PURE__*/React.createElement("div", {
       className: "h-1.5"
     }));
-  }(), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-end mb-1"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex rounded-lg overflow-hidden border border-slate-200 text-[10px] font-black"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      if (perHand) togglePerHand();
-    },
-    className: "px-2.5 py-0.5 active:scale-95 ".concat(!perHand ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500')
-  }, "\u05D4\u05D9\u05E0\u05E3 (\u05E9\u05EA\u05D9 \u05D9\u05D3\u05D9\u05D9\u05DD \u05D9\u05D7\u05D3)"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      if (!perHand) togglePerHand();
-    },
-    className: "px-2.5 py-0.5 active:scale-95 ".concat(perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500')
-  }, "\u05D9\u05D3-\u05D9\u05D3 (\u05D7\u05D6\u05E8\u05D5\u05EA \u05DC\u05DB\u05DC \u05D9\u05D3)"))), function () {
+  }(), function () {
     var hasWarm = warmupOpen || done.sW;
     var nums = [1, 2].concat(_toConsumableArray(visibleExtraNums), _toConsumableArray(hasWarm ? [0] : [])); // הסטים לפי הסדר (1 מימין למעלה, 2 משמאלו, 3 מתחת מימין...); החימום אחריהם
     var warmupPending = warmupOpen && !done.sW;
@@ -3289,6 +3295,7 @@ function ExerciseEntryRow(_ref15) {
       }, dir > 0 ? '▲' : '▼');
     };
     var cell = function cell(i) {
+      var side = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
       var num = i.num,
         state = i.state,
         setState = i.setState,
@@ -3301,6 +3308,28 @@ function ExerciseEntryRow(_ref15) {
         isActive = i.isActive,
         dimDone = i.dimDone,
         isWarm = i.isWarm;
+      var phC = !!side; // תא של יד אחת במצב יד-יד
+      var logged = isDone; // הסט נשמר בפועל
+      if (phC) {
+        var pd = !!pend[num];
+        if (side === 'R') {
+          isDone = logged || pd;
+          if (pd && !logged) {
+            canAct = !isSaving;
+            canActFinal = canAct;
+            isActive = false;
+          }
+        } else {
+          conic = null;
+          countdown = 0;
+          showCDown = false;
+          canAct = logged ? canAct : pd && !isSaving;
+          canActFinal = canAct;
+          isActive = !logged && pd && !isSaving;
+        }
+        dimDone = logged && !(state.wC || state.rC);
+      }
+      var repV = side === 'L' ? state.l != null ? state.l : state.r : state.r;
       var isSel = num === selEff;
       var isSkipC = isDone && logs.some(function (l) {
         return l.exId === ex.id && l.setNum === num && new Date(l.timestamp).getTime() > sessionStartTime && l.weight === 0 && l.reps === 0;
@@ -3319,7 +3348,7 @@ function ExerciseEntryRow(_ref15) {
       } : {
         border: '1px solid #e2e8f0'
       });
-      var changed = isDone && (state.wC || state.rC);
+      var changed = logged && (state.wC || state.rC);
       return /*#__PURE__*/React.createElement("div", {
         key: num,
         onClick: function onClick(e) {
@@ -3358,6 +3387,12 @@ function ExerciseEntryRow(_ref15) {
             }));
             return;
           }
+          if (phC && !logged) {
+            if (side === 'R') setPend(function (p) {
+              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, num, !p[num]));
+            });else handleSetSave(num, state);
+            return;
+          }
           handleSetSave(num, state);
         },
         "aria-disabled": !canActFinal,
@@ -3367,9 +3402,9 @@ function ExerciseEntryRow(_ref15) {
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[19px] leading-none"
-      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num), perHand && !isTimerEx && /*#__PURE__*/React.createElement("span", {
-        className: "text-[8px] font-black leading-none opacity-90 mr-1 whitespace-nowrap"
-      }, "\u05D9\xB7\u05E9")), /*#__PURE__*/React.createElement("div", {
+      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num), phC && /*#__PURE__*/React.createElement("span", {
+        className: "text-[10px] font-black leading-none opacity-90 mr-0.5"
+      }, side === 'R' ? 'י' : 'ש')), /*#__PURE__*/React.createElement("div", {
         className: "contents"
       }, /*#__PURE__*/React.createElement("div", {
         className: "flex-1 min-w-0"
@@ -3377,7 +3412,8 @@ function ExerciseEntryRow(_ref15) {
         label: "\u05E7\u05F4\u05D2",
         compact: true,
         onOpenRequest: isTimerEx && !isWarm ? null : function () {
-          return setPickerNum(num);
+          setPickerNum(num);
+          setPickerSide(side);
         },
         selected: isSel && stepField === 'w' && selNum === num && selField === 'w',
         onTap: function onTap() {
@@ -3430,9 +3466,9 @@ function ExerciseEntryRow(_ref15) {
       }, (timerState === null || timerState === void 0 ? void 0 : timerState.num) === num ? '▐▐' : 'שנ׳ ▶'))) : /*#__PURE__*/React.createElement(Roller, {
         label: "\u05D7\u05D6\u05F3",
         compact: true,
-        display: perHand ? "".concat(state.r, "\xB7").concat(state.l != null ? state.l : state.r) : null,
         onOpenRequest: function onOpenRequest() {
-          return setPickerNum(num);
+          setPickerNum(num);
+          setPickerSide(side);
         },
         selected: isSel && selNum === num && selField === 'r',
         onTap: function onTap() {
@@ -3443,14 +3479,11 @@ function ExerciseEntryRow(_ref15) {
         min: 1,
         max: 120,
         step: repsStep,
-        value: state.r,
+        value: repV,
         isChanged: state.rC,
         onChange: function onChange(v) {
           return setState(function (p) {
-            return _objectSpread(_objectSpread({}, p), {}, {
-              r: v,
-              rC: true
-            });
+            return _objectSpread(_objectSpread({}, p), {}, _defineProperty(_defineProperty({}, side === 'L' ? 'l' : 'r', v), "rC", true));
           });
         },
         presets: repsPresets,
@@ -3478,34 +3511,36 @@ function ExerciseEntryRow(_ref15) {
     var pi = pickerNum != null ? infos.find(function (i) {
       return i.num === pickerNum;
     }) : null;
+    var pSide = pi && perHand && !isTimerEx && !pi.isWarm ? pickerSide || 'R' : null;
+    var pPend = pi ? !!pend[pi.num] : false;
     return /*#__PURE__*/React.createElement(React.Fragment, null, pi && /*#__PURE__*/React.createElement(DualPicker, {
-      title: pi.isWarm ? 'חימום' : "\u05E1\u05D8 ".concat(pi.num),
+      title: pi.isWarm ? 'חימום' : "\u05E1\u05D8 ".concat(pi.num).concat(pSide ? pSide === 'R' ? ' — ימין' : ' — שמאל' : ''),
       w: pi.state.w,
-      r: pi.state.r,
-      l: pi.state.l,
-      perHand: perHand,
-      autoCloseAllowed: !pi.isWarm && !pi.isDone && pi.num === autoNum && !isTimerEx,
+      r: pSide === 'L' ? pi.state.l != null ? pi.state.l : pi.state.r : pi.state.r,
+      perHand: false,
+      autoCloseAllowed: !pi.isWarm && !pi.isDone && pi.num === autoNum && !isTimerEx && (!pSide || (pSide === 'R' ? !pPend : pPend)),
       onClose: function onClose() {
         return setPickerNum(null);
       },
       onApply: function onApply(w, r, l, opt) {
         setPickerNum(null);
+        var key = pSide === 'L' ? 'l' : 'r';
         pi.setState(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, {
-            w: w,
-            r: r,
-            l: l,
-            wC: p.wC || w !== p.w,
-            rC: p.rC || r !== p.r || (l != null ? l : r) !== (p.l != null ? p.l : p.r)
-          });
+          return _objectSpread(_objectSpread({}, p), {}, _defineProperty(_defineProperty(_defineProperty({
+            w: w
+          }, key, r), "wC", p.wC || w !== p.w), "rC", p.rC || r !== (key === 'l' ? p.l != null ? p.l : p.r : p.r)));
         });
         if (opt.autoClose && opt.repsTouched && pi.canActFinal) {
           setSelNum(null);
           setSelField(null);
-          handleSetSave(pi.num, _objectSpread(_objectSpread({}, pi.state), {}, {
-            w: w,
-            r: r,
-            l: l
+          if (pSide === 'R') setPend(function (p) {
+            return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, pi.num, true));
+          });else handleSetSave(pi.num, _objectSpread(_objectSpread({}, pi.state), {}, {
+            w: w
+          }, pSide === 'L' ? {
+            l: r
+          } : {
+            r: r
           }));
         }
       }
@@ -3533,6 +3568,49 @@ function ExerciseEntryRow(_ref15) {
           height: 36
         }
       }, "+ \u05E1\u05D8");
+      if (perHand && !isTimerEx) {
+        var nodes = [];
+        var row = 1;
+        if (warm) {
+          nodes.push(/*#__PURE__*/React.createElement("div", {
+            key: "w",
+            className: "min-w-0",
+            style: {
+              gridColumn: '1 / span 2',
+              gridRow: row
+            }
+          }, cell(warm)));
+          row++;
+        }
+        sets.forEach(function (si) {
+          nodes.push(/*#__PURE__*/React.createElement("div", {
+            key: si.num + 'R',
+            className: "min-w-0 flex flex-col",
+            style: {
+              gridColumn: 1,
+              gridRow: row
+            }
+          }, cell(si, 'R')));
+          nodes.push(/*#__PURE__*/React.createElement("div", {
+            key: si.num + 'L',
+            className: "min-w-0 flex flex-col",
+            style: {
+              gridColumn: 2,
+              gridRow: row
+            }
+          }, cell(si, 'L')));
+          row++;
+        });
+        nodes.push(/*#__PURE__*/React.createElement("div", {
+          key: "add",
+          className: "min-w-0 flex flex-col",
+          style: {
+            gridColumn: '1 / span 2',
+            gridRow: row
+          }
+        }, addBtn));
+        return nodes;
+      }
       var order = warm ? [cell(warm)].concat(_toConsumableArray(sets.map(cell)), [addBtn]) : [].concat(_toConsumableArray(sets.map(cell)), [addBtn]);
       // החצים צמודים לשורת הסט הנבחר בלבד (ולא נמתחים על כל השורות)
       var selK = Math.max(0, order.findIndex(function (el) {
@@ -4048,15 +4126,15 @@ var SkipReasonModal = function SkipReasonModal(_ref22) {
     onCancel = _ref22.onCancel,
     _ref22$setLabel = _ref22.setLabel,
     setLabel = _ref22$setLabel === void 0 ? null : _ref22$setLabel;
-  var _useState55 = useState(''),
-    _useState56 = _slicedToArray(_useState55, 2),
-    txt = _useState56[0],
-    setTxt = _useState56[1];
-  // בדף התרגיל: דילוג על הסט הנבחר או על כל התרגיל (setLabel = שם הסט). מהמסך הראשי — תמיד כל התרגיל
-  var _useState57 = useState('set'),
+  var _useState57 = useState(''),
     _useState58 = _slicedToArray(_useState57, 2),
-    scope = _useState58[0],
-    setScope = _useState58[1];
+    txt = _useState58[0],
+    setTxt = _useState58[1];
+  // בדף התרגיל: דילוג על הסט הנבחר או על כל התרגיל (setLabel = שם הסט). מהמסך הראשי — תמיד כל התרגיל
+  var _useState59 = useState('set'),
+    _useState60 = _slicedToArray(_useState59, 2),
+    scope = _useState60[0],
+    setScope = _useState60[1];
   var scopeBtn = function scopeBtn(v, lbl) {
     return /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
@@ -4217,28 +4295,28 @@ var DetailView = memo(function DetailView(_ref23) {
     if (!onUpdateSettings || !warmupEmbed[exId]) return;
     onUpdateSettings('warmupEmbed', _objectSpread(_objectSpread({}, warmupEmbed), {}, _defineProperty({}, exId, false)));
   };
-  var _useState59 = useState(null),
-    _useState60 = _slicedToArray(_useState59, 2),
-    lightbox = _useState60[0],
-    setLightbox = _useState60[1];
   var _useState61 = useState(null),
     _useState62 = _slicedToArray(_useState61, 2),
-    skipDlg = _useState62[0],
-    setSkipDlg = _useState62[1]; // {exId, title, go}
-  // המשקל הכתוב בסט הבא (לפי מצב הסטים בפועל) — מדווח מכל שורת תרגיל ומוצג בכרטיס המשקל שמתחת לווידאו
-  var _useState63 = useState({}),
+    lightbox = _useState62[0],
+    setLightbox = _useState62[1];
+  var _useState63 = useState(null),
     _useState64 = _slicedToArray(_useState63, 2),
-    selSet = _useState64[0],
-    setSelSet = _useState64[1];
+    skipDlg = _useState64[0],
+    setSkipDlg = _useState64[1]; // {exId, title, go}
+  // המשקל הכתוב בסט הבא (לפי מצב הסטים בפועל) — מדווח מכל שורת תרגיל ומוצג בכרטיס המשקל שמתחת לווידאו
+  var _useState65 = useState({}),
+    _useState66 = _slicedToArray(_useState65, 2),
+    selSet = _useState66[0],
+    setSelSet = _useState66[1];
   var reportSel = useCallback(function (exId, n) {
     return setSelSet(function (p) {
       return p[exId] === n ? p : _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, exId, n));
     });
   }, []);
-  var _useState65 = useState({}),
-    _useState66 = _slicedToArray(_useState65, 2),
-    nextW = _useState66[0],
-    setNextW = _useState66[1];
+  var _useState67 = useState({}),
+    _useState68 = _slicedToArray(_useState67, 2),
+    nextW = _useState68[0],
+    setNextW = _useState68[1];
   var reportNextW = useCallback(function (exId, w, warm) {
     return setNextW(function (p) {
       return p[exId] && p[exId].w === w && p[exId].warm === warm ? p : _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, exId, {
@@ -4247,10 +4325,10 @@ var DetailView = memo(function DetailView(_ref23) {
       }));
     });
   }, []);
-  var _useState67 = useState(null),
-    _useState68 = _slicedToArray(_useState67, 2),
-    previewGroupId = _useState68[0],
-    setPreviewGroupId = _useState68[1];
+  var _useState69 = useState(null),
+    _useState70 = _slicedToArray(_useState69, 2),
+    previewGroupId = _useState70[0],
+    setPreviewGroupId = _useState70[1];
   var previewTimeoutRef = React.useRef(null);
   var curChipRef = React.useRef(null);
   // שורת תמונות התרגילים — סרט גלילה רציף על כל התרגילים, גולל חופשי לפי האצבע ונעצר על הקרוב
@@ -4289,53 +4367,67 @@ var DetailView = memo(function DetailView(_ref23) {
       block: 'nearest'
     });
   }, [previewGroupId]);
-  var _useState69 = useState(null),
-    _useState70 = _slicedToArray(_useState69, 2),
-    videoModal = _useState70[0],
-    setVideoModal = _useState70[1];
-  var _useState71 = useState({}),
+  var _useState71 = useState(null),
     _useState72 = _slicedToArray(_useState71, 2),
-    playingVideos = _useState72[0],
-    setPlayingVideos = _useState72[1];
-  var _useState73 = useState(function () {
+    videoModal = _useState72[0],
+    setVideoModal = _useState72[1];
+  var _useState73 = useState({}),
+    _useState74 = _slicedToArray(_useState73, 2),
+    playingVideos = _useState74[0],
+    setPlayingVideos = _useState74[1];
+  var _useState75 = useState(function () {
       var saved = LS.get('gym-show-details', null);
       if (saved) return saved;
       return group.exercises.reduce(function (acc, ex) {
         return _objectSpread(_objectSpread({}, acc), {}, _defineProperty({}, ex.id, !group.isSuperset));
       }, {});
     }),
-    _useState74 = _slicedToArray(_useState73, 2),
-    showDetails = _useState74[0],
-    setShowDetails = _useState74[1];
-  var _useState75 = useState(function () {
+    _useState76 = _slicedToArray(_useState75, 2),
+    showDetails = _useState76[0],
+    setShowDetails = _useState76[1];
+  var _useState77 = useState(function () {
       return LS.get('gym-hist-open', {});
     }),
-    _useState76 = _slicedToArray(_useState75, 2),
-    historyOpen = _useState76[0],
-    setHistoryOpen = _useState76[1];
+    _useState78 = _slicedToArray(_useState77, 2),
+    historyOpen = _useState78[0],
+    setHistoryOpen = _useState78[1];
   useEffect(function () {
     LS.set('gym-hist-open', historyOpen);
   }, [historyOpen]);
-  var _useState77 = useState({}),
-    _useState78 = _slicedToArray(_useState77, 2),
-    warmupOpenMap = _useState78[0],
-    setWarmupOpenMap = _useState78[1];
-  var _useState79 = useState(null),
+  var _useState79 = useState({}),
     _useState80 = _slicedToArray(_useState79, 2),
-    editingHowToId = _useState80[0],
-    setEditingHowToId = _useState80[1];
-  var _useState81 = useState(''),
+    warmupOpenMap = _useState80[0],
+    setWarmupOpenMap = _useState80[1];
+  // v10.53: ביחד / יד-יד לכל תרגיל (ברירת מחדל מהגדרת התרגיל עצמו אם נוצר כיד-יד)
+  var _useState81 = useState(function () {
+      return LS.get('gym-per-hand', {});
+    }),
     _useState82 = _slicedToArray(_useState81, 2),
-    howToEditVal = _useState82[0],
-    setHowToEditVal = _useState82[1];
+    perHandMap = _useState82[0],
+    setPerHandMap = _useState82[1];
+  var togglePerHand = function togglePerHand(id, cur) {
+    return setPerHandMap(function (m) {
+      var n = _objectSpread(_objectSpread({}, m), {}, _defineProperty({}, id, !cur));
+      LS.set('gym-per-hand', n);
+      return n;
+    });
+  };
   var _useState83 = useState(null),
     _useState84 = _slicedToArray(_useState83, 2),
-    editingTipKey = _useState84[0],
-    setEditingTipKey = _useState84[1]; // 'exId:index'
+    editingHowToId = _useState84[0],
+    setEditingHowToId = _useState84[1];
   var _useState85 = useState(''),
     _useState86 = _slicedToArray(_useState85, 2),
-    tipEditVal = _useState86[0],
-    setTipEditVal = _useState86[1];
+    howToEditVal = _useState86[0],
+    setHowToEditVal = _useState86[1];
+  var _useState87 = useState(null),
+    _useState88 = _slicedToArray(_useState87, 2),
+    editingTipKey = _useState88[0],
+    setEditingTipKey = _useState88[1]; // 'exId:index'
+  var _useState89 = useState(''),
+    _useState90 = _slicedToArray(_useState89, 2),
+    tipEditVal = _useState90[0],
+    setTipEditVal = _useState90[1];
   var scrollRef = React.useRef(null);
   useEffect(function () {
     LS.set('gym-show-details', showDetails);
@@ -4397,6 +4489,7 @@ var DetailView = memo(function DetailView(_ref23) {
       _ref24$prevRestTimerT = _ref24.prevRestTimerTotal,
       prevRestTimerTotal = _ref24$prevRestTimerT === void 0 ? 0 : _ref24$prevRestTimerT;
     var accentHex = group.hex || '#3b82f6';
+    var isPH = perHandMap[ex.id] !== undefined ? !!perHandMap[ex.id] : !!ex.perHand;
     var isTimerEx = TIMER_EXERCISES.has(ex.id);
     // exHistory מנוהל inline בבלוק ההיסטוריה הcollapsible
     var imgSrc = images === null || images === void 0 ? void 0 : images[ex.id];
@@ -4804,7 +4897,13 @@ var DetailView = memo(function DetailView(_ref23) {
         });
       },
       className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((_warmupOpenMap$ex$id2 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id2 !== void 0 ? _warmupOpenMap$ex$id2 : !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600')
-    }, "\uD83D\uDD25"), onUpdateSettings && /*#__PURE__*/React.createElement("select", {
+    }, "\uD83D\uDD25"), !isTimerEx && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return togglePerHand(ex.id, isPH);
+      },
+      title: "\u05D1\u05D9\u05D7\u05D3 / \u05D9\u05D3-\u05D9\u05D3",
+      className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                                ".concat(isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600')
+    }, isPH ? 'יד' : 'יחד'), onUpdateSettings && /*#__PURE__*/React.createElement("select", {
       value: String((weightStepsOverrides === null || weightStepsOverrides === void 0 ? void 0 : weightStepsOverrides[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id]) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
       onChange: function onChange(e) {
         var v = parseStepVal(e.target.value);
@@ -5029,6 +5128,7 @@ var DetailView = memo(function DetailView(_ref23) {
         isLast: isLast,
         onFinish: onFinish,
         isSuperset: exIsSuperset,
+        perHand: isPH && !isTimerEx,
         onWarmupOpened: handleWarmupOpened,
         onNextWeight: reportNextW,
         onSelectedSet: reportSel,
@@ -5619,10 +5719,10 @@ var HistoryView = function HistoryView(_ref26) {
     onShowDaySummary = _ref26$onShowDaySumma === void 0 ? null : _ref26$onShowDaySumma,
     _ref26$skipReasons = _ref26.skipReasons,
     skipReasons = _ref26$skipReasons === void 0 ? {} : _ref26$skipReasons;
-  var _useState87 = useState(null),
-    _useState88 = _slicedToArray(_useState87, 2),
-    expandedDate = _useState88[0],
-    setExpandedDate = _useState88[1];
+  var _useState91 = useState(null),
+    _useState92 = _slicedToArray(_useState91, 2),
+    expandedDate = _useState92[0],
+    setExpandedDate = _useState92[1];
   var grouped = useMemo(function () {
     return groupLogsBySession(logs);
   }, [logs]);
@@ -6587,16 +6687,16 @@ var WorkoutProgressCalendar = function WorkoutProgressCalendar(_ref33) {
   var logs = _ref33.logs,
     _ref33$onPickDay = _ref33.onPickDay,
     onPickDay = _ref33$onPickDay === void 0 ? null : _ref33$onPickDay;
-  var _useState89 = useState(function () {
+  var _useState93 = useState(function () {
       var d = new Date();
       return {
         y: d.getFullYear(),
         m: d.getMonth()
       };
     }),
-    _useState90 = _slicedToArray(_useState89, 2),
-    cur = _useState90[0],
-    setCur = _useState90[1];
+    _useState94 = _slicedToArray(_useState93, 2),
+    cur = _useState94[0],
+    setCur = _useState94[1];
   var workoutDays = useMemo(function () {
     var s = new Set();
     logs.forEach(function (l) {
@@ -6819,24 +6919,24 @@ var ManageView = function ManageView(_ref34) {
     _ref34$saveTextFile = _ref34.saveTextFile,
     saveTextFile = _ref34$saveTextFile === void 0 ? null : _ref34$saveTextFile;
   var DEFAULT_REPORT_PREAMBLE = "\u05D0\u05EA\u05D4 \u05DE\u05D0\u05DE\u05DF \u05DB\u05D5\u05E9\u05E8 \u05D1\u05D5\u05D2\u05E8 \u05E2\u05DD \u05EA\u05E2\u05D5\u05D3\u05EA \u05D5\u05D9\u05E0\u05D2\u05D9\u05D9\u05D8, \u05D3\u05D9\u05D0\u05D8\u05DF \u05D5\u05DE\u05D5\u05DE\u05D7\u05D4 \u05D1\u05EA\u05D6\u05D5\u05E0\u05D4, \u05D1\u05E2\u05DC \u05D4\u05DB\u05E9\u05E8\u05D4 \u05DB\u05E8\u05D5\u05E4\u05D0 \u05E1\u05E4\u05D5\u05E8\u05D8, \u05DE\u05D5\u05DE\u05D7\u05D4 \u05D1\u05D0\u05D9\u05DE\u05D5\u05DF \u05D0\u05E0\u05E9\u05D9\u05DD \u05DE\u05D1\u05D5\u05D2\u05E8\u05D9\u05DD \u05DE\u05E2\u05DC \u05D2\u05D9\u05DC 50, \u05D1\u05E2\u05DC \u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05E9\u05DC 15 \u05E9\u05E0\u05D9\u05DD.\n\u05D0\u05EA\u05D4 \u05D4\u05DE\u05D0\u05DE\u05DF \u05DB\u05D5\u05E9\u05E8 \u05E9\u05DC \u05D0\u05D9\u05EA\u05DF \u05D5\u05D4\u05EA\u05E4\u05E7\u05D9\u05D3 \u05E9\u05DC\u05DA \u05D6\u05D4 \u05DC\u05D2\u05E8\u05D5\u05DD \u05DC\u05D5 \u05DC\u05D4\u05E9\u05D9\u05D2 3 \u05DE\u05D8\u05E8\u05D5\u05EA:\n1. \u05D7\u05D9\u05D8\u05D5\u05D1 \u05E9\u05DC \u05D4\u05D2\u05D5\u05E3 \u05DC\u05E8\u05DE\u05D4 \u05E9\u05DC \u05E9\u05E8\u05D9\u05E8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D8\u05D5\u05D1 \u05D9\u05E4\u05D9\u05DD\n2. \u05D4\u05D5\u05E8\u05D3\u05D4 \u05D1\u05DE\u05E9\u05E7\u05DC (\u05D1\u05E2\u05D9\u05E7\u05E8 \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA \u05EA\u05D6\u05D5\u05E0\u05D4 \u05D5\u05DC\u05D0 \u05E1\u05D9\u05D1\u05D5\u05DC\u05EA \u05DC\u05D1 \u05E8\u05D9\u05D0\u05D4 \u05D1\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD)\n3. \u05E9\u05DE\u05D9\u05E8\u05D4 \u05E2\u05DC \u05D4\u05E2\u05E6\u05DE\u05D5\u05EA, \u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E4\u05E6\u05D9\u05E2\u05D5\u05EA, \u05D4\u05EA\u05D9\u05D9\u05D7\u05E1\u05D5\u05EA \u05DC\u05DB\u05DA \u05E9\u05DE\u05D3\u05D5\u05D1\u05E8 \u05D1\u05D0\u05D3\u05DD \u05D1\u05D2\u05D9\u05DC 50\n\n\u05E0\u05D0 \u05DC\u05E0\u05EA\u05D7 \u05D0\u05EA \u05D4\u05D3\u05D5\u05D7 \u05D5\u05DC\u05E1\u05E4\u05E7:\n\n1. \u05E1\u05D9\u05DB\u05D5\u05DD \u05DB\u05DC\u05DC\u05D9 \u2014 \u05DE\u05D2\u05DE\u05D5\u05EA \u05E2\u05D9\u05E7\u05E8\u05D9\u05D5\u05EA, \u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA, \u05D5\u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05D7\u05D5\u05D6\u05E7.\n   \u05D0\u05DD \u05D9\u05E9 \u05E0\u05E7\u05D5\u05D3\u05D4 \u05E9\u05D3\u05D5\u05E8\u05E9\u05EA \u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 \u05EA\u05DF \u05D4\u05DE\u05DC\u05E6\u05D4 \u05DE\u05E4\u05D5\u05E8\u05D8\u05EA \u05D5\u05DE\u05E2\u05E9\u05D9\u05EA (\u05DE\u05D4 \u05D1\u05D3\u05D9\u05D5\u05E7 \u05DC\u05E2\u05E9\u05D5\u05EA, \u05DB\u05DE\u05D4, \u05D5\u05D0\u05D9\u05DA).\n\n2. \u05E0\u05D9\u05EA\u05D5\u05D7 \u05E2\u05D5\u05DE\u05E1\u05D9\u05DD \u2014 \u05D4\u05D0\u05DD \u05D9\u05E9 \u05E2\u05DC\u05D9\u05D9\u05D4 \u05E2\u05E7\u05D1\u05D9\u05EA \u05D1\u05DE\u05E9\u05E7\u05DC\u05D9\u05DD? \u05D4\u05D9\u05DB\u05DF \u05D9\u05E9 \u05E1\u05D8\u05D2\u05E0\u05E6\u05D9\u05D4?\n   \u05D1\u05DB\u05DC \u05DE\u05E7\u05D5\u05DD \u05E9\u05DE\u05D6\u05D5\u05D4\u05D4 \u05D1\u05E2\u05D9\u05D4 \u2014 \u05EA\u05DF \u05D4\u05DE\u05DC\u05E6\u05D4 \u05E7\u05D5\u05E0\u05E7\u05E8\u05D8\u05D9\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8.\n\n3. \u05D6\u05DE\u05E0\u05D9 \u05DE\u05E0\u05D5\u05D7\u05D4 \u2014 \u05D4\u05D0\u05DD \u05D6\u05DE\u05E0\u05D9 \u05D4\u05DE\u05E0\u05D5\u05D7\u05D4 \u05D1\u05D9\u05DF \u05D4\u05E1\u05D8\u05D9\u05DD \u05DE\u05EA\u05D0\u05D9\u05DE\u05D9\u05DD \u05DC\u05E1\u05D5\u05D2 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC \u05D5\u05DC\u05DE\u05D8\u05E8\u05D5\u05EA?\n   \u05D0\u05DD \u05DC\u05D0 \u2014 \u05D4\u05DE\u05DC\u05E5 \u05E2\u05DC \u05D6\u05DE\u05DF \u05DE\u05E0\u05D5\u05D7\u05D4 \u05E1\u05E4\u05E6\u05D9\u05E4\u05D9 \u05DC\u05DB\u05DC \u05EA\u05E8\u05D2\u05D9\u05DC.\n\n4. \u05D0\u05D9\u05D6\u05D5\u05DF \u05E9\u05E8\u05D9\u05E8\u05D9 \u2014 \u05D4\u05D0\u05DD \u05D9\u05E9 \u05E7\u05D1\u05D5\u05E6\u05D5\u05EA \u05E9\u05E8\u05D9\u05E8 \u05E9\u05DE\u05E7\u05D1\u05DC\u05D5\u05EA \u05E4\u05D7\u05D5\u05EA \u05EA\u05E9\u05D5\u05DE\u05EA \u05DC\u05D1?\n   \u05D0\u05DD \u05DB\u05DF \u2014 \u05D4\u05DE\u05DC\u05E5 \u05E2\u05DC \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05E1\u05E4\u05E6\u05D9\u05E4\u05D9\u05D9\u05DD \u05DC\u05D4\u05D5\u05E1\u05E4\u05D4.\n\n5. \u05EA\u05D3\u05D9\u05E8\u05D5\u05EA \u05D5\u05E0\u05E4\u05D7 \u2014 \u05D4\u05D0\u05DD \u05EA\u05D3\u05D9\u05E8\u05D5\u05EA \u05D4\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05D5\u05DE\u05E1\u05E4\u05E8 \u05D4\u05E1\u05D8\u05D9\u05DD \u05DE\u05EA\u05D0\u05D9\u05DE\u05D9\u05DD?\n\n6. \u05D4\u05DE\u05DC\u05E6\u05D5\u05EA \u2014 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DE\u05D5\u05E6\u05E2\u05D9\u05DD \u05D1\u05EA\u05D5\u05DB\u05E0\u05D9\u05EA, \u05DE\u05E9\u05E7\u05DC\u05D9\u05DD, \u05D0\u05D5 \u05DE\u05D1\u05E0\u05D4 \u05D4\u05D0\u05D9\u05DE\u05D5\u05DF.\n   \u05D4\u05DE\u05DC\u05E6\u05D5\u05EA \u05DE\u05E4\u05D5\u05E8\u05D8\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3 \u2014 \u05DE\u05D4 \u05DC\u05E2\u05E9\u05D5\u05EA, \u05D0\u05D9\u05E4\u05D4, \u05D5\u05DB\u05DE\u05D4.\n\n7. \u05D4\u05E2\u05E8\u05D5\u05EA \u05D1\u05D8\u05D9\u05D7\u05D5\u05EA \u2014 \u05E1\u05D9\u05DE\u05E0\u05D9\u05DD \u05DC\u05E2\u05D5\u05DE\u05E1 \u05D9\u05EA\u05E8 \u05D0\u05D5 \u05E1\u05D9\u05DB\u05D5\u05DF \u05DC\u05E4\u05E6\u05D9\u05E2\u05D4.\n\n\u05E2\u05E7\u05E8\u05D5\u05E0\u05D5\u05EA \u05DE\u05E0\u05D7\u05D9\u05DD:\n\u2022 \u05DB\u05D1\u05D3 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E9\u05E0\u05DE\u05E9\u05DB\u05EA \u05DC\u05E4\u05E8\u05E7 \u05D6\u05DE\u05DF \u05DC\u05DC\u05D0 \u05E9\u05D9\u05E0\u05D5\u05D9 \u05DE\u05D4\u05D5\u05EA\u05D9 \u2014 \u05D4\u05EA\u05DE\u05D3\u05D4 \u05E2\u05D3\u05D9\u05E4\u05D4 \u05E2\u05DC \u05E9\u05DC\u05DE\u05D5\u05EA.\n\u2022 \u05D0\u05DC \u05EA\u05DE\u05DC\u05D9\u05E5 \u05E2\u05DC \u05E9\u05D9\u05E0\u05D5\u05D9 \u05E8\u05E7 \u05DB\u05D9 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05E4\u05E8. \u05D4\u05DE\u05DC\u05E5 \u05E8\u05E7 \u05DB\u05E9\u05D9\u05E9 \u05E6\u05D5\u05E8\u05DA \u05D0\u05DE\u05D9\u05EA\u05D9.\n\u2022 \u05E9\u05D9\u05DD \u05DC\u05D1 \u05DC\u05D4\u05E2\u05E8\u05D5\u05EA \u05E9\u05E0\u05E8\u05E9\u05DE\u05D5 \u05DC\u05D2\u05D1\u05D9 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D5\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u2014 \u05D4\u05DF \u05DE\u05DB\u05D9\u05DC\u05D5\u05EA \u05DE\u05D9\u05D3\u05E2 \u05D7\u05E9\u05D5\u05D1.";
-  var _useState91 = useState(function () {
+  var _useState95 = useState(function () {
       return LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE);
     }),
-    _useState92 = _slicedToArray(_useState91, 2),
-    reportPreamble = _useState92[0],
-    setReportPreamble = _useState92[1];
+    _useState96 = _slicedToArray(_useState95, 2),
+    reportPreamble = _useState96[0],
+    setReportPreamble = _useState96[1];
   useEffect(function () {
     LS.set('gym-report-preamble', reportPreamble);
   }, [reportPreamble]);
-  var _useState93 = useState(false),
-    _useState94 = _slicedToArray(_useState93, 2),
-    preambleOpen = _useState94[0],
-    setPreambleOpen = _useState94[1];
-  var _useState95 = useState(''),
-    _useState96 = _slicedToArray(_useState95, 2),
-    newDevNoteText = _useState96[0],
-    setNewDevNoteText = _useState96[1];
-  var _useState97 = useState(function () {
+  var _useState97 = useState(false),
+    _useState98 = _slicedToArray(_useState97, 2),
+    preambleOpen = _useState98[0],
+    setPreambleOpen = _useState98[1];
+  var _useState99 = useState(''),
+    _useState100 = _slicedToArray(_useState99, 2),
+    newDevNoteText = _useState100[0],
+    setNewDevNoteText = _useState100[1];
+  var _useState101 = useState(function () {
       var base = {
         casual: false,
         exercises: false,
@@ -6851,34 +6951,34 @@ var ManageView = function ManageView(_ref34) {
       if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
       return base;
     }),
-    _useState98 = _slicedToArray(_useState97, 2),
-    open = _useState98[0],
-    setOpen = _useState98[1];
-  var _useState99 = useState(null),
-    _useState100 = _slicedToArray(_useState99, 2),
-    histExpandedDate = _useState100[0],
-    setHistExpandedDate = _useState100[1];
-  var _useState101 = useState(null),
     _useState102 = _slicedToArray(_useState101, 2),
-    editInstId = _useState102[0],
-    setEditInstId = _useState102[1];
+    open = _useState102[0],
+    setOpen = _useState102[1];
   var _useState103 = useState(null),
     _useState104 = _slicedToArray(_useState103, 2),
-    editingCategoryId = _useState104[0],
-    setEditingCategoryId = _useState104[1]; // group.id שכרגע עורכים לו קטגוריה
-  var _useState105 = useState(''),
+    histExpandedDate = _useState104[0],
+    setHistExpandedDate = _useState104[1];
+  var _useState105 = useState(null),
     _useState106 = _slicedToArray(_useState105, 2),
-    categoryDraft = _useState106[0],
-    setCategoryDraft = _useState106[1];
-  var _useState107 = useState(''),
+    editInstId = _useState106[0],
+    setEditInstId = _useState106[1];
+  var _useState107 = useState(null),
     _useState108 = _slicedToArray(_useState107, 2),
-    categoryDraftOther = _useState108[0],
-    setCategoryDraftOther = _useState108[1];
-  // ─── מצב סידור תרגילים בניהול: טיוטה מקומית שמוזזת בחצים ונשמרת ל-groupOrder רק בלחיצה על "שמור סדר" ───
-  var _useState109 = useState(null),
+    editingCategoryId = _useState108[0],
+    setEditingCategoryId = _useState108[1]; // group.id שכרגע עורכים לו קטגוריה
+  var _useState109 = useState(''),
     _useState110 = _slicedToArray(_useState109, 2),
-    exOrderDraft = _useState110[0],
-    setExOrderDraft = _useState110[1]; // null = לא במצב סידור, אחרת מערך group.id בסדר הטיוטה
+    categoryDraft = _useState110[0],
+    setCategoryDraft = _useState110[1];
+  var _useState111 = useState(''),
+    _useState112 = _slicedToArray(_useState111, 2),
+    categoryDraftOther = _useState112[0],
+    setCategoryDraftOther = _useState112[1];
+  // ─── מצב סידור תרגילים בניהול: טיוטה מקומית שמוזזת בחצים ונשמרת ל-groupOrder רק בלחיצה על "שמור סדר" ───
+  var _useState113 = useState(null),
+    _useState114 = _slicedToArray(_useState113, 2),
+    exOrderDraft = _useState114[0],
+    setExOrderDraft = _useState114[1]; // null = לא במצב סידור, אחרת מערך group.id בסדר הטיוטה
   var handleExOrderMove = useCallback(function (groupId, dir) {
     setExOrderDraft(function (prev) {
       if (!prev) return prev;
@@ -6903,10 +7003,10 @@ var ManageView = function ManageView(_ref34) {
   var reportsRef = React.useRef(null);
   var devNotesRef = React.useRef(null);
   var casualRef = React.useRef(null);
-  var _useState111 = useState(null),
-    _useState112 = _slicedToArray(_useState111, 2),
-    casualEdit = _useState112[0],
-    setCasualEdit = _useState112[1]; // {id|null, name, exIds:[]}
+  var _useState115 = useState(null),
+    _useState116 = _slicedToArray(_useState115, 2),
+    casualEdit = _useState116[0],
+    setCasualEdit = _useState116[1]; // {id|null, name, exIds:[]}
   var sectionRefs = {
     casual: casualRef,
     exercises: exerciseSectionRef,
@@ -6968,10 +7068,10 @@ var ManageView = function ManageView(_ref34) {
       return next;
     });
   };
-  var _useState113 = useState(getBackupDirName),
-    _useState114 = _slicedToArray(_useState113, 2),
-    backupDir = _useState114[0],
-    setBackupDir = _useState114[1];
+  var _useState117 = useState(getBackupDirName),
+    _useState118 = _slicedToArray(_useState117, 2),
+    backupDir = _useState118[0],
+    setBackupDir = _useState118[1];
   var handleBackup = /*#__PURE__*/function () {
     var _handleBackup = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
       var ok;
@@ -9119,10 +9219,10 @@ var HamburgerMenu = memo(function (_ref96) {
     onOpenGroup = _ref96$onOpenGroup === void 0 ? null : _ref96$onOpenGroup,
     _ref96$doneExIds = _ref96.doneExIds,
     doneExIds = _ref96$doneExIds === void 0 ? [] : _ref96$doneExIds;
-  var _useState115 = useState(false),
-    _useState116 = _slicedToArray(_useState115, 2),
-    open = _useState116[0],
-    setOpen = _useState116[1];
+  var _useState119 = useState(false),
+    _useState120 = _slicedToArray(_useState119, 2),
+    open = _useState120[0],
+    setOpen = _useState120[1];
   // טיימר מנוחה לכל תרגיל בנפרד — במקום פסי התפריט. כל חלון: תמונת התרגיל, מספרו מעליו, שניות והיקף כתום
   var timerInfo = function timerInfo(id) {
     var gi = groups.findIndex(function (g) {
@@ -9154,10 +9254,10 @@ var HamburgerMenu = memo(function (_ref96) {
   });
   // טיימר שהסתיים עכשיו מהבהב בירוק עם ✓ לרגע לפני שהוא נעלם — כדי שיהיה ברור איזה מהם נגמר
   var prevRtRef = React.useRef({});
-  var _useState117 = useState([]),
-    _useState118 = _slicedToArray(_useState117, 2),
-    finished = _useState118[0],
-    setFinished = _useState118[1];
+  var _useState121 = useState([]),
+    _useState122 = _slicedToArray(_useState121, 2),
+    finished = _useState122[0],
+    setFinished = _useState122[1];
   useEffect(function () {
     var prev = prevRtRef.current;
     var ended = Object.keys(prev).filter(function (id) {
@@ -9300,10 +9400,10 @@ var HamburgerMenu = memo(function (_ref96) {
       }
     }, t.num));
   };
-  var _useState119 = useState(false),
-    _useState120 = _slicedToArray(_useState119, 2),
-    manageExpanded = _useState120[0],
-    setManageExpanded = _useState120[1];
+  var _useState123 = useState(false),
+    _useState124 = _slicedToArray(_useState123, 2),
+    manageExpanded = _useState124[0],
+    setManageExpanded = _useState124[1];
   var manageSubs = [{
     key: 'backup',
     label: 'גיבוי ושחזור',
@@ -9614,31 +9714,31 @@ var ExercisesListView = function ExercisesListView(_ref97) {
 // ─── App ───────────────────────────────────────────────────
 function App() {
   var _editingDates$gymStar, _musicList$musicIndex2;
-  var _useState121 = useState('list'),
-    _useState122 = _slicedToArray(_useState121, 2),
-    view = _useState122[0],
-    setView = _useState122[1];
-  var _useState123 = useState('list'),
-    _useState124 = _slicedToArray(_useState123, 2),
-    prevView = _useState124[0],
-    setPrevView = _useState124[1];
-  var _useState125 = useState(null),
+  var _useState125 = useState('list'),
     _useState126 = _slicedToArray(_useState125, 2),
-    activeGroup = _useState126[0],
-    setActiveGroup = _useState126[1];
-  // התרגיל שהיה פעיל לפני שדפדפת במניפת התרגילים — כדי שכפתור "חזור" יחזיר אליו
-  var _useState127 = useState(null),
+    view = _useState126[0],
+    setView = _useState126[1];
+  var _useState127 = useState('list'),
     _useState128 = _slicedToArray(_useState127, 2),
-    returnGroup = _useState128[0],
-    setReturnGroup = _useState128[1];
-  var _useState129 = useState(0),
+    prevView = _useState128[0],
+    setPrevView = _useState128[1];
+  var _useState129 = useState(null),
     _useState130 = _slicedToArray(_useState129, 2),
-    backupBannerTick = _useState130[0],
-    setBackupBannerTick = _useState130[1]; // רק לרענון הבאנר אחרי גיבוי
+    activeGroup = _useState130[0],
+    setActiveGroup = _useState130[1];
+  // התרגיל שהיה פעיל לפני שדפדפת במניפת התרגילים — כדי שכפתור "חזור" יחזיר אליו
   var _useState131 = useState(null),
     _useState132 = _slicedToArray(_useState131, 2),
-    manageOpenSection = _useState132[0],
-    setManageOpenSection = _useState132[1];
+    returnGroup = _useState132[0],
+    setReturnGroup = _useState132[1];
+  var _useState133 = useState(0),
+    _useState134 = _slicedToArray(_useState133, 2),
+    backupBannerTick = _useState134[0],
+    setBackupBannerTick = _useState134[1]; // רק לרענון הבאנר אחרי גיבוי
+  var _useState135 = useState(null),
+    _useState136 = _slicedToArray(_useState135, 2),
+    manageOpenSection = _useState136[0],
+    setManageOpenSection = _useState136[1];
   var navigateTo = useCallback(function (newView) {
     // אין דף היסטוריה נפרד — "היסטוריה" פותחת את חלק ההיסטוריה שבתוך "ניהול"
     if (newView === 'history') {
@@ -9657,20 +9757,20 @@ function App() {
     }
     setView(prevView);
   }, [prevView, activeGroup]);
-  var _useState133 = useState(function () {
+  var _useState137 = useState(function () {
       return LS.get('gym-logs', []);
     }),
-    _useState134 = _slicedToArray(_useState133, 2),
-    logs = _useState134[0],
-    setLogs = _useState134[1];
-  var _useState135 = useState(function () {
+    _useState138 = _slicedToArray(_useState137, 2),
+    logs = _useState138[0],
+    setLogs = _useState138[1];
+  var _useState139 = useState(function () {
       return LS.get('gym-workout-active', false);
     }),
-    _useState136 = _slicedToArray(_useState135, 2),
-    isWorkoutActive = _useState136[0],
-    setIsWorkoutActive = _useState136[1];
+    _useState140 = _slicedToArray(_useState139, 2),
+    isWorkoutActive = _useState140[0],
+    setIsWorkoutActive = _useState140[1];
   var STALE_SESSION_SEC = 4 * 3600; // מעל 4 שעות מאז ההתחלה = כנראה נשכח פתוח, לא רציף
-  var _useState137 = useState(function () {
+  var _useState141 = useState(function () {
       var wasActive = LS.get('gym-workout-active', false);
       var start = LS.get('gym-workout-start', null);
       if (wasActive && start) {
@@ -9679,9 +9779,9 @@ function App() {
       }
       return LS.get('gym-last-workout-sec', 0);
     }),
-    _useState138 = _slicedToArray(_useState137, 2),
-    workoutSec = _useState138[0],
-    setWorkoutSec = _useState138[1];
+    _useState142 = _slicedToArray(_useState141, 2),
+    workoutSec = _useState142[0],
+    setWorkoutSec = _useState142[1];
   // אם האימון נשאר "פעיל" ב-localStorage אבל עברו שעות רבות — כנראה הדף נסגר/נשכח, לא ממשיכים לספור אוטומטית
   useEffect(function () {
     var wasActive = LS.get('gym-workout-active', false);
@@ -9691,27 +9791,27 @@ function App() {
       showToast('האימון הקודם נשאר פתוח יותר מדי זמן — הושהה. אפשר להמשיך או לאפס.', true);
     }
   }, []);
-  var _useState139 = useState({}),
-    _useState140 = _slicedToArray(_useState139, 2),
-    restTimers = _useState140[0],
-    setRestTimers = _useState140[1];
-  var _useState141 = useState({}),
-    _useState142 = _slicedToArray(_useState141, 2),
-    restTimerTotals = _useState142[0],
-    setRestTimerTotals = _useState142[1];
-  var _useState143 = useState(function () {
+  var _useState143 = useState({}),
+    _useState144 = _slicedToArray(_useState143, 2),
+    restTimers = _useState144[0],
+    setRestTimers = _useState144[1];
+  var _useState145 = useState({}),
+    _useState146 = _slicedToArray(_useState145, 2),
+    restTimerTotals = _useState146[0],
+    setRestTimerTotals = _useState146[1];
+  var _useState147 = useState(function () {
       return new Set(LS.get('gym-hidden-exercises', []));
     }),
-    _useState144 = _slicedToArray(_useState143, 2),
-    hiddenExercises = _useState144[0],
-    setHiddenExercises = _useState144[1];
+    _useState148 = _slicedToArray(_useState147, 2),
+    hiddenExercises = _useState148[0],
+    setHiddenExercises = _useState148[1];
   // תרגילים שנוספו לאימון של היום בלבד (מרשימת התרגילים, בלי לשנות את התוכנית הקבועה) — מתאפסים באימון חדש
-  var _useState145 = useState(function () {
+  var _useState149 = useState(function () {
       return new Set(LS.get('gym-onetime-ex', []));
     }),
-    _useState146 = _slicedToArray(_useState145, 2),
-    oneTimeEx = _useState146[0],
-    setOneTimeEx = _useState146[1];
+    _useState150 = _slicedToArray(_useState149, 2),
+    oneTimeEx = _useState150[0],
+    setOneTimeEx = _useState150[1];
   useEffect(function () {
     LS.set('gym-onetime-ex', _toConsumableArray(oneTimeEx));
   }, [oneTimeEx]);
@@ -9723,21 +9823,21 @@ function App() {
     });
   }, []);
   // אימונים מיוחדים: רשימה שמורה של אימונים קצרים [{id,name,exIds}] ואימון פעיל (או null = האימון הרגיל). לא נוגע בתוכנית הקבועה
-  var _useState147 = useState(function () {
+  var _useState151 = useState(function () {
       return LS.get('gym-casual-workouts', []);
     }),
-    _useState148 = _slicedToArray(_useState147, 2),
-    casualWorkouts = _useState148[0],
-    setCasualWorkouts = _useState148[1];
+    _useState152 = _slicedToArray(_useState151, 2),
+    casualWorkouts = _useState152[0],
+    setCasualWorkouts = _useState152[1];
   useEffect(function () {
     LS.set('gym-casual-workouts', casualWorkouts);
   }, [casualWorkouts]);
-  var _useState149 = useState(function () {
+  var _useState153 = useState(function () {
       return LS.get('gym-casual-active', null);
     }),
-    _useState150 = _slicedToArray(_useState149, 2),
-    activeCasual = _useState150[0],
-    setActiveCasual = _useState150[1];
+    _useState154 = _slicedToArray(_useState153, 2),
+    activeCasual = _useState154[0],
+    setActiveCasual = _useState154[1];
   useEffect(function () {
     LS.set('gym-casual-active', activeCasual);
   }, [activeCasual]);
@@ -9746,17 +9846,17 @@ function App() {
       return w.id === activeCasual;
     }) || null;
   }, [casualWorkouts, activeCasual]);
-  var _useState151 = useState(function () {
+  var _useState155 = useState(function () {
       var saved = LS.get('gym-group-order', null);
       if (saved && saved.length === exerciseGroups.length) return saved;
       return exerciseGroups.map(function (g) {
         return g.id;
       });
     }),
-    _useState152 = _slicedToArray(_useState151, 2),
-    groupOrder = _useState152[0],
-    setGroupOrder = _useState152[1];
-  var _useState153 = useState(function () {
+    _useState156 = _slicedToArray(_useState155, 2),
+    groupOrder = _useState156[0],
+    setGroupOrder = _useState156[1];
+  var _useState157 = useState(function () {
       if (!LS.get('gym-migrated-start-v1', false)) {
         var t = new Date('2026-04-27').getTime();
         LS.set('gym-session-start', t);
@@ -9765,132 +9865,136 @@ function App() {
       }
       return LS.get('gym-session-start', new Date('2026-04-27').getTime());
     }),
-    _useState154 = _slicedToArray(_useState153, 2),
-    sessionStartTime = _useState154[0],
-    setSessionStartTime = _useState154[1];
-  var _useState155 = useState(function () {
+    _useState158 = _slicedToArray(_useState157, 2),
+    sessionStartTime = _useState158[0],
+    setSessionStartTime = _useState158[1];
+  var _useState159 = useState(function () {
       return LS.get('gym-workout-start', Date.now());
     }),
-    _useState156 = _slicedToArray(_useState155, 2),
-    workoutStartTime = _useState156[0],
-    setWorkoutStartTime = _useState156[1];
-  var _useState157 = useState(function () {
+    _useState160 = _slicedToArray(_useState159, 2),
+    workoutStartTime = _useState160[0],
+    setWorkoutStartTime = _useState160[1];
+  var _useState161 = useState(function () {
       return LS.get('gym-session-end', null);
     }),
-    _useState158 = _slicedToArray(_useState157, 2),
-    sessionEndTime = _useState158[0],
-    setSessionEndTime = _useState158[1];
-  var _useState159 = useState(null),
-    _useState160 = _slicedToArray(_useState159, 2),
-    editingDates = _useState160[0],
-    setEditingDates = _useState160[1];
-  // תחילת אימונים במכון — שדה נפרד מתחילת התוכנית. ללא ערך שמור מוצג תאריך תחילת התוכנית (כמו עד היום)
-  var _useState161 = useState(function () {
-      return LS.get('gym-gym-start', null);
-    }),
     _useState162 = _slicedToArray(_useState161, 2),
-    gymStartTime = _useState162[0],
-    setGymStartTime = _useState162[1];
+    sessionEndTime = _useState162[0],
+    setSessionEndTime = _useState162[1];
   var _useState163 = useState(null),
     _useState164 = _slicedToArray(_useState163, 2),
-    scrollToExId = _useState164[0],
-    setScrollToExId = _useState164[1];
-  var _useState165 = useState(null),
+    editingDates = _useState164[0],
+    setEditingDates = _useState164[1];
+  // תחילת אימונים במכון — שדה נפרד מתחילת התוכנית. ללא ערך שמור מוצג תאריך תחילת התוכנית (כמו עד היום)
+  var _useState165 = useState(function () {
+      return LS.get('gym-gym-start', null);
+    }),
     _useState166 = _slicedToArray(_useState165, 2),
-    confirmAction = _useState166[0],
-    setConfirmAction = _useState166[1];
-  var _useState167 = useState(false),
+    gymStartTime = _useState166[0],
+    setGymStartTime = _useState166[1];
+  var _useState167 = useState(null),
     _useState168 = _slicedToArray(_useState167, 2),
-    showNewWorkoutModal = _useState168[0],
-    setShowNewWorkoutModal = _useState168[1];
-  var _useState169 = useState(false),
+    scrollToExId = _useState168[0],
+    setScrollToExId = _useState168[1];
+  var _useState169 = useState(null),
     _useState170 = _slicedToArray(_useState169, 2),
-    showAddExercise = _useState170[0],
-    setShowAddExercise = _useState170[1];
-  var _useState171 = useState(''),
+    confirmAction = _useState170[0],
+    setConfirmAction = _useState170[1];
+  var _useState171 = useState(false),
     _useState172 = _slicedToArray(_useState171, 2),
-    newExTitle = _useState172[0],
-    setNewExTitle = _useState172[1];
-  var _useState173 = useState(''),
+    showNewWorkoutModal = _useState172[0],
+    setShowNewWorkoutModal = _useState172[1];
+  var _useState173 = useState(false),
     _useState174 = _slicedToArray(_useState173, 2),
-    newExCategory = _useState174[0],
-    setNewExCategory = _useState174[1];
+    showAddExercise = _useState174[0],
+    setShowAddExercise = _useState174[1];
   var _useState175 = useState(''),
     _useState176 = _slicedToArray(_useState175, 2),
-    newExCategoryOther = _useState176[0],
-    setNewExCategoryOther = _useState176[1];
-  // הכנת תרגיל חדש לפני שמירה: תמונה, וידאו (קובץ או קישור), משקל/חזרות התחלתיים ומרווח משקל
-  var _useState177 = useState(null),
+    newExTitle = _useState176[0],
+    setNewExTitle = _useState176[1];
+  var _useState177 = useState(''),
     _useState178 = _slicedToArray(_useState177, 2),
-    newExImage = _useState178[0],
-    setNewExImage = _useState178[1];
-  var _useState179 = useState(null),
+    newExCategory = _useState178[0],
+    setNewExCategory = _useState178[1];
+  var _useState179 = useState(''),
     _useState180 = _slicedToArray(_useState179, 2),
-    newExVideoFile = _useState180[0],
-    setNewExVideoFile = _useState180[1];
-  var _useState181 = useState(''),
+    newExCategoryOther = _useState180[0],
+    setNewExCategoryOther = _useState180[1];
+  // הכנת תרגיל חדש לפני שמירה: תמונה, וידאו (קובץ או קישור), משקל/חזרות התחלתיים ומרווח משקל
+  var _useState181 = useState(null),
     _useState182 = _slicedToArray(_useState181, 2),
-    newExVideoUrl = _useState182[0],
-    setNewExVideoUrl = _useState182[1];
-  var _useState183 = useState(''),
+    newExImage = _useState182[0],
+    setNewExImage = _useState182[1];
+  var _useState183 = useState(null),
     _useState184 = _slicedToArray(_useState183, 2),
-    newExStartW = _useState184[0],
-    setNewExStartW = _useState184[1];
+    newExVideoFile = _useState184[0],
+    setNewExVideoFile = _useState184[1];
   var _useState185 = useState(''),
     _useState186 = _slicedToArray(_useState185, 2),
-    newExStartR = _useState186[0],
-    setNewExStartR = _useState186[1];
+    newExVideoUrl = _useState186[0],
+    setNewExVideoUrl = _useState186[1];
   var _useState187 = useState(''),
     _useState188 = _slicedToArray(_useState187, 2),
-    newExStep = _useState188[0],
-    setNewExStep = _useState188[1];
+    newExStartW = _useState188[0],
+    setNewExStartW = _useState188[1];
+  var _useState189 = useState(''),
+    _useState190 = _slicedToArray(_useState189, 2),
+    newExStartR = _useState190[0],
+    setNewExStartR = _useState190[1];
+  var _useState191 = useState(false),
+    _useState192 = _slicedToArray(_useState191, 2),
+    newExPerHand = _useState192[0],
+    setNewExPerHand = _useState192[1];
+  var _useState193 = useState(''),
+    _useState194 = _slicedToArray(_useState193, 2),
+    newExStep = _useState194[0],
+    setNewExStep = _useState194[1];
   // תרגילים שדולגו מהמסך הראשי — נשמרים לפי האימון הפעיל (workoutStartTime) כדי לשרוד רענון
-  var _useState189 = useState(function () {
+  var _useState195 = useState(function () {
       var s = LS.get('gym-skipped-groups', null);
       return s && s.start === workoutStartTime && Array.isArray(s.ids) ? s.ids : [];
     }),
-    _useState190 = _slicedToArray(_useState189, 2),
-    skippedGroups = _useState190[0],
-    setSkippedGroups = _useState190[1];
+    _useState196 = _slicedToArray(_useState195, 2),
+    skippedGroups = _useState196[0],
+    setSkippedGroups = _useState196[1];
   useEffect(function () {
     LS.set('gym-skipped-groups', {
       start: workoutStartTime,
       ids: skippedGroups
     });
   }, [workoutStartTime, skippedGroups]);
-  var _useState191 = useState(false),
-    _useState192 = _slicedToArray(_useState191, 2),
-    showSummary = _useState192[0],
-    setShowSummary = _useState192[1];
-  var _useState193 = useState(function () {
+  var _useState197 = useState(false),
+    _useState198 = _slicedToArray(_useState197, 2),
+    showSummary = _useState198[0],
+    setShowSummary = _useState198[1];
+  var _useState199 = useState(function () {
       return LS.get('gym-last-summary', null);
     }),
-    _useState194 = _slicedToArray(_useState193, 2),
-    summaryData = _useState194[0],
-    setSummaryData = _useState194[1];
+    _useState200 = _slicedToArray(_useState199, 2),
+    summaryData = _useState200[0],
+    setSummaryData = _useState200[1];
   useEffect(function () {
     LS.set('gym-last-summary', summaryData);
   }, [summaryData]);
-  var _useState195 = useState(false),
-    _useState196 = _slicedToArray(_useState195, 2),
-    isWorkoutComplete = _useState196[0],
-    setIsWorkoutComplete = _useState196[1];
-  var _useState197 = useState(null),
-    _useState198 = _slicedToArray(_useState197, 2),
-    toast = _useState198[0],
-    setToast = _useState198[1];
-  var _useState199 = useState(false),
-    _useState200 = _slicedToArray(_useState199, 2),
-    workoutDecisionMade = _useState200[0],
-    setWorkoutDecisionMade = _useState200[1];
-  var _useState201 = useState(null),
+  var _useState201 = useState(false),
     _useState202 = _slicedToArray(_useState201, 2),
-    autoTransitionSplash = _useState202[0],
-    setAutoTransitionSplash = _useState202[1];
+    isWorkoutComplete = _useState202[0],
+    setIsWorkoutComplete = _useState202[1];
   var _useState203 = useState(null),
     _useState204 = _slicedToArray(_useState203, 2),
-    splashAnchor = _useState204[0],
-    setSplashAnchor = _useState204[1]; // {top,height} של אזור הסטים בפועל (לא כולל תמונה/וידאו/היסטוריה)
+    toast = _useState204[0],
+    setToast = _useState204[1];
+  var _useState205 = useState(false),
+    _useState206 = _slicedToArray(_useState205, 2),
+    workoutDecisionMade = _useState206[0],
+    setWorkoutDecisionMade = _useState206[1];
+  var _useState207 = useState(null),
+    _useState208 = _slicedToArray(_useState207, 2),
+    autoTransitionSplash = _useState208[0],
+    setAutoTransitionSplash = _useState208[1];
+  var _useState209 = useState(null),
+    _useState210 = _slicedToArray(_useState209, 2),
+    splashAnchor = _useState210[0],
+    setSplashAnchor = _useState210[1]; // {top,height} של אזור הסטים בפועל (לא כולל תמונה/וידאו/היסטוריה)
   // ממקם את הפופ-אפ המשקל בדיוק על אזור הסטים של התרגיל הבא — כך שהוא מסתיר רק את הסטים ולא שום דבר אחר
   useEffect(function () {
     if (!(autoTransitionSplash !== null && autoTransitionSplash !== void 0 && autoTransitionSplash.exId)) {
@@ -9908,76 +10012,76 @@ function App() {
       height: r.height
     });
   }, [autoTransitionSplash]);
-  var _useState205 = useState(''),
-    _useState206 = _slicedToArray(_useState205, 2),
-    summaryNote = _useState206[0],
-    setSummaryNote = _useState206[1];
-  var _useState207 = useState(''),
-    _useState208 = _slicedToArray(_useState207, 2),
-    summaryBW = _useState208[0],
-    setSummaryBW = _useState208[1];
-  var _useState209 = useState(false),
-    _useState210 = _slicedToArray(_useState209, 2),
-    summarySaved = _useState210[0],
-    setSummarySaved = _useState210[1];
-  var _useState211 = useState(false),
+  var _useState211 = useState(''),
     _useState212 = _slicedToArray(_useState211, 2),
-    summaryBackedUp = _useState212[0],
-    setSummaryBackedUp = _useState212[1];
-  var _useState213 = useState(false),
+    summaryNote = _useState212[0],
+    setSummaryNote = _useState212[1];
+  var _useState213 = useState(''),
     _useState214 = _slicedToArray(_useState213, 2),
-    showBwStats = _useState214[0],
-    setShowBwStats = _useState214[1];
+    summaryBW = _useState214[0],
+    setSummaryBW = _useState214[1];
   var _useState215 = useState(false),
     _useState216 = _slicedToArray(_useState215, 2),
-    editingDur = _useState216[0],
-    setEditingDur = _useState216[1];
-  var _useState217 = useState(function () {
+    summarySaved = _useState216[0],
+    setSummarySaved = _useState216[1];
+  var _useState217 = useState(false),
+    _useState218 = _slicedToArray(_useState217, 2),
+    summaryBackedUp = _useState218[0],
+    setSummaryBackedUp = _useState218[1];
+  var _useState219 = useState(false),
+    _useState220 = _slicedToArray(_useState219, 2),
+    showBwStats = _useState220[0],
+    setShowBwStats = _useState220[1];
+  var _useState221 = useState(false),
+    _useState222 = _slicedToArray(_useState221, 2),
+    editingDur = _useState222[0],
+    setEditingDur = _useState222[1];
+  var _useState223 = useState(function () {
       return LS.get('gym-bodyweight-log', []);
     }),
-    _useState218 = _slicedToArray(_useState217, 2),
-    bodyweightLog = _useState218[0],
-    setBodyweightLog = _useState218[1];
+    _useState224 = _slicedToArray(_useState223, 2),
+    bodyweightLog = _useState224[0],
+    setBodyweightLog = _useState224[1];
   useEffect(function () {
     LS.set('gym-bodyweight-log', bodyweightLog);
   }, [bodyweightLog]);
-  var _useState219 = useState(function () {
+  var _useState225 = useState(function () {
       return LS.get('gym-workout-notes', {});
     }),
-    _useState220 = _slicedToArray(_useState219, 2),
-    workoutNotes = _useState220[0],
-    setWorkoutNotes = _useState220[1];
+    _useState226 = _slicedToArray(_useState225, 2),
+    workoutNotes = _useState226[0],
+    setWorkoutNotes = _useState226[1];
   useEffect(function () {
     LS.set('gym-workout-notes', workoutNotes);
   }, [workoutNotes]);
-  var _useState221 = useState(0),
-    _useState222 = _slicedToArray(_useState221, 2),
-    audioCurrentTime = _useState222[0],
-    setAudioCurrentTime = _useState222[1];
-  var _useState223 = useState(0),
-    _useState224 = _slicedToArray(_useState223, 2),
-    audioDuration = _useState224[0],
-    setAudioDuration = _useState224[1];
-  var _useState225 = useState(function () {
+  var _useState227 = useState(0),
+    _useState228 = _slicedToArray(_useState227, 2),
+    audioCurrentTime = _useState228[0],
+    setAudioCurrentTime = _useState228[1];
+  var _useState229 = useState(0),
+    _useState230 = _slicedToArray(_useState229, 2),
+    audioDuration = _useState230[0],
+    setAudioDuration = _useState230[1];
+  var _useState231 = useState(function () {
       return LS.get('gym-notes', {});
     }),
-    _useState226 = _slicedToArray(_useState225, 2),
-    notes = _useState226[0],
-    setNotes = _useState226[1];
-  var _useState227 = useState(function () {
+    _useState232 = _slicedToArray(_useState231, 2),
+    notes = _useState232[0],
+    setNotes = _useState232[1];
+  var _useState233 = useState(function () {
       return LS.get('gym-dev-notes', {});
     }),
-    _useState228 = _slicedToArray(_useState227, 2),
-    devNotes = _useState228[0],
-    setDevNotes = _useState228[1];
-  var _useState229 = useState(function () {
+    _useState234 = _slicedToArray(_useState233, 2),
+    devNotes = _useState234[0],
+    setDevNotes = _useState234[1];
+  var _useState235 = useState(function () {
       return LS.get('gym-dev-notes-done', {});
     }),
-    _useState230 = _slicedToArray(_useState229, 2),
-    devNotesDone = _useState230[0],
-    setDevNotesDone = _useState230[1];
+    _useState236 = _slicedToArray(_useState235, 2),
+    devNotesDone = _useState236[0],
+    setDevNotesDone = _useState236[1];
   // v10.38: איפוס חד-פעמי של כל היסטוריית התיקונים (לפי בקשת איתן 12.11.26) — מכאן והלאה הערות שהוטמעו נכנסות להיסטוריה אוטומטית
-  var _useState231 = useState(function () {
+  var _useState237 = useState(function () {
       if (!LS.get('gym-hist-wiped-1038', false)) {
         LS.set('gym-hist-wiped-1038', true);
         LS.set('gym-dev-notes-history', []);
@@ -9985,25 +10089,25 @@ function App() {
       }
       return LS.get('gym-dev-notes-history', []);
     }),
-    _useState232 = _slicedToArray(_useState231, 2),
-    devNotesHistory = _useState232[0],
-    setDevNotesHistory = _useState232[1];
+    _useState238 = _slicedToArray(_useState237, 2),
+    devNotesHistory = _useState238[0],
+    setDevNotesHistory = _useState238[1];
   // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
-  var _useState233 = useState(null),
-    _useState234 = _slicedToArray(_useState233, 2),
-    filingDirName = _useState234[0],
-    setFilingDirName = _useState234[1];
-  var _useState235 = useState(false),
-    _useState236 = _slicedToArray(_useState235, 2),
-    filingLoaded = _useState236[0],
-    setFilingLoaded = _useState236[1];
+  var _useState239 = useState(null),
+    _useState240 = _slicedToArray(_useState239, 2),
+    filingDirName = _useState240[0],
+    setFilingDirName = _useState240[1];
+  var _useState241 = useState(false),
+    _useState242 = _slicedToArray(_useState241, 2),
+    filingLoaded = _useState242[0],
+    setFilingLoaded = _useState242[1];
   // האם הרשאת הכתיבה בפועל מאושרת כרגע (בשונה מ-filingDirName, שמציין רק שהתיקייה "מחוברת"/זכורה) —
   // בדפדפנים מסוימים ההרשאה מתאפסת בכל טעינה מחדש (למשל אחרי שדרוג גרסה), גם כשהתיקייה עצמה
   // עדיין זכורה ב-IndexedDB. הבחנה זו מאפשרת להציג תזכורת "יש לאשר מחדש" בלי "לנתק" בטעות.
-  var _useState237 = useState(true),
-    _useState238 = _slicedToArray(_useState237, 2),
-    filingPermGranted = _useState238[0],
-    setFilingPermGranted = _useState238[1];
+  var _useState243 = useState(true),
+    _useState244 = _slicedToArray(_useState243, 2),
+    filingPermGranted = _useState244[0],
+    setFilingPermGranted = _useState244[1];
   var filingDirRef = React.useRef(null);
   var filingSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   useEffect(function () {
@@ -10403,19 +10507,19 @@ function App() {
     }
     return exportDevNotesReportIfPending;
   }();
-  var _useState239 = useState(function () {
+  var _useState245 = useState(function () {
       return LS.get('gym-images', {});
     }),
-    _useState240 = _slicedToArray(_useState239, 2),
-    images = _useState240[0],
-    setImages = _useState240[1];
+    _useState246 = _slicedToArray(_useState245, 2),
+    images = _useState246[0],
+    setImages = _useState246[1];
   // זום תמונת תרגיל (per-תרגיל) — נשמר כדי שתמונות שחתוכות/מוגדלות מדי אפשר יהיה לזום אאוט/אין ולראות אותן טוב
-  var _useState241 = useState(function () {
+  var _useState247 = useState(function () {
       return LS.get('gym-image-zoom', {});
     }),
-    _useState242 = _slicedToArray(_useState241, 2),
-    imageZoom = _useState242[0],
-    setImageZoom = _useState242[1];
+    _useState248 = _slicedToArray(_useState247, 2),
+    imageZoom = _useState248[0],
+    setImageZoom = _useState248[1];
   useEffect(function () {
     LS.set('gym-image-zoom', imageZoom);
   }, [imageZoom]);
@@ -10427,36 +10531,36 @@ function App() {
       return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, next));
     });
   }, []);
-  var _useState243 = useState(function () {
+  var _useState249 = useState(function () {
       return LS.get('gym-videos', {});
     }),
-    _useState244 = _slicedToArray(_useState243, 2),
-    videos = _useState244[0],
-    setVideos = _useState244[1];
+    _useState250 = _slicedToArray(_useState249, 2),
+    videos = _useState250[0],
+    setVideos = _useState250[1];
   // וידאו מקומי שהמשתמש מעלה בעצמו לכל תרגיל (בנוסף לאפשרות קישור היוטיוב) — מאוחסן ב-IndexedDB, כמו המוזיקה
-  var _useState245 = useState({}),
-    _useState246 = _slicedToArray(_useState245, 2),
-    uploadedVideos = _useState246[0],
-    setUploadedVideos = _useState246[1]; // {exId: objectURL}
-  var _useState247 = useState(function () {
+  var _useState251 = useState({}),
+    _useState252 = _slicedToArray(_useState251, 2),
+    uploadedVideos = _useState252[0],
+    setUploadedVideos = _useState252[1]; // {exId: objectURL}
+  var _useState253 = useState(function () {
       return LS.get('gym-custom-names', {});
     }),
-    _useState248 = _slicedToArray(_useState247, 2),
-    customNames = _useState248[0],
-    setCustomNames = _useState248[1];
-  var _useState249 = useState(function () {
+    _useState254 = _slicedToArray(_useState253, 2),
+    customNames = _useState254[0],
+    setCustomNames = _useState254[1];
+  var _useState255 = useState(function () {
       return LS.get('gym-custom-howto', {});
     }),
-    _useState250 = _slicedToArray(_useState249, 2),
-    customHowTo = _useState250[0],
-    setCustomHowTo = _useState250[1];
-  var _useState251 = useState(function () {
+    _useState256 = _slicedToArray(_useState255, 2),
+    customHowTo = _useState256[0],
+    setCustomHowTo = _useState256[1];
+  var _useState257 = useState(function () {
       return LS.get('gym-custom-tips', {});
     }),
-    _useState252 = _slicedToArray(_useState251, 2),
-    customTips = _useState252[0],
-    setCustomTips = _useState252[1];
-  var _useState253 = useState(function () {
+    _useState258 = _slicedToArray(_useState257, 2),
+    customTips = _useState258[0],
+    setCustomTips = _useState258[1];
+  var _useState259 = useState(function () {
       return LS.get('gym-settings', {
         normalRest: 90,
         exerciseRest: 70,
@@ -10465,42 +10569,42 @@ function App() {
         weightSteps: {}
       });
     }),
-    _useState254 = _slicedToArray(_useState253, 2),
-    settings = _useState254[0],
-    setSettings = _useState254[1];
-  var _useState255 = useState(function () {
+    _useState260 = _slicedToArray(_useState259, 2),
+    settings = _useState260[0],
+    setSettings = _useState260[1];
+  var _useState261 = useState(function () {
       return LS.get('gym-session-durations', {});
     }),
-    _useState256 = _slicedToArray(_useState255, 2),
-    sessionDurations = _useState256[0],
-    setSessionDurations = _useState256[1];
-  var _useState257 = useState(function () {
+    _useState262 = _slicedToArray(_useState261, 2),
+    sessionDurations = _useState262[0],
+    setSessionDurations = _useState262[1];
+  var _useState263 = useState(function () {
       return LS.get('gym-instructors', []);
     }),
-    _useState258 = _slicedToArray(_useState257, 2),
-    instructors = _useState258[0],
-    setInstructors = _useState258[1];
+    _useState264 = _slicedToArray(_useState263, 2),
+    instructors = _useState264[0],
+    setInstructors = _useState264[1];
   useEffect(function () {
     LS.set('gym-instructors', instructors);
   }, [instructors]);
 
   // מוזיקה — playlist מרובה
-  var _useState259 = useState([]),
-    _useState260 = _slicedToArray(_useState259, 2),
-    musicList = _useState260[0],
-    setMusicList = _useState260[1]; // [{id,name,url}] runtime
-  var _useState261 = useState(0),
-    _useState262 = _slicedToArray(_useState261, 2),
-    musicIndex = _useState262[0],
-    setMusicIndex = _useState262[1];
-  var _useState263 = useState(false),
-    _useState264 = _slicedToArray(_useState263, 2),
-    musicPanelOpen = _useState264[0],
-    setMusicPanelOpen = _useState264[1];
-  var _useState265 = useState(false),
+  var _useState265 = useState([]),
     _useState266 = _slicedToArray(_useState265, 2),
-    musicPlaying = _useState266[0],
-    setMusicPlaying = _useState266[1];
+    musicList = _useState266[0],
+    setMusicList = _useState266[1]; // [{id,name,url}] runtime
+  var _useState267 = useState(0),
+    _useState268 = _slicedToArray(_useState267, 2),
+    musicIndex = _useState268[0],
+    setMusicIndex = _useState268[1];
+  var _useState269 = useState(false),
+    _useState270 = _slicedToArray(_useState269, 2),
+    musicPanelOpen = _useState270[0],
+    setMusicPanelOpen = _useState270[1];
+  var _useState271 = useState(false),
+    _useState272 = _slicedToArray(_useState271, 2),
+    musicPlaying = _useState272[0],
+    setMusicPlaying = _useState272[1];
   var musicPanelTimerRef = React.useRef(null);
   var resetMusicPanelTimer = useCallback(function () {
     clearTimeout(musicPanelTimerRef.current);
@@ -10862,10 +10966,10 @@ function App() {
     devNotesLive.current = next;
     setDevNotes(next);
   }, [customNames]);
-  var _useState267 = useState(0),
-    _useState268 = _slicedToArray(_useState267, 2),
-    implTick = _useState268[0],
-    setImplTick = _useState268[1];
+  var _useState273 = useState(0),
+    _useState274 = _slicedToArray(_useState273, 2),
+    implTick = _useState274[0],
+    setImplTick = _useState274[1];
   useEffect(function () {
     purgeImplementedNotes();
   }, [implTick]);
@@ -10889,12 +10993,12 @@ function App() {
   }, [devNotes, devNotesDone, filingDirName, implTick]);
   // הודעה אחרי עדכון גרסה — כדי לדעת שהגרסה החדשה אכן נטענה
   // באנר ירוק קבוע (עד לחיצה) — נשאר גם אם הדף נטען מחדש פעם נוספת אחרי העדכון
-  var _useState269 = useState(function () {
+  var _useState275 = useState(function () {
       return LS.get('gym-update-pending', null) === APP_VERSION;
     }),
-    _useState270 = _slicedToArray(_useState269, 2),
-    updBanner = _useState270[0],
-    setUpdBanner = _useState270[1];
+    _useState276 = _slicedToArray(_useState275, 2),
+    updBanner = _useState276[0],
+    setUpdBanner = _useState276[1];
   var dismissUpdBanner = function dismissUpdBanner() {
     LS.set('gym-update-pending', null);
     setUpdBanner(false);
@@ -11751,6 +11855,7 @@ function App() {
     setNewExStartW('');
     setNewExStartR('');
     setNewExStep('');
+    setNewExPerHand(false);
     setShowAddExercise(true);
   }, []);
   var submitAddCustomExercise = useCallback(function () {
@@ -11771,7 +11876,7 @@ function App() {
       icon: (styleSource === null || styleSource === void 0 ? void 0 : styleSource.icon) || '⭐',
       color: (styleSource === null || styleSource === void 0 ? void 0 : styleSource.color) || 'from-slate-500 to-slate-700',
       machine: (styleSource === null || styleSource === void 0 ? void 0 : styleSource.machine) || '—',
-      exercises: [_objectSpread(_objectSpread({
+      exercises: [_objectSpread(_objectSpread(_objectSpread({
         id: "custom-".concat(ts, "-ex"),
         title: t,
         howTo: '',
@@ -11780,6 +11885,8 @@ function App() {
         startW: parseFloat(newExStartW)
       } : {}), parseInt(newExStartR) > 0 ? {
         startR: parseInt(newExStartR)
+      } : {}), newExPerHand ? {
+        perHand: true
       } : {})]
     };
     var newExId = newGroup.exercises[0].id;
@@ -11822,13 +11929,13 @@ function App() {
         enterReorderMode(newGroup.id);
       });
     }, 700);
-  }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, showToast]);
+  }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, newExPerHand, showToast]);
 
   // ─── מצב סידור זמני: מאפשר להזיז תרגילים בחצים בלי אישור על כל תזוזה, לחלון זמן קצוב ───
-  var _useState271 = useState(null),
-    _useState272 = _slicedToArray(_useState271, 2),
-    reorderMode = _useState272[0],
-    setReorderMode = _useState272[1]; // {groupId, secondsLeft}
+  var _useState277 = useState(null),
+    _useState278 = _slicedToArray(_useState277, 2),
+    reorderMode = _useState278[0],
+    setReorderMode = _useState278[1]; // {groupId, secondsLeft}
   var enterReorderMode = useCallback(function (groupId) {
     return setReorderMode({
       groupId: groupId,
@@ -12080,17 +12187,17 @@ function App() {
       });
     }, 250);
   }, [view, nextIncompleteIndex]);
-  var _useState273 = useState(null),
-    _useState274 = _slicedToArray(_useState273, 2),
-    skipGroupDlg = _useState274[0],
-    setSkipGroupDlg = _useState274[1];
+  var _useState279 = useState(null),
+    _useState280 = _slicedToArray(_useState279, 2),
+    skipGroupDlg = _useState280[0],
+    setSkipGroupDlg = _useState280[1];
   // סיבות דילוג מהמסך הראשי (תרגיל שדולג כולו): { "<תחילת אימון>:<exId>": טקסט } — מוצגות בהיסטוריה בלבד
-  var _useState275 = useState(function () {
+  var _useState281 = useState(function () {
       return LS.get('gym-skip-reasons', {});
     }),
-    _useState276 = _slicedToArray(_useState275, 2),
-    skipReasons = _useState276[0],
-    setSkipReasons = _useState276[1];
+    _useState282 = _slicedToArray(_useState281, 2),
+    skipReasons = _useState282[0],
+    setSkipReasons = _useState282[1];
   useEffect(function () {
     LS.set('gym-skip-reasons', skipReasons);
   }, [skipReasons]);
@@ -12740,7 +12847,21 @@ function App() {
       key: o,
       value: o
     }, o);
-  })))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex rounded-xl overflow-hidden border border-slate-200 text-[12px] font-black"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: function onClick() {
+      return setNewExPerHand(false);
+    },
+    className: "flex-1 py-2 ".concat(!newExPerHand ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-500')
+  }, "\u05D1\u05D9\u05D7\u05D3"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: function onClick() {
+      return setNewExPerHand(true);
+    },
+    className: "flex-1 py-2 ".concat(newExPerHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-50 text-slate-500')
+  }, "\u05D9\u05D3-\u05D9\u05D3"))), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-3"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {

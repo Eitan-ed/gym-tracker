@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.52';
+const APP_VERSION = '10.53';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -992,7 +992,7 @@ function VideoInput({ exId, onSave }) {
 function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast, isSuperset, restTimer, restTimerTotal, onWarmupOpened=null,
     forceSet1Disabled=false, forceSet2Disabled=false, prevRestTimer=0, prevRestTimerTotal=0, accentColor='#3b82f6', requestConfirm=null,
     weightStep=0.5, weightJumpSteps=[0.5,1,5], repsStep=1, repsJumpSteps=[1,2,3,5], weightValues=null, warmupEmbed=false,
-    historyOpen=false, onToggleHistory=null, onDeleteLog=null, warmupOpen=false, onToggleWarmup=null, onNextWeight=null, onSelectedSet=null }) {
+    historyOpen=false, onToggleHistory=null, onDeleteLog=null, warmupOpen=false, onToggleWarmup=null, onNextWeight=null, onSelectedSet=null, perHand=false }) {
     const isTimerEx = TIMER_EXERCISES.has(ex.id);
     const defW = ex.startW ?? DEFAULT_STARTING_WEIGHTS[ex.id] ?? (weightValues ? weightValues[0] : 10);
     const defR = ex.startR ?? DEFAULT_STARTING_REPS[ex.id] ?? 10;
@@ -1007,10 +1007,14 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
     const [selNum, setSelNum] = useState(null);
     const selEffRef = React.useRef(null);
     useEffect(()=>{ if (onSelectedSet && selEffRef.current != null) onSelectedSet(ex.id, selEffRef.current); });
-    // v10.51: יד-יד — חזרות נפרדות לכל יד (ימין = reps, שמאל = repsL); הסימון נשמר לכל תרגיל
-    const [perHand, setPerHand] = useState(() => !!(LS.get('gym-per-hand', {})[ex.id]));
-    const togglePerHand = () => setPerHand(v => { const nv = !v; const m = LS.get('gym-per-hand', {}); if (nv) m[ex.id] = true; else delete m[ex.id]; LS.set('gym-per-hand', m); return nv; });
+    // v10.53: יד-יד — כל סט מורכב משני תאים (ימין ואז שמאל). תא ימין "נסגר" מקומית (pend) ורק סגירת תא שמאל שומרת סט אחד
+    // עם חזרות לכל יד (reps = ימין, repsL = שמאל), כך שכל שאר הלוגיקה (סיום תרגיל, טיימר, היסטוריה) נשארת כמו שהייתה.
+    const [pend, setPend] = useState(() => { const m = LS.get('gym-ph-pend', {})[ex.id]; return m && m.sst === sessionStartTime ? m.nums : {}; });
+    const pendInit = React.useRef(true);
+    useEffect(() => { if (pendInit.current) { pendInit.current = false; return; } setPend({}); }, [sessionStartTime]);
+    useEffect(() => { const all = LS.get('gym-ph-pend', {}); if (Object.keys(pend).some(k => pend[k])) all[ex.id] = { sst: sessionStartTime, nums: pend }; else delete all[ex.id]; LS.set('gym-ph-pend', all); }, [pend]);
     const [pickerNum, setPickerNum] = useState(null); // סט שנפתחה עבורו הגלגלת הכפולה
+    const [pickerSide, setPickerSide] = useState(null); // 'R' / 'L' במצב יד-יד
     const [selField, setSelField] = useState(null); // 'w' / 'r' — השדה שנבחר (null = ברירת מחדל: משקל, בלי סימון מפורש)
 
     const weightPresets = useMemo(() => [...new Set(
@@ -1164,6 +1168,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     // הסט האחרון המוצג בפועל (הרגיל או האחרון מבין הנוספים) — רק בסיומו עוברים אוטומטית לתרגיל הבא
                     if (num === lastSetNum && isLast) setTimeout(()=>onFinish(true), 800);
                 }
+                setPend(p => p[num] ? {...p, [num]: false} : p);
                 if (num===1) setS1(p=>({...p,wC:false,rC:false}));
                 else if (num===2) setS2(p=>({...p,wC:false,rC:false}));
                 else setExtraVals(p=>({...p, [num]: {...(p[num]||state), wC:false, rC:false}}));
@@ -1292,12 +1297,6 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     </React.Fragment>
                 );
             })()}
-            <div className="flex justify-end mb-1">
-                <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[10px] font-black">
-                    <button onClick={()=>{ if (perHand) togglePerHand(); }} className={`px-2.5 py-0.5 active:scale-95 ${!perHand ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}>הינף (שתי ידיים יחד)</button>
-                    <button onClick={()=>{ if (!perHand) togglePerHand(); }} className={`px-2.5 py-0.5 active:scale-95 ${perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500'}`}>יד-יד (חזרות לכל יד)</button>
-                </div>
-            </div>
             {(()=>{
                 const hasWarm = warmupOpen || done.sW;
                 const nums = [1, 2, ...visibleExtraNums, ...(hasWarm ? [0] : [])]; // הסטים לפי הסדר (1 מימין למעלה, 2 משמאלו, 3 מתחת מימין...); החימום אחריהם
@@ -1360,13 +1359,22 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                         {dir>0 ? '▲' : '▼'}
                     </button>
                 );
-                const cell = (i) => {
-                    const { num, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone, isWarm } = i;
+                const cell = (i, side=null) => {
+                    let { num, state, setState, isDone, canAct, conic, countdown, showCDown, canActFinal, isActive, dimDone, isWarm } = i;
+                    const phC = !!side;      // תא של יד אחת במצב יד-יד
+                    const logged = isDone;   // הסט נשמר בפועל
+                    if (phC) {
+                        const pd = !!pend[num];
+                        if (side === 'R') { isDone = logged || pd; if (pd && !logged) { canAct = !isSaving; canActFinal = canAct; isActive = false; } }
+                        else { conic = null; countdown = 0; showCDown = false; canAct = logged ? canAct : (pd && !isSaving); canActFinal = canAct; isActive = !logged && pd && !isSaving; }
+                        dimDone = logged && !(state.wC || state.rC);
+                    }
+                    const repV = side === 'L' ? (state.l != null ? state.l : state.r) : state.r;
                     const isSel = num === selEff;
                     const isSkipC = isDone && logs.some(l => l.exId===ex.id && l.setNum===num && new Date(l.timestamp).getTime()>sessionStartTime && l.weight===0 && l.reps===0);
                     const borderSt = isSkipC ? {border:'2px solid #fb923c'} : isWarm ? (isDone ? {border:'2px solid #d97706'} : {border:'2px dashed #f59e0b'})
                         : conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 3px 10px ${accentColor}30`} : isDone ? {border:'2px solid #94a3b8'} : {border:'1px solid #e2e8f0'});
-                    const changed = isDone && (state.wC || state.rC);
+                    const changed = logged && (state.wC || state.rC);
                     return (
                         <div key={num} onClick={(e)=>{ if (e.target.closest && e.target.closest('button')) return; if (selNum !== num) { setSelNum(num); setSelField(null); } }}
                             style={{...borderSt, borderRadius:'1rem', ...(dimDone && !isSkipC ? {filter:'grayscale(0.85) opacity(0.65)'} : {}), ...(isSel ? {outline:'3px solid #3b82f6', outlineOffset:'1px'} : {})}}
@@ -1374,6 +1382,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             <button onClick={(e)=>{ e.stopPropagation(); if (!canActFinal) return; setSelNum(null); setSelField(null);
                                 if (isWarm) { handleWarmupSave(); return; }
                                 if (isTimerEx) { if (timerState?.num===num) { clearInterval(timerIntervalRef.current); setTimerState(null); } handleSetSave(num, {...state, r: isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs}); return; }
+                                if (phC && !logged) { if (side === 'R') setPend(p => ({...p, [num]: !p[num]})); else handleSetSave(num, state); return; }
                                 handleSetSave(num, state); }}
                                 aria-disabled={!canActFinal}
                                 className={`flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all
@@ -1387,10 +1396,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     : ''}`}
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
                                 <span className="text-[19px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
-                                {perHand && !isTimerEx && <span className="text-[8px] font-black leading-none opacity-90 mr-1 whitespace-nowrap">י·ש</span>}
+                                {phC && <span className="text-[10px] font-black leading-none opacity-90 mr-0.5">{side === 'R' ? 'י' : 'ש'}</span>}
                             </button>
                             <div className="contents">
-                                <div className="flex-1 min-w-0"><Roller label="ק״ג" compact onOpenRequest={isTimerEx && !isWarm ? null : ()=>setPickerNum(num)} selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ setSelNum(num); setSelField('w'); return true; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
+                                <div className="flex-1 min-w-0"><Roller label="ק״ג" compact onOpenRequest={isTimerEx && !isWarm ? null : ()=>{ setPickerNum(num); setPickerSide(side); }} selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ setSelNum(num); setSelField('w'); return true; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}
                                     onChange={v=>{setState(p=>({...p,w:v,wC:true}));}}
                                     presets={weightPresets} jumpSteps={weightValues?[1,2,3]:weightJumpSteps} values={weightValues} /></div>
                                 <div className="flex-1 min-w-0">
@@ -1409,8 +1418,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                         </button>
                                     </div>
                                 ) : (
-                                <Roller label="חז׳" compact display={perHand ? `${state.r}·${state.l != null ? state.l : state.r}` : null} onOpenRequest={()=>setPickerNum(num)} selected={isSel && selNum===num && selField==='r'} onTap={()=>{ setSelNum(num); setSelField('r'); return true; }} min={1} max={120} step={repsStep} value={state.r} isChanged={state.rC}
-                                    onChange={v=>setState(p=>({...p,r:v,rC:true}))}
+                                <Roller label="חז׳" compact onOpenRequest={()=>{ setPickerNum(num); setPickerSide(side); }} selected={isSel && selNum===num && selField==='r'} onTap={()=>{ setSelNum(num); setSelField('r'); return true; }} min={1} max={120} step={repsStep} value={repV} isChanged={state.rC}
+                                    onChange={v=>setState(p=>({...p,[side === 'L' ? 'l' : 'r']:v,rC:true}))}
                                     presets={repsPresets} jumpSteps={repsJumpSteps} />
                                 )}
                                 </div>
@@ -1431,15 +1440,22 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     );
                 };
                 const pi = pickerNum != null ? infos.find(i => i.num === pickerNum) : null;
+                const pSide = pi && perHand && !isTimerEx && !pi.isWarm ? (pickerSide || 'R') : null;
+                const pPend = pi ? !!pend[pi.num] : false;
                 return (
                     <>
-                    {pi && <DualPicker title={pi.isWarm ? 'חימום' : `סט ${pi.num}`} w={pi.state.w} r={pi.state.r} l={pi.state.l} perHand={perHand}
-                        autoCloseAllowed={!pi.isWarm && !pi.isDone && pi.num === autoNum && !isTimerEx}
+                    {pi && <DualPicker title={pi.isWarm ? 'חימום' : `סט ${pi.num}${pSide ? (pSide === 'R' ? ' — ימין' : ' — שמאל') : ''}`} w={pi.state.w} r={pSide === 'L' ? (pi.state.l != null ? pi.state.l : pi.state.r) : pi.state.r} perHand={false}
+                        autoCloseAllowed={!pi.isWarm && !pi.isDone && pi.num === autoNum && !isTimerEx && (!pSide || (pSide === 'R' ? !pPend : pPend))}
                         onClose={()=>setPickerNum(null)}
                         onApply={(w, r, l, opt) => {
                             setPickerNum(null);
-                            pi.setState(p => ({...p, w, r, l, wC: p.wC || w !== p.w, rC: p.rC || r !== p.r || (l != null ? l : r) !== (p.l != null ? p.l : p.r)}));
-                            if (opt.autoClose && opt.repsTouched && pi.canActFinal) { setSelNum(null); setSelField(null); handleSetSave(pi.num, {...pi.state, w, r, l}); }
+                            const key = pSide === 'L' ? 'l' : 'r';
+                            pi.setState(p => ({...p, w, [key]: r, wC: p.wC || w !== p.w, rC: p.rC || r !== (key === 'l' ? (p.l != null ? p.l : p.r) : p.r)}));
+                            if (opt.autoClose && opt.repsTouched && pi.canActFinal) {
+                                setSelNum(null); setSelField(null);
+                                if (pSide === 'R') setPend(p => ({...p, [pi.num]: true}));
+                                else handleSetSave(pi.num, {...pi.state, w, ...(pSide === 'L' ? {l: r} : {r})});
+                            }
                         }} />}
                     <div className="grid gap-1.5 items-stretch" dir="rtl" style={{gridTemplateColumns:'1fr 1fr'}}>
                             {(()=>{
@@ -1453,6 +1469,17 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                         className="rounded-xl border border-dashed border-slate-300 text-slate-400 text-[12px] font-black active:scale-[0.98] active:bg-slate-50 flex items-center justify-center"
                                         style={{height:36}}>+ סט</button>
                                 );
+                                if (perHand && !isTimerEx) {
+                                    const nodes = []; let row = 1;
+                                    if (warm) { nodes.push(<div key="w" className="min-w-0" style={{gridColumn:'1 / span 2', gridRow:row}}>{cell(warm)}</div>); row++; }
+                                    sets.forEach(si => {
+                                        nodes.push(<div key={si.num+'R'} className="min-w-0 flex flex-col" style={{gridColumn:1, gridRow:row}}>{cell(si,'R')}</div>);
+                                        nodes.push(<div key={si.num+'L'} className="min-w-0 flex flex-col" style={{gridColumn:2, gridRow:row}}>{cell(si,'L')}</div>);
+                                        row++;
+                                    });
+                                    nodes.push(<div key="add" className="min-w-0 flex flex-col" style={{gridColumn:'1 / span 2', gridRow:row}}>{addBtn}</div>);
+                                    return nodes;
+                                }
                                 const order = warm
                                     ? [cell(warm), ...sets.map(cell), addBtn]
                                     : [...sets.map(cell), addBtn];
@@ -1832,6 +1859,9 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     const [historyOpen, setHistoryOpen] = useState(()=>LS.get('gym-hist-open', {}));
     useEffect(()=>{ LS.set('gym-hist-open', historyOpen); },[historyOpen]);
     const [warmupOpenMap, setWarmupOpenMap] = useState({});
+    // v10.53: ביחד / יד-יד לכל תרגיל (ברירת מחדל מהגדרת התרגיל עצמו אם נוצר כיד-יד)
+    const [perHandMap, setPerHandMap] = useState(() => LS.get('gym-per-hand', {}));
+    const togglePerHand = (id, cur) => setPerHandMap(m => { const n = {...m, [id]: !cur}; LS.set('gym-per-hand', n); return n; });
     const [editingHowToId, setEditingHowToId] = useState(null);
     const [howToEditVal, setHowToEditVal] = useState('');
     const [editingTipKey, setEditingTipKey] = useState(null); // 'exId:index'
@@ -1869,6 +1899,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         forceSet1Disabled=false, forceSet2Disabled=false,
         prevRestTimer=0, prevRestTimerTotal=0 } = {}) => {
         const accentHex  = group.hex || '#3b82f6';
+        const isPH = perHandMap[ex.id] !== undefined ? !!perHandMap[ex.id] : !!ex.perHand;
         const isTimerEx  = TIMER_EXERCISES.has(ex.id);
         // exHistory מנוהל inline בבלוק ההיסטוריה הcollapsible
         const imgSrc     = images?.[ex.id];
@@ -2082,6 +2113,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             ${(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
                         🔥
                     </button>
+                    {!isTimerEx && (
+                        <button onClick={()=>togglePerHand(ex.id, isPH)} title="ביחד / יד-יד"
+                            className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                                ${isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600'}`}>
+                            {isPH ? 'יד' : 'יחד'}
+                        </button>
+                    )}
                     {onUpdateSettings && (
                         <select
                             value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
@@ -2213,7 +2251,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1));
                     return (
                 <ExerciseEntryRow ex={ex} logs={logs} sessionStartTime={sessionStartTime}
-                    onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset}
+                    onSave={onSave} isLast={isLast} onFinish={onFinish} isSuperset={exIsSuperset} perHand={isPH && !isTimerEx}
                     onWarmupOpened={handleWarmupOpened} onNextWeight={reportNextW} onSelectedSet={reportSel}
                     restTimer={restTimers[ex.id]||0} restTimerTotal={restTimerTotals[ex.id]||0}
                     forceSet1Disabled={forceSet1Disabled} forceSet2Disabled={forceSet2Disabled}
@@ -4250,6 +4288,7 @@ function App() {
     const [newExVideoUrl, setNewExVideoUrl] = useState('');
     const [newExStartW,   setNewExStartW]   = useState('');
     const [newExStartR,   setNewExStartR]   = useState('');
+    const [newExPerHand,  setNewExPerHand]  = useState(false);
     const [newExStep,     setNewExStep]     = useState('');
     // תרגילים שדולגו מהמסך הראשי — נשמרים לפי האימון הפעיל (workoutStartTime) כדי לשרוד רענון
     const [skippedGroups,    setSkippedGroups]    = useState(()=>{ const s = LS.get('gym-skipped-groups', null); return (s && s.start === workoutStartTime && Array.isArray(s.ids)) ? s.ids : []; });
@@ -5137,7 +5176,7 @@ function App() {
     // לבסוף מציעה למשתמש לשנות את מיקום התרגיל ברשימה, ואם כן — פותחת "מצב סידור" זמני.
     const handleAddCustomExercise = useCallback(() => {
         setNewExTitle(''); setNewExCategory(''); setNewExCategoryOther('');
-        setNewExImage(null); setNewExVideoFile(null); setNewExVideoUrl(''); setNewExStartW(''); setNewExStartR(''); setNewExStep('');
+        setNewExImage(null); setNewExVideoFile(null); setNewExVideoUrl(''); setNewExStartW(''); setNewExStartR(''); setNewExStep(''); setNewExPerHand(false);
         setShowAddExercise(true);
     }, []);
 
@@ -5157,7 +5196,8 @@ function App() {
             machine: styleSource?.machine || '—',
             exercises: [{ id:`custom-${ts}-ex`, title: t, howTo:'', tips:[],
                 ...(parseFloat(newExStartW)>0 ? { startW: parseFloat(newExStartW) } : {}),
-                ...(parseInt(newExStartR)>0 ? { startR: parseInt(newExStartR) } : {}) }]
+                ...(parseInt(newExStartR)>0 ? { startR: parseInt(newExStartR) } : {}),
+                ...(newExPerHand ? { perHand: true } : {}) }]
         };
         const newExId = newGroup.exercises[0].id;
         if (newExImage) handleSaveImage(newExId, newExImage);
@@ -5185,7 +5225,7 @@ function App() {
             requestConfirm(`התרגיל נוסף לקטגוריית "${category}". לשנות את מיקומו ברשימה?`,
                 ()=>{ navigateTo('list'); setActiveGroup(null); enterReorderMode(newGroup.id); });
         }, 700);
-    }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, showToast]);
+    }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, newExPerHand, showToast]);
 
     // ─── מצב סידור זמני: מאפשר להזיז תרגילים בחצים בלי אישור על כל תזוזה, לחלון זמן קצוב ───
     const [reorderMode, setReorderMode] = useState(null); // {groupId, secondsLeft}
@@ -5659,6 +5699,10 @@ function App() {
                                     <option value="">מרווח</option>
                                     {['0.25','0.5','1','2','2.5','4','5','4-5','10'].map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
+                            </div>
+                            <div className="flex rounded-xl overflow-hidden border border-slate-200 text-[12px] font-black">
+                                <button type="button" onClick={()=>setNewExPerHand(false)} className={`flex-1 py-2 ${!newExPerHand ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-500'}`}>ביחד</button>
+                                <button type="button" onClick={()=>setNewExPerHand(true)} className={`flex-1 py-2 ${newExPerHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-50 text-slate-500'}`}>יד-יד</button>
                             </div>
                         </div>
                         <div className="flex gap-3">
