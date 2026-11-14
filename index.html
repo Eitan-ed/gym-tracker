@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.50';
+var APP_VERSION = '10.51';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -1532,7 +1532,11 @@ var Roller = memo(function (_ref10) {
     _ref10$onTap = _ref10.onTap,
     onTap = _ref10$onTap === void 0 ? null : _ref10$onTap,
     _ref10$selected = _ref10.selected,
-    selected = _ref10$selected === void 0 ? false : _ref10$selected;
+    selected = _ref10$selected === void 0 ? false : _ref10$selected,
+    _ref10$onOpenRequest = _ref10.onOpenRequest,
+    onOpenRequest = _ref10$onOpenRequest === void 0 ? null : _ref10$onOpenRequest,
+    _ref10$display = _ref10.display,
+    display = _ref10$display === void 0 ? null : _ref10$display;
   var _useState = useState(false),
     _useState2 = _slicedToArray(_useState, 2),
     open = _useState2[0],
@@ -1667,12 +1671,16 @@ var Roller = memo(function (_ref10) {
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       if (onTap && !onTap()) return;
+      if (onOpenRequest) {
+        onOpenRequest();
+        return;
+      }
       setOpen(true);
     },
     className: "w-full ".concat(compact ? 'h-[26px] rounded-lg text-[19px] flex-row gap-1' : 'h-12 rounded-xl text-[22px] flex-col gap-0.5', " font-black flex items-center justify-center active:scale-95 transition-all\n                    ").concat(selected ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500' : isChanged ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-200' : 'bg-slate-100 text-slate-800')
   }, /*#__PURE__*/React.createElement("span", {
     className: compact ? 'leading-none' : ''
-  }, value), /*#__PURE__*/React.createElement("span", {
+  }, display != null ? display : value), /*#__PURE__*/React.createElement("span", {
     className: "font-black opacity-50 tracking-tighter uppercase ".concat(compact ? 'text-[9px] leading-none' : 'text-[9px]')
   }, isWeight ? 'קג' : label)), open && ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-[800] flex items-end",
@@ -1832,21 +1840,281 @@ var Roller = memo(function (_ref10) {
   })))))), document.body));
 });
 
+// ─── v10.51: גלגלת כפולה — משקל וחזרות באותו מסך (ובמצב יד-יד גם חזרות לכל יד) ───
+var FRAC_D = [0.75, 0.5, 0.25, 0];
+var Drum = function Drum(_ref11) {
+  var options = _ref11.options,
+    value = _ref11.value,
+    onPick = _ref11.onPick,
+    _ref11$fmt = _ref11.fmt,
+    fmt = _ref11$fmt === void 0 ? function (o) {
+      return o;
+    } : _ref11$fmt,
+    _ref11$tone = _ref11.tone,
+    tone = _ref11$tone === void 0 ? 'text-slate-900' : _ref11$tone;
+  var ref = React.useRef(null),
+    tm = React.useRef(null),
+    lock = React.useRef(true),
+    first = React.useRef(true);
+  var idxOf = function idxOf(v) {
+    var i = options.indexOf(v);
+    if (i < 0) i = options.reduce(function (b, o, k) {
+      return Math.abs(o - v) < Math.abs(options[b] - v) ? k : b;
+    }, 0);
+    return i;
+  };
+  useEffect(function () {
+    var el = ref.current;
+    if (!el) return;
+    lock.current = true;
+    el.scrollTo({
+      top: idxOf(value) * DRUM_H,
+      behavior: first.current ? 'instant' : 'smooth'
+    });
+    first.current = false;
+    var t = setTimeout(function () {
+      lock.current = false;
+    }, 400);
+    return function () {
+      return clearTimeout(t);
+    };
+  }, [value]);
+  var onScroll = function onScroll() {
+    if (lock.current) return;
+    clearTimeout(tm.current);
+    tm.current = setTimeout(function () {
+      var el = ref.current;
+      if (!el) return;
+      var i = Math.min(Math.max(Math.round(el.scrollTop / DRUM_H), 0), options.length - 1);
+      if (options[i] !== value) onPick(options[i]);else el.scrollTo({
+        top: i * DRUM_H,
+        behavior: 'smooth'
+      });
+    }, 90);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    onScroll: onScroll,
+    className: "h-full overflow-y-scroll no-scrollbar flex-1 min-w-0",
+    style: {
+      scrollSnapType: 'y mandatory',
+      WebkitOverflowScrolling: 'touch'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: DRUM_HALF * DRUM_H + 'px'
+    }
+  }), options.map(function (o) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: o,
+      onClick: function onClick() {
+        return onPick(o);
+      },
+      style: {
+        height: DRUM_H + 'px',
+        scrollSnapAlign: 'center'
+      },
+      className: "flex items-center justify-center select-none cursor-pointer transition-all ".concat(o === value ? "font-black text-[22px] ".concat(tone) : 'font-medium text-[15px] text-slate-400')
+    }, fmt(o));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: DRUM_HALF * DRUM_H + 'px'
+    }
+  }));
+};
+var DualPicker = function DualPicker(_ref12) {
+  var title = _ref12.title,
+    w = _ref12.w,
+    r = _ref12.r,
+    l = _ref12.l,
+    perHand = _ref12.perHand,
+    autoCloseAllowed = _ref12.autoCloseAllowed,
+    onApply = _ref12.onApply,
+    onClose = _ref12.onClose;
+  var _useState5 = useState(w),
+    _useState6 = _slicedToArray(_useState5, 2),
+    lw = _useState6[0],
+    setLw = _useState6[1],
+    _useState7 = useState(r),
+    _useState8 = _slicedToArray(_useState7, 2),
+    lr = _useState8[0],
+    setLr = _useState8[1],
+    _useState9 = useState(l != null ? l : r),
+    _useState0 = _slicedToArray(_useState9, 2),
+    ll = _useState0[0],
+    setLl = _useState0[1];
+  var _useState1 = useState(false),
+    _useState10 = _slicedToArray(_useState1, 2),
+    touched = _useState10[0],
+    setTouched = _useState10[1];
+  var _useState11 = useState(function () {
+      return LS.get('gym-auto-close-set', true);
+    }),
+    _useState12 = _slicedToArray(_useState11, 2),
+    auto = _useState12[0],
+    setAuto = _useState12[1];
+  var wInt = useMemo(function () {
+    var o = [];
+    for (var v = 250; v >= 0; v--) o.push(v);
+    return o;
+  }, []);
+  var repsOpts = useMemo(function () {
+    var o = [];
+    for (var v = 120; v >= 1; v--) o.push(v);
+    return o;
+  }, []);
+  var intPart = Math.floor(lw + 1e-9);
+  var fracPart = FRAC_D.reduce(function (b, o) {
+    return Math.abs(o - (lw - intPart)) < Math.abs(b - (lw - intPart)) ? o : b;
+  }, 0);
+  var setWeight = function setWeight(i, f) {
+    return setLw(Math.min(250, parseFloat((i + f).toFixed(4))));
+  };
+  var pickReps = function pickReps(v) {
+    setTouched(true);
+    setLl(function (prev) {
+      return prev === lr ? v : prev;
+    });
+    setLr(v);
+  };
+  var pickLeft = function pickLeft(v) {
+    setTouched(true);
+    setLl(v);
+  };
+  var confirm = function confirm() {
+    LS.set('gym-auto-close-set', auto);
+    onApply(lw, lr, perHand ? ll : undefined, {
+      repsTouched: touched,
+      autoClose: auto && autoCloseAllowed
+    });
+  };
+  var band = {
+    top: DRUM_HALF * DRUM_H + 'px',
+    height: DRUM_H + 'px',
+    background: 'rgba(59,130,246,0.07)',
+    borderTop: '2px solid rgba(59,130,246,0.3)',
+    borderBottom: '2px solid rgba(59,130,246,0.3)'
+  };
+  var head = function head(t) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "text-center text-[11px] font-black text-slate-500 mb-1"
+    }, t);
+  };
+  return ReactDOM.createPortal(/*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 z-[800] flex items-end",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 bg-slate-900/50"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "relative w-full bg-white rounded-t-3xl shadow-2xl",
+    onClick: function onClick(e) {
+      return e.stopPropagation();
+    },
+    dir: "rtl"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-center px-5 pt-4 pb-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-base font-black text-slate-700"
+  }, title), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm active:scale-95"
+  }, "\u05D1\u05D9\u05D8\u05D5\u05DC"), /*#__PURE__*/React.createElement("button", {
+    onClick: confirm,
+    className: "px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95"
+  }, "\u05D0\u05D9\u05E9\u05D5\u05E8"))), /*#__PURE__*/React.createElement("div", {
+    className: "mx-5 mt-1 flex gap-3",
+    dir: "rtl"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 2
+    }
+  }, head('ק״ג')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: perHand ? 2 : 1
+    }
+  }, head(perHand ? 'חזרות: ימין | שמאל' : 'חזרות'))), /*#__PURE__*/React.createElement("div", {
+    className: "mx-5 mb-3 flex gap-3 items-stretch",
+    dir: "rtl",
+    style: {
+      height: DRUM_VIS * DRUM_H + 'px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "relative flex gap-1 rounded-2xl",
+    style: {
+      flex: 2
+    },
+    dir: "ltr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-x-0 pointer-events-none z-10",
+    style: band
+  }), /*#__PURE__*/React.createElement(Drum, {
+    options: wInt,
+    value: intPart,
+    onPick: function onPick(i) {
+      return setWeight(i, fracPart);
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "w-px bg-slate-200"
+  }), /*#__PURE__*/React.createElement(Drum, {
+    options: FRAC_D,
+    value: fracPart,
+    fmt: function fmt(f) {
+      return '.' + String(Math.round(f * 100)).padStart(2, '0');
+    },
+    tone: "text-blue-700",
+    onPick: function onPick(f) {
+      return setWeight(intPart, f);
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "relative flex gap-1 rounded-2xl border-r border-slate-200 pr-3",
+    style: {
+      flex: perHand ? 2 : 1
+    },
+    dir: "ltr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-x-0 pointer-events-none z-10",
+    style: band
+  }), perHand && /*#__PURE__*/React.createElement(Drum, {
+    options: repsOpts,
+    value: ll,
+    onPick: pickLeft,
+    tone: "text-fuchsia-700"
+  }), /*#__PURE__*/React.createElement(Drum, {
+    options: repsOpts,
+    value: lr,
+    onPick: pickReps
+  }))), autoCloseAllowed && /*#__PURE__*/React.createElement("label", {
+    className: "mx-5 mb-4 flex items-center gap-2 text-[12px] font-black text-slate-600",
+    dir: "rtl"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: auto,
+    onChange: function onChange(e) {
+      return setAuto(e.target.checked);
+    },
+    className: "w-4 h-4"
+  }), "\u05E1\u05D2\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E1\u05D8 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05DB\u05E9\u05D1\u05D5\u05D7\u05E8\u05D9\u05DD \u05D7\u05D6\u05E8\u05D5\u05EA (\u05D1\u05E1\u05D8 \u05D4\u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3)"), /*#__PURE__*/React.createElement("div", {
+    className: "h-3"
+  }))), document.body);
+};
+
 // ─── PlankTimer ────────────────────────────────────────────
 var PLANK_PRESETS = [20, 30, 45, 60, 90, 120];
 function PlankTimer() {
-  var _useState5 = useState(60),
-    _useState6 = _slicedToArray(_useState5, 2),
-    seconds = _useState6[0],
-    setSeconds = _useState6[1];
-  var _useState7 = useState(null),
-    _useState8 = _slicedToArray(_useState7, 2),
-    remaining = _useState8[0],
-    setRemaining = _useState8[1];
-  var _useState9 = useState(false),
-    _useState0 = _slicedToArray(_useState9, 2),
-    running = _useState0[0],
-    setRunning = _useState0[1];
+  var _useState13 = useState(60),
+    _useState14 = _slicedToArray(_useState13, 2),
+    seconds = _useState14[0],
+    setSeconds = _useState14[1];
+  var _useState15 = useState(null),
+    _useState16 = _slicedToArray(_useState15, 2),
+    remaining = _useState16[0],
+    setRemaining = _useState16[1];
+  var _useState17 = useState(false),
+    _useState18 = _slicedToArray(_useState17, 2),
+    running = _useState18[0],
+    setRunning = _useState18[1];
   var itvRef = React.useRef(null);
   var start = function start() {
     setRemaining(seconds);
@@ -1937,35 +2205,35 @@ function PlankTimer() {
 
 // ─── DevNoteButton — כפתור "הערת שיפור" גנרי לכל עמוד באפליקציה ─────
 // נשמר במפורש בסגירה (לא מסתמך רק על onBlur). הכותרת (pageLabel) מוצגת בפאנל בלבד, לא מוזרקת לטקסט.
-function DevNoteButton(_ref11) {
-  var noteKey = _ref11.noteKey,
-    pageLabel = _ref11.pageLabel,
-    _ref11$devNotes = _ref11.devNotes,
-    devNotes = _ref11$devNotes === void 0 ? {} : _ref11$devNotes,
-    _ref11$devNotesDone = _ref11.devNotesDone,
-    devNotesDone = _ref11$devNotesDone === void 0 ? {} : _ref11$devNotesDone,
-    onSaveDevNote = _ref11.onSaveDevNote,
-    _ref11$className = _ref11.className,
-    className = _ref11$className === void 0 ? '' : _ref11$className,
-    _ref11$dark = _ref11.dark,
-    dark = _ref11$dark === void 0 ? true : _ref11$dark,
-    _ref11$square = _ref11.square,
-    square = _ref11$square === void 0 ? false : _ref11$square,
-    _ref11$alignRight = _ref11.alignRight,
-    alignRight = _ref11$alignRight === void 0 ? false : _ref11$alignRight;
-  var _useState1 = useState(false),
-    _useState10 = _slicedToArray(_useState1, 2),
-    open = _useState10[0],
-    setOpen = _useState10[1];
-  var _useState11 = useState(''),
-    _useState12 = _slicedToArray(_useState11, 2),
-    text = _useState12[0],
-    setText = _useState12[1];
+function DevNoteButton(_ref13) {
+  var noteKey = _ref13.noteKey,
+    pageLabel = _ref13.pageLabel,
+    _ref13$devNotes = _ref13.devNotes,
+    devNotes = _ref13$devNotes === void 0 ? {} : _ref13$devNotes,
+    _ref13$devNotesDone = _ref13.devNotesDone,
+    devNotesDone = _ref13$devNotesDone === void 0 ? {} : _ref13$devNotesDone,
+    onSaveDevNote = _ref13.onSaveDevNote,
+    _ref13$className = _ref13.className,
+    className = _ref13$className === void 0 ? '' : _ref13$className,
+    _ref13$dark = _ref13.dark,
+    dark = _ref13$dark === void 0 ? true : _ref13$dark,
+    _ref13$square = _ref13.square,
+    square = _ref13$square === void 0 ? false : _ref13$square,
+    _ref13$alignRight = _ref13.alignRight,
+    alignRight = _ref13$alignRight === void 0 ? false : _ref13$alignRight;
+  var _useState19 = useState(false),
+    _useState20 = _slicedToArray(_useState19, 2),
+    open = _useState20[0],
+    setOpen = _useState20[1];
+  var _useState21 = useState(''),
+    _useState22 = _slicedToArray(_useState21, 2),
+    text = _useState22[0],
+    setText = _useState22[1];
   // בורר יעד ההערה: 'general' (ברירת מחדל, רקע בהיר) = לכל האפליקציה, או 'page' (רקע לבן) = על המסך/התרגיל הזה
-  var _useState13 = useState('general'),
-    _useState14 = _slicedToArray(_useState13, 2),
-    scope = _useState14[0],
-    setScope = _useState14[1];
+  var _useState23 = useState('general'),
+    _useState24 = _slicedToArray(_useState23, 2),
+    scope = _useState24[0],
+    setScope = _useState24[1];
   var keyOf = function keyOf(sc) {
     return sc === 'general' ? GENERAL_NOTE_KEY : noteKey;
   };
@@ -2057,13 +2325,13 @@ function DevNoteButton(_ref11) {
     className: "mt-1.5 text-[11px] font-black text-slate-500 active:text-slate-700"
   }, "\u05E1\u05D2\u05D5\u05E8 \u05D5\u05E9\u05DE\u05D5\u05E8")));
 }
-function VideoInput(_ref12) {
-  var exId = _ref12.exId,
-    onSave = _ref12.onSave;
-  var _useState15 = useState(''),
-    _useState16 = _slicedToArray(_useState15, 2),
-    url = _useState16[0],
-    setUrl = _useState16[1];
+function VideoInput(_ref14) {
+  var exId = _ref14.exId,
+    onSave = _ref14.onSave;
+  var _useState25 = useState(''),
+    _useState26 = _slicedToArray(_useState25, 2),
+    url = _useState26[0],
+    setUrl = _useState26[1];
   return /*#__PURE__*/React.createElement("div", {
     className: "flex gap-2 mb-3 items-center"
   }, /*#__PURE__*/React.createElement("input", {
@@ -2084,112 +2352,132 @@ function VideoInput(_ref12) {
 }
 
 // ─── ExerciseEntryRow ──────────────────────────────────────
-function ExerciseEntryRow(_ref13) {
-  var _ref14, _ex$startW, _ref15, _ex$startR;
-  var ex = _ref13.ex,
-    logs = _ref13.logs,
-    sessionStartTime = _ref13.sessionStartTime,
-    onSave = _ref13.onSave,
-    onFinish = _ref13.onFinish,
-    isLast = _ref13.isLast,
-    isSuperset = _ref13.isSuperset,
-    restTimer = _ref13.restTimer,
-    restTimerTotal = _ref13.restTimerTotal,
-    _ref13$onWarmupOpened = _ref13.onWarmupOpened,
-    onWarmupOpened = _ref13$onWarmupOpened === void 0 ? null : _ref13$onWarmupOpened,
-    _ref13$forceSet1Disab = _ref13.forceSet1Disabled,
-    forceSet1Disabled = _ref13$forceSet1Disab === void 0 ? false : _ref13$forceSet1Disab,
-    _ref13$forceSet2Disab = _ref13.forceSet2Disabled,
-    forceSet2Disabled = _ref13$forceSet2Disab === void 0 ? false : _ref13$forceSet2Disab,
-    _ref13$prevRestTimer = _ref13.prevRestTimer,
-    prevRestTimer = _ref13$prevRestTimer === void 0 ? 0 : _ref13$prevRestTimer,
-    _ref13$prevRestTimerT = _ref13.prevRestTimerTotal,
-    prevRestTimerTotal = _ref13$prevRestTimerT === void 0 ? 0 : _ref13$prevRestTimerT,
-    _ref13$accentColor = _ref13.accentColor,
-    accentColor = _ref13$accentColor === void 0 ? '#3b82f6' : _ref13$accentColor,
-    _ref13$requestConfirm = _ref13.requestConfirm,
-    requestConfirm = _ref13$requestConfirm === void 0 ? null : _ref13$requestConfirm,
-    _ref13$weightStep = _ref13.weightStep,
-    weightStep = _ref13$weightStep === void 0 ? 0.5 : _ref13$weightStep,
-    _ref13$weightJumpStep = _ref13.weightJumpSteps,
-    weightJumpSteps = _ref13$weightJumpStep === void 0 ? [0.5, 1, 5] : _ref13$weightJumpStep,
-    _ref13$repsStep = _ref13.repsStep,
-    repsStep = _ref13$repsStep === void 0 ? 1 : _ref13$repsStep,
-    _ref13$repsJumpSteps = _ref13.repsJumpSteps,
-    repsJumpSteps = _ref13$repsJumpSteps === void 0 ? [1, 2, 3, 5] : _ref13$repsJumpSteps,
-    _ref13$weightValues = _ref13.weightValues,
-    weightValues = _ref13$weightValues === void 0 ? null : _ref13$weightValues,
-    _ref13$warmupEmbed = _ref13.warmupEmbed,
-    warmupEmbed = _ref13$warmupEmbed === void 0 ? false : _ref13$warmupEmbed,
-    _ref13$historyOpen = _ref13.historyOpen,
-    historyOpen = _ref13$historyOpen === void 0 ? false : _ref13$historyOpen,
-    _ref13$onToggleHistor = _ref13.onToggleHistory,
-    onToggleHistory = _ref13$onToggleHistor === void 0 ? null : _ref13$onToggleHistor,
-    _ref13$onDeleteLog = _ref13.onDeleteLog,
-    onDeleteLog = _ref13$onDeleteLog === void 0 ? null : _ref13$onDeleteLog,
-    _ref13$warmupOpen = _ref13.warmupOpen,
-    warmupOpen = _ref13$warmupOpen === void 0 ? false : _ref13$warmupOpen,
-    _ref13$onToggleWarmup = _ref13.onToggleWarmup,
-    onToggleWarmup = _ref13$onToggleWarmup === void 0 ? null : _ref13$onToggleWarmup,
-    _ref13$onNextWeight = _ref13.onNextWeight,
-    onNextWeight = _ref13$onNextWeight === void 0 ? null : _ref13$onNextWeight,
-    _ref13$onSelectedSet = _ref13.onSelectedSet,
-    onSelectedSet = _ref13$onSelectedSet === void 0 ? null : _ref13$onSelectedSet;
+function ExerciseEntryRow(_ref15) {
+  var _ref16, _ex$startW, _ref17, _ex$startR;
+  var ex = _ref15.ex,
+    logs = _ref15.logs,
+    sessionStartTime = _ref15.sessionStartTime,
+    onSave = _ref15.onSave,
+    onFinish = _ref15.onFinish,
+    isLast = _ref15.isLast,
+    isSuperset = _ref15.isSuperset,
+    restTimer = _ref15.restTimer,
+    restTimerTotal = _ref15.restTimerTotal,
+    _ref15$onWarmupOpened = _ref15.onWarmupOpened,
+    onWarmupOpened = _ref15$onWarmupOpened === void 0 ? null : _ref15$onWarmupOpened,
+    _ref15$forceSet1Disab = _ref15.forceSet1Disabled,
+    forceSet1Disabled = _ref15$forceSet1Disab === void 0 ? false : _ref15$forceSet1Disab,
+    _ref15$forceSet2Disab = _ref15.forceSet2Disabled,
+    forceSet2Disabled = _ref15$forceSet2Disab === void 0 ? false : _ref15$forceSet2Disab,
+    _ref15$prevRestTimer = _ref15.prevRestTimer,
+    prevRestTimer = _ref15$prevRestTimer === void 0 ? 0 : _ref15$prevRestTimer,
+    _ref15$prevRestTimerT = _ref15.prevRestTimerTotal,
+    prevRestTimerTotal = _ref15$prevRestTimerT === void 0 ? 0 : _ref15$prevRestTimerT,
+    _ref15$accentColor = _ref15.accentColor,
+    accentColor = _ref15$accentColor === void 0 ? '#3b82f6' : _ref15$accentColor,
+    _ref15$requestConfirm = _ref15.requestConfirm,
+    requestConfirm = _ref15$requestConfirm === void 0 ? null : _ref15$requestConfirm,
+    _ref15$weightStep = _ref15.weightStep,
+    weightStep = _ref15$weightStep === void 0 ? 0.5 : _ref15$weightStep,
+    _ref15$weightJumpStep = _ref15.weightJumpSteps,
+    weightJumpSteps = _ref15$weightJumpStep === void 0 ? [0.5, 1, 5] : _ref15$weightJumpStep,
+    _ref15$repsStep = _ref15.repsStep,
+    repsStep = _ref15$repsStep === void 0 ? 1 : _ref15$repsStep,
+    _ref15$repsJumpSteps = _ref15.repsJumpSteps,
+    repsJumpSteps = _ref15$repsJumpSteps === void 0 ? [1, 2, 3, 5] : _ref15$repsJumpSteps,
+    _ref15$weightValues = _ref15.weightValues,
+    weightValues = _ref15$weightValues === void 0 ? null : _ref15$weightValues,
+    _ref15$warmupEmbed = _ref15.warmupEmbed,
+    warmupEmbed = _ref15$warmupEmbed === void 0 ? false : _ref15$warmupEmbed,
+    _ref15$historyOpen = _ref15.historyOpen,
+    historyOpen = _ref15$historyOpen === void 0 ? false : _ref15$historyOpen,
+    _ref15$onToggleHistor = _ref15.onToggleHistory,
+    onToggleHistory = _ref15$onToggleHistor === void 0 ? null : _ref15$onToggleHistor,
+    _ref15$onDeleteLog = _ref15.onDeleteLog,
+    onDeleteLog = _ref15$onDeleteLog === void 0 ? null : _ref15$onDeleteLog,
+    _ref15$warmupOpen = _ref15.warmupOpen,
+    warmupOpen = _ref15$warmupOpen === void 0 ? false : _ref15$warmupOpen,
+    _ref15$onToggleWarmup = _ref15.onToggleWarmup,
+    onToggleWarmup = _ref15$onToggleWarmup === void 0 ? null : _ref15$onToggleWarmup,
+    _ref15$onNextWeight = _ref15.onNextWeight,
+    onNextWeight = _ref15$onNextWeight === void 0 ? null : _ref15$onNextWeight,
+    _ref15$onSelectedSet = _ref15.onSelectedSet,
+    onSelectedSet = _ref15$onSelectedSet === void 0 ? null : _ref15$onSelectedSet;
   var isTimerEx = TIMER_EXERCISES.has(ex.id);
-  var defW = (_ref14 = (_ex$startW = ex.startW) !== null && _ex$startW !== void 0 ? _ex$startW : DEFAULT_STARTING_WEIGHTS[ex.id]) !== null && _ref14 !== void 0 ? _ref14 : weightValues ? weightValues[0] : 10;
-  var defR = (_ref15 = (_ex$startR = ex.startR) !== null && _ex$startR !== void 0 ? _ex$startR : DEFAULT_STARTING_REPS[ex.id]) !== null && _ref15 !== void 0 ? _ref15 : 10;
-  var _useState17 = useState({
+  var defW = (_ref16 = (_ex$startW = ex.startW) !== null && _ex$startW !== void 0 ? _ex$startW : DEFAULT_STARTING_WEIGHTS[ex.id]) !== null && _ref16 !== void 0 ? _ref16 : weightValues ? weightValues[0] : 10;
+  var defR = (_ref17 = (_ex$startR = ex.startR) !== null && _ex$startR !== void 0 ? _ex$startR : DEFAULT_STARTING_REPS[ex.id]) !== null && _ref17 !== void 0 ? _ref17 : 10;
+  var _useState27 = useState({
       w: defW,
       r: defR,
       wC: false,
       rC: false
     }),
-    _useState18 = _slicedToArray(_useState17, 2),
-    s1 = _useState18[0],
-    setS1 = _useState18[1];
-  var _useState19 = useState({
+    _useState28 = _slicedToArray(_useState27, 2),
+    s1 = _useState28[0],
+    setS1 = _useState28[1];
+  var _useState29 = useState({
       w: defW,
       r: defR,
       wC: false,
       rC: false
     }),
-    _useState20 = _slicedToArray(_useState19, 2),
-    s2 = _useState20[0],
-    setS2 = _useState20[1];
+    _useState30 = _slicedToArray(_useState29, 2),
+    s2 = _useState30[0],
+    setS2 = _useState30[1];
   var setWarmupOpen = function setWarmupOpen(v) {
     return onToggleWarmup === null || onToggleWarmup === void 0 ? void 0 : onToggleWarmup(v);
   };
-  var _useState21 = useState({
+  var _useState31 = useState({
       w: defW,
       r: 10,
       wC: false,
       rC: false
     }),
-    _useState22 = _slicedToArray(_useState21, 2),
-    sW = _useState22[0],
-    setSW = _useState22[1];
+    _useState32 = _slicedToArray(_useState31, 2),
+    sW = _useState32[0],
+    setSW = _useState32[1];
   // סטים נוספים (3,4,...) שהמשתמש הוסיף ידנית מעבר לשני הסטים הרגילים — לכל תרגיל
-  var _useState23 = useState([]),
-    _useState24 = _slicedToArray(_useState23, 2),
-    extraNums = _useState24[0],
-    setExtraNums = _useState24[1];
-  var _useState25 = useState({}),
-    _useState26 = _slicedToArray(_useState25, 2),
-    extraVals = _useState26[0],
-    setExtraVals = _useState26[1]; // { [num]: {w,r,wC,rC} }
+  var _useState33 = useState([]),
+    _useState34 = _slicedToArray(_useState33, 2),
+    extraNums = _useState34[0],
+    setExtraNums = _useState34[1];
+  var _useState35 = useState({}),
+    _useState36 = _slicedToArray(_useState35, 2),
+    extraVals = _useState36[0],
+    setExtraVals = _useState36[1]; // { [num]: {w,r,wC,rC} }
   // סט שנבחר להפעלת כפתורי ה-▲▼ בצד (null = אוטומטי: הסט הפעיל, כלומר הבא שטרם בוצע)
-  var _useState27 = useState(null),
-    _useState28 = _slicedToArray(_useState27, 2),
-    selNum = _useState28[0],
-    setSelNum = _useState28[1];
+  var _useState37 = useState(null),
+    _useState38 = _slicedToArray(_useState37, 2),
+    selNum = _useState38[0],
+    setSelNum = _useState38[1];
   var selEffRef = React.useRef(null);
   useEffect(function () {
     if (onSelectedSet && selEffRef.current != null) onSelectedSet(ex.id, selEffRef.current);
   });
-  var _useState29 = useState(null),
-    _useState30 = _slicedToArray(_useState29, 2),
-    selField = _useState30[0],
-    setSelField = _useState30[1]; // 'w' / 'r' — השדה שנבחר (null = ברירת מחדל: משקל, בלי סימון מפורש)
+  // v10.51: יד-יד — חזרות נפרדות לכל יד (ימין = reps, שמאל = repsL); הסימון נשמר לכל תרגיל
+  var _useState39 = useState(function () {
+      return !!LS.get('gym-per-hand', {})[ex.id];
+    }),
+    _useState40 = _slicedToArray(_useState39, 2),
+    perHand = _useState40[0],
+    setPerHand = _useState40[1];
+  var togglePerHand = function togglePerHand() {
+    return setPerHand(function (v) {
+      var nv = !v;
+      var m = LS.get('gym-per-hand', {});
+      if (nv) m[ex.id] = true;else delete m[ex.id];
+      LS.set('gym-per-hand', m);
+      return nv;
+    });
+  };
+  var _useState41 = useState(null),
+    _useState42 = _slicedToArray(_useState41, 2),
+    pickerNum = _useState42[0],
+    setPickerNum = _useState42[1]; // סט שנפתחה עבורו הגלגלת הכפולה
+  var _useState43 = useState(null),
+    _useState44 = _slicedToArray(_useState43, 2),
+    selField = _useState44[0],
+    setSelField = _useState44[1]; // 'w' / 'r' — השדה שנבחר (null = ברירת מחדל: משקל, בלי סימון מפורש)
 
   var weightPresets = useMemo(function () {
     return _toConsumableArray(new Set(_toConsumableArray(logs).filter(function (l) {
@@ -2213,20 +2501,20 @@ function ExerciseEntryRow(_ref13) {
       return r > 0;
     }))).slice(0, 5);
   }, [logs, ex.id]);
-  var _useState31 = useState(false),
-    _useState32 = _slicedToArray(_useState31, 2),
-    isSaving = _useState32[0],
-    setIsSaving = _useState32[1];
-  var _useState33 = useState(function () {
+  var _useState45 = useState(false),
+    _useState46 = _slicedToArray(_useState45, 2),
+    isSaving = _useState46[0],
+    setIsSaving = _useState46[1];
+  var _useState47 = useState(function () {
       return LS.get('gym-belly-timer', 60);
     }),
-    _useState34 = _slicedToArray(_useState33, 2),
-    bellyTimerSecs = _useState34[0],
-    setBellyTimerSecs = _useState34[1];
-  var _useState35 = useState(null),
-    _useState36 = _slicedToArray(_useState35, 2),
-    timerState = _useState36[0],
-    setTimerState = _useState36[1]; // {num,remaining,total}
+    _useState48 = _slicedToArray(_useState47, 2),
+    bellyTimerSecs = _useState48[0],
+    setBellyTimerSecs = _useState48[1];
+  var _useState49 = useState(null),
+    _useState50 = _slicedToArray(_useState49, 2),
+    timerState = _useState50[0],
+    setTimerState = _useState50[1]; // {num,remaining,total}
   var timerIntervalRef = React.useRef(null);
   var s1Ref = React.useRef(null);
   var s2Ref = React.useRef(null);
@@ -2255,13 +2543,15 @@ function ExerciseEntryRow(_ref13) {
     if (lastS1) setS1(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, {
         w: lastS1.weight,
-        r: lastS1.reps
+        r: lastS1.reps,
+        l: lastS1.repsL
       });
     });
     if (lastS2) setS2(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, {
         w: lastS2.weight,
-        r: lastS2.reps
+        r: lastS2.reps,
+        l: lastS2.repsL
       });
     });else if (lastS1) setS2(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, {
@@ -2402,10 +2692,10 @@ function ExerciseEntryRow(_ref13) {
   };
 
   // צעד מהיר ל-▲▼ של המשקל (0.25 / 0.5 / 1 / 2.5 / 5) — null = ברירת המחדל של התרגיל. לחיצה על התווית מעל ▲▼ מחליפה.
-  var _useState37 = useState(null),
-    _useState38 = _slicedToArray(_useState37, 2),
-    quickStep = _useState38[0],
-    setQuickStep = _useState38[1];
+  var _useState51 = useState(null),
+    _useState52 = _slicedToArray(_useState51, 2),
+    quickStep = _useState52[0],
+    setQuickStep = _useState52[1];
   var QUICK_STEPS = [0.25, 0.5, 1, 2.5, 5];
   var cycleQuickStep = function cycleQuickStep() {
     return setQuickStep(function (q) {
@@ -2426,10 +2716,10 @@ function ExerciseEntryRow(_ref13) {
 
   // הצעת העלאת משקל: אם באימון הקודם (לפני האימון הנוכחי) בוצעו כל הסטים הרגילים בלפחות יעד החזרות (ברירת מחדל 12),
   // מציעים את המשקל הבא ברצף/במרווח של התרגיל. מוצגת רק לפני שהתחלת סט באימון הנוכחי, ואפשר להחיל בלחיצה או לסגור.
-  var _useState39 = useState(false),
-    _useState40 = _slicedToArray(_useState39, 2),
-    sugDismissed = _useState40[0],
-    setSugDismissed = _useState40[1];
+  var _useState53 = useState(false),
+    _useState54 = _slicedToArray(_useState53, 2),
+    sugDismissed = _useState54[0],
+    setSugDismissed = _useState54[1];
   var suggestion = useMemo(function () {
     // ההצעה מגיעה רק אחרי עקביות: בכל אחד מ-3 האימונים האחרונים של התרגיל, גם סט 1 וגם סט 2 הגיעו ל-15+ חזרות
     var target = 15,
@@ -2454,10 +2744,10 @@ function ExerciseEntryRow(_ref13) {
         return l.setNum === 2;
       })];
     });
-    if (!perDay.every(function (_ref16) {
-      var _ref17 = _slicedToArray(_ref16, 2),
-        a = _ref17[0],
-        b = _ref17[1];
+    if (!perDay.every(function (_ref18) {
+      var _ref19 = _slicedToArray(_ref18, 2),
+        a = _ref19[0],
+        b = _ref19[1];
       return a && b && a.reps >= target && b.reps >= target;
     })) return null;
     var w = perDay[0][1].weight; // המשקל באימון האחרון
@@ -2513,7 +2803,7 @@ function ExerciseEntryRow(_ref13) {
                       setIsSaving(true);
                       _context4.p = 1;
                       _context4.n = 2;
-                      return onSave(ex.id, num, state.w, state.r, isSuperset);
+                      return onSave(ex.id, num, state.w, state.r, isSuperset, undefined, perHand ? state.l != null ? state.l : state.r : undefined);
                     case 2:
                       if (!isDoneSet) {
                         if (num === 1 && !done.s2) setS2(function (p) {
@@ -2639,7 +2929,7 @@ function ExerciseEntryRow(_ref13) {
             setIsSaving(true);
             _context7.p = 1;
             _context7.n = 2;
-            return onSave(ex.id, 0, sW.w, sW.r, isSuperset);
+            return onSave(ex.id, 0, sW.w, sW.r, isSuperset, undefined, perHand ? sW.l != null ? sW.l : sW.r : undefined);
           case 2:
             setSW(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, {
@@ -2701,7 +2991,7 @@ function ExerciseEntryRow(_ref13) {
       className: "font-bold opacity-70"
     }, getDayNameHe(h.timestamp), " ", dateStr)), /*#__PURE__*/React.createElement("span", {
       className: "font-black"
-    }, h.weight === 0 && h.reps === 0 ? "".concat(h.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(h.setNum), ": \u05D3\u05D5\u05DC\u05D2").concat(h.reason ? " \u2014 ".concat(h.reason) : '') : "\u05E1\u05D8 ".concat(h.setNum, ": ").concat(h.weight, "kg \xD7 ").concat(h.reps)));
+    }, h.weight === 0 && h.reps === 0 ? "".concat(h.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(h.setNum), ": \u05D3\u05D5\u05DC\u05D2").concat(h.reason ? " \u2014 ".concat(h.reason) : '') : "\u05E1\u05D8 ".concat(h.setNum, ": ").concat(h.weight, "kg \xD7 ").concat(h.reps).concat(h.repsL != null ? ' | ' + h.repsL : '')));
   })), /*#__PURE__*/React.createElement("div", {
     id: "sets-area-".concat(ex.id)
   }, showSuggestion && /*#__PURE__*/React.createElement("div", {
@@ -2855,7 +3145,12 @@ function ExerciseEntryRow(_ref13) {
     }, isDoneW && (sW.wC || sW.rC) ? 'עדכן' : isDoneW ? 'בוצע' : isSaving ? '...' : 'סיום')), /*#__PURE__*/React.createElement("div", {
       className: "h-1.5"
     }));
-  }(), function () {
+  }(), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end mb-1"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: togglePerHand,
+    className: "px-2.5 py-0.5 rounded-lg text-[10px] font-black active:scale-95 ".concat(perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500')
+  }, perHand ? '✓ ' : '', "\u05D9\u05D3-\u05D9\u05D3 (\u05D7\u05D6\u05E8\u05D5\u05EA \u05DC\u05DB\u05DC \u05D9\u05D3)")), function () {
     var hasWarm = warmupOpen || done.sW;
     var nums = [1, 2].concat(_toConsumableArray(visibleExtraNums), _toConsumableArray(hasWarm ? [0] : [])); // הסטים לפי הסדר (1 מימין למעלה, 2 משמאלו, 3 מתחת מימין...); החימום אחריהם
     var warmupPending = warmupOpen && !done.sW;
@@ -3070,6 +3365,9 @@ function ExerciseEntryRow(_ref13) {
       }, /*#__PURE__*/React.createElement(Roller, {
         label: "\u05E7\u05F4\u05D2",
         compact: true,
+        onOpenRequest: isTimerEx && !isWarm ? null : function () {
+          return setPickerNum(num);
+        },
         selected: isSel && stepField === 'w' && selNum === num && selField === 'w',
         onTap: function onTap() {
           setSelNum(num);
@@ -3121,6 +3419,10 @@ function ExerciseEntryRow(_ref13) {
       }, (timerState === null || timerState === void 0 ? void 0 : timerState.num) === num ? '▐▐' : 'שנ׳ ▶'))) : /*#__PURE__*/React.createElement(Roller, {
         label: "\u05D7\u05D6\u05F3",
         compact: true,
+        display: perHand ? "".concat(state.r, "\xB7").concat(state.l != null ? state.l : state.r) : null,
+        onOpenRequest: function onOpenRequest() {
+          return setPickerNum(num);
+        },
         selected: isSel && selNum === num && selField === 'r',
         onTap: function onTap() {
           setSelNum(num);
@@ -3162,7 +3464,41 @@ function ExerciseEntryRow(_ref13) {
         size: 9
       })));
     };
-    return /*#__PURE__*/React.createElement("div", {
+    var pi = pickerNum != null ? infos.find(function (i) {
+      return i.num === pickerNum;
+    }) : null;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, pi && /*#__PURE__*/React.createElement(DualPicker, {
+      title: pi.isWarm ? 'חימום' : "\u05E1\u05D8 ".concat(pi.num),
+      w: pi.state.w,
+      r: pi.state.r,
+      l: pi.state.l,
+      perHand: perHand,
+      autoCloseAllowed: !pi.isWarm && !pi.isDone && pi.num === autoNum && !isTimerEx,
+      onClose: function onClose() {
+        return setPickerNum(null);
+      },
+      onApply: function onApply(w, r, l, opt) {
+        setPickerNum(null);
+        pi.setState(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, {
+            w: w,
+            r: r,
+            l: l,
+            wC: p.wC || w !== p.w,
+            rC: p.rC || r !== p.r || (l != null ? l : r) !== (p.l != null ? p.l : p.r)
+          });
+        });
+        if (opt.autoClose && opt.repsTouched && pi.canActFinal) {
+          setSelNum(null);
+          setSelField(null);
+          handleSetSave(pi.num, _objectSpread(_objectSpread({}, pi.state), {}, {
+            w: w,
+            r: r,
+            l: l
+          }));
+        }
+      }
+    }), /*#__PURE__*/React.createElement("div", {
       className: "grid gap-1.5 items-stretch",
       dir: "rtl",
       style: {
@@ -3204,7 +3540,7 @@ function ExerciseEntryRow(_ref13) {
           }
         }, el);
       }));
-    }());
+    }()));
   }(), false && [1, 2].map(function (num) {
     var state = num === 1 ? s1 : s2;
     var setState = num === 1 ? setS1 : setS2;
@@ -3617,9 +3953,9 @@ var hideStaticImage = function hideStaticImage(id) {
 
 // ─── VideoModal ─────────────────────────────────────────────
 var _videoModalOpen = false;
-var VideoModal = function VideoModal(_ref18) {
-  var src = _ref18.src,
-    onClose = _ref18.onClose;
+var VideoModal = function VideoModal(_ref20) {
+  var src = _ref20.src,
+    onClose = _ref20.onClose;
   useEffect(function () {
     _videoModalOpen = true;
     history.pushState({
@@ -3659,14 +3995,14 @@ var VideoModal = function VideoModal(_ref18) {
 
 // ─── DetailView ────────────────────────────────────────────
 // מסגרת טיימר סביב תמונת תרגיל במניפה: מסגרת צבעונית שמתכווצת לפי הזמן שנותר (rt מתוך tot)
-var FilmTimerRing = function FilmTimerRing(_ref19) {
-  var _ref19$rt = _ref19.rt,
-    rt = _ref19$rt === void 0 ? 0 : _ref19$rt,
-    _ref19$tot = _ref19.tot,
-    tot = _ref19$tot === void 0 ? 0 : _ref19$tot,
-    _ref19$cur = _ref19.cur,
-    cur = _ref19$cur === void 0 ? false : _ref19$cur,
-    children = _ref19.children;
+var FilmTimerRing = function FilmTimerRing(_ref21) {
+  var _ref21$rt = _ref21.rt,
+    rt = _ref21$rt === void 0 ? 0 : _ref21$rt,
+    _ref21$tot = _ref21.tot,
+    tot = _ref21$tot === void 0 ? 0 : _ref21$tot,
+    _ref21$cur = _ref21.cur,
+    cur = _ref21$cur === void 0 ? false : _ref21$cur,
+    children = _ref21.children;
   var on = rt > 0 && tot > 0;
   var pad = cur ? 6 : 3;
   var col = rt <= 20 ? '#ef4444' : '#f97316';
@@ -3695,21 +4031,21 @@ var appendSkipReason = function appendSkipReason(prev, txt) {
 };
 // סיבות מהירות — לחיצה אחת מדלגת מיד עם הסיבה, בלי להקליד
 var SKIP_QUICK_REASONS = ['עשיתי תרגיל חלופי', 'כאב'];
-var SkipReasonModal = function SkipReasonModal(_ref20) {
-  var title = _ref20.title,
-    onConfirm = _ref20.onConfirm,
-    onCancel = _ref20.onCancel,
-    _ref20$setLabel = _ref20.setLabel,
-    setLabel = _ref20$setLabel === void 0 ? null : _ref20$setLabel;
-  var _useState41 = useState(''),
-    _useState42 = _slicedToArray(_useState41, 2),
-    txt = _useState42[0],
-    setTxt = _useState42[1];
+var SkipReasonModal = function SkipReasonModal(_ref22) {
+  var title = _ref22.title,
+    onConfirm = _ref22.onConfirm,
+    onCancel = _ref22.onCancel,
+    _ref22$setLabel = _ref22.setLabel,
+    setLabel = _ref22$setLabel === void 0 ? null : _ref22$setLabel;
+  var _useState55 = useState(''),
+    _useState56 = _slicedToArray(_useState55, 2),
+    txt = _useState56[0],
+    setTxt = _useState56[1];
   // בדף התרגיל: דילוג על הסט הנבחר או על כל התרגיל (setLabel = שם הסט). מהמסך הראשי — תמיד כל התרגיל
-  var _useState43 = useState('set'),
-    _useState44 = _slicedToArray(_useState43, 2),
-    scope = _useState44[0],
-    setScope = _useState44[1];
+  var _useState57 = useState('set'),
+    _useState58 = _slicedToArray(_useState57, 2),
+    scope = _useState58[0],
+    setScope = _useState58[1];
   var scopeBtn = function scopeBtn(v, lbl) {
     return /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
@@ -3769,98 +4105,98 @@ var _finTimerStyles = new WeakSet();
 var isTimerFin = function isTimerFin(o) {
   return !!o && _finTimerStyles.has(o);
 };
-var DetailView = memo(function DetailView(_ref21) {
-  var group = _ref21.group,
-    logs = _ref21.logs,
-    notes = _ref21.notes,
-    onSaveNote = _ref21.onSaveNote,
-    images = _ref21.images,
-    onSaveImage = _ref21.onSaveImage,
-    onRemoveImage = _ref21.onRemoveImage,
-    videos = _ref21.videos,
-    onSaveVideo = _ref21.onSaveVideo,
-    onDeleteVideo = _ref21.onDeleteVideo,
-    _ref21$uploadedVideos = _ref21.uploadedVideos,
-    uploadedVideos = _ref21$uploadedVideos === void 0 ? {} : _ref21$uploadedVideos,
-    _ref21$onUploadVideo = _ref21.onUploadVideo,
-    onUploadVideo = _ref21$onUploadVideo === void 0 ? null : _ref21$onUploadVideo,
-    _ref21$onDeleteUpload = _ref21.onDeleteUploadedVideo,
-    onDeleteUploadedVideo = _ref21$onDeleteUpload === void 0 ? null : _ref21$onDeleteUpload,
-    onBack = _ref21.onBack,
-    onFinish = _ref21.onFinish,
-    onSave = _ref21.onSave,
-    sessionStartTime = _ref21.sessionStartTime,
-    restTimers = _ref21.restTimers,
-    restTimerTotals = _ref21.restTimerTotals,
-    scrollToExId = _ref21.scrollToExId,
-    onScrollDone = _ref21.onScrollDone,
-    onDeleteLog = _ref21.onDeleteLog,
-    requestConfirm = _ref21.requestConfirm,
-    _ref21$groupIdx = _ref21.groupIdx,
-    groupIdx = _ref21$groupIdx === void 0 ? 0 : _ref21$groupIdx,
-    _ref21$totalGroups = _ref21.totalGroups,
-    totalGroups = _ref21$totalGroups === void 0 ? 1 : _ref21$totalGroups,
-    _ref21$nextGroup = _ref21.nextGroup,
-    nextGroup = _ref21$nextGroup === void 0 ? null : _ref21$nextGroup,
-    _ref21$prevGroup = _ref21.prevGroup,
-    prevGroup = _ref21$prevGroup === void 0 ? null : _ref21$prevGroup,
-    onNavigateTo = _ref21.onNavigateTo,
-    _ref21$musicList = _ref21.musicList,
-    musicList = _ref21$musicList === void 0 ? [] : _ref21$musicList,
-    _ref21$musicPlaying = _ref21.musicPlaying,
-    musicPlaying = _ref21$musicPlaying === void 0 ? false : _ref21$musicPlaying,
-    _ref21$onMusicToggle = _ref21.onMusicToggle,
-    onMusicToggle = _ref21$onMusicToggle === void 0 ? null : _ref21$onMusicToggle,
-    _ref21$weightStepsOve = _ref21.weightStepsOverrides,
-    weightStepsOverrides = _ref21$weightStepsOve === void 0 ? {} : _ref21$weightStepsOve,
-    _ref21$onOpenSummary = _ref21.onOpenSummary,
-    onOpenSummary = _ref21$onOpenSummary === void 0 ? null : _ref21$onOpenSummary,
-    _ref21$allGroupsDone = _ref21.allGroupsDone,
-    allGroupsDone = _ref21$allGroupsDone === void 0 ? false : _ref21$allGroupsDone,
-    _ref21$devNotes = _ref21.devNotes,
-    devNotes = _ref21$devNotes === void 0 ? {} : _ref21$devNotes,
-    _ref21$devNotesDone = _ref21.devNotesDone,
-    devNotesDone = _ref21$devNotesDone === void 0 ? {} : _ref21$devNotesDone,
-    _ref21$onSaveDevNote = _ref21.onSaveDevNote,
-    onSaveDevNote = _ref21$onSaveDevNote === void 0 ? null : _ref21$onSaveDevNote,
-    _ref21$workoutSec = _ref21.workoutSec,
-    workoutSec = _ref21$workoutSec === void 0 ? 0 : _ref21$workoutSec,
-    _ref21$isWorkoutActiv = _ref21.isWorkoutActive,
-    isWorkoutActive = _ref21$isWorkoutActiv === void 0 ? false : _ref21$isWorkoutActiv,
-    _ref21$onToggleWorkou = _ref21.onToggleWorkout,
-    onToggleWorkout = _ref21$onToggleWorkou === void 0 ? null : _ref21$onToggleWorkou,
-    _ref21$customNames = _ref21.customNames,
-    customNames = _ref21$customNames === void 0 ? {} : _ref21$customNames,
-    _ref21$setCustomNames = _ref21.setCustomNames,
-    setCustomNames = _ref21$setCustomNames === void 0 ? null : _ref21$setCustomNames,
-    _ref21$customHowTo = _ref21.customHowTo,
-    customHowTo = _ref21$customHowTo === void 0 ? {} : _ref21$customHowTo,
-    _ref21$setCustomHowTo = _ref21.setCustomHowTo,
-    setCustomHowTo = _ref21$setCustomHowTo === void 0 ? null : _ref21$setCustomHowTo,
-    _ref21$customTips = _ref21.customTips,
-    customTips = _ref21$customTips === void 0 ? {} : _ref21$customTips,
-    _ref21$setCustomTips = _ref21.setCustomTips,
-    setCustomTips = _ref21$setCustomTips === void 0 ? null : _ref21$setCustomTips,
-    _ref21$warmupEmbed = _ref21.warmupEmbed,
-    warmupEmbed = _ref21$warmupEmbed === void 0 ? {} : _ref21$warmupEmbed,
-    _ref21$onUpdateSettin = _ref21.onUpdateSettings,
-    onUpdateSettings = _ref21$onUpdateSettin === void 0 ? null : _ref21$onUpdateSettin,
-    _ref21$allGroups = _ref21.allGroups,
-    allGroups = _ref21$allGroups === void 0 ? [] : _ref21$allGroups,
-    _ref21$skippedGroups = _ref21.skippedGroups,
-    skippedGroups = _ref21$skippedGroups === void 0 ? [] : _ref21$skippedGroups,
-    _ref21$onMoveGroup = _ref21.onMoveGroup,
-    onMoveGroup = _ref21$onMoveGroup === void 0 ? null : _ref21$onMoveGroup,
-    _ref21$imageZoom = _ref21.imageZoom,
-    imageZoom = _ref21$imageZoom === void 0 ? {} : _ref21$imageZoom,
-    _ref21$onZoomImage = _ref21.onZoomImage,
-    onZoomImage = _ref21$onZoomImage === void 0 ? null : _ref21$onZoomImage,
-    _ref21$returnGroup = _ref21.returnGroup,
-    returnGroup = _ref21$returnGroup === void 0 ? null : _ref21$returnGroup,
-    _ref21$onReturn = _ref21.onReturn,
-    onReturn = _ref21$onReturn === void 0 ? null : _ref21$onReturn,
-    _ref21$onHideGroup = _ref21.onHideGroup,
-    onHideGroup = _ref21$onHideGroup === void 0 ? null : _ref21$onHideGroup;
+var DetailView = memo(function DetailView(_ref23) {
+  var group = _ref23.group,
+    logs = _ref23.logs,
+    notes = _ref23.notes,
+    onSaveNote = _ref23.onSaveNote,
+    images = _ref23.images,
+    onSaveImage = _ref23.onSaveImage,
+    onRemoveImage = _ref23.onRemoveImage,
+    videos = _ref23.videos,
+    onSaveVideo = _ref23.onSaveVideo,
+    onDeleteVideo = _ref23.onDeleteVideo,
+    _ref23$uploadedVideos = _ref23.uploadedVideos,
+    uploadedVideos = _ref23$uploadedVideos === void 0 ? {} : _ref23$uploadedVideos,
+    _ref23$onUploadVideo = _ref23.onUploadVideo,
+    onUploadVideo = _ref23$onUploadVideo === void 0 ? null : _ref23$onUploadVideo,
+    _ref23$onDeleteUpload = _ref23.onDeleteUploadedVideo,
+    onDeleteUploadedVideo = _ref23$onDeleteUpload === void 0 ? null : _ref23$onDeleteUpload,
+    onBack = _ref23.onBack,
+    onFinish = _ref23.onFinish,
+    onSave = _ref23.onSave,
+    sessionStartTime = _ref23.sessionStartTime,
+    restTimers = _ref23.restTimers,
+    restTimerTotals = _ref23.restTimerTotals,
+    scrollToExId = _ref23.scrollToExId,
+    onScrollDone = _ref23.onScrollDone,
+    onDeleteLog = _ref23.onDeleteLog,
+    requestConfirm = _ref23.requestConfirm,
+    _ref23$groupIdx = _ref23.groupIdx,
+    groupIdx = _ref23$groupIdx === void 0 ? 0 : _ref23$groupIdx,
+    _ref23$totalGroups = _ref23.totalGroups,
+    totalGroups = _ref23$totalGroups === void 0 ? 1 : _ref23$totalGroups,
+    _ref23$nextGroup = _ref23.nextGroup,
+    nextGroup = _ref23$nextGroup === void 0 ? null : _ref23$nextGroup,
+    _ref23$prevGroup = _ref23.prevGroup,
+    prevGroup = _ref23$prevGroup === void 0 ? null : _ref23$prevGroup,
+    onNavigateTo = _ref23.onNavigateTo,
+    _ref23$musicList = _ref23.musicList,
+    musicList = _ref23$musicList === void 0 ? [] : _ref23$musicList,
+    _ref23$musicPlaying = _ref23.musicPlaying,
+    musicPlaying = _ref23$musicPlaying === void 0 ? false : _ref23$musicPlaying,
+    _ref23$onMusicToggle = _ref23.onMusicToggle,
+    onMusicToggle = _ref23$onMusicToggle === void 0 ? null : _ref23$onMusicToggle,
+    _ref23$weightStepsOve = _ref23.weightStepsOverrides,
+    weightStepsOverrides = _ref23$weightStepsOve === void 0 ? {} : _ref23$weightStepsOve,
+    _ref23$onOpenSummary = _ref23.onOpenSummary,
+    onOpenSummary = _ref23$onOpenSummary === void 0 ? null : _ref23$onOpenSummary,
+    _ref23$allGroupsDone = _ref23.allGroupsDone,
+    allGroupsDone = _ref23$allGroupsDone === void 0 ? false : _ref23$allGroupsDone,
+    _ref23$devNotes = _ref23.devNotes,
+    devNotes = _ref23$devNotes === void 0 ? {} : _ref23$devNotes,
+    _ref23$devNotesDone = _ref23.devNotesDone,
+    devNotesDone = _ref23$devNotesDone === void 0 ? {} : _ref23$devNotesDone,
+    _ref23$onSaveDevNote = _ref23.onSaveDevNote,
+    onSaveDevNote = _ref23$onSaveDevNote === void 0 ? null : _ref23$onSaveDevNote,
+    _ref23$workoutSec = _ref23.workoutSec,
+    workoutSec = _ref23$workoutSec === void 0 ? 0 : _ref23$workoutSec,
+    _ref23$isWorkoutActiv = _ref23.isWorkoutActive,
+    isWorkoutActive = _ref23$isWorkoutActiv === void 0 ? false : _ref23$isWorkoutActiv,
+    _ref23$onToggleWorkou = _ref23.onToggleWorkout,
+    onToggleWorkout = _ref23$onToggleWorkou === void 0 ? null : _ref23$onToggleWorkou,
+    _ref23$customNames = _ref23.customNames,
+    customNames = _ref23$customNames === void 0 ? {} : _ref23$customNames,
+    _ref23$setCustomNames = _ref23.setCustomNames,
+    setCustomNames = _ref23$setCustomNames === void 0 ? null : _ref23$setCustomNames,
+    _ref23$customHowTo = _ref23.customHowTo,
+    customHowTo = _ref23$customHowTo === void 0 ? {} : _ref23$customHowTo,
+    _ref23$setCustomHowTo = _ref23.setCustomHowTo,
+    setCustomHowTo = _ref23$setCustomHowTo === void 0 ? null : _ref23$setCustomHowTo,
+    _ref23$customTips = _ref23.customTips,
+    customTips = _ref23$customTips === void 0 ? {} : _ref23$customTips,
+    _ref23$setCustomTips = _ref23.setCustomTips,
+    setCustomTips = _ref23$setCustomTips === void 0 ? null : _ref23$setCustomTips,
+    _ref23$warmupEmbed = _ref23.warmupEmbed,
+    warmupEmbed = _ref23$warmupEmbed === void 0 ? {} : _ref23$warmupEmbed,
+    _ref23$onUpdateSettin = _ref23.onUpdateSettings,
+    onUpdateSettings = _ref23$onUpdateSettin === void 0 ? null : _ref23$onUpdateSettin,
+    _ref23$allGroups = _ref23.allGroups,
+    allGroups = _ref23$allGroups === void 0 ? [] : _ref23$allGroups,
+    _ref23$skippedGroups = _ref23.skippedGroups,
+    skippedGroups = _ref23$skippedGroups === void 0 ? [] : _ref23$skippedGroups,
+    _ref23$onMoveGroup = _ref23.onMoveGroup,
+    onMoveGroup = _ref23$onMoveGroup === void 0 ? null : _ref23$onMoveGroup,
+    _ref23$imageZoom = _ref23.imageZoom,
+    imageZoom = _ref23$imageZoom === void 0 ? {} : _ref23$imageZoom,
+    _ref23$onZoomImage = _ref23.onZoomImage,
+    onZoomImage = _ref23$onZoomImage === void 0 ? null : _ref23$onZoomImage,
+    _ref23$returnGroup = _ref23.returnGroup,
+    returnGroup = _ref23$returnGroup === void 0 ? null : _ref23$returnGroup,
+    _ref23$onReturn = _ref23.onReturn,
+    onReturn = _ref23$onReturn === void 0 ? null : _ref23$onReturn,
+    _ref23$onHideGroup = _ref23.onHideGroup,
+    onHideGroup = _ref23$onHideGroup === void 0 ? null : _ref23$onHideGroup;
   var handleWarmupOpened = function handleWarmupOpened(exId) {
     if (!onUpdateSettings || warmupEmbed[exId]) return;
     onUpdateSettings('warmupEmbed', _objectSpread(_objectSpread({}, warmupEmbed), {}, _defineProperty({}, exId, true)));
@@ -3870,28 +4206,28 @@ var DetailView = memo(function DetailView(_ref21) {
     if (!onUpdateSettings || !warmupEmbed[exId]) return;
     onUpdateSettings('warmupEmbed', _objectSpread(_objectSpread({}, warmupEmbed), {}, _defineProperty({}, exId, false)));
   };
-  var _useState45 = useState(null),
-    _useState46 = _slicedToArray(_useState45, 2),
-    lightbox = _useState46[0],
-    setLightbox = _useState46[1];
-  var _useState47 = useState(null),
-    _useState48 = _slicedToArray(_useState47, 2),
-    skipDlg = _useState48[0],
-    setSkipDlg = _useState48[1]; // {exId, title, go}
+  var _useState59 = useState(null),
+    _useState60 = _slicedToArray(_useState59, 2),
+    lightbox = _useState60[0],
+    setLightbox = _useState60[1];
+  var _useState61 = useState(null),
+    _useState62 = _slicedToArray(_useState61, 2),
+    skipDlg = _useState62[0],
+    setSkipDlg = _useState62[1]; // {exId, title, go}
   // המשקל הכתוב בסט הבא (לפי מצב הסטים בפועל) — מדווח מכל שורת תרגיל ומוצג בכרטיס המשקל שמתחת לווידאו
-  var _useState49 = useState({}),
-    _useState50 = _slicedToArray(_useState49, 2),
-    selSet = _useState50[0],
-    setSelSet = _useState50[1];
+  var _useState63 = useState({}),
+    _useState64 = _slicedToArray(_useState63, 2),
+    selSet = _useState64[0],
+    setSelSet = _useState64[1];
   var reportSel = useCallback(function (exId, n) {
     return setSelSet(function (p) {
       return p[exId] === n ? p : _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, exId, n));
     });
   }, []);
-  var _useState51 = useState({}),
-    _useState52 = _slicedToArray(_useState51, 2),
-    nextW = _useState52[0],
-    setNextW = _useState52[1];
+  var _useState65 = useState({}),
+    _useState66 = _slicedToArray(_useState65, 2),
+    nextW = _useState66[0],
+    setNextW = _useState66[1];
   var reportNextW = useCallback(function (exId, w, warm) {
     return setNextW(function (p) {
       return p[exId] && p[exId].w === w && p[exId].warm === warm ? p : _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, exId, {
@@ -3900,10 +4236,10 @@ var DetailView = memo(function DetailView(_ref21) {
       }));
     });
   }, []);
-  var _useState53 = useState(null),
-    _useState54 = _slicedToArray(_useState53, 2),
-    previewGroupId = _useState54[0],
-    setPreviewGroupId = _useState54[1];
+  var _useState67 = useState(null),
+    _useState68 = _slicedToArray(_useState67, 2),
+    previewGroupId = _useState68[0],
+    setPreviewGroupId = _useState68[1];
   var previewTimeoutRef = React.useRef(null);
   var curChipRef = React.useRef(null);
   // שורת תמונות התרגילים — סרט גלילה רציף על כל התרגילים, גולל חופשי לפי האצבע ונעצר על הקרוב
@@ -3942,53 +4278,53 @@ var DetailView = memo(function DetailView(_ref21) {
       block: 'nearest'
     });
   }, [previewGroupId]);
-  var _useState55 = useState(null),
-    _useState56 = _slicedToArray(_useState55, 2),
-    videoModal = _useState56[0],
-    setVideoModal = _useState56[1];
-  var _useState57 = useState({}),
-    _useState58 = _slicedToArray(_useState57, 2),
-    playingVideos = _useState58[0],
-    setPlayingVideos = _useState58[1];
-  var _useState59 = useState(function () {
+  var _useState69 = useState(null),
+    _useState70 = _slicedToArray(_useState69, 2),
+    videoModal = _useState70[0],
+    setVideoModal = _useState70[1];
+  var _useState71 = useState({}),
+    _useState72 = _slicedToArray(_useState71, 2),
+    playingVideos = _useState72[0],
+    setPlayingVideos = _useState72[1];
+  var _useState73 = useState(function () {
       var saved = LS.get('gym-show-details', null);
       if (saved) return saved;
       return group.exercises.reduce(function (acc, ex) {
         return _objectSpread(_objectSpread({}, acc), {}, _defineProperty({}, ex.id, !group.isSuperset));
       }, {});
     }),
-    _useState60 = _slicedToArray(_useState59, 2),
-    showDetails = _useState60[0],
-    setShowDetails = _useState60[1];
-  var _useState61 = useState(function () {
+    _useState74 = _slicedToArray(_useState73, 2),
+    showDetails = _useState74[0],
+    setShowDetails = _useState74[1];
+  var _useState75 = useState(function () {
       return LS.get('gym-hist-open', {});
     }),
-    _useState62 = _slicedToArray(_useState61, 2),
-    historyOpen = _useState62[0],
-    setHistoryOpen = _useState62[1];
+    _useState76 = _slicedToArray(_useState75, 2),
+    historyOpen = _useState76[0],
+    setHistoryOpen = _useState76[1];
   useEffect(function () {
     LS.set('gym-hist-open', historyOpen);
   }, [historyOpen]);
-  var _useState63 = useState({}),
-    _useState64 = _slicedToArray(_useState63, 2),
-    warmupOpenMap = _useState64[0],
-    setWarmupOpenMap = _useState64[1];
-  var _useState65 = useState(null),
-    _useState66 = _slicedToArray(_useState65, 2),
-    editingHowToId = _useState66[0],
-    setEditingHowToId = _useState66[1];
-  var _useState67 = useState(''),
-    _useState68 = _slicedToArray(_useState67, 2),
-    howToEditVal = _useState68[0],
-    setHowToEditVal = _useState68[1];
-  var _useState69 = useState(null),
-    _useState70 = _slicedToArray(_useState69, 2),
-    editingTipKey = _useState70[0],
-    setEditingTipKey = _useState70[1]; // 'exId:index'
-  var _useState71 = useState(''),
-    _useState72 = _slicedToArray(_useState71, 2),
-    tipEditVal = _useState72[0],
-    setTipEditVal = _useState72[1];
+  var _useState77 = useState({}),
+    _useState78 = _slicedToArray(_useState77, 2),
+    warmupOpenMap = _useState78[0],
+    setWarmupOpenMap = _useState78[1];
+  var _useState79 = useState(null),
+    _useState80 = _slicedToArray(_useState79, 2),
+    editingHowToId = _useState80[0],
+    setEditingHowToId = _useState80[1];
+  var _useState81 = useState(''),
+    _useState82 = _slicedToArray(_useState81, 2),
+    howToEditVal = _useState82[0],
+    setHowToEditVal = _useState82[1];
+  var _useState83 = useState(null),
+    _useState84 = _slicedToArray(_useState83, 2),
+    editingTipKey = _useState84[0],
+    setEditingTipKey = _useState84[1]; // 'exId:index'
+  var _useState85 = useState(''),
+    _useState86 = _slicedToArray(_useState85, 2),
+    tipEditVal = _useState86[0],
+    setTipEditVal = _useState86[1];
   var scrollRef = React.useRef(null);
   useEffect(function () {
     LS.set('gym-show-details', showDetails);
@@ -4036,19 +4372,19 @@ var DetailView = memo(function DetailView(_ref21) {
   // ── renderEx: מרנדר בלוק תרגיל אחד ──
   var renderEx = function renderEx(ex, exIdx) {
     var _warmupOpenMap$ex$id, _warmupOpenMap$ex$id2;
-    var _ref22 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {},
-      _ref22$isLast = _ref22.isLast,
-      isLast = _ref22$isLast === void 0 ? false : _ref22$isLast,
-      _ref22$isSuperset = _ref22.isSuperset,
-      exIsSuperset = _ref22$isSuperset === void 0 ? false : _ref22$isSuperset,
-      _ref22$forceSet1Disab = _ref22.forceSet1Disabled,
-      forceSet1Disabled = _ref22$forceSet1Disab === void 0 ? false : _ref22$forceSet1Disab,
-      _ref22$forceSet2Disab = _ref22.forceSet2Disabled,
-      forceSet2Disabled = _ref22$forceSet2Disab === void 0 ? false : _ref22$forceSet2Disab,
-      _ref22$prevRestTimer = _ref22.prevRestTimer,
-      prevRestTimer = _ref22$prevRestTimer === void 0 ? 0 : _ref22$prevRestTimer,
-      _ref22$prevRestTimerT = _ref22.prevRestTimerTotal,
-      prevRestTimerTotal = _ref22$prevRestTimerT === void 0 ? 0 : _ref22$prevRestTimerT;
+    var _ref24 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {},
+      _ref24$isLast = _ref24.isLast,
+      isLast = _ref24$isLast === void 0 ? false : _ref24$isLast,
+      _ref24$isSuperset = _ref24.isSuperset,
+      exIsSuperset = _ref24$isSuperset === void 0 ? false : _ref24$isSuperset,
+      _ref24$forceSet1Disab = _ref24.forceSet1Disabled,
+      forceSet1Disabled = _ref24$forceSet1Disab === void 0 ? false : _ref24$forceSet1Disab,
+      _ref24$forceSet2Disab = _ref24.forceSet2Disabled,
+      forceSet2Disabled = _ref24$forceSet2Disab === void 0 ? false : _ref24$forceSet2Disab,
+      _ref24$prevRestTimer = _ref24.prevRestTimer,
+      prevRestTimer = _ref24$prevRestTimer === void 0 ? 0 : _ref24$prevRestTimer,
+      _ref24$prevRestTimerT = _ref24.prevRestTimerTotal,
+      prevRestTimerTotal = _ref24$prevRestTimerT === void 0 ? 0 : _ref24$prevRestTimerT;
     var accentHex = group.hex || '#3b82f6';
     var isTimerEx = TIMER_EXERCISES.has(ex.id);
     // exHistory מנוהל inline בבלוק ההיסטוריה הcollapsible
@@ -4950,9 +5286,9 @@ var DetailView = memo(function DetailView(_ref21) {
       };
     }).filter(function (o) {
       return !isGroupDoneHere(o.g) && !isSkipG(o.g);
-    }).map(function (_ref23) {
-      var g = _ref23.g,
-        i = _ref23.i;
+    }).map(function (_ref25) {
+      var g = _ref25.g,
+        i = _ref25.i;
       var isCur = g.id === targetId;
       var skipX = isSkipG(g);
       var done = isGroupDoneHere(g) || skipX;
@@ -5251,31 +5587,31 @@ var TOTAL_EX_COUNT = function TOTAL_EX_COUNT() {
     return n + (hid.has(g.id) ? 0 : g.exercises.length);
   }, 0);
 };
-var HistoryView = function HistoryView(_ref24) {
-  var logs = _ref24.logs,
-    sessionDurations = _ref24.sessionDurations,
-    _ref24$bodyweightLog = _ref24.bodyweightLog,
-    bodyweightLog = _ref24$bodyweightLog === void 0 ? [] : _ref24$bodyweightLog,
-    _ref24$workoutNotes = _ref24.workoutNotes,
-    workoutNotes = _ref24$workoutNotes === void 0 ? {} : _ref24$workoutNotes,
-    onBack = _ref24.onBack,
-    onDeleteDate = _ref24.onDeleteDate,
-    onDeleteOne = _ref24.onDeleteOne,
-    requestConfirm = _ref24.requestConfirm,
-    _ref24$devNotes = _ref24.devNotes,
-    devNotes = _ref24$devNotes === void 0 ? {} : _ref24$devNotes,
-    _ref24$devNotesDone = _ref24.devNotesDone,
-    devNotesDone = _ref24$devNotesDone === void 0 ? {} : _ref24$devNotesDone,
-    _ref24$onSaveDevNote = _ref24.onSaveDevNote,
-    onSaveDevNote = _ref24$onSaveDevNote === void 0 ? null : _ref24$onSaveDevNote,
-    _ref24$onShowDaySumma = _ref24.onShowDaySummary,
-    onShowDaySummary = _ref24$onShowDaySumma === void 0 ? null : _ref24$onShowDaySumma,
-    _ref24$skipReasons = _ref24.skipReasons,
-    skipReasons = _ref24$skipReasons === void 0 ? {} : _ref24$skipReasons;
-  var _useState73 = useState(null),
-    _useState74 = _slicedToArray(_useState73, 2),
-    expandedDate = _useState74[0],
-    setExpandedDate = _useState74[1];
+var HistoryView = function HistoryView(_ref26) {
+  var logs = _ref26.logs,
+    sessionDurations = _ref26.sessionDurations,
+    _ref26$bodyweightLog = _ref26.bodyweightLog,
+    bodyweightLog = _ref26$bodyweightLog === void 0 ? [] : _ref26$bodyweightLog,
+    _ref26$workoutNotes = _ref26.workoutNotes,
+    workoutNotes = _ref26$workoutNotes === void 0 ? {} : _ref26$workoutNotes,
+    onBack = _ref26.onBack,
+    onDeleteDate = _ref26.onDeleteDate,
+    onDeleteOne = _ref26.onDeleteOne,
+    requestConfirm = _ref26.requestConfirm,
+    _ref26$devNotes = _ref26.devNotes,
+    devNotes = _ref26$devNotes === void 0 ? {} : _ref26$devNotes,
+    _ref26$devNotesDone = _ref26.devNotesDone,
+    devNotesDone = _ref26$devNotesDone === void 0 ? {} : _ref26$devNotesDone,
+    _ref26$onSaveDevNote = _ref26.onSaveDevNote,
+    onSaveDevNote = _ref26$onSaveDevNote === void 0 ? null : _ref26$onSaveDevNote,
+    _ref26$onShowDaySumma = _ref26.onShowDaySummary,
+    onShowDaySummary = _ref26$onShowDaySumma === void 0 ? null : _ref26$onShowDaySumma,
+    _ref26$skipReasons = _ref26.skipReasons,
+    skipReasons = _ref26$skipReasons === void 0 ? {} : _ref26$skipReasons;
+  var _useState87 = useState(null),
+    _useState88 = _slicedToArray(_useState87, 2),
+    expandedDate = _useState88[0],
+    setExpandedDate = _useState88[1];
   var grouped = useMemo(function () {
     return groupLogsBySession(logs);
   }, [logs]);
@@ -5321,17 +5657,17 @@ var HistoryView = function HistoryView(_ref24) {
     className: "mb-4 text-slate-300"
   }), /*#__PURE__*/React.createElement("p", {
     className: "font-black text-xl"
-  }, "\u05D0\u05D9\u05DF \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF")) : grouped.map(function (_ref25) {
+  }, "\u05D0\u05D9\u05DF \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF")) : grouped.map(function (_ref27) {
     var _Object$entries$find;
-    var _ref26 = _slicedToArray(_ref25, 2),
-      gkey = _ref26[0],
-      items = _ref26[1];
+    var _ref28 = _slicedToArray(_ref27, 2),
+      gkey = _ref28[0],
+      items = _ref28[1];
     var _sessionGroupInfo = sessionGroupInfo(gkey, items),
       wst = _sessionGroupInfo.wst,
       date = _sessionGroupInfo.date;
-    var dur = wst ? sessionDurations === null || sessionDurations === void 0 ? void 0 : sessionDurations[wst] : (_Object$entries$find = Object.entries(sessionDurations || {}).find(function (_ref27) {
-      var _ref28 = _slicedToArray(_ref27, 1),
-        ts = _ref28[0];
+    var dur = wst ? sessionDurations === null || sessionDurations === void 0 ? void 0 : sessionDurations[wst] : (_Object$entries$find = Object.entries(sessionDurations || {}).find(function (_ref29) {
+      var _ref30 = _slicedToArray(_ref29, 1),
+        ts = _ref30[0];
       return new Date(Number(ts)).toLocaleDateString('he-IL') === date;
     })) === null || _Object$entries$find === void 0 ? void 0 : _Object$entries$find[1];
     var exSt = sessionExStats(items),
@@ -5475,7 +5811,7 @@ var HistoryView = function HistoryView(_ref24) {
           className: "text-orange-600 font-black bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl"
         }, it.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(it.setNum), ": \u05D3\u05D5\u05DC\u05D2", it.reason ? " \u2014 ".concat(it.reason) : '') : /*#__PURE__*/React.createElement("span", {
           className: "text-blue-600 font-black bg-blue-50 px-2.5 py-1 rounded-xl"
-        }, "\u05E1\u05D8 ", it.setNum, ": ", it.weight, "kg \xD7 ", it.reps));
+        }, "\u05E1\u05D8 ", it.setNum, ": ", it.weight, "kg \xD7 ", it.reps, it.repsL != null ? " | ".concat(it.repsL) : ''));
       }));
     }());
   })));
@@ -6213,10 +6549,10 @@ var playRestCompleteSound = function playRestCompleteSound() {
 var playPhoneRingSound = function playPhoneRingSound() {
   try {
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [[0, 0.5], [0.7, 1.2], [1.4, 1.9]].forEach(function (_ref29) {
-      var _ref30 = _slicedToArray(_ref29, 2),
-        s = _ref30[0],
-        e = _ref30[1];
+    [[0, 0.5], [0.7, 1.2], [1.4, 1.9]].forEach(function (_ref31) {
+      var _ref32 = _slicedToArray(_ref31, 2),
+        s = _ref32[0],
+        e = _ref32[1];
       [440, 480].forEach(function (freq) {
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
@@ -6236,20 +6572,20 @@ var playPhoneRingSound = function playPhoneRingSound() {
 };
 
 // ─── WorkoutProgressCalendar ───────────────────────────────
-var WorkoutProgressCalendar = function WorkoutProgressCalendar(_ref31) {
-  var logs = _ref31.logs,
-    _ref31$onPickDay = _ref31.onPickDay,
-    onPickDay = _ref31$onPickDay === void 0 ? null : _ref31$onPickDay;
-  var _useState75 = useState(function () {
+var WorkoutProgressCalendar = function WorkoutProgressCalendar(_ref33) {
+  var logs = _ref33.logs,
+    _ref33$onPickDay = _ref33.onPickDay,
+    onPickDay = _ref33$onPickDay === void 0 ? null : _ref33$onPickDay;
+  var _useState89 = useState(function () {
       var d = new Date();
       return {
         y: d.getFullYear(),
         m: d.getMonth()
       };
     }),
-    _useState76 = _slicedToArray(_useState75, 2),
-    cur = _useState76[0],
-    setCur = _useState76[1];
+    _useState90 = _slicedToArray(_useState89, 2),
+    cur = _useState90[0],
+    setCur = _useState90[1];
   var workoutDays = useMemo(function () {
     var s = new Set();
     logs.forEach(function (l) {
@@ -6356,140 +6692,140 @@ var WorkoutProgressCalendar = function WorkoutProgressCalendar(_ref31) {
 };
 
 // ─── ManageView ────────────────────────────────────────────
-var ManageView = function ManageView(_ref32) {
-  var logs = _ref32.logs,
-    notes = _ref32.notes,
-    images = _ref32.images,
-    videos = _ref32.videos,
-    settings = _ref32.settings,
-    sessionStartTime = _ref32.sessionStartTime,
-    sessionEndTime = _ref32.sessionEndTime,
-    groupOrder = _ref32.groupOrder,
-    onBack = _ref32.onBack,
-    onBackToPrev = _ref32.onBackToPrev,
-    _ref32$canBackToPrev = _ref32.canBackToPrev,
-    canBackToPrev = _ref32$canBackToPrev === void 0 ? false : _ref32$canBackToPrev,
-    onUpdateSettings = _ref32.onUpdateSettings,
-    requestConfirm = _ref32.requestConfirm,
-    showToast = _ref32.showToast,
-    setLogs = _ref32.setLogs,
-    setNotes = _ref32.setNotes,
-    setImages = _ref32.setImages,
-    setVideos = _ref32.setVideos,
-    setSessionStartTime = _ref32.setSessionStartTime,
-    setSessionEndTime = _ref32.setSessionEndTime,
-    setGroupOrder = _ref32.setGroupOrder,
-    _ref32$musicList = _ref32.musicList,
-    musicList = _ref32$musicList === void 0 ? [] : _ref32$musicList,
-    onMusicUpload = _ref32.onMusicUpload,
-    onMusicRemoveOne = _ref32.onMusicRemoveOne,
-    onMusicRemoveAll = _ref32.onMusicRemoveAll,
-    _ref32$onMusicMove = _ref32.onMusicMove,
-    onMusicMove = _ref32$onMusicMove === void 0 ? null : _ref32$onMusicMove,
-    _ref32$onMusicPlay = _ref32.onMusicPlay,
-    onMusicPlay = _ref32$onMusicPlay === void 0 ? null : _ref32$onMusicPlay,
-    _ref32$musicPlayingId = _ref32.musicPlayingId,
-    musicPlayingId = _ref32$musicPlayingId === void 0 ? null : _ref32$musicPlayingId,
-    _ref32$hiddenExercise = _ref32.hiddenExercises,
-    hiddenExercises = _ref32$hiddenExercise === void 0 ? new Set() : _ref32$hiddenExercise,
-    onToggleExercise = _ref32.onToggleExercise,
-    _ref32$oneTimeEx = _ref32.oneTimeEx,
-    oneTimeEx = _ref32$oneTimeEx === void 0 ? new Set() : _ref32$oneTimeEx,
-    _ref32$onToggleOneTim = _ref32.onToggleOneTime,
-    onToggleOneTime = _ref32$onToggleOneTim === void 0 ? null : _ref32$onToggleOneTim,
-    _ref32$onPurgeImpleme = _ref32.onPurgeImplemented,
-    onPurgeImplemented = _ref32$onPurgeImpleme === void 0 ? null : _ref32$onPurgeImpleme,
-    onNavigateToGroup = _ref32.onNavigateToGroup,
-    _ref32$onAddExercise = _ref32.onAddExercise,
-    onAddExercise = _ref32$onAddExercise === void 0 ? null : _ref32$onAddExercise,
-    _ref32$onDeleteCustom = _ref32.onDeleteCustomExercise,
-    onDeleteCustomExercise = _ref32$onDeleteCustom === void 0 ? null : _ref32$onDeleteCustom,
-    _ref32$onChangeCatego = _ref32.onChangeCategory,
-    onChangeCategory = _ref32$onChangeCatego === void 0 ? null : _ref32$onChangeCatego,
-    onNavigateToHistory = _ref32.onNavigateToHistory,
-    _ref32$sessionDuratio = _ref32.sessionDurations,
-    sessionDurations = _ref32$sessionDuratio === void 0 ? {} : _ref32$sessionDuratio,
-    _ref32$setSessionDura = _ref32.setSessionDurations,
-    setSessionDurations = _ref32$setSessionDura === void 0 ? null : _ref32$setSessionDura,
-    _ref32$workoutNotes = _ref32.workoutNotes,
-    workoutNotes = _ref32$workoutNotes === void 0 ? {} : _ref32$workoutNotes,
-    _ref32$setWorkoutNote = _ref32.setWorkoutNotes,
-    setWorkoutNotes = _ref32$setWorkoutNote === void 0 ? null : _ref32$setWorkoutNote,
-    _ref32$bodyweightLog = _ref32.bodyweightLog,
-    bodyweightLog = _ref32$bodyweightLog === void 0 ? [] : _ref32$bodyweightLog,
-    _ref32$setBodyweightL = _ref32.setBodyweightLog,
-    setBodyweightLog = _ref32$setBodyweightL === void 0 ? null : _ref32$setBodyweightL,
-    _ref32$instructors = _ref32.instructors,
-    instructors = _ref32$instructors === void 0 ? [] : _ref32$instructors,
-    _ref32$setInstructors = _ref32.setInstructors,
-    setInstructors = _ref32$setInstructors === void 0 ? null : _ref32$setInstructors,
-    _ref32$setHiddenExerc = _ref32.setHiddenExercises,
-    setHiddenExercises = _ref32$setHiddenExerc === void 0 ? null : _ref32$setHiddenExerc,
-    _ref32$setSummaryData = _ref32.setSummaryData,
-    setSummaryData = _ref32$setSummaryData === void 0 ? null : _ref32$setSummaryData,
-    _ref32$customNames = _ref32.customNames,
-    customNames = _ref32$customNames === void 0 ? {} : _ref32$customNames,
-    _ref32$setCustomNames = _ref32.setCustomNames,
-    setCustomNames = _ref32$setCustomNames === void 0 ? null : _ref32$setCustomNames,
-    _ref32$initialOpenSec = _ref32.initialOpenSection,
-    initialOpenSection = _ref32$initialOpenSec === void 0 ? null : _ref32$initialOpenSec,
-    _ref32$onClearOpenSec = _ref32.onClearOpenSection,
-    onClearOpenSection = _ref32$onClearOpenSec === void 0 ? null : _ref32$onClearOpenSec,
-    _ref32$casualWorkouts = _ref32.casualWorkouts,
-    casualWorkouts = _ref32$casualWorkouts === void 0 ? [] : _ref32$casualWorkouts,
-    _ref32$setCasualWorko = _ref32.setCasualWorkouts,
-    setCasualWorkouts = _ref32$setCasualWorko === void 0 ? null : _ref32$setCasualWorko,
-    _ref32$activeCasual = _ref32.activeCasual,
-    activeCasual = _ref32$activeCasual === void 0 ? null : _ref32$activeCasual,
-    _ref32$setActiveCasua = _ref32.setActiveCasual,
-    setActiveCasual = _ref32$setActiveCasua === void 0 ? null : _ref32$setActiveCasua,
-    _ref32$devNotes = _ref32.devNotes,
-    devNotes = _ref32$devNotes === void 0 ? {} : _ref32$devNotes,
-    _ref32$setDevNotes = _ref32.setDevNotes,
-    setDevNotes = _ref32$setDevNotes === void 0 ? null : _ref32$setDevNotes,
-    _ref32$onSaveDevNote = _ref32.onSaveDevNote,
-    onSaveDevNote = _ref32$onSaveDevNote === void 0 ? null : _ref32$onSaveDevNote,
-    _ref32$devNotesDone = _ref32.devNotesDone,
-    devNotesDone = _ref32$devNotesDone === void 0 ? {} : _ref32$devNotesDone,
-    _ref32$setDevNotesDon = _ref32.setDevNotesDone,
-    setDevNotesDone = _ref32$setDevNotesDon === void 0 ? null : _ref32$setDevNotesDon,
-    _ref32$devNotesHistor = _ref32.devNotesHistory,
-    devNotesHistory = _ref32$devNotesHistor === void 0 ? [] : _ref32$devNotesHistor,
-    _ref32$setDevNotesHis = _ref32.setDevNotesHistory,
-    setDevNotesHistory = _ref32$setDevNotesHis === void 0 ? null : _ref32$setDevNotesHis,
-    _ref32$filingDirName = _ref32.filingDirName,
-    filingDirName = _ref32$filingDirName === void 0 ? null : _ref32$filingDirName,
-    _ref32$filingPermGran = _ref32.filingPermGranted,
-    filingPermGranted = _ref32$filingPermGran === void 0 ? true : _ref32$filingPermGran,
-    _ref32$ensureFilingPe = _ref32.ensureFilingPermission,
-    ensureFilingPermission = _ref32$ensureFilingPe === void 0 ? null : _ref32$ensureFilingPe,
-    _ref32$filingSupporte = _ref32.filingSupported,
-    filingSupported = _ref32$filingSupporte === void 0 ? false : _ref32$filingSupporte,
-    _ref32$connectFilingD = _ref32.connectFilingDir,
-    connectFilingDir = _ref32$connectFilingD === void 0 ? null : _ref32$connectFilingD,
-    _ref32$disconnectFili = _ref32.disconnectFilingDir,
-    disconnectFilingDir = _ref32$disconnectFili === void 0 ? null : _ref32$disconnectFili,
-    _ref32$saveTextFile = _ref32.saveTextFile,
-    saveTextFile = _ref32$saveTextFile === void 0 ? null : _ref32$saveTextFile;
+var ManageView = function ManageView(_ref34) {
+  var logs = _ref34.logs,
+    notes = _ref34.notes,
+    images = _ref34.images,
+    videos = _ref34.videos,
+    settings = _ref34.settings,
+    sessionStartTime = _ref34.sessionStartTime,
+    sessionEndTime = _ref34.sessionEndTime,
+    groupOrder = _ref34.groupOrder,
+    onBack = _ref34.onBack,
+    onBackToPrev = _ref34.onBackToPrev,
+    _ref34$canBackToPrev = _ref34.canBackToPrev,
+    canBackToPrev = _ref34$canBackToPrev === void 0 ? false : _ref34$canBackToPrev,
+    onUpdateSettings = _ref34.onUpdateSettings,
+    requestConfirm = _ref34.requestConfirm,
+    showToast = _ref34.showToast,
+    setLogs = _ref34.setLogs,
+    setNotes = _ref34.setNotes,
+    setImages = _ref34.setImages,
+    setVideos = _ref34.setVideos,
+    setSessionStartTime = _ref34.setSessionStartTime,
+    setSessionEndTime = _ref34.setSessionEndTime,
+    setGroupOrder = _ref34.setGroupOrder,
+    _ref34$musicList = _ref34.musicList,
+    musicList = _ref34$musicList === void 0 ? [] : _ref34$musicList,
+    onMusicUpload = _ref34.onMusicUpload,
+    onMusicRemoveOne = _ref34.onMusicRemoveOne,
+    onMusicRemoveAll = _ref34.onMusicRemoveAll,
+    _ref34$onMusicMove = _ref34.onMusicMove,
+    onMusicMove = _ref34$onMusicMove === void 0 ? null : _ref34$onMusicMove,
+    _ref34$onMusicPlay = _ref34.onMusicPlay,
+    onMusicPlay = _ref34$onMusicPlay === void 0 ? null : _ref34$onMusicPlay,
+    _ref34$musicPlayingId = _ref34.musicPlayingId,
+    musicPlayingId = _ref34$musicPlayingId === void 0 ? null : _ref34$musicPlayingId,
+    _ref34$hiddenExercise = _ref34.hiddenExercises,
+    hiddenExercises = _ref34$hiddenExercise === void 0 ? new Set() : _ref34$hiddenExercise,
+    onToggleExercise = _ref34.onToggleExercise,
+    _ref34$oneTimeEx = _ref34.oneTimeEx,
+    oneTimeEx = _ref34$oneTimeEx === void 0 ? new Set() : _ref34$oneTimeEx,
+    _ref34$onToggleOneTim = _ref34.onToggleOneTime,
+    onToggleOneTime = _ref34$onToggleOneTim === void 0 ? null : _ref34$onToggleOneTim,
+    _ref34$onPurgeImpleme = _ref34.onPurgeImplemented,
+    onPurgeImplemented = _ref34$onPurgeImpleme === void 0 ? null : _ref34$onPurgeImpleme,
+    onNavigateToGroup = _ref34.onNavigateToGroup,
+    _ref34$onAddExercise = _ref34.onAddExercise,
+    onAddExercise = _ref34$onAddExercise === void 0 ? null : _ref34$onAddExercise,
+    _ref34$onDeleteCustom = _ref34.onDeleteCustomExercise,
+    onDeleteCustomExercise = _ref34$onDeleteCustom === void 0 ? null : _ref34$onDeleteCustom,
+    _ref34$onChangeCatego = _ref34.onChangeCategory,
+    onChangeCategory = _ref34$onChangeCatego === void 0 ? null : _ref34$onChangeCatego,
+    onNavigateToHistory = _ref34.onNavigateToHistory,
+    _ref34$sessionDuratio = _ref34.sessionDurations,
+    sessionDurations = _ref34$sessionDuratio === void 0 ? {} : _ref34$sessionDuratio,
+    _ref34$setSessionDura = _ref34.setSessionDurations,
+    setSessionDurations = _ref34$setSessionDura === void 0 ? null : _ref34$setSessionDura,
+    _ref34$workoutNotes = _ref34.workoutNotes,
+    workoutNotes = _ref34$workoutNotes === void 0 ? {} : _ref34$workoutNotes,
+    _ref34$setWorkoutNote = _ref34.setWorkoutNotes,
+    setWorkoutNotes = _ref34$setWorkoutNote === void 0 ? null : _ref34$setWorkoutNote,
+    _ref34$bodyweightLog = _ref34.bodyweightLog,
+    bodyweightLog = _ref34$bodyweightLog === void 0 ? [] : _ref34$bodyweightLog,
+    _ref34$setBodyweightL = _ref34.setBodyweightLog,
+    setBodyweightLog = _ref34$setBodyweightL === void 0 ? null : _ref34$setBodyweightL,
+    _ref34$instructors = _ref34.instructors,
+    instructors = _ref34$instructors === void 0 ? [] : _ref34$instructors,
+    _ref34$setInstructors = _ref34.setInstructors,
+    setInstructors = _ref34$setInstructors === void 0 ? null : _ref34$setInstructors,
+    _ref34$setHiddenExerc = _ref34.setHiddenExercises,
+    setHiddenExercises = _ref34$setHiddenExerc === void 0 ? null : _ref34$setHiddenExerc,
+    _ref34$setSummaryData = _ref34.setSummaryData,
+    setSummaryData = _ref34$setSummaryData === void 0 ? null : _ref34$setSummaryData,
+    _ref34$customNames = _ref34.customNames,
+    customNames = _ref34$customNames === void 0 ? {} : _ref34$customNames,
+    _ref34$setCustomNames = _ref34.setCustomNames,
+    setCustomNames = _ref34$setCustomNames === void 0 ? null : _ref34$setCustomNames,
+    _ref34$initialOpenSec = _ref34.initialOpenSection,
+    initialOpenSection = _ref34$initialOpenSec === void 0 ? null : _ref34$initialOpenSec,
+    _ref34$onClearOpenSec = _ref34.onClearOpenSection,
+    onClearOpenSection = _ref34$onClearOpenSec === void 0 ? null : _ref34$onClearOpenSec,
+    _ref34$casualWorkouts = _ref34.casualWorkouts,
+    casualWorkouts = _ref34$casualWorkouts === void 0 ? [] : _ref34$casualWorkouts,
+    _ref34$setCasualWorko = _ref34.setCasualWorkouts,
+    setCasualWorkouts = _ref34$setCasualWorko === void 0 ? null : _ref34$setCasualWorko,
+    _ref34$activeCasual = _ref34.activeCasual,
+    activeCasual = _ref34$activeCasual === void 0 ? null : _ref34$activeCasual,
+    _ref34$setActiveCasua = _ref34.setActiveCasual,
+    setActiveCasual = _ref34$setActiveCasua === void 0 ? null : _ref34$setActiveCasua,
+    _ref34$devNotes = _ref34.devNotes,
+    devNotes = _ref34$devNotes === void 0 ? {} : _ref34$devNotes,
+    _ref34$setDevNotes = _ref34.setDevNotes,
+    setDevNotes = _ref34$setDevNotes === void 0 ? null : _ref34$setDevNotes,
+    _ref34$onSaveDevNote = _ref34.onSaveDevNote,
+    onSaveDevNote = _ref34$onSaveDevNote === void 0 ? null : _ref34$onSaveDevNote,
+    _ref34$devNotesDone = _ref34.devNotesDone,
+    devNotesDone = _ref34$devNotesDone === void 0 ? {} : _ref34$devNotesDone,
+    _ref34$setDevNotesDon = _ref34.setDevNotesDone,
+    setDevNotesDone = _ref34$setDevNotesDon === void 0 ? null : _ref34$setDevNotesDon,
+    _ref34$devNotesHistor = _ref34.devNotesHistory,
+    devNotesHistory = _ref34$devNotesHistor === void 0 ? [] : _ref34$devNotesHistor,
+    _ref34$setDevNotesHis = _ref34.setDevNotesHistory,
+    setDevNotesHistory = _ref34$setDevNotesHis === void 0 ? null : _ref34$setDevNotesHis,
+    _ref34$filingDirName = _ref34.filingDirName,
+    filingDirName = _ref34$filingDirName === void 0 ? null : _ref34$filingDirName,
+    _ref34$filingPermGran = _ref34.filingPermGranted,
+    filingPermGranted = _ref34$filingPermGran === void 0 ? true : _ref34$filingPermGran,
+    _ref34$ensureFilingPe = _ref34.ensureFilingPermission,
+    ensureFilingPermission = _ref34$ensureFilingPe === void 0 ? null : _ref34$ensureFilingPe,
+    _ref34$filingSupporte = _ref34.filingSupported,
+    filingSupported = _ref34$filingSupporte === void 0 ? false : _ref34$filingSupporte,
+    _ref34$connectFilingD = _ref34.connectFilingDir,
+    connectFilingDir = _ref34$connectFilingD === void 0 ? null : _ref34$connectFilingD,
+    _ref34$disconnectFili = _ref34.disconnectFilingDir,
+    disconnectFilingDir = _ref34$disconnectFili === void 0 ? null : _ref34$disconnectFili,
+    _ref34$saveTextFile = _ref34.saveTextFile,
+    saveTextFile = _ref34$saveTextFile === void 0 ? null : _ref34$saveTextFile;
   var DEFAULT_REPORT_PREAMBLE = "\u05D0\u05EA\u05D4 \u05DE\u05D0\u05DE\u05DF \u05DB\u05D5\u05E9\u05E8 \u05D1\u05D5\u05D2\u05E8 \u05E2\u05DD \u05EA\u05E2\u05D5\u05D3\u05EA \u05D5\u05D9\u05E0\u05D2\u05D9\u05D9\u05D8, \u05D3\u05D9\u05D0\u05D8\u05DF \u05D5\u05DE\u05D5\u05DE\u05D7\u05D4 \u05D1\u05EA\u05D6\u05D5\u05E0\u05D4, \u05D1\u05E2\u05DC \u05D4\u05DB\u05E9\u05E8\u05D4 \u05DB\u05E8\u05D5\u05E4\u05D0 \u05E1\u05E4\u05D5\u05E8\u05D8, \u05DE\u05D5\u05DE\u05D7\u05D4 \u05D1\u05D0\u05D9\u05DE\u05D5\u05DF \u05D0\u05E0\u05E9\u05D9\u05DD \u05DE\u05D1\u05D5\u05D2\u05E8\u05D9\u05DD \u05DE\u05E2\u05DC \u05D2\u05D9\u05DC 50, \u05D1\u05E2\u05DC \u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05E9\u05DC 15 \u05E9\u05E0\u05D9\u05DD.\n\u05D0\u05EA\u05D4 \u05D4\u05DE\u05D0\u05DE\u05DF \u05DB\u05D5\u05E9\u05E8 \u05E9\u05DC \u05D0\u05D9\u05EA\u05DF \u05D5\u05D4\u05EA\u05E4\u05E7\u05D9\u05D3 \u05E9\u05DC\u05DA \u05D6\u05D4 \u05DC\u05D2\u05E8\u05D5\u05DD \u05DC\u05D5 \u05DC\u05D4\u05E9\u05D9\u05D2 3 \u05DE\u05D8\u05E8\u05D5\u05EA:\n1. \u05D7\u05D9\u05D8\u05D5\u05D1 \u05E9\u05DC \u05D4\u05D2\u05D5\u05E3 \u05DC\u05E8\u05DE\u05D4 \u05E9\u05DC \u05E9\u05E8\u05D9\u05E8\u05D9\u05DD \u05D5\u05D7\u05D9\u05D8\u05D5\u05D1 \u05D9\u05E4\u05D9\u05DD\n2. \u05D4\u05D5\u05E8\u05D3\u05D4 \u05D1\u05DE\u05E9\u05E7\u05DC (\u05D1\u05E2\u05D9\u05E7\u05E8 \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA \u05EA\u05D6\u05D5\u05E0\u05D4 \u05D5\u05DC\u05D0 \u05E1\u05D9\u05D1\u05D5\u05DC\u05EA \u05DC\u05D1 \u05E8\u05D9\u05D0\u05D4 \u05D1\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD)\n3. \u05E9\u05DE\u05D9\u05E8\u05D4 \u05E2\u05DC \u05D4\u05E2\u05E6\u05DE\u05D5\u05EA, \u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E4\u05E6\u05D9\u05E2\u05D5\u05EA, \u05D4\u05EA\u05D9\u05D9\u05D7\u05E1\u05D5\u05EA \u05DC\u05DB\u05DA \u05E9\u05DE\u05D3\u05D5\u05D1\u05E8 \u05D1\u05D0\u05D3\u05DD \u05D1\u05D2\u05D9\u05DC 50\n\n\u05E0\u05D0 \u05DC\u05E0\u05EA\u05D7 \u05D0\u05EA \u05D4\u05D3\u05D5\u05D7 \u05D5\u05DC\u05E1\u05E4\u05E7:\n\n1. \u05E1\u05D9\u05DB\u05D5\u05DD \u05DB\u05DC\u05DC\u05D9 \u2014 \u05DE\u05D2\u05DE\u05D5\u05EA \u05E2\u05D9\u05E7\u05E8\u05D9\u05D5\u05EA, \u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA, \u05D5\u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05D7\u05D5\u05D6\u05E7.\n   \u05D0\u05DD \u05D9\u05E9 \u05E0\u05E7\u05D5\u05D3\u05D4 \u05E9\u05D3\u05D5\u05E8\u05E9\u05EA \u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 \u05EA\u05DF \u05D4\u05DE\u05DC\u05E6\u05D4 \u05DE\u05E4\u05D5\u05E8\u05D8\u05EA \u05D5\u05DE\u05E2\u05E9\u05D9\u05EA (\u05DE\u05D4 \u05D1\u05D3\u05D9\u05D5\u05E7 \u05DC\u05E2\u05E9\u05D5\u05EA, \u05DB\u05DE\u05D4, \u05D5\u05D0\u05D9\u05DA).\n\n2. \u05E0\u05D9\u05EA\u05D5\u05D7 \u05E2\u05D5\u05DE\u05E1\u05D9\u05DD \u2014 \u05D4\u05D0\u05DD \u05D9\u05E9 \u05E2\u05DC\u05D9\u05D9\u05D4 \u05E2\u05E7\u05D1\u05D9\u05EA \u05D1\u05DE\u05E9\u05E7\u05DC\u05D9\u05DD? \u05D4\u05D9\u05DB\u05DF \u05D9\u05E9 \u05E1\u05D8\u05D2\u05E0\u05E6\u05D9\u05D4?\n   \u05D1\u05DB\u05DC \u05DE\u05E7\u05D5\u05DD \u05E9\u05DE\u05D6\u05D5\u05D4\u05D4 \u05D1\u05E2\u05D9\u05D4 \u2014 \u05EA\u05DF \u05D4\u05DE\u05DC\u05E6\u05D4 \u05E7\u05D5\u05E0\u05E7\u05E8\u05D8\u05D9\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8.\n\n3. \u05D6\u05DE\u05E0\u05D9 \u05DE\u05E0\u05D5\u05D7\u05D4 \u2014 \u05D4\u05D0\u05DD \u05D6\u05DE\u05E0\u05D9 \u05D4\u05DE\u05E0\u05D5\u05D7\u05D4 \u05D1\u05D9\u05DF \u05D4\u05E1\u05D8\u05D9\u05DD \u05DE\u05EA\u05D0\u05D9\u05DE\u05D9\u05DD \u05DC\u05E1\u05D5\u05D2 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC \u05D5\u05DC\u05DE\u05D8\u05E8\u05D5\u05EA?\n   \u05D0\u05DD \u05DC\u05D0 \u2014 \u05D4\u05DE\u05DC\u05E5 \u05E2\u05DC \u05D6\u05DE\u05DF \u05DE\u05E0\u05D5\u05D7\u05D4 \u05E1\u05E4\u05E6\u05D9\u05E4\u05D9 \u05DC\u05DB\u05DC \u05EA\u05E8\u05D2\u05D9\u05DC.\n\n4. \u05D0\u05D9\u05D6\u05D5\u05DF \u05E9\u05E8\u05D9\u05E8\u05D9 \u2014 \u05D4\u05D0\u05DD \u05D9\u05E9 \u05E7\u05D1\u05D5\u05E6\u05D5\u05EA \u05E9\u05E8\u05D9\u05E8 \u05E9\u05DE\u05E7\u05D1\u05DC\u05D5\u05EA \u05E4\u05D7\u05D5\u05EA \u05EA\u05E9\u05D5\u05DE\u05EA \u05DC\u05D1?\n   \u05D0\u05DD \u05DB\u05DF \u2014 \u05D4\u05DE\u05DC\u05E5 \u05E2\u05DC \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05E1\u05E4\u05E6\u05D9\u05E4\u05D9\u05D9\u05DD \u05DC\u05D4\u05D5\u05E1\u05E4\u05D4.\n\n5. \u05EA\u05D3\u05D9\u05E8\u05D5\u05EA \u05D5\u05E0\u05E4\u05D7 \u2014 \u05D4\u05D0\u05DD \u05EA\u05D3\u05D9\u05E8\u05D5\u05EA \u05D4\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05D5\u05DE\u05E1\u05E4\u05E8 \u05D4\u05E1\u05D8\u05D9\u05DD \u05DE\u05EA\u05D0\u05D9\u05DE\u05D9\u05DD?\n\n6. \u05D4\u05DE\u05DC\u05E6\u05D5\u05EA \u2014 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DE\u05D5\u05E6\u05E2\u05D9\u05DD \u05D1\u05EA\u05D5\u05DB\u05E0\u05D9\u05EA, \u05DE\u05E9\u05E7\u05DC\u05D9\u05DD, \u05D0\u05D5 \u05DE\u05D1\u05E0\u05D4 \u05D4\u05D0\u05D9\u05DE\u05D5\u05DF.\n   \u05D4\u05DE\u05DC\u05E6\u05D5\u05EA \u05DE\u05E4\u05D5\u05E8\u05D8\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3 \u2014 \u05DE\u05D4 \u05DC\u05E2\u05E9\u05D5\u05EA, \u05D0\u05D9\u05E4\u05D4, \u05D5\u05DB\u05DE\u05D4.\n\n7. \u05D4\u05E2\u05E8\u05D5\u05EA \u05D1\u05D8\u05D9\u05D7\u05D5\u05EA \u2014 \u05E1\u05D9\u05DE\u05E0\u05D9\u05DD \u05DC\u05E2\u05D5\u05DE\u05E1 \u05D9\u05EA\u05E8 \u05D0\u05D5 \u05E1\u05D9\u05DB\u05D5\u05DF \u05DC\u05E4\u05E6\u05D9\u05E2\u05D4.\n\n\u05E2\u05E7\u05E8\u05D5\u05E0\u05D5\u05EA \u05DE\u05E0\u05D7\u05D9\u05DD:\n\u2022 \u05DB\u05D1\u05D3 \u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E9\u05E0\u05DE\u05E9\u05DB\u05EA \u05DC\u05E4\u05E8\u05E7 \u05D6\u05DE\u05DF \u05DC\u05DC\u05D0 \u05E9\u05D9\u05E0\u05D5\u05D9 \u05DE\u05D4\u05D5\u05EA\u05D9 \u2014 \u05D4\u05EA\u05DE\u05D3\u05D4 \u05E2\u05D3\u05D9\u05E4\u05D4 \u05E2\u05DC \u05E9\u05DC\u05DE\u05D5\u05EA.\n\u2022 \u05D0\u05DC \u05EA\u05DE\u05DC\u05D9\u05E5 \u05E2\u05DC \u05E9\u05D9\u05E0\u05D5\u05D9 \u05E8\u05E7 \u05DB\u05D9 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05E4\u05E8. \u05D4\u05DE\u05DC\u05E5 \u05E8\u05E7 \u05DB\u05E9\u05D9\u05E9 \u05E6\u05D5\u05E8\u05DA \u05D0\u05DE\u05D9\u05EA\u05D9.\n\u2022 \u05E9\u05D9\u05DD \u05DC\u05D1 \u05DC\u05D4\u05E2\u05E8\u05D5\u05EA \u05E9\u05E0\u05E8\u05E9\u05DE\u05D5 \u05DC\u05D2\u05D1\u05D9 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D5\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u2014 \u05D4\u05DF \u05DE\u05DB\u05D9\u05DC\u05D5\u05EA \u05DE\u05D9\u05D3\u05E2 \u05D7\u05E9\u05D5\u05D1.";
-  var _useState77 = useState(function () {
+  var _useState91 = useState(function () {
       return LS.get('gym-report-preamble', DEFAULT_REPORT_PREAMBLE);
     }),
-    _useState78 = _slicedToArray(_useState77, 2),
-    reportPreamble = _useState78[0],
-    setReportPreamble = _useState78[1];
+    _useState92 = _slicedToArray(_useState91, 2),
+    reportPreamble = _useState92[0],
+    setReportPreamble = _useState92[1];
   useEffect(function () {
     LS.set('gym-report-preamble', reportPreamble);
   }, [reportPreamble]);
-  var _useState79 = useState(false),
-    _useState80 = _slicedToArray(_useState79, 2),
-    preambleOpen = _useState80[0],
-    setPreambleOpen = _useState80[1];
-  var _useState81 = useState(''),
-    _useState82 = _slicedToArray(_useState81, 2),
-    newDevNoteText = _useState82[0],
-    setNewDevNoteText = _useState82[1];
-  var _useState83 = useState(function () {
+  var _useState93 = useState(false),
+    _useState94 = _slicedToArray(_useState93, 2),
+    preambleOpen = _useState94[0],
+    setPreambleOpen = _useState94[1];
+  var _useState95 = useState(''),
+    _useState96 = _slicedToArray(_useState95, 2),
+    newDevNoteText = _useState96[0],
+    setNewDevNoteText = _useState96[1];
+  var _useState97 = useState(function () {
       var base = {
         casual: false,
         exercises: false,
@@ -6504,34 +6840,34 @@ var ManageView = function ManageView(_ref32) {
       if (initialOpenSection && base.hasOwnProperty(initialOpenSection)) base[initialOpenSection] = true;
       return base;
     }),
-    _useState84 = _slicedToArray(_useState83, 2),
-    open = _useState84[0],
-    setOpen = _useState84[1];
-  var _useState85 = useState(null),
-    _useState86 = _slicedToArray(_useState85, 2),
-    histExpandedDate = _useState86[0],
-    setHistExpandedDate = _useState86[1];
-  var _useState87 = useState(null),
-    _useState88 = _slicedToArray(_useState87, 2),
-    editInstId = _useState88[0],
-    setEditInstId = _useState88[1];
-  var _useState89 = useState(null),
-    _useState90 = _slicedToArray(_useState89, 2),
-    editingCategoryId = _useState90[0],
-    setEditingCategoryId = _useState90[1]; // group.id שכרגע עורכים לו קטגוריה
-  var _useState91 = useState(''),
-    _useState92 = _slicedToArray(_useState91, 2),
-    categoryDraft = _useState92[0],
-    setCategoryDraft = _useState92[1];
-  var _useState93 = useState(''),
-    _useState94 = _slicedToArray(_useState93, 2),
-    categoryDraftOther = _useState94[0],
-    setCategoryDraftOther = _useState94[1];
+    _useState98 = _slicedToArray(_useState97, 2),
+    open = _useState98[0],
+    setOpen = _useState98[1];
+  var _useState99 = useState(null),
+    _useState100 = _slicedToArray(_useState99, 2),
+    histExpandedDate = _useState100[0],
+    setHistExpandedDate = _useState100[1];
+  var _useState101 = useState(null),
+    _useState102 = _slicedToArray(_useState101, 2),
+    editInstId = _useState102[0],
+    setEditInstId = _useState102[1];
+  var _useState103 = useState(null),
+    _useState104 = _slicedToArray(_useState103, 2),
+    editingCategoryId = _useState104[0],
+    setEditingCategoryId = _useState104[1]; // group.id שכרגע עורכים לו קטגוריה
+  var _useState105 = useState(''),
+    _useState106 = _slicedToArray(_useState105, 2),
+    categoryDraft = _useState106[0],
+    setCategoryDraft = _useState106[1];
+  var _useState107 = useState(''),
+    _useState108 = _slicedToArray(_useState107, 2),
+    categoryDraftOther = _useState108[0],
+    setCategoryDraftOther = _useState108[1];
   // ─── מצב סידור תרגילים בניהול: טיוטה מקומית שמוזזת בחצים ונשמרת ל-groupOrder רק בלחיצה על "שמור סדר" ───
-  var _useState95 = useState(null),
-    _useState96 = _slicedToArray(_useState95, 2),
-    exOrderDraft = _useState96[0],
-    setExOrderDraft = _useState96[1]; // null = לא במצב סידור, אחרת מערך group.id בסדר הטיוטה
+  var _useState109 = useState(null),
+    _useState110 = _slicedToArray(_useState109, 2),
+    exOrderDraft = _useState110[0],
+    setExOrderDraft = _useState110[1]; // null = לא במצב סידור, אחרת מערך group.id בסדר הטיוטה
   var handleExOrderMove = useCallback(function (groupId, dir) {
     setExOrderDraft(function (prev) {
       if (!prev) return prev;
@@ -6540,9 +6876,9 @@ var ManageView = function ManageView(_ref32) {
       var targetIdx = idx + dir;
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       var next = _toConsumableArray(prev);
-      var _ref33 = [next[targetIdx], next[idx]];
-      next[idx] = _ref33[0];
-      next[targetIdx] = _ref33[1];
+      var _ref35 = [next[targetIdx], next[idx]];
+      next[idx] = _ref35[0];
+      next[targetIdx] = _ref35[1];
       return next;
     });
   }, []);
@@ -6556,10 +6892,10 @@ var ManageView = function ManageView(_ref32) {
   var reportsRef = React.useRef(null);
   var devNotesRef = React.useRef(null);
   var casualRef = React.useRef(null);
-  var _useState97 = useState(null),
-    _useState98 = _slicedToArray(_useState97, 2),
-    casualEdit = _useState98[0],
-    setCasualEdit = _useState98[1]; // {id|null, name, exIds:[]}
+  var _useState111 = useState(null),
+    _useState112 = _slicedToArray(_useState111, 2),
+    casualEdit = _useState112[0],
+    setCasualEdit = _useState112[1]; // {id|null, name, exIds:[]}
   var sectionRefs = {
     casual: casualRef,
     exercises: exerciseSectionRef,
@@ -6621,10 +6957,10 @@ var ManageView = function ManageView(_ref32) {
       return next;
     });
   };
-  var _useState99 = useState(getBackupDirName),
-    _useState100 = _slicedToArray(_useState99, 2),
-    backupDir = _useState100[0],
-    setBackupDir = _useState100[1];
+  var _useState113 = useState(getBackupDirName),
+    _useState114 = _slicedToArray(_useState113, 2),
+    backupDir = _useState114[0],
+    setBackupDir = _useState114[1];
   var handleBackup = /*#__PURE__*/function () {
     var _handleBackup = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
       var ok;
@@ -6671,7 +7007,7 @@ var ManageView = function ManageView(_ref32) {
     requestConfirm('שחזור ימחוק את כל הנתונים הקיימים. להמשיך?', function () {
       var reader = new FileReader();
       reader.onload = /*#__PURE__*/function () {
-        var _ref34 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(ev) {
+        var _ref36 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(ev) {
           var data, mediaN, needMedia, perm, _t19, _t20;
           return _regenerator().w(function (_context15) {
             while (1) switch (_context15.p = _context15.n) {
@@ -6682,10 +7018,10 @@ var ManageView = function ManageView(_ref32) {
                   _context15.n = 9;
                   break;
                 }
-                Object.entries(data._all).forEach(function (_ref35) {
-                  var _ref36 = _slicedToArray(_ref35, 2),
-                    k = _ref36[0],
-                    v = _ref36[1];
+                Object.entries(data._all).forEach(function (_ref37) {
+                  var _ref38 = _slicedToArray(_ref37, 2),
+                    k = _ref38[0],
+                    v = _ref38[1];
                   if (k.startsWith('gym-') && !BACKUP_SKIP_KEYS.has(k)) LS.set(k, v);
                 });
                 // שחזור אוטומטי של סרטונים ומוזיקה מתיקיית הגיבוי המחוברת (gym-media-backup), בלי צעד ידני נוסף
@@ -6790,7 +7126,7 @@ var ManageView = function ManageView(_ref32) {
           }, _callee15, null, [[1, 7], [0, 11]]);
         }));
         return function (_x15) {
-          return _ref34.apply(this, arguments);
+          return _ref36.apply(this, arguments);
         };
       }();
       reader.readAsText(file);
@@ -7034,11 +7370,11 @@ var ManageView = function ManageView(_ref32) {
     key: 'warmupRest',
     min: 20,
     max: 180
-  }].map(function (_ref39) {
-    var label = _ref39.label,
-      key = _ref39.key,
-      min = _ref39.min,
-      max = _ref39.max;
+  }].map(function (_ref41) {
+    var label = _ref41.label,
+      key = _ref41.key,
+      min = _ref41.min,
+      max = _ref41.max;
     return /*#__PURE__*/React.createElement("div", {
       key: key,
       className: "flex justify-between items-center bg-slate-50 px-3 py-1 rounded-2xl border border-slate-100"
@@ -7296,17 +7632,17 @@ var ManageView = function ManageView(_ref32) {
         });
       });
     };
-    return /*#__PURE__*/React.createElement(React.Fragment, null, entries.map(function (_ref40) {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, entries.map(function (_ref42) {
       var _Object$entries$find2;
-      var _ref41 = _slicedToArray(_ref40, 2),
-        gkey = _ref41[0],
-        items = _ref41[1];
+      var _ref43 = _slicedToArray(_ref42, 2),
+        gkey = _ref43[0],
+        items = _ref43[1];
       var _sessionGroupInfo2 = sessionGroupInfo(gkey, items),
         wst = _sessionGroupInfo2.wst,
         date = _sessionGroupInfo2.date;
-      var dur = wst ? sessionDurations === null || sessionDurations === void 0 ? void 0 : sessionDurations[wst] : (_Object$entries$find2 = Object.entries(sessionDurations || {}).find(function (_ref42) {
-        var _ref43 = _slicedToArray(_ref42, 1),
-          ts = _ref43[0];
+      var dur = wst ? sessionDurations === null || sessionDurations === void 0 ? void 0 : sessionDurations[wst] : (_Object$entries$find2 = Object.entries(sessionDurations || {}).find(function (_ref44) {
+        var _ref45 = _slicedToArray(_ref44, 1),
+          ts = _ref45[0];
         return new Date(Number(ts)).toLocaleDateString('he-IL') === date;
       })) === null || _Object$entries$find2 === void 0 ? void 0 : _Object$entries$find2[1];
       var wn = wst ? workoutNotes[wst] : null;
@@ -7397,7 +7733,7 @@ var ManageView = function ManageView(_ref32) {
           className: "text-orange-600 font-black bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-xl text-[10px]"
         }, it.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(it.setNum), ": \u05D3\u05D5\u05DC\u05D2") : /*#__PURE__*/React.createElement("span", {
           className: "text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-xl text-[10px]"
-        }, "\u05E1\u05D8 ", it.setNum, ": ", it.weight, "kg\xD7", it.reps));
+        }, "\u05E1\u05D8 ", it.setNum, ": ", it.weight, "kg\xD7", it.reps, it.repsL != null ? "|".concat(it.repsL) : ''));
       })));
     }), onNavigateToHistory && /*#__PURE__*/React.createElement("button", {
       onClick: onNavigateToHistory,
@@ -8046,10 +8382,10 @@ var ManageView = function ManageView(_ref32) {
       })).size;
       // זמן ממוצע: רק אימונים שנרשם להם משך סביר (עד 4 שעות) — שעון שנשכח פועל (למשל 8,500 דק') לא מעוות את הממוצע
       var MAX_REAL_DUR = 4 * 3600;
-      var realDurs = sessionGroups.map(function (_ref44) {
-        var _ref45 = _slicedToArray(_ref44, 2),
-          k = _ref45[0],
-          its = _ref45[1];
+      var realDurs = sessionGroups.map(function (_ref46) {
+        var _ref47 = _slicedToArray(_ref46, 2),
+          k = _ref47[0],
+          its = _ref47[1];
         return sessionGroupInfo(k, its).wst;
       }).filter(Boolean).map(function (w) {
         return (sessionDurations || {})[w];
@@ -8085,18 +8421,18 @@ var ManageView = function ManageView(_ref32) {
       txt += '\n';
       var seenBwDates = new Set();
       var sessionsPerDate = {};
-      sessionGroups.forEach(function (_ref46) {
-        var _ref47 = _slicedToArray(_ref46, 2),
-          k = _ref47[0],
-          its = _ref47[1];
+      sessionGroups.forEach(function (_ref48) {
+        var _ref49 = _slicedToArray(_ref48, 2),
+          k = _ref49[0],
+          its = _ref49[1];
         var d0 = sessionGroupInfo(k, its).date;
         sessionsPerDate[d0] = (sessionsPerDate[d0] || 0) + 1;
       });
       var sessionIdxOfDate = {};
-      sessionGroups.forEach(function (_ref48) {
-        var _ref49 = _slicedToArray(_ref48, 2),
-          sKey = _ref49[0],
-          rawItems = _ref49[1];
+      sessionGroups.forEach(function (_ref50) {
+        var _ref51 = _slicedToArray(_ref50, 2),
+          sKey = _ref51[0],
+          rawItems = _ref51[1];
         var _sessionGroupInfo3 = sessionGroupInfo(sKey, rawItems),
           wst = _sessionGroupInfo3.wst,
           date = _sessionGroupInfo3.date;
@@ -8136,10 +8472,10 @@ var ManageView = function ManageView(_ref32) {
           };
           byEx[l.exId].sets.push(l);
         });
-        Object.values(byEx).forEach(function (_ref50) {
+        Object.values(byEx).forEach(function (_ref52) {
           var _sets$2;
-          var name = _ref50.name,
-            sets = _ref50.sets;
+          var name = _ref52.name,
+            sets = _ref52.sets;
           var grp = exerciseGroups.find(function (g) {
             return g.exercises.some(function (e) {
               var _sets$;
@@ -8150,7 +8486,7 @@ var ManageView = function ManageView(_ref32) {
           txt += "  ".concat(name, ": (\u05DE\u05E0\u05D5\u05D7\u05D4: ").concat(restSec, " \u05E9\u05E0\u05F3)\n");
           sets.forEach(function (s) {
             var label = s.setNum === 0 ? 'חימום' : "\u05E1\u05D8 ".concat(s.setNum);
-            txt += s.weight > 0 || s.reps > 0 ? "    ".concat(label, ": ").concat(s.weight, " kg \xD7 ").concat(s.reps, " \u05D7\u05D6\u05E8\u05D5\u05EA\n") : "    ".concat(label, ": \u05D3\u05D5\u05DC\u05D2\n");
+            txt += s.weight > 0 || s.reps > 0 ? "    ".concat(label, ": ").concat(s.weight, " kg \xD7 ").concat(s.reps).concat(s.repsL != null ? ' | ' + s.repsL : '', " \u05D7\u05D6\u05E8\u05D5\u05EA\n") : "    ".concat(label, ": \u05D3\u05D5\u05DC\u05D2\n");
           });
           var maxW = Math.max.apply(Math, [0].concat(_toConsumableArray(sets.filter(function (s) {
             return s.setNum > 0;
@@ -8176,10 +8512,10 @@ var ManageView = function ManageView(_ref32) {
         txt += "".concat('═'.repeat(40), "\n\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 (\u05DE\u05E6\u05D1 \u05E0\u05D5\u05DB\u05D7\u05D9)\n").concat('═'.repeat(40), "\n\n");
         txt += "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05DE\u05E0\u05D5\u05D7\u05D4: \u05D1\u05D9\u05DF \u05E1\u05D8\u05D9\u05DD ".concat(settings.normalRest || 90, " \u05E9\u05E0\u05F3 | \u05D1\u05D9\u05DF \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD ").concat(settings.exerciseRest || 70, " \u05E9\u05E0\u05F3 | \u05E1\u05D5\u05E4\u05E8\u05E1\u05D8 ").concat(settings.supersetRest || 60, " \u05E9\u05E0\u05F3 | \u05D7\u05D9\u05DE\u05D5\u05DD ").concat(settings.warmupRest || 60, " \u05E9\u05E0\u05F3\n");
         var wsAll = settings.weightSteps || {};
-        if (Object.keys(wsAll).length) txt += "\u05DE\u05E8\u05D5\u05D5\u05D7\u05D9 \u05DE\u05E9\u05E7\u05DC \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD: ".concat(Object.entries(wsAll).map(function (_ref51) {
-          var _ref52 = _slicedToArray(_ref51, 2),
-            k = _ref52[0],
-            v = _ref52[1];
+        if (Object.keys(wsAll).length) txt += "\u05DE\u05E8\u05D5\u05D5\u05D7\u05D9 \u05DE\u05E9\u05E7\u05DC \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD: ".concat(Object.entries(wsAll).map(function (_ref53) {
+          var _ref54 = _slicedToArray(_ref53, 2),
+            k = _ref54[0],
+            v = _ref54[1];
           return "".concat(nm(k), "=").concat(v);
         }).join(', '), "\n");
         var weAll = settings.warmupEmbed || {};
@@ -8187,10 +8523,10 @@ var ManageView = function ManageView(_ref32) {
           return weAll[k];
         });
         if (weOn.length) txt += "\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05E2\u05DD \u05D7\u05D9\u05DE\u05D5\u05DD \u05E4\u05EA\u05D5\u05D7: ".concat(weOn.map(nm).join(', '), "\n");
-        if (Object.keys(customNames || {}).length) txt += "\u05E9\u05DE\u05D5\u05EA \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD: ".concat(Object.entries(customNames).map(function (_ref53) {
-          var _ref54 = _slicedToArray(_ref53, 2),
-            k = _ref54[0],
-            v = _ref54[1];
+        if (Object.keys(customNames || {}).length) txt += "\u05E9\u05DE\u05D5\u05EA \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD: ".concat(Object.entries(customNames).map(function (_ref55) {
+          var _ref56 = _slicedToArray(_ref55, 2),
+            k = _ref56[0],
+            v = _ref56[1];
           return "".concat(k, "\u2192").concat(v);
         }).join(', '), "\n");
         var bwAll = _toConsumableArray(bodyweightLog || []).sort(function (a, b) {
@@ -8199,64 +8535,64 @@ var ManageView = function ManageView(_ref32) {
         if (bwAll.length) txt += "\n\u05DE\u05E9\u05E7\u05DC \u05D2\u05D5\u05E3 (".concat(bwAll.length, " \u05E9\u05E7\u05D9\u05DC\u05D5\u05EA):\n").concat(bwAll.map(function (b) {
           return "  ".concat(new Date(b.timestamp).toLocaleDateString('he-IL'), ": ").concat(b.weight, " \u05E7\u05F4\u05D2");
         }).join('\n'), "\n");
-        var exNotesAll = Object.entries(notes || {}).filter(function (_ref55) {
-          var _ref56 = _slicedToArray(_ref55, 2),
-            t = _ref56[1];
+        var exNotesAll = Object.entries(notes || {}).filter(function (_ref57) {
+          var _ref58 = _slicedToArray(_ref57, 2),
+            t = _ref58[1];
           return t && String(t).trim();
         });
-        if (exNotesAll.length) txt += "\n\u05D4\u05E2\u05E8\u05D5\u05EA \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD:\n".concat(exNotesAll.map(function (_ref57) {
-          var _ref58 = _slicedToArray(_ref57, 2),
-            k = _ref58[0],
-            t = _ref58[1];
+        if (exNotesAll.length) txt += "\n\u05D4\u05E2\u05E8\u05D5\u05EA \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD:\n".concat(exNotesAll.map(function (_ref59) {
+          var _ref60 = _slicedToArray(_ref59, 2),
+            k = _ref60[0],
+            t = _ref60[1];
           return "  ".concat(nm(k), ": ").concat(t);
         }).join('\n'), "\n");
         var howAll = LS.get('gym-custom-howto', {}) || {},
           tipsAll = LS.get('gym-custom-tips', {}) || {};
-        var howE = Object.entries(howAll).filter(function (_ref59) {
-            var _ref60 = _slicedToArray(_ref59, 2),
-              t = _ref60[1];
-            return t && String(t).trim();
-          }),
-          tipE = Object.entries(tipsAll).filter(function (_ref61) {
+        var howE = Object.entries(howAll).filter(function (_ref61) {
             var _ref62 = _slicedToArray(_ref61, 2),
               t = _ref62[1];
             return t && String(t).trim();
+          }),
+          tipE = Object.entries(tipsAll).filter(function (_ref63) {
+            var _ref64 = _slicedToArray(_ref63, 2),
+              t = _ref64[1];
+            return t && String(t).trim();
           });
-        if (howE.length) txt += "\n\"\u05D0\u05D9\u05DA \u05DC\u05D1\u05E6\u05E2\" \u05DE\u05D5\u05EA\u05D0\u05DD:\n".concat(howE.map(function (_ref63) {
-          var _ref64 = _slicedToArray(_ref63, 2),
-            k = _ref64[0],
-            t = _ref64[1];
-          return "  ".concat(nm(k), ": ").concat(t);
-        }).join('\n'), "\n");
-        if (tipE.length) txt += "\n\u05D8\u05D9\u05E4\u05D9\u05DD \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD:\n".concat(tipE.map(function (_ref65) {
+        if (howE.length) txt += "\n\"\u05D0\u05D9\u05DA \u05DC\u05D1\u05E6\u05E2\" \u05DE\u05D5\u05EA\u05D0\u05DD:\n".concat(howE.map(function (_ref65) {
           var _ref66 = _slicedToArray(_ref65, 2),
             k = _ref66[0],
             t = _ref66[1];
           return "  ".concat(nm(k), ": ").concat(t);
         }).join('\n'), "\n");
-        var wnE = Object.entries(workoutNotes || {}).filter(function (_ref67) {
+        if (tipE.length) txt += "\n\u05D8\u05D9\u05E4\u05D9\u05DD \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD:\n".concat(tipE.map(function (_ref67) {
           var _ref68 = _slicedToArray(_ref67, 2),
-            v = _ref68[1];
+            k = _ref68[0],
+            t = _ref68[1];
+          return "  ".concat(nm(k), ": ").concat(t);
+        }).join('\n'), "\n");
+        var wnE = Object.entries(workoutNotes || {}).filter(function (_ref69) {
+          var _ref70 = _slicedToArray(_ref69, 2),
+            v = _ref70[1];
           return v && v.note;
         });
-        if (wnE.length) txt += "\n\u05D4\u05E2\u05E8\u05D5\u05EA \u05D0\u05D9\u05DE\u05D5\u05DF (\u05E1\u05D9\u05DB\u05D5\u05DD):\n".concat(wnE.map(function (_ref69) {
-          var _ref70 = _slicedToArray(_ref69, 2),
-            k = _ref70[0],
-            v = _ref70[1];
+        if (wnE.length) txt += "\n\u05D4\u05E2\u05E8\u05D5\u05EA \u05D0\u05D9\u05DE\u05D5\u05DF (\u05E1\u05D9\u05DB\u05D5\u05DD):\n".concat(wnE.map(function (_ref71) {
+          var _ref72 = _slicedToArray(_ref71, 2),
+            k = _ref72[0],
+            v = _ref72[1];
           return "  ".concat(new Date(Number(k)).toLocaleDateString('he-IL'), ": ").concat(v.note);
         }).join('\n'), "\n");
         if ((instructors || []).length) txt += "\n\u05DE\u05D3\u05E8\u05D9\u05DB\u05D9\u05DD:\n".concat(instructors.map(function (i) {
           return "  ".concat(i.name || '(ללא שם)').concat(i.note ? ': ' + i.note : '');
         }).join('\n'), "\n");
-        var dnE = Object.entries(devNotes || {}).filter(function (_ref71) {
-          var _ref72 = _slicedToArray(_ref71, 2),
-            t = _ref72[1];
+        var dnE = Object.entries(devNotes || {}).filter(function (_ref73) {
+          var _ref74 = _slicedToArray(_ref73, 2),
+            t = _ref74[1];
           return t && t.trim();
         });
-        if (dnE.length) txt += "\n\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA:\n".concat(dnE.map(function (_ref73) {
-          var _ref74 = _slicedToArray(_ref73, 2),
-            k = _ref74[0],
-            t = _ref74[1];
+        if (dnE.length) txt += "\n\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA:\n".concat(dnE.map(function (_ref75) {
+          var _ref76 = _slicedToArray(_ref75, 2),
+            k = _ref76[0],
+            t = _ref76[1];
           return "  ".concat(nm(k), " [").concat(devMetaLabel(k), "]: ").concat(t);
         }).join('\n'), "\n");
         if ((devNotesHistory || []).length) txt += "\n\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05EA\u05D9\u05E7\u05D5\u05E0\u05D9\u05DD (".concat(devNotesHistory.length, "):\n").concat(devNotesHistory.map(function (h) {
@@ -8284,9 +8620,9 @@ var ManageView = function ManageView(_ref32) {
         });
         return customNames[exId] || (ex === null || ex === void 0 ? void 0 : ex.title) || exId;
       };
-      var pending = generalFirst(Object.entries(devNotes || {}).filter(function (_ref75) {
-        var _ref76 = _slicedToArray(_ref75, 2),
-          t = _ref76[1];
+      var pending = generalFirst(Object.entries(devNotes || {}).filter(function (_ref77) {
+        var _ref78 = _slicedToArray(_ref77, 2),
+          t = _ref78[1];
         return t && t.trim();
       }));
       if (!pending.length && !(devNotesHistory || []).length) {
@@ -8297,10 +8633,10 @@ var ManageView = function ManageView(_ref32) {
       txt += "".concat('═'.repeat(40), "\n\n");
       if (pending.length) {
         txt += "\u05D7\u05D3\u05E9\u05D5\u05EA (\u05D8\u05E8\u05DD \u05D8\u05D5\u05E4\u05DC\u05D5):\n\n";
-        pending.forEach(function (_ref77) {
-          var _ref78 = _slicedToArray(_ref77, 2),
-            exId = _ref78[0],
-            t = _ref78[1];
+        pending.forEach(function (_ref79) {
+          var _ref80 = _slicedToArray(_ref79, 2),
+            exId = _ref80[0],
+            t = _ref80[1];
           txt += "\u2022 ".concat(nameOf(exId), " [").concat(devMetaLabel(exId), "]:\n").concat(markImplemented(t), "\n\n");
         });
       }
@@ -8411,9 +8747,9 @@ var ManageView = function ManageView(_ref32) {
     }, {
       period: 'all',
       label: 'דוח כולל'
-    }].map(function (_ref79) {
-      var period = _ref79.period,
-        label = _ref79.label;
+    }].map(function (_ref81) {
+      var period = _ref81.period,
+        label = _ref81.label;
       return /*#__PURE__*/React.createElement("button", {
         key: period,
         onClick: function onClick() {
@@ -8459,19 +8795,19 @@ var ManageView = function ManageView(_ref32) {
       });
       return customNames[exId] || (ex === null || ex === void 0 ? void 0 : ex.title) || exId;
     };
-    var allEntries = Object.entries(devNotes || {}).filter(function (_ref80) {
-      var _ref81 = _slicedToArray(_ref80, 2),
-        t = _ref81[1];
+    var allEntries = Object.entries(devNotes || {}).filter(function (_ref82) {
+      var _ref83 = _slicedToArray(_ref82, 2),
+        t = _ref83[1];
       return t && t.trim();
     });
     var pending = generalFirst(allEntries);
     var history = _toConsumableArray(devNotesHistory || []).sort(function (a, b) {
       return String(b.sentAt || '').localeCompare(String(a.sentAt || ''));
     });
-    var pendingText = pending.map(function (_ref82) {
-      var _ref83 = _slicedToArray(_ref82, 2),
-        exId = _ref83[0],
-        t = _ref83[1];
+    var pendingText = pending.map(function (_ref84) {
+      var _ref85 = _slicedToArray(_ref84, 2),
+        exId = _ref85[0],
+        t = _ref85[1];
       return "\u2022 ".concat(nameOf(exId), " [").concat(devMetaLabel(exId), "]:\n").concat(t);
     }).join('\n\n');
     var fmtAt = function fmtAt(iso) {
@@ -8496,10 +8832,10 @@ var ManageView = function ManageView(_ref32) {
     var archive = function archive(entries, via) {
       var at = new Date().toISOString();
       setDevNotesHistory(function (prev) {
-        return [].concat(_toConsumableArray(prev || []), _toConsumableArray(entries.map(function (_ref84, i) {
-          var _ref85 = _slicedToArray(_ref84, 2),
-            k = _ref85[0],
-            t = _ref85[1];
+        return [].concat(_toConsumableArray(prev || []), _toConsumableArray(entries.map(function (_ref86, i) {
+          var _ref87 = _slicedToArray(_ref86, 2),
+            k = _ref87[0],
+            t = _ref87[1];
           return {
             id: "h-".concat(Date.now(), "-").concat(i, "-").concat(k),
             key: k,
@@ -8514,18 +8850,18 @@ var ManageView = function ManageView(_ref32) {
       });
       setDevNotes(function (prev) {
         var n = _objectSpread({}, prev);
-        entries.forEach(function (_ref86) {
-          var _ref87 = _slicedToArray(_ref86, 1),
-            k = _ref87[0];
+        entries.forEach(function (_ref88) {
+          var _ref89 = _slicedToArray(_ref88, 1),
+            k = _ref89[0];
           return delete n[k];
         });
         return n;
       });
     };
     var markDone = function markDone(exId) {
-      return archive(pending.filter(function (_ref88) {
-        var _ref89 = _slicedToArray(_ref88, 1),
-          k = _ref89[0];
+      return archive(pending.filter(function (_ref90) {
+        var _ref91 = _slicedToArray(_ref90, 1),
+          k = _ref91[0];
         return k === exId;
       }), 'manual');
     };
@@ -8587,10 +8923,10 @@ var ManageView = function ManageView(_ref32) {
       className: "text-center text-slate-400 font-bold py-3 text-sm"
     }, "\u05D0\u05D9\u05DF \u05D4\u05E2\u05E8\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA") : /*#__PURE__*/React.createElement("div", {
       className: "space-y-2"
-    }, pending.map(function (_ref90) {
-      var _ref91 = _slicedToArray(_ref90, 2),
-        exId = _ref91[0],
-        t = _ref91[1];
+    }, pending.map(function (_ref92) {
+      var _ref93 = _slicedToArray(_ref92, 2),
+        exId = _ref93[0],
+        t = _ref93[1];
       return /*#__PURE__*/React.createElement("div", {
         key: exId,
         className: exId === GENERAL_NOTE_KEY ? "bg-sky-100 border border-sky-300 rounded-2xl p-3" : "bg-white border border-slate-300 rounded-2xl p-3"
@@ -8753,29 +9089,29 @@ var ManageView = function ManageView(_ref32) {
 };
 
 // ─── HamburgerMenu ─────────────────────────────────────────
-var HamburgerMenu = memo(function (_ref94) {
-  var onNavigate = _ref94.onNavigate,
-    currentView = _ref94.currentView,
-    _ref94$hasActiveRest = _ref94.hasActiveRest,
-    hasActiveRest = _ref94$hasActiveRest === void 0 ? false : _ref94$hasActiveRest,
-    _ref94$restTimers = _ref94.restTimers,
-    restTimers = _ref94$restTimers === void 0 ? {} : _ref94$restTimers,
-    _ref94$restTimerTotal = _ref94.restTimerTotals,
-    restTimerTotals = _ref94$restTimerTotal === void 0 ? {} : _ref94$restTimerTotal,
-    _ref94$groups = _ref94.groups,
-    groups = _ref94$groups === void 0 ? [] : _ref94$groups,
-    _ref94$images = _ref94.images,
-    images = _ref94$images === void 0 ? {} : _ref94$images,
-    _ref94$activeGroupId = _ref94.activeGroupId,
-    activeGroupId = _ref94$activeGroupId === void 0 ? null : _ref94$activeGroupId,
-    _ref94$onOpenGroup = _ref94.onOpenGroup,
-    onOpenGroup = _ref94$onOpenGroup === void 0 ? null : _ref94$onOpenGroup,
-    _ref94$doneExIds = _ref94.doneExIds,
-    doneExIds = _ref94$doneExIds === void 0 ? [] : _ref94$doneExIds;
-  var _useState101 = useState(false),
-    _useState102 = _slicedToArray(_useState101, 2),
-    open = _useState102[0],
-    setOpen = _useState102[1];
+var HamburgerMenu = memo(function (_ref96) {
+  var onNavigate = _ref96.onNavigate,
+    currentView = _ref96.currentView,
+    _ref96$hasActiveRest = _ref96.hasActiveRest,
+    hasActiveRest = _ref96$hasActiveRest === void 0 ? false : _ref96$hasActiveRest,
+    _ref96$restTimers = _ref96.restTimers,
+    restTimers = _ref96$restTimers === void 0 ? {} : _ref96$restTimers,
+    _ref96$restTimerTotal = _ref96.restTimerTotals,
+    restTimerTotals = _ref96$restTimerTotal === void 0 ? {} : _ref96$restTimerTotal,
+    _ref96$groups = _ref96.groups,
+    groups = _ref96$groups === void 0 ? [] : _ref96$groups,
+    _ref96$images = _ref96.images,
+    images = _ref96$images === void 0 ? {} : _ref96$images,
+    _ref96$activeGroupId = _ref96.activeGroupId,
+    activeGroupId = _ref96$activeGroupId === void 0 ? null : _ref96$activeGroupId,
+    _ref96$onOpenGroup = _ref96.onOpenGroup,
+    onOpenGroup = _ref96$onOpenGroup === void 0 ? null : _ref96$onOpenGroup,
+    _ref96$doneExIds = _ref96.doneExIds,
+    doneExIds = _ref96$doneExIds === void 0 ? [] : _ref96$doneExIds;
+  var _useState115 = useState(false),
+    _useState116 = _slicedToArray(_useState115, 2),
+    open = _useState116[0],
+    setOpen = _useState116[1];
   // טיימר מנוחה לכל תרגיל בנפרד — במקום פסי התפריט. כל חלון: תמונת התרגיל, מספרו מעליו, שניות והיקף כתום
   var timerInfo = function timerInfo(id) {
     var gi = groups.findIndex(function (g) {
@@ -8807,10 +9143,10 @@ var HamburgerMenu = memo(function (_ref94) {
   });
   // טיימר שהסתיים עכשיו מהבהב בירוק עם ✓ לרגע לפני שהוא נעלם — כדי שיהיה ברור איזה מהם נגמר
   var prevRtRef = React.useRef({});
-  var _useState103 = useState([]),
-    _useState104 = _slicedToArray(_useState103, 2),
-    finished = _useState104[0],
-    setFinished = _useState104[1];
+  var _useState117 = useState([]),
+    _useState118 = _slicedToArray(_useState117, 2),
+    finished = _useState118[0],
+    setFinished = _useState118[1];
   useEffect(function () {
     var prev = prevRtRef.current;
     var ended = Object.keys(prev).filter(function (id) {
@@ -8953,10 +9289,10 @@ var HamburgerMenu = memo(function (_ref94) {
       }
     }, t.num));
   };
-  var _useState105 = useState(false),
-    _useState106 = _slicedToArray(_useState105, 2),
-    manageExpanded = _useState106[0],
-    setManageExpanded = _useState106[1];
+  var _useState119 = useState(false),
+    _useState120 = _slicedToArray(_useState119, 2),
+    manageExpanded = _useState120[0],
+    setManageExpanded = _useState120[1];
   var manageSubs = [{
     key: 'backup',
     label: 'גיבוי ושחזור',
@@ -9173,17 +9509,17 @@ var HamburgerMenu = memo(function (_ref94) {
 });
 
 // ─── ExercisesListView ─────────────────────────────────────
-var ExercisesListView = function ExercisesListView(_ref95) {
-  var logs = _ref95.logs,
-    images = _ref95.images,
-    onBack = _ref95.onBack,
-    onNavigateToGroup = _ref95.onNavigateToGroup,
-    _ref95$devNotes = _ref95.devNotes,
-    devNotes = _ref95$devNotes === void 0 ? {} : _ref95$devNotes,
-    _ref95$devNotesDone = _ref95.devNotesDone,
-    devNotesDone = _ref95$devNotesDone === void 0 ? {} : _ref95$devNotesDone,
-    _ref95$onSaveDevNote = _ref95.onSaveDevNote,
-    onSaveDevNote = _ref95$onSaveDevNote === void 0 ? null : _ref95$onSaveDevNote;
+var ExercisesListView = function ExercisesListView(_ref97) {
+  var logs = _ref97.logs,
+    images = _ref97.images,
+    onBack = _ref97.onBack,
+    onNavigateToGroup = _ref97.onNavigateToGroup,
+    _ref97$devNotes = _ref97.devNotes,
+    devNotes = _ref97$devNotes === void 0 ? {} : _ref97$devNotes,
+    _ref97$devNotesDone = _ref97.devNotesDone,
+    devNotesDone = _ref97$devNotesDone === void 0 ? {} : _ref97$devNotesDone,
+    _ref97$onSaveDevNote = _ref97.onSaveDevNote,
+    onSaveDevNote = _ref97$onSaveDevNote === void 0 ? null : _ref97$onSaveDevNote;
   var categories = useMemo(function () {
     var cats = {};
     exerciseGroups.forEach(function (g) {
@@ -9215,10 +9551,10 @@ var ExercisesListView = function ExercisesListView(_ref95) {
     onSaveDevNote: onSaveDevNote
   }))), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 overflow-y-auto p-4 no-scrollbar pb-32"
-  }, Object.entries(categories).map(function (_ref96) {
-    var _ref97 = _slicedToArray(_ref96, 2),
-      cat = _ref97[0],
-      groups = _ref97[1];
+  }, Object.entries(categories).map(function (_ref98) {
+    var _ref99 = _slicedToArray(_ref98, 2),
+      cat = _ref99[0],
+      groups = _ref99[1];
     return /*#__PURE__*/React.createElement("div", {
       key: cat,
       className: "mb-5"
@@ -9267,31 +9603,31 @@ var ExercisesListView = function ExercisesListView(_ref95) {
 // ─── App ───────────────────────────────────────────────────
 function App() {
   var _editingDates$gymStar, _musicList$musicIndex2;
-  var _useState107 = useState('list'),
-    _useState108 = _slicedToArray(_useState107, 2),
-    view = _useState108[0],
-    setView = _useState108[1];
-  var _useState109 = useState('list'),
-    _useState110 = _slicedToArray(_useState109, 2),
-    prevView = _useState110[0],
-    setPrevView = _useState110[1];
-  var _useState111 = useState(null),
-    _useState112 = _slicedToArray(_useState111, 2),
-    activeGroup = _useState112[0],
-    setActiveGroup = _useState112[1];
+  var _useState121 = useState('list'),
+    _useState122 = _slicedToArray(_useState121, 2),
+    view = _useState122[0],
+    setView = _useState122[1];
+  var _useState123 = useState('list'),
+    _useState124 = _slicedToArray(_useState123, 2),
+    prevView = _useState124[0],
+    setPrevView = _useState124[1];
+  var _useState125 = useState(null),
+    _useState126 = _slicedToArray(_useState125, 2),
+    activeGroup = _useState126[0],
+    setActiveGroup = _useState126[1];
   // התרגיל שהיה פעיל לפני שדפדפת במניפת התרגילים — כדי שכפתור "חזור" יחזיר אליו
-  var _useState113 = useState(null),
-    _useState114 = _slicedToArray(_useState113, 2),
-    returnGroup = _useState114[0],
-    setReturnGroup = _useState114[1];
-  var _useState115 = useState(0),
-    _useState116 = _slicedToArray(_useState115, 2),
-    backupBannerTick = _useState116[0],
-    setBackupBannerTick = _useState116[1]; // רק לרענון הבאנר אחרי גיבוי
-  var _useState117 = useState(null),
-    _useState118 = _slicedToArray(_useState117, 2),
-    manageOpenSection = _useState118[0],
-    setManageOpenSection = _useState118[1];
+  var _useState127 = useState(null),
+    _useState128 = _slicedToArray(_useState127, 2),
+    returnGroup = _useState128[0],
+    setReturnGroup = _useState128[1];
+  var _useState129 = useState(0),
+    _useState130 = _slicedToArray(_useState129, 2),
+    backupBannerTick = _useState130[0],
+    setBackupBannerTick = _useState130[1]; // רק לרענון הבאנר אחרי גיבוי
+  var _useState131 = useState(null),
+    _useState132 = _slicedToArray(_useState131, 2),
+    manageOpenSection = _useState132[0],
+    setManageOpenSection = _useState132[1];
   var navigateTo = useCallback(function (newView) {
     // אין דף היסטוריה נפרד — "היסטוריה" פותחת את חלק ההיסטוריה שבתוך "ניהול"
     if (newView === 'history') {
@@ -9310,20 +9646,20 @@ function App() {
     }
     setView(prevView);
   }, [prevView, activeGroup]);
-  var _useState119 = useState(function () {
+  var _useState133 = useState(function () {
       return LS.get('gym-logs', []);
     }),
-    _useState120 = _slicedToArray(_useState119, 2),
-    logs = _useState120[0],
-    setLogs = _useState120[1];
-  var _useState121 = useState(function () {
+    _useState134 = _slicedToArray(_useState133, 2),
+    logs = _useState134[0],
+    setLogs = _useState134[1];
+  var _useState135 = useState(function () {
       return LS.get('gym-workout-active', false);
     }),
-    _useState122 = _slicedToArray(_useState121, 2),
-    isWorkoutActive = _useState122[0],
-    setIsWorkoutActive = _useState122[1];
+    _useState136 = _slicedToArray(_useState135, 2),
+    isWorkoutActive = _useState136[0],
+    setIsWorkoutActive = _useState136[1];
   var STALE_SESSION_SEC = 4 * 3600; // מעל 4 שעות מאז ההתחלה = כנראה נשכח פתוח, לא רציף
-  var _useState123 = useState(function () {
+  var _useState137 = useState(function () {
       var wasActive = LS.get('gym-workout-active', false);
       var start = LS.get('gym-workout-start', null);
       if (wasActive && start) {
@@ -9332,9 +9668,9 @@ function App() {
       }
       return LS.get('gym-last-workout-sec', 0);
     }),
-    _useState124 = _slicedToArray(_useState123, 2),
-    workoutSec = _useState124[0],
-    setWorkoutSec = _useState124[1];
+    _useState138 = _slicedToArray(_useState137, 2),
+    workoutSec = _useState138[0],
+    setWorkoutSec = _useState138[1];
   // אם האימון נשאר "פעיל" ב-localStorage אבל עברו שעות רבות — כנראה הדף נסגר/נשכח, לא ממשיכים לספור אוטומטית
   useEffect(function () {
     var wasActive = LS.get('gym-workout-active', false);
@@ -9344,27 +9680,27 @@ function App() {
       showToast('האימון הקודם נשאר פתוח יותר מדי זמן — הושהה. אפשר להמשיך או לאפס.', true);
     }
   }, []);
-  var _useState125 = useState({}),
-    _useState126 = _slicedToArray(_useState125, 2),
-    restTimers = _useState126[0],
-    setRestTimers = _useState126[1];
-  var _useState127 = useState({}),
-    _useState128 = _slicedToArray(_useState127, 2),
-    restTimerTotals = _useState128[0],
-    setRestTimerTotals = _useState128[1];
-  var _useState129 = useState(function () {
+  var _useState139 = useState({}),
+    _useState140 = _slicedToArray(_useState139, 2),
+    restTimers = _useState140[0],
+    setRestTimers = _useState140[1];
+  var _useState141 = useState({}),
+    _useState142 = _slicedToArray(_useState141, 2),
+    restTimerTotals = _useState142[0],
+    setRestTimerTotals = _useState142[1];
+  var _useState143 = useState(function () {
       return new Set(LS.get('gym-hidden-exercises', []));
     }),
-    _useState130 = _slicedToArray(_useState129, 2),
-    hiddenExercises = _useState130[0],
-    setHiddenExercises = _useState130[1];
+    _useState144 = _slicedToArray(_useState143, 2),
+    hiddenExercises = _useState144[0],
+    setHiddenExercises = _useState144[1];
   // תרגילים שנוספו לאימון של היום בלבד (מרשימת התרגילים, בלי לשנות את התוכנית הקבועה) — מתאפסים באימון חדש
-  var _useState131 = useState(function () {
+  var _useState145 = useState(function () {
       return new Set(LS.get('gym-onetime-ex', []));
     }),
-    _useState132 = _slicedToArray(_useState131, 2),
-    oneTimeEx = _useState132[0],
-    setOneTimeEx = _useState132[1];
+    _useState146 = _slicedToArray(_useState145, 2),
+    oneTimeEx = _useState146[0],
+    setOneTimeEx = _useState146[1];
   useEffect(function () {
     LS.set('gym-onetime-ex', _toConsumableArray(oneTimeEx));
   }, [oneTimeEx]);
@@ -9376,21 +9712,21 @@ function App() {
     });
   }, []);
   // אימונים מיוחדים: רשימה שמורה של אימונים קצרים [{id,name,exIds}] ואימון פעיל (או null = האימון הרגיל). לא נוגע בתוכנית הקבועה
-  var _useState133 = useState(function () {
+  var _useState147 = useState(function () {
       return LS.get('gym-casual-workouts', []);
     }),
-    _useState134 = _slicedToArray(_useState133, 2),
-    casualWorkouts = _useState134[0],
-    setCasualWorkouts = _useState134[1];
+    _useState148 = _slicedToArray(_useState147, 2),
+    casualWorkouts = _useState148[0],
+    setCasualWorkouts = _useState148[1];
   useEffect(function () {
     LS.set('gym-casual-workouts', casualWorkouts);
   }, [casualWorkouts]);
-  var _useState135 = useState(function () {
+  var _useState149 = useState(function () {
       return LS.get('gym-casual-active', null);
     }),
-    _useState136 = _slicedToArray(_useState135, 2),
-    activeCasual = _useState136[0],
-    setActiveCasual = _useState136[1];
+    _useState150 = _slicedToArray(_useState149, 2),
+    activeCasual = _useState150[0],
+    setActiveCasual = _useState150[1];
   useEffect(function () {
     LS.set('gym-casual-active', activeCasual);
   }, [activeCasual]);
@@ -9399,17 +9735,17 @@ function App() {
       return w.id === activeCasual;
     }) || null;
   }, [casualWorkouts, activeCasual]);
-  var _useState137 = useState(function () {
+  var _useState151 = useState(function () {
       var saved = LS.get('gym-group-order', null);
       if (saved && saved.length === exerciseGroups.length) return saved;
       return exerciseGroups.map(function (g) {
         return g.id;
       });
     }),
-    _useState138 = _slicedToArray(_useState137, 2),
-    groupOrder = _useState138[0],
-    setGroupOrder = _useState138[1];
-  var _useState139 = useState(function () {
+    _useState152 = _slicedToArray(_useState151, 2),
+    groupOrder = _useState152[0],
+    setGroupOrder = _useState152[1];
+  var _useState153 = useState(function () {
       if (!LS.get('gym-migrated-start-v1', false)) {
         var t = new Date('2026-04-27').getTime();
         LS.set('gym-session-start', t);
@@ -9418,132 +9754,132 @@ function App() {
       }
       return LS.get('gym-session-start', new Date('2026-04-27').getTime());
     }),
-    _useState140 = _slicedToArray(_useState139, 2),
-    sessionStartTime = _useState140[0],
-    setSessionStartTime = _useState140[1];
-  var _useState141 = useState(function () {
+    _useState154 = _slicedToArray(_useState153, 2),
+    sessionStartTime = _useState154[0],
+    setSessionStartTime = _useState154[1];
+  var _useState155 = useState(function () {
       return LS.get('gym-workout-start', Date.now());
     }),
-    _useState142 = _slicedToArray(_useState141, 2),
-    workoutStartTime = _useState142[0],
-    setWorkoutStartTime = _useState142[1];
-  var _useState143 = useState(function () {
+    _useState156 = _slicedToArray(_useState155, 2),
+    workoutStartTime = _useState156[0],
+    setWorkoutStartTime = _useState156[1];
+  var _useState157 = useState(function () {
       return LS.get('gym-session-end', null);
     }),
-    _useState144 = _slicedToArray(_useState143, 2),
-    sessionEndTime = _useState144[0],
-    setSessionEndTime = _useState144[1];
-  var _useState145 = useState(null),
-    _useState146 = _slicedToArray(_useState145, 2),
-    editingDates = _useState146[0],
-    setEditingDates = _useState146[1];
+    _useState158 = _slicedToArray(_useState157, 2),
+    sessionEndTime = _useState158[0],
+    setSessionEndTime = _useState158[1];
+  var _useState159 = useState(null),
+    _useState160 = _slicedToArray(_useState159, 2),
+    editingDates = _useState160[0],
+    setEditingDates = _useState160[1];
   // תחילת אימונים במכון — שדה נפרד מתחילת התוכנית. ללא ערך שמור מוצג תאריך תחילת התוכנית (כמו עד היום)
-  var _useState147 = useState(function () {
+  var _useState161 = useState(function () {
       return LS.get('gym-gym-start', null);
     }),
-    _useState148 = _slicedToArray(_useState147, 2),
-    gymStartTime = _useState148[0],
-    setGymStartTime = _useState148[1];
-  var _useState149 = useState(null),
-    _useState150 = _slicedToArray(_useState149, 2),
-    scrollToExId = _useState150[0],
-    setScrollToExId = _useState150[1];
-  var _useState151 = useState(null),
-    _useState152 = _slicedToArray(_useState151, 2),
-    confirmAction = _useState152[0],
-    setConfirmAction = _useState152[1];
-  var _useState153 = useState(false),
-    _useState154 = _slicedToArray(_useState153, 2),
-    showNewWorkoutModal = _useState154[0],
-    setShowNewWorkoutModal = _useState154[1];
-  var _useState155 = useState(false),
-    _useState156 = _slicedToArray(_useState155, 2),
-    showAddExercise = _useState156[0],
-    setShowAddExercise = _useState156[1];
-  var _useState157 = useState(''),
-    _useState158 = _slicedToArray(_useState157, 2),
-    newExTitle = _useState158[0],
-    setNewExTitle = _useState158[1];
-  var _useState159 = useState(''),
-    _useState160 = _slicedToArray(_useState159, 2),
-    newExCategory = _useState160[0],
-    setNewExCategory = _useState160[1];
-  var _useState161 = useState(''),
     _useState162 = _slicedToArray(_useState161, 2),
-    newExCategoryOther = _useState162[0],
-    setNewExCategoryOther = _useState162[1];
-  // הכנת תרגיל חדש לפני שמירה: תמונה, וידאו (קובץ או קישור), משקל/חזרות התחלתיים ומרווח משקל
+    gymStartTime = _useState162[0],
+    setGymStartTime = _useState162[1];
   var _useState163 = useState(null),
     _useState164 = _slicedToArray(_useState163, 2),
-    newExImage = _useState164[0],
-    setNewExImage = _useState164[1];
+    scrollToExId = _useState164[0],
+    setScrollToExId = _useState164[1];
   var _useState165 = useState(null),
     _useState166 = _slicedToArray(_useState165, 2),
-    newExVideoFile = _useState166[0],
-    setNewExVideoFile = _useState166[1];
-  var _useState167 = useState(''),
+    confirmAction = _useState166[0],
+    setConfirmAction = _useState166[1];
+  var _useState167 = useState(false),
     _useState168 = _slicedToArray(_useState167, 2),
-    newExVideoUrl = _useState168[0],
-    setNewExVideoUrl = _useState168[1];
-  var _useState169 = useState(''),
+    showNewWorkoutModal = _useState168[0],
+    setShowNewWorkoutModal = _useState168[1];
+  var _useState169 = useState(false),
     _useState170 = _slicedToArray(_useState169, 2),
-    newExStartW = _useState170[0],
-    setNewExStartW = _useState170[1];
+    showAddExercise = _useState170[0],
+    setShowAddExercise = _useState170[1];
   var _useState171 = useState(''),
     _useState172 = _slicedToArray(_useState171, 2),
-    newExStartR = _useState172[0],
-    setNewExStartR = _useState172[1];
+    newExTitle = _useState172[0],
+    setNewExTitle = _useState172[1];
   var _useState173 = useState(''),
     _useState174 = _slicedToArray(_useState173, 2),
-    newExStep = _useState174[0],
-    setNewExStep = _useState174[1];
+    newExCategory = _useState174[0],
+    setNewExCategory = _useState174[1];
+  var _useState175 = useState(''),
+    _useState176 = _slicedToArray(_useState175, 2),
+    newExCategoryOther = _useState176[0],
+    setNewExCategoryOther = _useState176[1];
+  // הכנת תרגיל חדש לפני שמירה: תמונה, וידאו (קובץ או קישור), משקל/חזרות התחלתיים ומרווח משקל
+  var _useState177 = useState(null),
+    _useState178 = _slicedToArray(_useState177, 2),
+    newExImage = _useState178[0],
+    setNewExImage = _useState178[1];
+  var _useState179 = useState(null),
+    _useState180 = _slicedToArray(_useState179, 2),
+    newExVideoFile = _useState180[0],
+    setNewExVideoFile = _useState180[1];
+  var _useState181 = useState(''),
+    _useState182 = _slicedToArray(_useState181, 2),
+    newExVideoUrl = _useState182[0],
+    setNewExVideoUrl = _useState182[1];
+  var _useState183 = useState(''),
+    _useState184 = _slicedToArray(_useState183, 2),
+    newExStartW = _useState184[0],
+    setNewExStartW = _useState184[1];
+  var _useState185 = useState(''),
+    _useState186 = _slicedToArray(_useState185, 2),
+    newExStartR = _useState186[0],
+    setNewExStartR = _useState186[1];
+  var _useState187 = useState(''),
+    _useState188 = _slicedToArray(_useState187, 2),
+    newExStep = _useState188[0],
+    setNewExStep = _useState188[1];
   // תרגילים שדולגו מהמסך הראשי — נשמרים לפי האימון הפעיל (workoutStartTime) כדי לשרוד רענון
-  var _useState175 = useState(function () {
+  var _useState189 = useState(function () {
       var s = LS.get('gym-skipped-groups', null);
       return s && s.start === workoutStartTime && Array.isArray(s.ids) ? s.ids : [];
     }),
-    _useState176 = _slicedToArray(_useState175, 2),
-    skippedGroups = _useState176[0],
-    setSkippedGroups = _useState176[1];
+    _useState190 = _slicedToArray(_useState189, 2),
+    skippedGroups = _useState190[0],
+    setSkippedGroups = _useState190[1];
   useEffect(function () {
     LS.set('gym-skipped-groups', {
       start: workoutStartTime,
       ids: skippedGroups
     });
   }, [workoutStartTime, skippedGroups]);
-  var _useState177 = useState(false),
-    _useState178 = _slicedToArray(_useState177, 2),
-    showSummary = _useState178[0],
-    setShowSummary = _useState178[1];
-  var _useState179 = useState(function () {
+  var _useState191 = useState(false),
+    _useState192 = _slicedToArray(_useState191, 2),
+    showSummary = _useState192[0],
+    setShowSummary = _useState192[1];
+  var _useState193 = useState(function () {
       return LS.get('gym-last-summary', null);
     }),
-    _useState180 = _slicedToArray(_useState179, 2),
-    summaryData = _useState180[0],
-    setSummaryData = _useState180[1];
+    _useState194 = _slicedToArray(_useState193, 2),
+    summaryData = _useState194[0],
+    setSummaryData = _useState194[1];
   useEffect(function () {
     LS.set('gym-last-summary', summaryData);
   }, [summaryData]);
-  var _useState181 = useState(false),
-    _useState182 = _slicedToArray(_useState181, 2),
-    isWorkoutComplete = _useState182[0],
-    setIsWorkoutComplete = _useState182[1];
-  var _useState183 = useState(null),
-    _useState184 = _slicedToArray(_useState183, 2),
-    toast = _useState184[0],
-    setToast = _useState184[1];
-  var _useState185 = useState(false),
-    _useState186 = _slicedToArray(_useState185, 2),
-    workoutDecisionMade = _useState186[0],
-    setWorkoutDecisionMade = _useState186[1];
-  var _useState187 = useState(null),
-    _useState188 = _slicedToArray(_useState187, 2),
-    autoTransitionSplash = _useState188[0],
-    setAutoTransitionSplash = _useState188[1];
-  var _useState189 = useState(null),
-    _useState190 = _slicedToArray(_useState189, 2),
-    splashAnchor = _useState190[0],
-    setSplashAnchor = _useState190[1]; // {top,height} של אזור הסטים בפועל (לא כולל תמונה/וידאו/היסטוריה)
+  var _useState195 = useState(false),
+    _useState196 = _slicedToArray(_useState195, 2),
+    isWorkoutComplete = _useState196[0],
+    setIsWorkoutComplete = _useState196[1];
+  var _useState197 = useState(null),
+    _useState198 = _slicedToArray(_useState197, 2),
+    toast = _useState198[0],
+    setToast = _useState198[1];
+  var _useState199 = useState(false),
+    _useState200 = _slicedToArray(_useState199, 2),
+    workoutDecisionMade = _useState200[0],
+    setWorkoutDecisionMade = _useState200[1];
+  var _useState201 = useState(null),
+    _useState202 = _slicedToArray(_useState201, 2),
+    autoTransitionSplash = _useState202[0],
+    setAutoTransitionSplash = _useState202[1];
+  var _useState203 = useState(null),
+    _useState204 = _slicedToArray(_useState203, 2),
+    splashAnchor = _useState204[0],
+    setSplashAnchor = _useState204[1]; // {top,height} של אזור הסטים בפועל (לא כולל תמונה/וידאו/היסטוריה)
   // ממקם את הפופ-אפ המשקל בדיוק על אזור הסטים של התרגיל הבא — כך שהוא מסתיר רק את הסטים ולא שום דבר אחר
   useEffect(function () {
     if (!(autoTransitionSplash !== null && autoTransitionSplash !== void 0 && autoTransitionSplash.exId)) {
@@ -9561,76 +9897,76 @@ function App() {
       height: r.height
     });
   }, [autoTransitionSplash]);
-  var _useState191 = useState(''),
-    _useState192 = _slicedToArray(_useState191, 2),
-    summaryNote = _useState192[0],
-    setSummaryNote = _useState192[1];
-  var _useState193 = useState(''),
-    _useState194 = _slicedToArray(_useState193, 2),
-    summaryBW = _useState194[0],
-    setSummaryBW = _useState194[1];
-  var _useState195 = useState(false),
-    _useState196 = _slicedToArray(_useState195, 2),
-    summarySaved = _useState196[0],
-    setSummarySaved = _useState196[1];
-  var _useState197 = useState(false),
-    _useState198 = _slicedToArray(_useState197, 2),
-    summaryBackedUp = _useState198[0],
-    setSummaryBackedUp = _useState198[1];
-  var _useState199 = useState(false),
-    _useState200 = _slicedToArray(_useState199, 2),
-    showBwStats = _useState200[0],
-    setShowBwStats = _useState200[1];
-  var _useState201 = useState(false),
-    _useState202 = _slicedToArray(_useState201, 2),
-    editingDur = _useState202[0],
-    setEditingDur = _useState202[1];
-  var _useState203 = useState(function () {
+  var _useState205 = useState(''),
+    _useState206 = _slicedToArray(_useState205, 2),
+    summaryNote = _useState206[0],
+    setSummaryNote = _useState206[1];
+  var _useState207 = useState(''),
+    _useState208 = _slicedToArray(_useState207, 2),
+    summaryBW = _useState208[0],
+    setSummaryBW = _useState208[1];
+  var _useState209 = useState(false),
+    _useState210 = _slicedToArray(_useState209, 2),
+    summarySaved = _useState210[0],
+    setSummarySaved = _useState210[1];
+  var _useState211 = useState(false),
+    _useState212 = _slicedToArray(_useState211, 2),
+    summaryBackedUp = _useState212[0],
+    setSummaryBackedUp = _useState212[1];
+  var _useState213 = useState(false),
+    _useState214 = _slicedToArray(_useState213, 2),
+    showBwStats = _useState214[0],
+    setShowBwStats = _useState214[1];
+  var _useState215 = useState(false),
+    _useState216 = _slicedToArray(_useState215, 2),
+    editingDur = _useState216[0],
+    setEditingDur = _useState216[1];
+  var _useState217 = useState(function () {
       return LS.get('gym-bodyweight-log', []);
     }),
-    _useState204 = _slicedToArray(_useState203, 2),
-    bodyweightLog = _useState204[0],
-    setBodyweightLog = _useState204[1];
+    _useState218 = _slicedToArray(_useState217, 2),
+    bodyweightLog = _useState218[0],
+    setBodyweightLog = _useState218[1];
   useEffect(function () {
     LS.set('gym-bodyweight-log', bodyweightLog);
   }, [bodyweightLog]);
-  var _useState205 = useState(function () {
+  var _useState219 = useState(function () {
       return LS.get('gym-workout-notes', {});
     }),
-    _useState206 = _slicedToArray(_useState205, 2),
-    workoutNotes = _useState206[0],
-    setWorkoutNotes = _useState206[1];
+    _useState220 = _slicedToArray(_useState219, 2),
+    workoutNotes = _useState220[0],
+    setWorkoutNotes = _useState220[1];
   useEffect(function () {
     LS.set('gym-workout-notes', workoutNotes);
   }, [workoutNotes]);
-  var _useState207 = useState(0),
-    _useState208 = _slicedToArray(_useState207, 2),
-    audioCurrentTime = _useState208[0],
-    setAudioCurrentTime = _useState208[1];
-  var _useState209 = useState(0),
-    _useState210 = _slicedToArray(_useState209, 2),
-    audioDuration = _useState210[0],
-    setAudioDuration = _useState210[1];
-  var _useState211 = useState(function () {
+  var _useState221 = useState(0),
+    _useState222 = _slicedToArray(_useState221, 2),
+    audioCurrentTime = _useState222[0],
+    setAudioCurrentTime = _useState222[1];
+  var _useState223 = useState(0),
+    _useState224 = _slicedToArray(_useState223, 2),
+    audioDuration = _useState224[0],
+    setAudioDuration = _useState224[1];
+  var _useState225 = useState(function () {
       return LS.get('gym-notes', {});
     }),
-    _useState212 = _slicedToArray(_useState211, 2),
-    notes = _useState212[0],
-    setNotes = _useState212[1];
-  var _useState213 = useState(function () {
+    _useState226 = _slicedToArray(_useState225, 2),
+    notes = _useState226[0],
+    setNotes = _useState226[1];
+  var _useState227 = useState(function () {
       return LS.get('gym-dev-notes', {});
     }),
-    _useState214 = _slicedToArray(_useState213, 2),
-    devNotes = _useState214[0],
-    setDevNotes = _useState214[1];
-  var _useState215 = useState(function () {
+    _useState228 = _slicedToArray(_useState227, 2),
+    devNotes = _useState228[0],
+    setDevNotes = _useState228[1];
+  var _useState229 = useState(function () {
       return LS.get('gym-dev-notes-done', {});
     }),
-    _useState216 = _slicedToArray(_useState215, 2),
-    devNotesDone = _useState216[0],
-    setDevNotesDone = _useState216[1];
+    _useState230 = _slicedToArray(_useState229, 2),
+    devNotesDone = _useState230[0],
+    setDevNotesDone = _useState230[1];
   // v10.38: איפוס חד-פעמי של כל היסטוריית התיקונים (לפי בקשת איתן 12.11.26) — מכאן והלאה הערות שהוטמעו נכנסות להיסטוריה אוטומטית
-  var _useState217 = useState(function () {
+  var _useState231 = useState(function () {
       if (!LS.get('gym-hist-wiped-1038', false)) {
         LS.set('gym-hist-wiped-1038', true);
         LS.set('gym-dev-notes-history', []);
@@ -9638,25 +9974,25 @@ function App() {
       }
       return LS.get('gym-dev-notes-history', []);
     }),
-    _useState218 = _slicedToArray(_useState217, 2),
-    devNotesHistory = _useState218[0],
-    setDevNotesHistory = _useState218[1];
+    _useState232 = _slicedToArray(_useState231, 2),
+    devNotesHistory = _useState232[0],
+    setDevNotesHistory = _useState232[1];
   // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
-  var _useState219 = useState(null),
-    _useState220 = _slicedToArray(_useState219, 2),
-    filingDirName = _useState220[0],
-    setFilingDirName = _useState220[1];
-  var _useState221 = useState(false),
-    _useState222 = _slicedToArray(_useState221, 2),
-    filingLoaded = _useState222[0],
-    setFilingLoaded = _useState222[1];
+  var _useState233 = useState(null),
+    _useState234 = _slicedToArray(_useState233, 2),
+    filingDirName = _useState234[0],
+    setFilingDirName = _useState234[1];
+  var _useState235 = useState(false),
+    _useState236 = _slicedToArray(_useState235, 2),
+    filingLoaded = _useState236[0],
+    setFilingLoaded = _useState236[1];
   // האם הרשאת הכתיבה בפועל מאושרת כרגע (בשונה מ-filingDirName, שמציין רק שהתיקייה "מחוברת"/זכורה) —
   // בדפדפנים מסוימים ההרשאה מתאפסת בכל טעינה מחדש (למשל אחרי שדרוג גרסה), גם כשהתיקייה עצמה
   // עדיין זכורה ב-IndexedDB. הבחנה זו מאפשרת להציג תזכורת "יש לאשר מחדש" בלי "לנתק" בטעות.
-  var _useState223 = useState(true),
-    _useState224 = _slicedToArray(_useState223, 2),
-    filingPermGranted = _useState224[0],
-    setFilingPermGranted = _useState224[1];
+  var _useState237 = useState(true),
+    _useState238 = _slicedToArray(_useState237, 2),
+    filingPermGranted = _useState238[0],
+    setFilingPermGranted = _useState238[1];
   var filingDirRef = React.useRef(null);
   var filingSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   useEffect(function () {
@@ -9980,16 +10316,16 @@ function App() {
   };
   var syncDevNotesFile = useCallback(function (notesObj, doneObj) {
     if (!filingDirRef.current) return;
-    var pending = generalFirst(Object.entries(notesObj || {}).filter(function (_ref99) {
-      var _ref100 = _slicedToArray(_ref99, 2),
-        k = _ref100[0],
-        t = _ref100[1];
+    var pending = generalFirst(Object.entries(notesObj || {}).filter(function (_ref101) {
+      var _ref102 = _slicedToArray(_ref101, 2),
+        k = _ref102[0],
+        t = _ref102[1];
       return t && t.trim() && !(doneObj !== null && doneObj !== void 0 && doneObj[k]);
     }));
-    var txt = pending.length ? pending.map(function (_ref101) {
-      var _ref102 = _slicedToArray(_ref101, 2),
-        exId = _ref102[0],
-        t = _ref102[1];
+    var txt = pending.length ? pending.map(function (_ref103) {
+      var _ref104 = _slicedToArray(_ref103, 2),
+        exId = _ref104[0],
+        t = _ref104[1];
       return "\u2022 ".concat(nameOfNoteKey(exId), ":\n").concat(markImplemented(t));
     }).join('\n\n') : '(אין הערות חדשות)';
     syncTextFileToFilingOnly('gym-dev-notes-current.txt', txt);
@@ -10007,10 +10343,10 @@ function App() {
             // הדוח האוטומטי כולל רק הערות שטרם יוצאו (לפי טקסט) — הערות שכבר יוצאו לא חוזרות, גם אם לא נמחקו מהרשימה.
             // ההיסטוריה המלאה נשארת זמינה בניהול ← הערות לשיפור.
             exportedMap = LS.get('gym-dev-notes-exported', {});
-            pending = generalFirst(Object.entries(devNotes || {}).filter(function (_ref103) {
-              var _ref104 = _slicedToArray(_ref103, 2),
-                k = _ref104[0],
-                t = _ref104[1];
+            pending = generalFirst(Object.entries(devNotes || {}).filter(function (_ref105) {
+              var _ref106 = _slicedToArray(_ref105, 2),
+                k = _ref106[0],
+                t = _ref106[1];
               return t && t.trim() && exportedMap[k] !== t;
             }));
             if (pending.length) {
@@ -10024,10 +10360,10 @@ function App() {
             txt = "\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 ".concat(new Date().toLocaleDateString('he-IL'), "\n");
             txt += "".concat('═'.repeat(40), "\n\n");
             txt += "\u05D7\u05D3\u05E9\u05D5\u05EA (\u05D8\u05E8\u05DD \u05D9\u05D5\u05E6\u05D0\u05D5):\n\n";
-            pending.forEach(function (_ref105) {
-              var _ref106 = _slicedToArray(_ref105, 2),
-                exId = _ref106[0],
-                t = _ref106[1];
+            pending.forEach(function (_ref107) {
+              var _ref108 = _slicedToArray(_ref107, 2),
+                exId = _ref108[0],
+                t = _ref108[1];
               txt += "\u2022 ".concat(nameOfNoteKey(exId), ":\n").concat(markImplemented(t), "\n\n");
             });
             fname = "gym-dev-notes-report-".concat(new Date().toISOString().slice(0, 10), ".txt");
@@ -10036,10 +10372,10 @@ function App() {
           case 2:
             savedToFiling = _context27.v;
             nextMap = _objectSpread({}, exportedMap);
-            pending.forEach(function (_ref107) {
-              var _ref108 = _slicedToArray(_ref107, 2),
-                k = _ref108[0],
-                t = _ref108[1];
+            pending.forEach(function (_ref109) {
+              var _ref110 = _slicedToArray(_ref109, 2),
+                k = _ref110[0],
+                t = _ref110[1];
               nextMap[k] = t;
             });
             LS.set('gym-dev-notes-exported', nextMap);
@@ -10056,19 +10392,19 @@ function App() {
     }
     return exportDevNotesReportIfPending;
   }();
-  var _useState225 = useState(function () {
+  var _useState239 = useState(function () {
       return LS.get('gym-images', {});
     }),
-    _useState226 = _slicedToArray(_useState225, 2),
-    images = _useState226[0],
-    setImages = _useState226[1];
+    _useState240 = _slicedToArray(_useState239, 2),
+    images = _useState240[0],
+    setImages = _useState240[1];
   // זום תמונת תרגיל (per-תרגיל) — נשמר כדי שתמונות שחתוכות/מוגדלות מדי אפשר יהיה לזום אאוט/אין ולראות אותן טוב
-  var _useState227 = useState(function () {
+  var _useState241 = useState(function () {
       return LS.get('gym-image-zoom', {});
     }),
-    _useState228 = _slicedToArray(_useState227, 2),
-    imageZoom = _useState228[0],
-    setImageZoom = _useState228[1];
+    _useState242 = _slicedToArray(_useState241, 2),
+    imageZoom = _useState242[0],
+    setImageZoom = _useState242[1];
   useEffect(function () {
     LS.set('gym-image-zoom', imageZoom);
   }, [imageZoom]);
@@ -10080,36 +10416,36 @@ function App() {
       return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, exId, next));
     });
   }, []);
-  var _useState229 = useState(function () {
+  var _useState243 = useState(function () {
       return LS.get('gym-videos', {});
     }),
-    _useState230 = _slicedToArray(_useState229, 2),
-    videos = _useState230[0],
-    setVideos = _useState230[1];
+    _useState244 = _slicedToArray(_useState243, 2),
+    videos = _useState244[0],
+    setVideos = _useState244[1];
   // וידאו מקומי שהמשתמש מעלה בעצמו לכל תרגיל (בנוסף לאפשרות קישור היוטיוב) — מאוחסן ב-IndexedDB, כמו המוזיקה
-  var _useState231 = useState({}),
-    _useState232 = _slicedToArray(_useState231, 2),
-    uploadedVideos = _useState232[0],
-    setUploadedVideos = _useState232[1]; // {exId: objectURL}
-  var _useState233 = useState(function () {
+  var _useState245 = useState({}),
+    _useState246 = _slicedToArray(_useState245, 2),
+    uploadedVideos = _useState246[0],
+    setUploadedVideos = _useState246[1]; // {exId: objectURL}
+  var _useState247 = useState(function () {
       return LS.get('gym-custom-names', {});
     }),
-    _useState234 = _slicedToArray(_useState233, 2),
-    customNames = _useState234[0],
-    setCustomNames = _useState234[1];
-  var _useState235 = useState(function () {
+    _useState248 = _slicedToArray(_useState247, 2),
+    customNames = _useState248[0],
+    setCustomNames = _useState248[1];
+  var _useState249 = useState(function () {
       return LS.get('gym-custom-howto', {});
     }),
-    _useState236 = _slicedToArray(_useState235, 2),
-    customHowTo = _useState236[0],
-    setCustomHowTo = _useState236[1];
-  var _useState237 = useState(function () {
+    _useState250 = _slicedToArray(_useState249, 2),
+    customHowTo = _useState250[0],
+    setCustomHowTo = _useState250[1];
+  var _useState251 = useState(function () {
       return LS.get('gym-custom-tips', {});
     }),
-    _useState238 = _slicedToArray(_useState237, 2),
-    customTips = _useState238[0],
-    setCustomTips = _useState238[1];
-  var _useState239 = useState(function () {
+    _useState252 = _slicedToArray(_useState251, 2),
+    customTips = _useState252[0],
+    setCustomTips = _useState252[1];
+  var _useState253 = useState(function () {
       return LS.get('gym-settings', {
         normalRest: 90,
         exerciseRest: 70,
@@ -10118,42 +10454,42 @@ function App() {
         weightSteps: {}
       });
     }),
-    _useState240 = _slicedToArray(_useState239, 2),
-    settings = _useState240[0],
-    setSettings = _useState240[1];
-  var _useState241 = useState(function () {
+    _useState254 = _slicedToArray(_useState253, 2),
+    settings = _useState254[0],
+    setSettings = _useState254[1];
+  var _useState255 = useState(function () {
       return LS.get('gym-session-durations', {});
     }),
-    _useState242 = _slicedToArray(_useState241, 2),
-    sessionDurations = _useState242[0],
-    setSessionDurations = _useState242[1];
-  var _useState243 = useState(function () {
+    _useState256 = _slicedToArray(_useState255, 2),
+    sessionDurations = _useState256[0],
+    setSessionDurations = _useState256[1];
+  var _useState257 = useState(function () {
       return LS.get('gym-instructors', []);
     }),
-    _useState244 = _slicedToArray(_useState243, 2),
-    instructors = _useState244[0],
-    setInstructors = _useState244[1];
+    _useState258 = _slicedToArray(_useState257, 2),
+    instructors = _useState258[0],
+    setInstructors = _useState258[1];
   useEffect(function () {
     LS.set('gym-instructors', instructors);
   }, [instructors]);
 
   // מוזיקה — playlist מרובה
-  var _useState245 = useState([]),
-    _useState246 = _slicedToArray(_useState245, 2),
-    musicList = _useState246[0],
-    setMusicList = _useState246[1]; // [{id,name,url}] runtime
-  var _useState247 = useState(0),
-    _useState248 = _slicedToArray(_useState247, 2),
-    musicIndex = _useState248[0],
-    setMusicIndex = _useState248[1];
-  var _useState249 = useState(false),
-    _useState250 = _slicedToArray(_useState249, 2),
-    musicPanelOpen = _useState250[0],
-    setMusicPanelOpen = _useState250[1];
-  var _useState251 = useState(false),
-    _useState252 = _slicedToArray(_useState251, 2),
-    musicPlaying = _useState252[0],
-    setMusicPlaying = _useState252[1];
+  var _useState259 = useState([]),
+    _useState260 = _slicedToArray(_useState259, 2),
+    musicList = _useState260[0],
+    setMusicList = _useState260[1]; // [{id,name,url}] runtime
+  var _useState261 = useState(0),
+    _useState262 = _slicedToArray(_useState261, 2),
+    musicIndex = _useState262[0],
+    setMusicIndex = _useState262[1];
+  var _useState263 = useState(false),
+    _useState264 = _slicedToArray(_useState263, 2),
+    musicPanelOpen = _useState264[0],
+    setMusicPanelOpen = _useState264[1];
+  var _useState265 = useState(false),
+    _useState266 = _slicedToArray(_useState265, 2),
+    musicPlaying = _useState266[0],
+    setMusicPlaying = _useState266[1];
   var musicPanelTimerRef = React.useRef(null);
   var resetMusicPanelTimer = useCallback(function () {
     clearTimeout(musicPanelTimerRef.current);
@@ -10181,10 +10517,10 @@ function App() {
   useEffect(function () {
     var meta = LS.get('gym-music-list', []);
     if (!meta.length) return;
-    Promise.all(meta.map(function (_ref109) {
-      var id = _ref109.id,
-        name = _ref109.name,
-        type = _ref109.type;
+    Promise.all(meta.map(function (_ref111) {
+      var id = _ref111.id,
+        name = _ref111.name,
+        type = _ref111.type;
       return IDB.get("music-".concat(id)).then(function (blob) {
         if (!blob) return null;
         var mimeType = type || blob.type || 'audio/mpeg';
@@ -10200,10 +10536,10 @@ function App() {
     })).then(function (results) {
       var valid = results.filter(Boolean);
       setMusicList(valid);
-      if (valid.length !== meta.length) LS.set('gym-music-list', valid.map(function (_ref110) {
-        var id = _ref110.id,
-          name = _ref110.name,
-          type = _ref110.type;
+      if (valid.length !== meta.length) LS.set('gym-music-list', valid.map(function (_ref112) {
+        var id = _ref112.id,
+          name = _ref112.name,
+          type = _ref112.type;
         return {
           id: id,
           name: name,
@@ -10228,9 +10564,9 @@ function App() {
     })).then(function (results) {
       var valid = results.filter(Boolean);
       setUploadedVideos(Object.fromEntries(valid));
-      var validIds = valid.map(function (_ref111) {
-        var _ref112 = _slicedToArray(_ref111, 1),
-          id = _ref112[0];
+      var validIds = valid.map(function (_ref113) {
+        var _ref114 = _slicedToArray(_ref113, 1),
+          id = _ref114[0];
         return id;
       });
       if (validIds.length !== ids.length) LS.set('gym-uploaded-video-ids', validIds);
@@ -10265,11 +10601,11 @@ function App() {
     var startIdx = musicListRef.current.length;
     setMusicIndex(startIdx);
     setMusicList(function (prev) {
-      var next = [].concat(_toConsumableArray(prev), _toConsumableArray(newItems.map(function (_ref113) {
-        var id = _ref113.id,
-          name = _ref113.name,
-          type = _ref113.type,
-          url = _ref113.url;
+      var next = [].concat(_toConsumableArray(prev), _toConsumableArray(newItems.map(function (_ref115) {
+        var id = _ref115.id,
+          name = _ref115.name,
+          type = _ref115.type,
+          url = _ref115.url;
         return {
           id: id,
           name: name,
@@ -10277,10 +10613,10 @@ function App() {
           url: url
         };
       })));
-      LS.set('gym-music-list', next.map(function (_ref114) {
-        var id = _ref114.id,
-          name = _ref114.name,
-          type = _ref114.type;
+      LS.set('gym-music-list', next.map(function (_ref116) {
+        var id = _ref116.id,
+          name = _ref116.name,
+          type = _ref116.type;
         return {
           id: id,
           name: name,
@@ -10290,17 +10626,17 @@ function App() {
       return next;
     });
     // שמירה ל-IDB ברקע (לא חוסם gesture)
-    newItems.forEach(function (_ref115) {
-      var id = _ref115.id,
-        _file = _ref115._file;
+    newItems.forEach(function (_ref117) {
+      var id = _ref117.id,
+        _file = _ref117._file;
       return IDB.set("music-".concat(id), _file);
     });
     showToast("".concat(newItems.length, " \u05E7\u05D1\u05E6\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D5"));
     // בדיקת תמיכה: ניסיון פענוח לאחר שמירה — רק אזהרה, לא מבטל
-    newItems.forEach(function (_ref116) {
-      var name = _ref116.name,
-        url = _ref116.url,
-        type = _ref116.type;
+    newItems.forEach(function (_ref118) {
+      var name = _ref118.name,
+        url = _ref118.url,
+        type = _ref118.type;
       if (!type.includes('mp4') && !type.includes('mpeg') && !type.includes('ogg') && !type.includes('wav')) return;
       var tst = document.createElement('audio');
       var can = tst.canPlayType(type);
@@ -10323,10 +10659,10 @@ function App() {
               var next = prev.filter(function (t) {
                 return t.id !== id;
               });
-              LS.set('gym-music-list', next.map(function (_ref117) {
-                var id = _ref117.id,
-                  name = _ref117.name,
-                  type = _ref117.type;
+              LS.set('gym-music-list', next.map(function (_ref119) {
+                var id = _ref119.id,
+                  name = _ref119.name,
+                  type = _ref119.type;
                 return {
                   id: id,
                   name: name,
@@ -10356,8 +10692,8 @@ function App() {
           case 0:
             meta = LS.get('gym-music-list', []);
             _context29.n = 1;
-            return Promise.all(meta.map(function (_ref118) {
-              var id = _ref118.id;
+            return Promise.all(meta.map(function (_ref120) {
+              var id = _ref120.id;
               return IDB.del("music-".concat(id));
             }));
           case 1:
@@ -10386,13 +10722,13 @@ function App() {
     if (targetIdx < 0 || targetIdx >= list.length) return;
     setMusicList(function (prev) {
       var next = _toConsumableArray(prev);
-      var _ref119 = [next[targetIdx], next[idx]];
-      next[idx] = _ref119[0];
-      next[targetIdx] = _ref119[1];
-      LS.set('gym-music-list', next.map(function (_ref120) {
-        var id = _ref120.id,
-          name = _ref120.name,
-          type = _ref120.type;
+      var _ref121 = [next[targetIdx], next[idx]];
+      next[idx] = _ref121[0];
+      next[targetIdx] = _ref121[1];
+      LS.set('gym-music-list', next.map(function (_ref122) {
+        var id = _ref122.id,
+          name = _ref122.name,
+          type = _ref122.type;
         return {
           id: id,
           name: name,
@@ -10477,10 +10813,10 @@ function App() {
     var cur = devNotesLive.current || {};
     var next = _objectSpread({}, cur),
       archived = [];
-    Object.entries(cur).forEach(function (_ref121) {
-      var _ref122 = _slicedToArray(_ref121, 2),
-        k = _ref122[0],
-        t = _ref122[1];
+    Object.entries(cur).forEach(function (_ref123) {
+      var _ref124 = _slicedToArray(_ref123, 2),
+        k = _ref124[0],
+        t = _ref124[1];
       if (!t) return;
       var lines = String(t).split('\n');
       var impl = lines.filter(isImpl);
@@ -10496,10 +10832,10 @@ function App() {
     if (!archived.length) return;
     var at = new Date().toISOString();
     setDevNotesHistory(function (prev) {
-      return [].concat(_toConsumableArray(prev || []), _toConsumableArray(archived.map(function (_ref123, i) {
-        var _ref124 = _slicedToArray(_ref123, 2),
-          k = _ref124[0],
-          txt = _ref124[1];
+      return [].concat(_toConsumableArray(prev || []), _toConsumableArray(archived.map(function (_ref125, i) {
+        var _ref126 = _slicedToArray(_ref125, 2),
+          k = _ref126[0],
+          txt = _ref126[1];
         return {
           id: "h-impl-".concat(Date.now(), "-").concat(i, "-").concat(k),
           key: k,
@@ -10515,10 +10851,10 @@ function App() {
     devNotesLive.current = next;
     setDevNotes(next);
   }, [customNames]);
-  var _useState253 = useState(0),
-    _useState254 = _slicedToArray(_useState253, 2),
-    implTick = _useState254[0],
-    setImplTick = _useState254[1];
+  var _useState267 = useState(0),
+    _useState268 = _slicedToArray(_useState267, 2),
+    implTick = _useState268[0],
+    setImplTick = _useState268[1];
   useEffect(function () {
     purgeImplementedNotes();
   }, [implTick]);
@@ -10542,12 +10878,12 @@ function App() {
   }, [devNotes, devNotesDone, filingDirName, implTick]);
   // הודעה אחרי עדכון גרסה — כדי לדעת שהגרסה החדשה אכן נטענה
   // באנר ירוק קבוע (עד לחיצה) — נשאר גם אם הדף נטען מחדש פעם נוספת אחרי העדכון
-  var _useState255 = useState(function () {
+  var _useState269 = useState(function () {
       return LS.get('gym-update-pending', null) === APP_VERSION;
     }),
-    _useState256 = _slicedToArray(_useState255, 2),
-    updBanner = _useState256[0],
-    setUpdBanner = _useState256[1];
+    _useState270 = _slicedToArray(_useState269, 2),
+    updBanner = _useState270[0],
+    setUpdBanner = _useState270[1];
   var dismissUpdBanner = function dismissUpdBanner() {
     LS.set('gym-update-pending', null);
     setUpdBanner(false);
@@ -10803,16 +11139,16 @@ function App() {
         cdId = null;
       // הקראה והתראות קוליות — רק של הטיימר המתקדם ביותר (שנשאר לו הכי מעט זמן)
       var leadKey = null;
-      Object.entries(cur).forEach(function (_ref125) {
-        var _ref126 = _slicedToArray(_ref125, 2),
-          k = _ref126[0],
-          v = _ref126[1];
-        if (v >= 1 && (leadKey === null || v < cur[leadKey])) leadKey = k;
-      });
       Object.entries(cur).forEach(function (_ref127) {
         var _ref128 = _slicedToArray(_ref127, 2),
           k = _ref128[0],
           v = _ref128[1];
+        if (v >= 1 && (leadKey === null || v < cur[leadKey])) leadKey = k;
+      });
+      Object.entries(cur).forEach(function (_ref129) {
+        var _ref130 = _slicedToArray(_ref129, 2),
+          k = _ref130[0],
+          v = _ref130[1];
         if (v > 1) {
           next[k] = v - 1;
           if (v <= 3) {
@@ -10982,10 +11318,10 @@ function App() {
       });
     } catch (e) {}
   };
-  var handleSaveSet = function handleSaveSet(exId, setNum, weight, reps, isSuperset, reason) {
+  var handleSaveSet = function handleSaveSet(exId, setNum, weight, reps, isSuperset, reason, repsL) {
     setAutoTransitionSplash(null); // סגירת הופ-אפ המשקל האוטומטי (אם פתוח) בלחיצה על סיום/עדכן של כל סט
     var wst = sstRef.current;
-    var newLog = _objectSpread({
+    var newLog = _objectSpread(_objectSpread({
       id: crypto.randomUUID(),
       exId: exId,
       setNum: setNum,
@@ -10993,7 +11329,9 @@ function App() {
       reps: reps,
       timestamp: new Date().toISOString(),
       session: wst
-    }, (reason || '').trim() ? {
+    }, repsL != null ? {
+      repsL: repsL
+    } : {}), (reason || '').trim() ? {
       reason: reason.trim()
     } : {});
     var isReplace = logsRef.current.some(function (l) {
@@ -11476,10 +11814,10 @@ function App() {
   }, [newExTitle, newExCategory, newExCategoryOther, newExImage, newExVideoFile, newExVideoUrl, newExStartW, newExStartR, newExStep, showToast]);
 
   // ─── מצב סידור זמני: מאפשר להזיז תרגילים בחצים בלי אישור על כל תזוזה, לחלון זמן קצוב ───
-  var _useState257 = useState(null),
-    _useState258 = _slicedToArray(_useState257, 2),
-    reorderMode = _useState258[0],
-    setReorderMode = _useState258[1]; // {groupId, secondsLeft}
+  var _useState271 = useState(null),
+    _useState272 = _slicedToArray(_useState271, 2),
+    reorderMode = _useState272[0],
+    setReorderMode = _useState272[1]; // {groupId, secondsLeft}
   var enterReorderMode = useCallback(function (groupId) {
     return setReorderMode({
       groupId: groupId,
@@ -11590,9 +11928,9 @@ function App() {
       }
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       var next = _toConsumableArray(prev);
-      var _ref129 = [next[targetIdx], next[curIdx]];
-      next[curIdx] = _ref129[0];
-      next[targetIdx] = _ref129[1];
+      var _ref131 = [next[targetIdx], next[curIdx]];
+      next[curIdx] = _ref131[0];
+      next[targetIdx] = _ref131[1];
       return next;
     });
   };
@@ -11731,17 +12069,17 @@ function App() {
       });
     }, 250);
   }, [view, nextIncompleteIndex]);
-  var _useState259 = useState(null),
-    _useState260 = _slicedToArray(_useState259, 2),
-    skipGroupDlg = _useState260[0],
-    setSkipGroupDlg = _useState260[1];
+  var _useState273 = useState(null),
+    _useState274 = _slicedToArray(_useState273, 2),
+    skipGroupDlg = _useState274[0],
+    setSkipGroupDlg = _useState274[1];
   // סיבות דילוג מהמסך הראשי (תרגיל שדולג כולו): { "<תחילת אימון>:<exId>": טקסט } — מוצגות בהיסטוריה בלבד
-  var _useState261 = useState(function () {
+  var _useState275 = useState(function () {
       return LS.get('gym-skip-reasons', {});
     }),
-    _useState262 = _slicedToArray(_useState261, 2),
-    skipReasons = _useState262[0],
-    setSkipReasons = _useState262[1];
+    _useState276 = _slicedToArray(_useState275, 2),
+    skipReasons = _useState276[0],
+    setSkipReasons = _useState276[1];
   useEffect(function () {
     LS.set('gym-skip-reasons', skipReasons);
   }, [skipReasons]);
@@ -12596,10 +12934,10 @@ function App() {
         strokeWidth: "2",
         strokeLinejoin: "round",
         strokeLinecap: "round"
-      }), pts.map(function (_ref131, i) {
-        var _ref132 = _slicedToArray(_ref131, 2),
-          x = _ref132[0],
-          y = _ref132[1];
+      }), pts.map(function (_ref133, i) {
+        var _ref134 = _slicedToArray(_ref133, 2),
+          x = _ref134[0],
+          y = _ref134[1];
         return /*#__PURE__*/React.createElement("circle", {
           key: i,
           cx: x,
@@ -12872,7 +13210,7 @@ function App() {
     className: "relative w-full bg-red-500 text-white text-[12px] font-black py-1.5 active:scale-[0.99]"
   }, "\u26A0 \u05EA\u05D9\u05E7\u05D9\u05D9\u05EA FILING \u05DC\u05D0 \u05DE\u05E7\u05D5\u05E9\u05E8\u05EA", filingSupported ? ' — לחץ לקישור' : ' (נשמר רק במכשיר)'), backupAgeDays() > 5 && logs.length > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: (/*#__PURE__*/function () {
-      var _ref136 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(e) {
+      var _ref138 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(e) {
         return _regenerator().w(function (_context32) {
           while (1) switch (_context32.n) {
             case 0:
@@ -12890,7 +13228,7 @@ function App() {
         }, _callee32);
       }));
       return function (_x21) {
-        return _ref136.apply(this, arguments);
+        return _ref138.apply(this, arguments);
       };
     }()),
     className: "relative w-full bg-amber-500 text-slate-900 text-[12px] font-black py-1.5 active:scale-[0.99]"
