@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.55';
+var APP_VERSION = '10.56';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -1945,7 +1945,11 @@ var DualPicker = function DualPicker(_ref12) {
     perHand = _ref12.perHand,
     autoCloseAllowed = _ref12.autoCloseAllowed,
     onApply = _ref12.onApply,
-    onClose = _ref12.onClose;
+    onClose = _ref12.onClose,
+    _ref12$stepWeight = _ref12.stepWeight,
+    stepWeight = _ref12$stepWeight === void 0 ? null : _ref12$stepWeight,
+    _ref12$repsStep = _ref12.repsStep,
+    repsStep = _ref12$repsStep === void 0 ? 1 : _ref12$repsStep;
   var _useState5 = useState(w),
     _useState6 = _slicedToArray(_useState5, 2),
     lw = _useState6[0],
@@ -2102,7 +2106,40 @@ var DualPicker = function DualPicker(_ref12) {
     value: lr,
     tone: "text-emerald-800",
     onPick: pickReps
-  }))), autoCloseAllowed && /*#__PURE__*/React.createElement("label", {
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mx-5 mb-3 flex gap-5",
+    dir: "rtl"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2",
+    style: {
+      flex: 2
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setLw(stepWeight ? stepWeight(lw, -1) : Math.max(0, lw - 1));
+    },
+    className: "flex-1 py-2 rounded-xl bg-rose-50 text-rose-500 font-black text-xl active:scale-95 active:bg-rose-100"
+  }, "\u25BC"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setLw(stepWeight ? stepWeight(lw, 1) : Math.min(250, lw + 1));
+    },
+    className: "flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-600 font-black text-xl active:scale-95 active:bg-emerald-100"
+  }, "\u25B2")), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2",
+    style: {
+      flex: perHand ? 2 : 1
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return pickReps(Math.max(1, lr - repsStep));
+    },
+    className: "flex-1 py-2 rounded-xl bg-rose-50 text-rose-500 font-black text-xl active:scale-95 active:bg-rose-100"
+  }, "\u25BC"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return pickReps(Math.min(120, lr + repsStep));
+    },
+    className: "flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-600 font-black text-xl active:scale-95 active:bg-emerald-100"
+  }, "\u25B2"))), autoCloseAllowed && /*#__PURE__*/React.createElement("label", {
     className: "mx-5 mb-4 flex items-center gap-2 text-[12px] font-black text-slate-600",
     dir: "rtl"
   }, /*#__PURE__*/React.createElement("input", {
@@ -3535,6 +3572,8 @@ function ExerciseEntryRow(_ref15) {
       w: pi.state.w,
       r: pSide === 'L' ? pi.state.l != null ? pi.state.l : pi.state.r : pi.state.r,
       perHand: false,
+      stepWeight: stepW,
+      repsStep: repsStep,
       autoCloseAllowed: !pi.isWarm && !pi.isDone && pi.num === autoNum && !isTimerEx && (!pSide || (pSide === 'R' ? !pPend : pPend)),
       onClose: function onClose() {
         return setPickerNum(null);
