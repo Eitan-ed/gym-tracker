@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.54';
+const APP_VERSION = '10.55';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -756,12 +756,17 @@ const Drum = ({ options, value, onPick, fmt=(o=>o), tone='text-slate-900' }) => 
     const ref = React.useRef(null), tm = React.useRef(null), lock = React.useRef(true), first = React.useRef(true);
     const idxOf = v => { let i = options.indexOf(v); if (i < 0) i = options.reduce((b,o,k)=>Math.abs(o-v)<Math.abs(options[b]-v)?k:b,0); return i; };
     useEffect(() => {
-        const el = ref.current; if (!el) return;
         lock.current = true;
-        el.scrollTo({ top: idxOf(value) * DRUM_H, behavior: first.current ? 'instant' : 'smooth' });
-        first.current = false;
-        const t = setTimeout(() => { lock.current = false; }, 400);
-        return () => clearTimeout(t);
+        const initial = first.current; first.current = false;
+        const place = () => {
+            const el = ref.current; if (!el) return;
+            const top = idxOf(value) * DRUM_H;
+            if (initial) { el.style.scrollSnapType = 'none'; el.scrollTop = top; requestAnimationFrame(() => { if (ref.current) { ref.current.scrollTop = top; ref.current.style.scrollSnapType = 'y mandatory'; } }); }
+            else el.scrollTo({ top, behavior: 'smooth' });
+        };
+        const raf = requestAnimationFrame(place);
+        const t = setTimeout(() => { lock.current = false; }, initial ? 500 : 400);
+        return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }, [value]);
     const onScroll = () => {
         if (lock.current) return;
@@ -777,7 +782,7 @@ const Drum = ({ options, value, onPick, fmt=(o=>o), tone='text-slate-900' }) => 
             <div style={{ height: DRUM_HALF * DRUM_H + 'px' }} />
             {options.map(o => (
                 <div key={o} onClick={() => onPick(o)} style={{ height: DRUM_H + 'px', scrollSnapAlign:'center' }}
-                    className={`flex items-center justify-center select-none cursor-pointer transition-all ${o === value ? `font-black text-[22px] ${tone}` : 'font-medium text-[15px] text-slate-400'}`}>{fmt(o)}</div>
+                    className={`flex items-center justify-center select-none cursor-pointer transition-all ${o === value ? `font-black text-[26px] ${tone}` : 'font-medium text-[15px] text-slate-400'}`}>{fmt(o)}</div>
             ))}
             <div style={{ height: DRUM_HALF * DRUM_H + 'px' }} />
         </div>
@@ -796,7 +801,7 @@ const DualPicker = ({ title, w, r, l, perHand, autoCloseAllowed, onApply, onClos
     const pickLeft = v => { setTouched(true); setLl(v); };
     const confirm = () => { LS.set('gym-auto-close-set', auto); onApply(lw, lr, perHand ? ll : undefined, { repsTouched: touched, autoClose: auto && autoCloseAllowed }); };
     const band = { top: DRUM_HALF * DRUM_H + 'px', height: DRUM_H + 'px', background:'rgba(59,130,246,0.07)', borderTop:'2px solid rgba(59,130,246,0.3)', borderBottom:'2px solid rgba(59,130,246,0.3)' };
-    const head = t => <div className="text-center text-[11px] font-black text-slate-500 mb-1">{t}</div>;
+    const head = (t, cls) => <div className={`text-center text-[13px] font-black rounded-xl py-1 ${cls}`}>{t}</div>;
     return ReactDOM.createPortal(
         <div className="fixed inset-0 z-[800] flex items-end" onClick={onClose}>
             <div className="absolute inset-0 bg-slate-900/50" />
@@ -808,23 +813,23 @@ const DualPicker = ({ title, w, r, l, perHand, autoCloseAllowed, onApply, onClos
                         <button onClick={confirm} className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">אישור</button>
                     </div>
                 </div>
-                <div className="mx-5 mt-1 flex gap-3" dir="rtl">
-                    <div style={{ flex: 2 }}>{head('ק״ג')}</div>
-                    <div style={{ flex: perHand ? 2 : 1 }}>{head(perHand ? 'חזרות: ימין | שמאל' : 'חזרות')}</div>
+                <div className="mx-5 mt-1 flex gap-5" dir="rtl">
+                    <div style={{ flex: 2 }}>{head('משקל (ק״ג)', 'bg-blue-600 text-white')}</div>
+                    <div style={{ flex: perHand ? 2 : 1 }}>{head(perHand ? 'חזרות: ימין | שמאל' : 'חזרות', 'bg-emerald-600 text-white')}</div>
                 </div>
-                <div className="mx-5 mb-3 flex gap-3 items-stretch" dir="rtl" style={{ height: DRUM_VIS * DRUM_H + 'px' }}>
+                <div className="mx-5 mb-3 mt-1 flex gap-5 items-stretch" dir="rtl" style={{ height: DRUM_VIS * DRUM_H + 'px' }}>
                     {/* צד ימין: משקל (שלמים + שבר) */}
-                    <div className="relative flex gap-1 rounded-2xl" style={{ flex: 2 }} dir="ltr">
+                    <div className="relative flex gap-1 rounded-2xl bg-blue-50 border-2 border-blue-200" style={{ flex: 2 }} dir="ltr">
                         <div className="absolute inset-x-0 pointer-events-none z-10" style={band} />
-                        <Drum options={wInt} value={intPart} onPick={i => setWeight(i, fracPart)} />
+                        <Drum options={wInt} value={intPart} tone="text-blue-800" onPick={i => setWeight(i, fracPart)} />
                         <div className="w-px bg-slate-200" />
                         <Drum options={FRAC_D} value={fracPart} fmt={f => '.' + String(Math.round(f * 100)).padStart(2, '0')} tone="text-blue-700" onPick={f => setWeight(intPart, f)} />
                     </div>
                     {/* צד שמאל: חזרות (ובמצב יד-יד: ימין ושמאל) */}
-                    <div className="relative flex gap-1 rounded-2xl border-r border-slate-200 pr-3" style={{ flex: perHand ? 2 : 1 }} dir="ltr">
+                    <div className="relative flex gap-1 rounded-2xl bg-emerald-50 border-2 border-emerald-200" style={{ flex: perHand ? 2 : 1 }} dir="ltr">
                         <div className="absolute inset-x-0 pointer-events-none z-10" style={band} />
                         {perHand && <Drum options={repsOpts} value={ll} onPick={pickLeft} tone="text-fuchsia-700" />}
-                        <Drum options={repsOpts} value={lr} onPick={pickReps} />
+                        <Drum options={repsOpts} value={lr} tone="text-emerald-800" onPick={pickReps} />
                     </div>
                 </div>
                 {autoCloseAllowed && (
@@ -2895,6 +2900,18 @@ const playPhoneRingSound = () => {
     } catch(e) {}
 };
 
+// כפתור יחד / יד בשורת התרגיל בניהול (אותו הגדרה כמו בכפתור שבדף התרגיל)
+const PerHandBtn = ({ ex }) => {
+    const [v, setV] = useState(() => { const m = LS.get('gym-per-hand', {}); return m[ex.id] !== undefined ? !!m[ex.id] : !!ex.perHand; });
+    return (
+        <button onClick={() => { const n = !v; const m = LS.get('gym-per-hand', {}); m[ex.id] = n; LS.set('gym-per-hand', m); setV(n); }}
+            title="יחד / יד"
+            className={`flex-1 min-w-0 truncate px-1 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all text-center ${v ? 'bg-fuchsia-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
+            {v ? 'יד' : 'יחד'}
+        </button>
+    );
+};
+
 // ─── WorkoutProgressCalendar ───────────────────────────────
 const WorkoutProgressCalendar = ({ logs, onPickDay=null }) => {
     const [cur, setCur] = useState(() => { const d=new Date(); return {y:d.getFullYear(),m:d.getMonth()}; });
@@ -3535,6 +3552,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                                         ${settings.warmupEmbed?.[ex.id] ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-400 border border-amber-200'}`}>
                                                     {settings.warmupEmbed?.[ex.id] ? '🔥 פתוח' : '🔥 סגור'}
                                                 </button>
+                                                {!TIMER_EXERCISES.has(ex.id) && <PerHandBtn ex={ex} />}
                                                 <button
                                                     onClick={() => isHidden ? onToggleExercise(ex.id) : requestConfirm('להסתיר את התרגיל?', () => onToggleExercise(ex.id))}
                                                     className={`flex-1 min-w-0 truncate px-1 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all text-center
