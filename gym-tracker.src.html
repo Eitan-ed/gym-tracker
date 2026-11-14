@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.51';
+const APP_VERSION = '10.52';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1293,7 +1293,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                 );
             })()}
             <div className="flex justify-end mb-1">
-                <button onClick={togglePerHand} className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black active:scale-95 ${perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{perHand ? '✓ ' : ''}יד-יד (חזרות לכל יד)</button>
+                <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[10px] font-black">
+                    <button onClick={()=>{ if (perHand) togglePerHand(); }} className={`px-2.5 py-0.5 active:scale-95 ${!perHand ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}>הינף (שתי ידיים יחד)</button>
+                    <button onClick={()=>{ if (!perHand) togglePerHand(); }} className={`px-2.5 py-0.5 active:scale-95 ${perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500'}`}>יד-יד (חזרות לכל יד)</button>
+                </div>
             </div>
             {(()=>{
                 const hasWarm = warmupOpen || done.sW;
@@ -1384,6 +1387,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     : ''}`}
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
                                 <span className="text-[19px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
+                                {perHand && !isTimerEx && <span className="text-[8px] font-black leading-none opacity-90 mr-1 whitespace-nowrap">י·ש</span>}
                             </button>
                             <div className="contents">
                                 <div className="flex-1 min-w-0"><Roller label="ק״ג" compact onOpenRequest={isTimerEx && !isWarm ? null : ()=>setPickerNum(num)} selected={isSel && stepField==='w' && selNum===num && selField==='w'} onTap={()=>{ setSelNum(num); setSelField('w'); return true; }} min={0} max={250} step={weightStep} drumStep={weightValues?null:1} value={state.w} isChanged={state.wC}

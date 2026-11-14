@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.51';
+var APP_VERSION = '10.52';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -3147,10 +3147,19 @@ function ExerciseEntryRow(_ref15) {
     }));
   }(), /*#__PURE__*/React.createElement("div", {
     className: "flex justify-end mb-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex rounded-lg overflow-hidden border border-slate-200 text-[10px] font-black"
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: togglePerHand,
-    className: "px-2.5 py-0.5 rounded-lg text-[10px] font-black active:scale-95 ".concat(perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500')
-  }, perHand ? '✓ ' : '', "\u05D9\u05D3-\u05D9\u05D3 (\u05D7\u05D6\u05E8\u05D5\u05EA \u05DC\u05DB\u05DC \u05D9\u05D3)")), function () {
+    onClick: function onClick() {
+      if (perHand) togglePerHand();
+    },
+    className: "px-2.5 py-0.5 active:scale-95 ".concat(!perHand ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500')
+  }, "\u05D4\u05D9\u05E0\u05E3 (\u05E9\u05EA\u05D9 \u05D9\u05D3\u05D9\u05D9\u05DD \u05D9\u05D7\u05D3)"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      if (!perHand) togglePerHand();
+    },
+    className: "px-2.5 py-0.5 active:scale-95 ".concat(perHand ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 text-slate-500')
+  }, "\u05D9\u05D3-\u05D9\u05D3 (\u05D7\u05D6\u05E8\u05D5\u05EA \u05DC\u05DB\u05DC \u05D9\u05D3)"))), function () {
     var hasWarm = warmupOpen || done.sW;
     var nums = [1, 2].concat(_toConsumableArray(visibleExtraNums), _toConsumableArray(hasWarm ? [0] : [])); // הסטים לפי הסדר (1 מימין למעלה, 2 משמאלו, 3 מתחת מימין...); החימום אחריהם
     var warmupPending = warmupOpen && !done.sW;
@@ -3358,7 +3367,9 @@ function ExerciseEntryRow(_ref15) {
         } : undefined
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[19px] leading-none"
-      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num)), /*#__PURE__*/React.createElement("div", {
+      }, showCDown ? countdown : isSkipC && !changed ? '✕' : isDone && !changed || !isDone && isTimerFin(conic) ? '✓' : isWarm ? '🔥' : num), perHand && !isTimerEx && /*#__PURE__*/React.createElement("span", {
+        className: "text-[8px] font-black leading-none opacity-90 mr-1 whitespace-nowrap"
+      }, "\u05D9\xB7\u05E9")), /*#__PURE__*/React.createElement("div", {
         className: "contents"
       }, /*#__PURE__*/React.createElement("div", {
         className: "flex-1 min-w-0"
