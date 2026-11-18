@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.58';
+const APP_VERSION = '10.59';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -6086,11 +6086,6 @@ function App() {
                                         <div className="flex items-center gap-1.5 mt-1">
                                             <span className="text-[10px] font-bold text-slate-400 shrink-0">אימון נוכחי:</span>
                                             <span className="text-[12px] font-black text-slate-700 shrink-0">{moCur === 0 ? '<½' : moCur} ח׳</span>
-                                            <span className="text-[11px] font-black shrink-0" style={{color:'#2d4a6f'}} dir="rtl">{daysPassed} י׳</span>
-                                            <div className="flex-1 h-1 rounded-full bg-slate-200 overflow-hidden min-w-[16px]">
-                                                <div className="h-full rounded-full transition-all duration-500" style={{width:`${progress}%`, background:'#2d4a6f'}} />
-                                            </div>
-                                            <span className="text-[11px] font-black text-orange-500 shrink-0" dir="rtl">{end ? `${Math.max(0,daysRemaining)} י׳` : '—'}</span>
                                         </div>
                                         </>
                                     );

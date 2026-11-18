@@ -64,7 +64,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.58';
+var APP_VERSION = '10.59';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -13796,24 +13796,7 @@ function App() {
         className: "text-[10px] font-bold text-slate-400 shrink-0"
       }, "\u05D0\u05D9\u05DE\u05D5\u05DF \u05E0\u05D5\u05DB\u05D7\u05D9:"), /*#__PURE__*/React.createElement("span", {
         className: "text-[12px] font-black text-slate-700 shrink-0"
-      }, moCur === 0 ? '<½' : moCur, " \u05D7\u05F3"), /*#__PURE__*/React.createElement("span", {
-        className: "text-[11px] font-black shrink-0",
-        style: {
-          color: '#2d4a6f'
-        },
-        dir: "rtl"
-      }, daysPassed, " \u05D9\u05F3"), /*#__PURE__*/React.createElement("div", {
-        className: "flex-1 h-1 rounded-full bg-slate-200 overflow-hidden min-w-[16px]"
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "h-full rounded-full transition-all duration-500",
-        style: {
-          width: "".concat(progress, "%"),
-          background: '#2d4a6f'
-        }
-      })), /*#__PURE__*/React.createElement("span", {
-        className: "text-[11px] font-black text-orange-500 shrink-0",
-        dir: "rtl"
-      }, end ? "".concat(Math.max(0, daysRemaining), " \u05D9\u05F3") : '—')));
+      }, moCur === 0 ? '<½' : moCur, " \u05D7\u05F3")));
     }()), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-1.5 shrink-0"
     }, /*#__PURE__*/React.createElement("button", {
