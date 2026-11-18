@@ -22,7 +22,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; background:linear-gradient(180deg,#e9eef5 0%,#d6dfec 100%); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.05; background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,#5a6e82 10px,#5a6e82 11px),repeating-linear-gradient(-45deg,transparent,transparent 10px,#5a6e82 10px,#5a6e82 11px); }
         .no-scrollbar::-webkit-scrollbar { display:none; }
         .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
         @keyframes pulse-border {
@@ -38,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.57';
+const APP_VERSION = '10.58';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1400,8 +1399,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                 className={`flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all
                                     ${changed ? 'bg-amber-400 !text-amber-900'
                                     : isSkipC ? 'bg-orange-500'
-                                    : isWarm && isDone ? 'bg-amber-700'
-                                    : isWarm ? 'bg-amber-500'
+                                    : isWarm ? 'bg-transparent !text-amber-600'
                                     : isDone ? 'bg-slate-500'
                                     : ''}`}
                                 style={(!isWarm && !isDone && !showCDown && canAct) ? {background: accentColor}
@@ -1970,34 +1968,26 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
             if (skipActiveNum===2 && isLast) setTimeout(()=>onFinish(true), 800);
         } : null;
 
-        const videoBtn = (full) => youtubeId ? (
-            <div className="flex flex-col gap-1 h-full">
-                <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
-                    className={`flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95`}
-                    style={{minHeight: full ? '5rem' : '3.5rem'}}>
-                    <span className="text-2xl">▶</span><span className="text-[11px]">YouTube</span>
-                </a>
-                <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5">הסר</button>
+        const removeVid = () => { if (youtubeId) onDeleteVideo(ex.id); else if (uploadedVid) onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id); else if (localVid) { hideStaticVideo(ex.id); setVidTick(t=>t+1); } };
+        const videoBtn = (full) => !hasVideo ? null : (
+            <div className="relative flex-1 flex flex-col h-full">
+                {youtubeId ? (
+                    <a href={`https://youtu.be/${youtubeId}`} target="_blank" rel="noopener noreferrer"
+                        className="flex-1 flex flex-col items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-black active:scale-95"
+                        style={{minHeight: full ? '5rem' : '3.5rem'}}>
+                        <span className="text-2xl">▶</span><span className="text-[11px]">YouTube</span>
+                    </a>
+                ) : (
+                    <button onClick={()=>setVideoModal(uploadedVid || `videos/${localVid}`)}
+                        className="flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
+                        style={{minHeight: full ? '5rem' : '3.5rem'}}>
+                        <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">{uploadedVid ? 'וידאו' : 'סרטון'}</span>
+                    </button>
+                )}
+                <button onClick={(e)=>{ e.stopPropagation(); removeVid(); }} aria-label="הסר וידאו"
+                    className="absolute top-1 left-1 w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[11px] font-black leading-none active:bg-slate-300 active:scale-90">✕</button>
             </div>
-        ) : uploadedVid ? (
-            <div className="flex flex-col gap-1 h-full">
-                <button onClick={()=>setVideoModal(uploadedVid)}
-                    className="flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
-                    style={{minHeight: full ? '5rem' : '3.5rem'}}>
-                    <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">וידאו</span>
-                </button>
-                <button onClick={()=>onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id)} className="text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5">הסר</button>
-            </div>
-        ) : localVid ? (
-            <div className="flex flex-col gap-1 h-full">
-                <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                    className="flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
-                    style={{minHeight: full ? '5rem' : '3.5rem'}}>
-                    <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">סרטון</span>
-                </button>
-                <button onClick={()=>{ hideStaticVideo(ex.id); setVidTick(t=>t+1); }} className="text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5">הסר</button>
-            </div>
-        ) : null;
+        );
 
         // ריבוע העלאת וידאו — מוצג כשאין וידאו מכל סוג לתרגיל, עם תווית קטנה וכפתור "+" להעלאה
         const videoUploadTile = (
@@ -2081,10 +2071,10 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             <div className="min-w-0 flex flex-col">{hasVideo ? videoBtn(false) : videoUploadTile}</div>
                             <div className="min-w-0 flex flex-col">{miniTimer}</div>
                             {lastW>0 ? (
-                                <div className="rounded-2xl flex flex-col items-center justify-center shadow-sm bg-black">
-                                    {tileWarm && <span className="text-[9px] font-black text-amber-400 leading-none">🔥 חימום</span>}
-                                    <span className={`text-3xl font-black leading-none ${tileWarm ? 'text-amber-400' : 'text-orange-400'}`}>{lastW}</span>
-                                    <span className={`text-[10px] font-black mt-0.5 ${tileWarm ? 'text-amber-300' : 'text-orange-300'}`}>ק״ג</span>
+                                <div className="rounded-2xl flex flex-col items-center justify-center bg-slate-50 border border-slate-200">
+                                    {tileWarm && <span className="text-[9px] font-black text-amber-500 leading-none">🔥 חימום</span>}
+                                    <span className="text-3xl font-black leading-none text-black">{lastW}</span>
+                                    <span className="text-[10px] font-black mt-0.5 text-slate-600">ק״ג</span>
                                 </div>
                             ) : <div className="bg-slate-50 border border-slate-100 rounded-2xl" />}
                             {/* הריבוע הרביעי: טיימר המנוחה של התרגיל עצמו, תמיד בכתום */}
@@ -2119,7 +2109,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </div>
                 )}
                 {/* שורה מאוחדת: איך לבצע / היסטוריה / חימום (דילוג מתבצע מרשימת התרגילים בלבד, ומוצג בהיסטוריה) */}
-                <div className="flex items-center gap-1.5 mt-2 mb-1.5">
+                <div className="flex items-center gap-1.5 mt-4 mb-4">
                     <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${(notes?.[ex.id]||'').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
@@ -2136,8 +2126,8 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             return {...p,[ex.id]:next};
                         })}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
-                            ${(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
-                        <span style={(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? undefined : {filter:'grayscale(1)', opacity:0.55}}>🔥</span>
+                            bg-transparent`}>
+                        <span className="text-[18px] leading-none" style={(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? undefined : {filter:'grayscale(1)', opacity:0.55}}>🔥</span>
                     </button>
                     {!isTimerEx && (
                         <button onClick={()=>togglePerHand(ex.id, isPH)} title="יחד / יד"
@@ -2415,7 +2405,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 allGroups.forEach(g => { if (isGroupDoneHere(g) || skippedGroups.includes(g.id)) return; const r = rtOfBelow(g); if (r > 0 && r < ringBestRt) { ringBestRt = r; ringBestId = g.id; } });
                 return (
                     <div className="mt-3 rounded-[1.6rem] border-2 border-slate-300 px-1 pt-2 pb-1"
-                         style={{background:'linear-gradient(180deg,#f8fafc,#e2e8f0)', boxShadow:'inset 0 2px 6px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.08)'}}>
+                         style={{background:'#f1f5f9', boxShadow:'0 1px 3px rgba(15,23,42,0.08)'}}>
                         <div ref={filmStripRef} className="flex gap-2 overflow-x-auto no-scrollbar" dir="rtl"
                             style={{scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', paddingInlineStart:8, paddingInlineEnd:`calc(50% - ${ITEM/2}px)`}}
                             onScroll={handleFilmScroll}>
@@ -2459,7 +2449,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         </span>
                                     </button>
                                     </FilmTimerRing>
-                                    <div className={`text-[14px] font-black leading-none mt-1 h-4 ${fWarm ? 'text-amber-500' : 'text-orange-500'}`} dir="ltr">
+                                    <div className={`text-[14px] font-black leading-none mt-1 h-4 ${fWarm ? 'text-amber-500' : 'text-slate-900'}`} dir="ltr">
                                         {fW > 0 ? `${fWarm ? '🔥' : ''}${fW}` : ''}
                                     </div>
                                     </div>
@@ -2499,7 +2489,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                             style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
                                                     </button>
                                                     </FilmTimerRing>
-                                                    <div className="text-[14px] font-black leading-none mt-1 h-4 text-orange-500" dir="ltr">
+                                                    <div className="text-[14px] font-black leading-none mt-1 h-4 text-slate-900" dir="ltr">
                                                         {fInfo.weight > 0 ? `${fInfo.isWarmup ? '🔥' : ''}${fInfo.weight}` : ''}
                                                     </div>
                                                 </div>
@@ -6025,7 +6015,7 @@ function App() {
 
     const appTitleBar = (
         <div className="w-full relative overflow-hidden shrink-0 cursor-pointer" onClick={()=>{setView('list');setActiveGroup(null);}} style={{background:'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'}}>
-            <div className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',backgroundSize:'12px 12px'}}/>
+            
             <div className="relative py-3 px-4 flex items-center justify-center gap-2 active:scale-95 transition-transform">
                 <Icon name="Dumbbell" size={16} className="text-blue-400" />
                 <h1 className="text-lg font-black text-white tracking-widest" style={{letterSpacing:'0.12em'}}>אימון פול-באדי</h1>
@@ -6071,7 +6061,7 @@ function App() {
                     const end = sessionEndTime ? new Date(sessionEndTime) : null;
                     const now = new Date();
                     const daysTotal = end ? Math.floor((end - start) / (1000*60*60*24)) : 0;
-                    const daysPassed = end ? Math.floor((now - start) / (1000*60*60*24)) : 0;
+                    const daysPassed = Math.floor((now - start) / (1000*60*60*24));
                     const daysRemaining = Math.max(0, daysTotal - daysPassed);
                     const progress = daysTotal > 0 ? Math.min(100, (daysPassed / daysTotal) * 100) : 0;
                     const timerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
@@ -6086,8 +6076,7 @@ function App() {
                                 {(()=>{
                                     const gs = new Date(gymStartTime ?? sessionStartTime);
                                     const mo = Math.max(0, Math.floor(((now.getTime() - gs.getTime()) / 86400000) / 15.2) / 2); // מרווחים של חצי חודש (ח')
-                                    const clk = d => d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',hour12:false});
-                                    const startClock = workoutSec > 0 ? clk(new Date(now.getTime() - workoutSec*1000)) : '—';
+                                    const moCur = Math.max(0, Math.floor(((now.getTime() - start.getTime()) / 86400000) / 15.2) / 2);
                                     return (
                                         <>
                                         <div className="flex items-baseline gap-2">
@@ -6096,11 +6085,12 @@ function App() {
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
                                             <span className="text-[10px] font-bold text-slate-400 shrink-0">אימון נוכחי:</span>
-                                            <span className="text-[12px] font-black text-slate-700 shrink-0" dir="ltr">{startClock}</span>
-                                            <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden min-w-[16px]">
-                                                <div className="h-full rounded-full transition-all duration-500" style={{width:`${Math.min(100, workoutSec/36)}%`, background: isWorkoutComplete ? '#10b981' : '#2d4a6f'}} />
+                                            <span className="text-[12px] font-black text-slate-700 shrink-0">{moCur === 0 ? '<½' : moCur} ח׳</span>
+                                            <span className="text-[11px] font-black shrink-0" style={{color:'#2d4a6f'}} dir="rtl">{daysPassed} י׳</span>
+                                            <div className="flex-1 h-1 rounded-full bg-slate-200 overflow-hidden min-w-[16px]">
+                                                <div className="h-full rounded-full transition-all duration-500" style={{width:`${progress}%`, background:'#2d4a6f'}} />
                                             </div>
-                                            <span className="text-[12px] font-black text-slate-700 shrink-0" dir="ltr">{clk(now)}</span>
+                                            <span className="text-[11px] font-black text-orange-500 shrink-0" dir="rtl">{end ? `${Math.max(0,daysRemaining)} י׳` : '—'}</span>
                                         </div>
                                         </>
                                     );
@@ -6186,7 +6176,7 @@ function App() {
                                 style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
                                     border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
                                     boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
-                                <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
+                                <div className={`flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
                                         <div className="relative shrink-0">
                                             {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-11 h-11 rounded-lg object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-11 h-11 bg-gradient-to-br ${group.color} text-white rounded-lg flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
@@ -6207,19 +6197,18 @@ function App() {
                                             ? <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.12)'}}><svg viewBox="0 0 24 24" className="w-5 h-5"><path d="M6 6L18 18M18 6L6 18" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" fill="none"/></svg></div>
                                             : null}
                                         <button onClick={e=>{e.stopPropagation(); setRowMenu(m => m===group.id ? null : group.id);}}
-                                            className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-lg leading-none flex items-center justify-center active:scale-90" aria-label="אפשרויות">⋯</button>
-                                        {rowMenu===group.id && (<>
-                                            <div className="fixed inset-0 z-20" onClick={e=>{e.stopPropagation(); setRowMenu(null);}} />
-                                            <div className="absolute left-0 top-full mt-1 z-30 bg-white rounded-xl shadow-xl border border-slate-200 p-1 flex flex-col gap-1 min-w-[7.5rem]" onClick={e=>e.stopPropagation()}>
-                                                {!isDoneReal && !logSkipped && (
-                                                    <button onClick={e=>{e.stopPropagation(); setRowMenu(null); if (isSkipped) handleSkipGroup(group.id); else setSkipGroupDlg(group);}}
-                                                        className="text-[13px] font-black px-3 py-2 rounded-lg text-slate-700 bg-slate-100 active:scale-95 text-right">{isSkipped ? '↩ בטל דילוג' : 'דלג'}</button>
-                                                )}
-                                                <button onClick={e=>{e.stopPropagation(); setRowMenu(null); requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', ()=>group.exercises.forEach(ex=>handleToggleExercise(ex.id)));}}
-                                                    className="text-[13px] font-black px-3 py-2 rounded-lg text-slate-500 bg-slate-100 active:scale-95 text-right">הסתר</button>
-                                            </div>
-                                        </>)}
+                                            className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-black text-xl leading-none flex items-center justify-center active:scale-90 transition-transform" style={{transform: rowMenu===group.id ? 'rotate(45deg)' : undefined}} aria-label="אפשרויות">+</button>
                                     </div>
+                                    {rowMenu===group.id && (
+                                        <div className="basis-full flex gap-2 pt-0.5 pb-0.5" onClick={e=>e.stopPropagation()}>
+                                            {!isDoneReal && !logSkipped && (
+                                                <button onClick={e=>{e.stopPropagation(); setRowMenu(null); if (isSkipped) handleSkipGroup(group.id); else setSkipGroupDlg(group);}}
+                                                    className="flex-1 text-[13px] font-black px-3 py-2 rounded-xl text-slate-700 bg-slate-100 active:scale-95">{isSkipped ? '↩ בטל דילוג' : 'דלג'}</button>
+                                            )}
+                                            <button onClick={e=>{e.stopPropagation(); setRowMenu(null); requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', ()=>group.exercises.forEach(ex=>handleToggleExercise(ex.id)));}}
+                                                className="flex-1 text-[13px] font-black px-3 py-2 rounded-xl text-slate-500 bg-slate-100 active:scale-95">הסתר</button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

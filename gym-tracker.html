@@ -21,7 +21,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; background:linear-gradient(180deg,#e9eef5 0%,#d6dfec 100%); padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.05; background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,#5a6e82 10px,#5a6e82 11px),repeating-linear-gradient(-45deg,transparent,transparent 10px,#5a6e82 10px,#5a6e82 11px); }
         .no-scrollbar::-webkit-scrollbar { display:none; }
         .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
         @keyframes pulse-border {
@@ -65,7 +64,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.57';
+var APP_VERSION = '10.58';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -3446,7 +3445,7 @@ function ExerciseEntryRow(_ref15) {
           handleSetSave(num, state);
         },
         "aria-disabled": !canActFinal,
-        className: "flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm && isDone ? 'bg-amber-700' : isWarm ? 'bg-amber-500' : isDone ? 'bg-slate-500' : ''),
+        className: "flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all\n                                    ".concat(changed ? 'bg-amber-400 !text-amber-900' : isSkipC ? 'bg-orange-500' : isWarm ? 'bg-transparent !text-amber-600' : isDone ? 'bg-slate-500' : ''),
         style: !isWarm && !isDone && !showCDown && canAct ? {
           background: accentColor
         } : !isWarm && !isDone ? {
@@ -4546,7 +4545,7 @@ var DetailView = memo(function DetailView(_ref23) {
 
   // ── renderEx: מרנדר בלוק תרגיל אחד ──
   var renderEx = function renderEx(ex, exIdx) {
-    var _warmupOpenMap$ex$id, _warmupOpenMap$ex$id2, _warmupOpenMap$ex$id3;
+    var _warmupOpenMap$ex$id, _warmupOpenMap$ex$id2;
     var _ref24 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {},
       _ref24$isLast = _ref24.isLast,
       isLast = _ref24$isLast === void 0 ? false : _ref24$isLast,
@@ -4649,10 +4648,18 @@ var DetailView = memo(function DetailView(_ref23) {
         return onFinish(true);
       }, 800);
     } : null;
+    var removeVid = function removeVid() {
+      if (youtubeId) onDeleteVideo(ex.id);else if (uploadedVid) onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id);else if (localVid) {
+        hideStaticVideo(ex.id);
+        setVidTick(function (t) {
+          return t + 1;
+        });
+      }
+    };
     var videoBtn = function videoBtn(full) {
-      return youtubeId ? /*#__PURE__*/React.createElement("div", {
-        className: "flex flex-col gap-1 h-full"
-      }, /*#__PURE__*/React.createElement("a", {
+      return !hasVideo ? null : /*#__PURE__*/React.createElement("div", {
+        className: "relative flex-1 flex flex-col h-full"
+      }, youtubeId ? /*#__PURE__*/React.createElement("a", {
         href: "https://youtu.be/".concat(youtubeId),
         target: "_blank",
         rel: "noopener noreferrer",
@@ -4664,16 +4671,9 @@ var DetailView = memo(function DetailView(_ref23) {
         className: "text-2xl"
       }, "\u25B6"), /*#__PURE__*/React.createElement("span", {
         className: "text-[11px]"
-      }, "YouTube")), /*#__PURE__*/React.createElement("button", {
+      }, "YouTube")) : /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
-          return onDeleteVideo(ex.id);
-        },
-        className: "text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5"
-      }, "\u05D4\u05E1\u05E8")) : uploadedVid ? /*#__PURE__*/React.createElement("div", {
-        className: "flex flex-col gap-1 h-full"
-      }, /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          return setVideoModal(uploadedVid);
+          return setVideoModal(uploadedVid || "videos/".concat(localVid));
         },
         className: "flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95",
         style: {
@@ -4683,34 +4683,14 @@ var DetailView = memo(function DetailView(_ref23) {
         className: "text-2xl leading-none"
       }, "\u25B6"), /*#__PURE__*/React.createElement("span", {
         className: "text-[11px] leading-none"
-      }, "\u05D5\u05D9\u05D3\u05D0\u05D5")), /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          return onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id);
+      }, uploadedVid ? 'וידאו' : 'סרטון')), /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick(e) {
+          e.stopPropagation();
+          removeVid();
         },
-        className: "text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5"
-      }, "\u05D4\u05E1\u05E8")) : localVid ? /*#__PURE__*/React.createElement("div", {
-        className: "flex flex-col gap-1 h-full"
-      }, /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          return setVideoModal("videos/".concat(localVid));
-        },
-        className: "flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95",
-        style: {
-          minHeight: full ? '5rem' : '3.5rem'
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        className: "text-2xl leading-none"
-      }, "\u25B6"), /*#__PURE__*/React.createElement("span", {
-        className: "text-[11px] leading-none"
-      }, "\u05E1\u05E8\u05D8\u05D5\u05DF")), /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          hideStaticVideo(ex.id);
-          setVidTick(function (t) {
-            return t + 1;
-          });
-        },
-        className: "text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5"
-      }, "\u05D4\u05E1\u05E8")) : null;
+        "aria-label": "\u05D4\u05E1\u05E8 \u05D5\u05D9\u05D3\u05D0\u05D5",
+        className: "absolute top-1 left-1 w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[11px] font-black leading-none active:bg-slate-300 active:scale-90"
+      }, "\u2715"));
     };
 
     // ריבוע העלאת וידאו — מוצג כשאין וידאו מכל סוג לתרגיל, עם תווית קטנה וכפתור "+" להעלאה
@@ -4902,13 +4882,13 @@ var DetailView = memo(function DetailView(_ref23) {
     }, hasVideo ? videoBtn(false) : videoUploadTile), /*#__PURE__*/React.createElement("div", {
       className: "min-w-0 flex flex-col"
     }, miniTimer), lastW > 0 ? /*#__PURE__*/React.createElement("div", {
-      className: "rounded-2xl flex flex-col items-center justify-center shadow-sm bg-black"
+      className: "rounded-2xl flex flex-col items-center justify-center bg-slate-50 border border-slate-200"
     }, tileWarm && /*#__PURE__*/React.createElement("span", {
-      className: "text-[9px] font-black text-amber-400 leading-none"
+      className: "text-[9px] font-black text-amber-500 leading-none"
     }, "\uD83D\uDD25 \u05D7\u05D9\u05DE\u05D5\u05DD"), /*#__PURE__*/React.createElement("span", {
-      className: "text-3xl font-black leading-none ".concat(tileWarm ? 'text-amber-400' : 'text-orange-400')
+      className: "text-3xl font-black leading-none text-black"
     }, lastW), /*#__PURE__*/React.createElement("span", {
-      className: "text-[10px] font-black mt-0.5 ".concat(tileWarm ? 'text-amber-300' : 'text-orange-300')
+      className: "text-[10px] font-black mt-0.5 text-slate-600"
     }, "\u05E7\u05F4\u05D2")) : /*#__PURE__*/React.createElement("div", {
       className: "bg-slate-50 border border-slate-100 rounded-2xl"
     }), function () {
@@ -4956,7 +4936,7 @@ var DetailView = memo(function DetailView(_ref23) {
         className: "text-[9px] font-black text-orange-400 mt-0.5"
       }, "\u05DE\u05E0\u05D5\u05D7\u05D4")));
     }())), /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center gap-1.5 mt-2 mb-1.5"
+      className: "flex items-center gap-1.5 mt-4 mb-4"
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         return setShowDetails(function (p) {
@@ -4986,9 +4966,10 @@ var DetailView = memo(function DetailView(_ref23) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, next));
         });
       },
-      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((_warmupOpenMap$ex$id2 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id2 !== void 0 ? _warmupOpenMap$ex$id2 : !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600')
+      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            bg-transparent"
     }, /*#__PURE__*/React.createElement("span", {
-      style: ((_warmupOpenMap$ex$id3 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id3 !== void 0 ? _warmupOpenMap$ex$id3 : !!warmupEmbed[ex.id]) ? undefined : {
+      className: "text-[18px] leading-none",
+      style: ((_warmupOpenMap$ex$id2 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id2 !== void 0 ? _warmupOpenMap$ex$id2 : !!warmupEmbed[ex.id]) ? undefined : {
         filter: 'grayscale(1)',
         opacity: 0.55
       }
@@ -5203,7 +5184,7 @@ var DetailView = memo(function DetailView(_ref23) {
         }
       },
       className: "w-full bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-[13px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none overflow-hidden"
-    }))), function (_warmupOpenMap$ex$id4) {
+    }))), function (_warmupOpenMap$ex$id3) {
       // מתעלמים מערך override ישן/לא תקין שנשמר בגרסה קודמת של האפליקציה ואינו אחת האפשרויות הנוכחיות בתפריט —
       // כדי שלא ליצור קפיצות מוזרות (למשל "9") שאינן ניתנות לבחירה יותר. במקרה כזה חוזרים לברירת המחדל.
       var _ov = weightStepsOverrides ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : undefined;
@@ -5248,7 +5229,7 @@ var DetailView = memo(function DetailView(_ref23) {
           });
         },
         onDeleteLog: onDeleteLog,
-        warmupOpen: (_warmupOpenMap$ex$id4 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id4 !== void 0 ? _warmupOpenMap$ex$id4 : !!warmupEmbed[ex.id],
+        warmupOpen: (_warmupOpenMap$ex$id3 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id3 !== void 0 ? _warmupOpenMap$ex$id3 : !!warmupEmbed[ex.id],
         onToggleWarmup: function onToggleWarmup(v) {
           setWarmupOpenMap(function (p) {
             return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, v));
@@ -5471,8 +5452,8 @@ var DetailView = memo(function DetailView(_ref23) {
     return /*#__PURE__*/React.createElement("div", {
       className: "mt-3 rounded-[1.6rem] border-2 border-slate-300 px-1 pt-2 pb-1",
       style: {
-        background: 'linear-gradient(180deg,#f8fafc,#e2e8f0)',
-        boxShadow: 'inset 0 2px 6px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.08)'
+        background: '#f1f5f9',
+        boxShadow: '0 1px 3px rgba(15,23,42,0.08)'
       }
     }, /*#__PURE__*/React.createElement("div", {
       ref: filmStripRef,
@@ -5582,7 +5563,7 @@ var DetailView = memo(function DetailView(_ref23) {
           color: '#ffffff'
         }
       }, i + 1))), /*#__PURE__*/React.createElement("div", {
-        className: "text-[14px] font-black leading-none mt-1 h-4 ".concat(fWarm ? 'text-amber-500' : 'text-orange-500'),
+        className: "text-[14px] font-black leading-none mt-1 h-4 ".concat(fWarm ? 'text-amber-500' : 'text-slate-900'),
         dir: "ltr"
       }, fW > 0 ? "".concat(fWarm ? '🔥' : '').concat(fW) : ''));
     })), function () {
@@ -5662,7 +5643,7 @@ var DetailView = memo(function DetailView(_ref23) {
         }, allGroups.findIndex(function (x) {
           return x.id === g.id;
         }) + 1))), /*#__PURE__*/React.createElement("div", {
-          className: "text-[14px] font-black leading-none mt-1 h-4 text-orange-500",
+          className: "text-[14px] font-black leading-none mt-1 h-4 text-slate-900",
           dir: "ltr"
         }, fInfo.weight > 0 ? "".concat(fInfo.isWarmup ? '🔥' : '').concat(fInfo.weight) : ''));
       })));
@@ -13457,12 +13438,6 @@ function App() {
       background: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0f172a 100%)'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "absolute inset-0 opacity-10",
-    style: {
-      backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',
-      backgroundSize: '12px 12px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
     className: "relative py-3 px-4 flex items-center justify-center gap-2 active:scale-95 transition-transform"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "Dumbbell",
@@ -13780,7 +13755,7 @@ function App() {
     var end = sessionEndTime ? new Date(sessionEndTime) : null;
     var now = new Date();
     var daysTotal = end ? Math.floor((end - start) / (1000 * 60 * 60 * 24)) : 0;
-    var daysPassed = end ? Math.floor((now - start) / (1000 * 60 * 60 * 24)) : 0;
+    var daysPassed = Math.floor((now - start) / (1000 * 60 * 60 * 24));
     var daysRemaining = Math.max(0, daysTotal - daysPassed);
     var progress = daysTotal > 0 ? Math.min(100, daysPassed / daysTotal * 100) : 0;
     var timerStr = "".concat(String(Math.floor(workoutSec / 60)).padStart(2, '0'), ":").concat(String(workoutSec % 60).padStart(2, '0'));
@@ -13801,14 +13776,7 @@ function App() {
     }, function () {
       var gs = new Date(gymStartTime !== null && gymStartTime !== void 0 ? gymStartTime : sessionStartTime);
       var mo = Math.max(0, Math.floor((now.getTime() - gs.getTime()) / 86400000 / 15.2) / 2); // מרווחים של חצי חודש (ח')
-      var clk = function clk(d) {
-        return d.toLocaleTimeString('he-IL', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
-      };
-      var startClock = workoutSec > 0 ? clk(new Date(now.getTime() - workoutSec * 1000)) : '—';
+      var moCur = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 86400000 / 15.2) / 2);
       return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
         className: "flex items-baseline gap-2"
       }, /*#__PURE__*/React.createElement("span", {
@@ -13827,20 +13795,25 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-[10px] font-bold text-slate-400 shrink-0"
       }, "\u05D0\u05D9\u05DE\u05D5\u05DF \u05E0\u05D5\u05DB\u05D7\u05D9:"), /*#__PURE__*/React.createElement("span", {
-        className: "text-[12px] font-black text-slate-700 shrink-0",
-        dir: "ltr"
-      }, startClock), /*#__PURE__*/React.createElement("div", {
-        className: "flex-1 h-1 rounded-full bg-slate-100 overflow-hidden min-w-[16px]"
+        className: "text-[12px] font-black text-slate-700 shrink-0"
+      }, moCur === 0 ? '<½' : moCur, " \u05D7\u05F3"), /*#__PURE__*/React.createElement("span", {
+        className: "text-[11px] font-black shrink-0",
+        style: {
+          color: '#2d4a6f'
+        },
+        dir: "rtl"
+      }, daysPassed, " \u05D9\u05F3"), /*#__PURE__*/React.createElement("div", {
+        className: "flex-1 h-1 rounded-full bg-slate-200 overflow-hidden min-w-[16px]"
       }, /*#__PURE__*/React.createElement("div", {
         className: "h-full rounded-full transition-all duration-500",
         style: {
-          width: "".concat(Math.min(100, workoutSec / 36), "%"),
-          background: isWorkoutComplete ? '#10b981' : '#2d4a6f'
+          width: "".concat(progress, "%"),
+          background: '#2d4a6f'
         }
       })), /*#__PURE__*/React.createElement("span", {
-        className: "text-[12px] font-black text-slate-700 shrink-0",
-        dir: "ltr"
-      }, clk(now))));
+        className: "text-[11px] font-black text-orange-500 shrink-0",
+        dir: "rtl"
+      }, end ? "".concat(Math.max(0, daysRemaining), " \u05D9\u05F3") : '—')));
     }()), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-1.5 shrink-0"
     }, /*#__PURE__*/React.createElement("button", {
@@ -14014,7 +13987,7 @@ function App() {
         boxShadow: isDoneReal || isSkipped ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'
       }
     }, /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[1.4rem]",
+      className: "flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-[1.4rem]",
       style: {
         background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'
       }
@@ -14092,16 +14065,13 @@ function App() {
           return m === group.id ? null : group.id;
         });
       },
-      className: "w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-lg leading-none flex items-center justify-center active:scale-90",
+      className: "w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-black text-xl leading-none flex items-center justify-center active:scale-90 transition-transform",
+      style: {
+        transform: rowMenu === group.id ? 'rotate(45deg)' : undefined
+      },
       "aria-label": "\u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA"
-    }, "\u22EF"), rowMenu === group.id && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-      className: "fixed inset-0 z-20",
-      onClick: function onClick(e) {
-        e.stopPropagation();
-        setRowMenu(null);
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "absolute left-0 top-full mt-1 z-30 bg-white rounded-xl shadow-xl border border-slate-200 p-1 flex flex-col gap-1 min-w-[7.5rem]",
+    }, "+")), rowMenu === group.id && /*#__PURE__*/React.createElement("div", {
+      className: "basis-full flex gap-2 pt-0.5 pb-0.5",
       onClick: function onClick(e) {
         return e.stopPropagation();
       }
@@ -14111,7 +14081,7 @@ function App() {
         setRowMenu(null);
         if (isSkipped) handleSkipGroup(group.id);else setSkipGroupDlg(group);
       },
-      className: "text-[13px] font-black px-3 py-2 rounded-lg text-slate-700 bg-slate-100 active:scale-95 text-right"
+      className: "flex-1 text-[13px] font-black px-3 py-2 rounded-xl text-slate-700 bg-slate-100 active:scale-95"
     }, isSkipped ? '↩ בטל דילוג' : 'דלג'), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick(e) {
         e.stopPropagation();
@@ -14122,8 +14092,8 @@ function App() {
           });
         });
       },
-      className: "text-[13px] font-black px-3 py-2 rounded-lg text-slate-500 bg-slate-100 active:scale-95 text-right"
-    }, "\u05D4\u05E1\u05EA\u05E8")))))));
+      className: "flex-1 text-[13px] font-black px-3 py-2 rounded-xl text-slate-500 bg-slate-100 active:scale-95"
+    }, "\u05D4\u05E1\u05EA\u05E8")))));
   }), summaryData && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
       return openSummary(summaryData);
