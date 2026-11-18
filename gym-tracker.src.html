@@ -38,7 +38,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.56';
+const APP_VERSION = '10.57';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -752,7 +752,7 @@ const Roller = memo(({ value, onChange, min=0, max=250, step=1, drumStep=null, l
 
 // ─── v10.51: גלגלת כפולה — משקל וחזרות באותו מסך (ובמצב יד-יד גם חזרות לכל יד) ───
 const FRAC_D = [0.75, 0.5, 0.25, 0];
-const Drum = ({ options, value, onPick, fmt=(o=>o), tone='text-slate-900' }) => {
+const Drum = ({ options, value, onPick, onTapSelected=null, fmt=(o=>o), tone='text-slate-900' }) => {
     const ref = React.useRef(null), tm = React.useRef(null), lock = React.useRef(true), first = React.useRef(true);
     const idxOf = v => { let i = options.indexOf(v); if (i < 0) i = options.reduce((b,o,k)=>Math.abs(o-v)<Math.abs(options[b]-v)?k:b,0); return i; };
     useEffect(() => {
@@ -781,7 +781,7 @@ const Drum = ({ options, value, onPick, fmt=(o=>o), tone='text-slate-900' }) => 
         <div ref={ref} onScroll={onScroll} className="h-full overflow-y-scroll no-scrollbar flex-1 min-w-0" style={{ scrollSnapType:'y mandatory', WebkitOverflowScrolling:'touch' }}>
             <div style={{ height: DRUM_HALF * DRUM_H + 'px' }} />
             {options.map(o => (
-                <div key={o} onClick={() => onPick(o)} style={{ height: DRUM_H + 'px', scrollSnapAlign:'center' }}
+                <div key={o} onClick={() => (o === value && onTapSelected) ? onTapSelected() : onPick(o)} style={{ height: DRUM_H + 'px', scrollSnapAlign:'center' }}
                     className={`flex items-center justify-center select-none cursor-pointer transition-all ${o === value ? `font-black text-[26px] ${tone}` : 'font-medium text-[15px] text-slate-400'}`}>{fmt(o)}</div>
             ))}
             <div style={{ height: DRUM_HALF * DRUM_H + 'px' }} />
@@ -810,7 +810,6 @@ const DualPicker = ({ title, w, r, l, perHand, autoCloseAllowed, onApply, onClos
                     <span className="text-base font-black text-slate-700">{title}</span>
                     <div className="flex gap-2">
                         <button onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm active:scale-95">ביטול</button>
-                        <button onClick={confirm} className="px-5 py-2 bg-slate-900 text-white rounded-2xl font-black text-sm active:scale-95">אישור</button>
                     </div>
                 </div>
                 <div className="mx-5 mt-1 flex gap-5" dir="rtl">
@@ -821,27 +820,24 @@ const DualPicker = ({ title, w, r, l, perHand, autoCloseAllowed, onApply, onClos
                     {/* צד ימין: משקל (שלמים + שבר) */}
                     <div className="relative flex gap-1 rounded-2xl bg-blue-50 border-2 border-blue-200" style={{ flex: 2 }} dir="ltr">
                         <div className="absolute inset-x-0 pointer-events-none z-10" style={band} />
-                        <Drum options={wInt} value={intPart} tone="text-blue-800" onPick={i => setWeight(i, fracPart)} />
+                        <Drum options={wInt} value={intPart} tone="text-blue-800" onTapSelected={confirm} onPick={i => setWeight(i, fracPart)} />
                         <div className="w-px bg-slate-200" />
-                        <Drum options={FRAC_D} value={fracPart} fmt={f => '.' + String(Math.round(f * 100)).padStart(2, '0')} tone="text-blue-700" onPick={f => setWeight(intPart, f)} />
+                        <Drum options={FRAC_D} value={fracPart} onTapSelected={confirm} fmt={f => '.' + String(Math.round(f * 100)).padStart(2, '0')} tone="text-blue-700" onPick={f => setWeight(intPart, f)} />
                     </div>
                     {/* צד שמאל: חזרות (ובמצב יד-יד: ימין ושמאל) */}
                     <div className="relative flex gap-1 rounded-2xl bg-emerald-50 border-2 border-emerald-200" style={{ flex: perHand ? 2 : 1 }} dir="ltr">
                         <div className="absolute inset-x-0 pointer-events-none z-10" style={band} />
-                        {perHand && <Drum options={repsOpts} value={ll} onPick={pickLeft} tone="text-fuchsia-700" />}
-                        <Drum options={repsOpts} value={lr} tone="text-emerald-800" onPick={pickReps} />
+                        {perHand && <Drum options={repsOpts} value={ll} onTapSelected={confirm} onPick={pickLeft} tone="text-fuchsia-700" />}
+                        <Drum options={repsOpts} value={lr} tone="text-emerald-800" onTapSelected={confirm} onPick={pickReps} />
                     </div>
                 </div>
-                {/* חצים ▲▼ לפי המרווחים של התרגיל (כמו שהיה בגלגלת הקודמת) */}
-                <div className="mx-5 mb-3 flex gap-5" dir="rtl">
-                    <div className="flex gap-2" style={{ flex: 2 }}>
-                        <button onClick={() => setLw(stepWeight ? stepWeight(lw, -1) : Math.max(0, lw - 1))} className="flex-1 py-2 rounded-xl bg-rose-50 text-rose-500 font-black text-xl active:scale-95 active:bg-rose-100">▼</button>
-                        <button onClick={() => setLw(stepWeight ? stepWeight(lw, 1) : Math.min(250, lw + 1))} className="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-600 font-black text-xl active:scale-95 active:bg-emerald-100">▲</button>
-                    </div>
-                    <div className="flex gap-2" style={{ flex: perHand ? 2 : 1 }}>
-                        <button onClick={() => pickReps(Math.max(1, lr - repsStep))} className="flex-1 py-2 rounded-xl bg-rose-50 text-rose-500 font-black text-xl active:scale-95 active:bg-rose-100">▼</button>
-                        <button onClick={() => pickReps(Math.min(120, lr + repsStep))} className="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-600 font-black text-xl active:scale-95 active:bg-emerald-100">▲</button>
-                    </div>
+                {/* חצים לפי המרווחים של התרגיל: הירוק ▲ והאדום ▼ (מיקומם הוחלף), וכפתור האישור באמצע ביניהם */}
+                <div className="mx-5 mb-3 flex gap-2 items-stretch" dir="rtl">
+                    <button onClick={() => setLw(stepWeight ? stepWeight(lw, 1) : Math.min(250, lw + 1))} className="flex-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 font-black text-xl active:scale-95 active:bg-emerald-100">▲</button>
+                    <button onClick={() => setLw(stepWeight ? stepWeight(lw, -1) : Math.max(0, lw - 1))} className="flex-1 py-3 rounded-xl bg-rose-50 text-rose-500 font-black text-xl active:scale-95 active:bg-rose-100">▼</button>
+                    <button onClick={confirm} className="flex-[1.4] py-3 bg-slate-900 text-white rounded-xl font-black text-base active:scale-95 shadow">אישור ✓</button>
+                    <button onClick={() => pickReps(Math.min(120, lr + repsStep))} className="flex-1 py-3 rounded-xl bg-emerald-50 text-emerald-600 font-black text-xl active:scale-95 active:bg-emerald-100">▲</button>
+                    <button onClick={() => pickReps(Math.max(1, lr - repsStep))} className="flex-1 py-3 rounded-xl bg-rose-50 text-rose-500 font-black text-xl active:scale-95 active:bg-rose-100">▼</button>
                 </div>
                 {autoCloseAllowed && (
                     <label className="mx-5 mb-4 flex items-center gap-2 text-[12px] font-black text-slate-600" dir="rtl">
@@ -1407,10 +1403,9 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     : isWarm && isDone ? 'bg-amber-700'
                                     : isWarm ? 'bg-amber-500'
                                     : isDone ? 'bg-slate-500'
-                                    : showCDown ? 'bg-blue-600'
-                                    : !canAct ? 'bg-slate-300'
                                     : ''}`}
-                                style={(!isWarm && !isDone && !showCDown && canAct) ? {background: isActive ? accentColor : '#16a34a'} : undefined}>
+                                style={(!isWarm && !isDone && !showCDown && canAct) ? {background: accentColor}
+                                    : (!isWarm && !isDone) ? {background: `${accentColor}33`, color: accentColor} : undefined}>
                                 <span className="text-[19px] leading-none">{showCDown ? countdown : isSkipC && !changed ? '✕' : (isDone && !changed) || (!isDone && isTimerFin(conic)) ? '✓' : isWarm ? '🔥' : num}</span>
                                 {phC && <span className="text-[10px] font-black leading-none opacity-90 mr-0.5">{side === 'R' ? 'י' : 'ש'}</span>}
                             </button>
@@ -1497,8 +1492,8 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                                     return nodes;
                                 }
                                 const order = warm
-                                    ? [cell(warm), ...sets.map(cell), addBtn]
-                                    : [...sets.map(cell), addBtn];
+                                    ? [cell(warm), ...sets.map(si => cell(si)), addBtn]
+                                    : [...sets.map(si => cell(si)), addBtn];
                                 // החצים צמודים לשורת הסט הנבחר בלבד (ולא נמתחים על כל השורות)
                                 const selK = Math.max(0, order.findIndex(el => el && String(el.key) === String(selEff)));
                                 const arrowRow = selK + 1;
@@ -1747,6 +1742,9 @@ const EXERCISE_IMAGES = {
 // תמונות מובנות שאיתן הסיר ידנית — לא מוצגות יותר (נשמר ב-localStorage; העלאת תמונה אישית מחזירה תמונה)
 const HIDDEN_STATIC_KEY = 'gym-hidden-static-images';
 (LS.get(HIDDEN_STATIC_KEY, []) || []).forEach(id => { delete EXERCISE_IMAGES[id]; });
+const HIDDEN_STATIC_VID_KEY = 'gym-hidden-static-videos';
+(LS.get(HIDDEN_STATIC_VID_KEY, []) || []).forEach(id => { delete EXERCISE_VIDEOS[id]; });
+const hideStaticVideo = id => { const l = LS.get(HIDDEN_STATIC_VID_KEY, []) || []; if (!l.includes(id)) LS.set(HIDDEN_STATIC_VID_KEY, [...l, id]); delete EXERCISE_VIDEOS[id]; };
 const hideStaticImage = id => { const l = LS.get(HIDDEN_STATIC_KEY, []) || []; if (!l.includes(id)) LS.set(HIDDEN_STATIC_KEY, [...l, id]); delete EXERCISE_IMAGES[id]; };
 
 // ─── VideoModal ─────────────────────────────────────────────
@@ -1792,29 +1790,30 @@ const FilmTimerRing = ({ rt=0, tot=0, cur=false, children }) => {
 const skipReasonLine = txt => { const d = new Date(), p2 = n => String(n).padStart(2,'0'); return `דילוג ${p2(d.getDate())}.${p2(d.getMonth()+1)}.${p2(d.getFullYear()%100)}: ${txt}`; };
 const appendSkipReason = (prev, txt) => { const t = (txt||'').trim(); return t ? ((prev||'').trim() ? prev.trim() + '\n' : '') + skipReasonLine(t) : prev; };
 // סיבות מהירות — לחיצה אחת מדלגת מיד עם הסיבה, בלי להקליד
-const SKIP_QUICK_REASONS = ['עשיתי תרגיל חלופי', 'כאב'];
+const SKIP_QUICK_REASONS = ['עשיתי תרגיל חלופי', 'כאב', 'ציוד תפוס', 'חוסר זמן'];
+// חלון הדילוג: בוחרים סיבה (לא חובה — צ'יפ ו/או טקסט חופשי), ואז לוחצים על אחד משני כפתורי הפעולה הגדולים —
+// "דלג על הסט" או "דלג על כל התרגיל". במסך הראשי (בלי setLabel) יש רק "דלג על התרגיל".
 const SkipReasonModal = ({ title, onConfirm, onCancel, setLabel=null }) => {
     const [txt, setTxt] = useState('');
-    // בדף התרגיל: דילוג על הסט הנבחר או על כל התרגיל (setLabel = שם הסט). מהמסך הראשי — תמיד כל התרגיל
-    const [scope, setScope] = useState('set');
-    const scopeBtn = (v, lbl) => <button onClick={()=>setScope(v)} className={`flex-1 py-2 rounded-2xl text-[13px] font-black active:scale-95 ${scope===v ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'}`}>{lbl}</button>;
+    const [chip, setChip] = useState(null);
+    const reason = () => [chip, txt.trim()].filter(Boolean).join(' — ');
     return ReactDOM.createPortal(
         <div dir="rtl" className="fixed inset-0 z-[400] bg-black/50 flex items-end sm:items-center justify-center p-3" onClick={onCancel}>
             <div className="w-full max-w-md bg-white rounded-3xl p-4 shadow-2xl" onClick={e=>e.stopPropagation()}>
-                <div className="text-[15px] font-black text-slate-800 mb-0.5">סיבת הדילוג</div>
-                {title && <div className="text-[12px] font-bold text-slate-400 mb-2">{title}</div>}
-                {setLabel && <div className="flex gap-2 mb-2">{scopeBtn('set', setLabel)}{scopeBtn('exercise', 'כל התרגיל')}</div>}
-                <div className="flex gap-2 mb-2">
+                <div className="text-[15px] font-black text-slate-800 mb-0.5">דילוג{title ? ` — ${title}` : ''}</div>
+                <div className="text-[12px] font-bold text-slate-400 mb-2">סיבה (לא חובה) — תופיע בהיסטוריה</div>
+                <div className="flex flex-wrap gap-2 mb-2">
                     {SKIP_QUICK_REASONS.map(r => (
-                        <button key={r} onClick={()=>onConfirm(r, r === 'עשיתי תרגיל חלופי' ? 'exercise' : scope)}
-                            className="flex-1 py-2.5 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 font-black text-[13px] active:scale-95">{r}</button>
+                        <button key={r} onClick={()=>setChip(c => c === r ? null : r)}
+                            className={`px-3 py-2 rounded-2xl border font-black text-[13px] active:scale-95 ${chip===r ? 'bg-amber-400 border-amber-500 text-white' : 'bg-amber-100 border-amber-300 text-amber-800'}`}>{r}</button>
                     ))}
                 </div>
-                <textarea value={txt} onChange={e=>setTxt(e.target.value)} rows={3} placeholder="למה מדלגים? (יופיע בהיסטוריה)"
+                <textarea value={txt} onChange={e=>setTxt(e.target.value)} rows={2} placeholder="או כתוב סיבה..."
                     className="w-full bg-amber-50/60 border border-amber-200 rounded-2xl p-3 text-[14px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-                <div className="flex gap-2 mt-3">
-                    <button onClick={()=>onConfirm(txt, scope)} className="flex-1 py-2.5 rounded-2xl bg-orange-500 text-white font-black text-[14px] active:scale-95">דלג</button>
-                    <button onClick={onCancel} className="px-5 py-2.5 rounded-2xl bg-slate-100 text-slate-500 font-black text-[14px] active:scale-95">ביטול</button>
+                <div className="flex flex-col gap-2 mt-3">
+                    {setLabel && <button onClick={()=>onConfirm(reason(), 'set')} className="w-full py-3 rounded-2xl bg-orange-500 text-white font-black text-[15px] active:scale-95">דלג על {setLabel}</button>}
+                    <button onClick={()=>onConfirm(reason(), 'exercise')} className={`w-full py-3 rounded-2xl font-black text-[15px] active:scale-95 ${setLabel ? 'bg-slate-800 text-white' : 'bg-orange-500 text-white'}`}>{setLabel ? 'דלג על כל התרגיל' : 'דלג על התרגיל'}</button>
+                    <button onClick={onCancel} className="w-full py-2 rounded-2xl bg-slate-100 text-slate-500 font-black text-[14px] active:scale-95">ביטול</button>
                 </div>
             </div>
         </div>, document.body);
@@ -1838,6 +1837,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
     };
     const [lightbox,      setLightbox]     = useState(null);
     const [skipDlg, setSkipDlg] = useState(null); // {exId, title, go}
+    const [, setVidTick] = useState(0); // רענון אחרי הסרת וידאו מובנה
     // המשקל הכתוב בסט הבא (לפי מצב הסטים בפועל) — מדווח מכל שורת תרגיל ומוצג בכרטיס המשקל שמתחת לווידאו
     const [selSet, setSelSet] = useState({});
     const reportSel = useCallback((exId, n) => setSelSet(p => p[exId] === n ? p : {...p, [exId]: n}), []);
@@ -1977,7 +1977,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     style={{minHeight: full ? '5rem' : '3.5rem'}}>
                     <span className="text-2xl">▶</span><span className="text-[11px]">YouTube</span>
                 </a>
-                <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
+                <button onClick={()=>onDeleteVideo(ex.id)} className="text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5">הסר</button>
             </div>
         ) : uploadedVid ? (
             <div className="flex flex-col gap-1 h-full">
@@ -1986,14 +1986,17 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     style={{minHeight: full ? '5rem' : '3.5rem'}}>
                     <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">וידאו</span>
                 </button>
-                <button onClick={()=>onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id)} className="text-center text-[9px] font-black text-slate-300 active:text-red-400 py-0.5">הסר</button>
+                <button onClick={()=>onDeleteUploadedVideo && onDeleteUploadedVideo(ex.id)} className="text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5">הסר</button>
             </div>
         ) : localVid ? (
-            <button onClick={()=>setVideoModal(`videos/${localVid}`)}
-                className="flex-1 flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
-                style={{minHeight: full ? '5rem' : '3.5rem'}}>
-                <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">סרטון</span>
-            </button>
+            <div className="flex flex-col gap-1 h-full">
+                <button onClick={()=>setVideoModal(`videos/${localVid}`)}
+                    className="flex-1 w-full flex flex-col items-center justify-center gap-1 bg-white border border-black text-black rounded-2xl font-black active:scale-95"
+                    style={{minHeight: full ? '5rem' : '3.5rem'}}>
+                    <span className="text-2xl leading-none">▶</span><span className="text-[11px] leading-none">סרטון</span>
+                </button>
+                <button onClick={()=>{ hideStaticVideo(ex.id); setVidTick(t=>t+1); }} className="text-center text-[9px] font-black text-slate-400 active:text-slate-600 py-0.5">הסר</button>
+            </div>
         ) : null;
 
         // ריבוע העלאת וידאו — מוצג כשאין וידאו מכל סוג לתרגיל, עם תווית קטנה וכפתור "+" להעלאה
@@ -2050,7 +2053,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         className="relative w-full h-full rounded-2xl cursor-pointer active:opacity-80"
                                         style={{objectFit:'contain', transform:`scale(${exZoom})`, transformOrigin:'center'}} />
                                     {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
-                                        className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
+                                        className="absolute top-1.5 left-1.5 bg-white/90 text-slate-500 rounded-full px-2 py-0.5 text-[9px] font-black shadow">הסר</button>}
                                     {zoomControls}
                                 </div>
                             ) : imageUploadTile}
@@ -2070,7 +2073,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     className="relative w-full h-full rounded-2xl cursor-pointer active:opacity-80"
                                     style={{objectFit:'contain', transform:`scale(${exZoom})`, transformOrigin:'center'}} />
                                 {isPersonal && <button onClick={()=>onRemoveImage(ex.id)}
-                                    className="absolute top-1.5 left-1.5 bg-white/90 text-red-400 rounded-full px-2 py-0.5 text-[9px] font-black active:text-red-600 shadow">הסר</button>}
+                                    className="absolute top-1.5 left-1.5 bg-white/90 text-slate-500 rounded-full px-2 py-0.5 text-[9px] font-black active:text-slate-700 shadow">הסר</button>}
                                 {zoomControls}
                             </div>
                         ) : <div className="relative flex-1 min-w-0" style={{maxHeight:'7.5rem'}}>{imageUploadTile}</div>}
@@ -2094,6 +2097,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         Object.keys(restTimers).forEach(k => { const r = restTimers[k]||0, t = restTimerTotals[k]||0; if (k !== ex.id && r > exRt && t > 0) { exRt = r; exTot = t; } });
                                     }
                                 }
+                                // המנוחה הסתיימה והתרגיל עוד פתוח — מציגים "מוכן" במקום שהריבוע ייעלם (כדי שלא ייראה שהטיימר נעלם)
+                                if (exTot > 0 && exRt <= 0 && !(doneS1Ex && doneS2Ex)) return (
+                                    <div className="rounded-2xl flex flex-col items-center justify-center bg-emerald-50 border-[3px] border-emerald-400">
+                                        <span className="text-2xl font-black text-emerald-600 leading-none">✓</span>
+                                        <span className="text-[9px] font-black text-emerald-500 mt-0.5">מוכן</span>
+                                    </div>
+                                );
                                 if (!(exRt > 0 && exTot > 0)) return <div className="bg-slate-50 border border-slate-100 rounded-2xl" />;
                                 const deg = Math.min(360, (exRt / exTot) * 360);
                                 return (
@@ -2127,7 +2137,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         })}
                         className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}`}>
-                        🔥
+                        <span style={(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? undefined : {filter:'grayscale(1)', opacity:0.55}}>🔥</span>
                     </button>
                     {!isTimerEx && (
                         <button onClick={()=>togglePerHand(ex.id, isPH)} title="יחד / יד"
@@ -2141,7 +2151,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                             onChange={e => { const v = parseStepVal(e.target.value); onUpdateSettings('weightSteps', {...(weightStepsOverrides||{}), [ex.id]: v}); }}
                             title="מרווח משקל"
-                            className="shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center">
+                            className="shrink-0 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center">
                             {['0.25','0.5','1','2','2.5','4','5','4-5','10','seq-bar','seq-stack','seq-thigh','seq-leg'].map(o => <option key={o} value={o}>{WEIGHT_SEQ_LABELS[o] || o}</option>)}
                         </select>
                     )}
@@ -2149,7 +2159,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                         className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95
                             ${selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700'
                               : (selN==null || selHasLog) ? 'bg-slate-100 border-slate-200 text-slate-300'
-                              : 'bg-orange-50 border-orange-200 text-orange-500'}`}>
+                                : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
                         {selSkipLog ? '↩ בטל' : 'דלג'}
                     </button>
                     {onHideGroup && (
@@ -2397,7 +2407,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 const curIdxF = allGroups.findIndex(g => g.id === group.id);
                 // התרגיל הבא לפי סדר האימון = הראשון שטרם הסתיים (בתחילת אימון זה התרגיל הראשון עצמו, לא השני)
                 const nextOrdG = allGroups.find(g => !isGroupDoneHere(g) && !isSkipG(g));
-                const belowIds = new Set([...inProgIds, group.id, ...(nextOrdG ? [nextOrdG.id] : [])]);
+                const belowIds = new Set([...inProgIds, ...(isSkipG(group) ? [] : [group.id]), ...(nextOrdG ? [nextOrdG.id] : [])]);
                 const rtOfBelow = g => { const own = Math.max(0, ...g.exercises.map(e => restTimers[e.id]||0)); const f = fwdTimers[g.id]; return Math.max(own, f ? f.rt : 0); };
                 // מסגרת הטיימר הכתומה בשורת "בעבודה" — רק על המד המתקדם ביותר (זה שנשאר לו הכי מעט זמן); השניות מוצגות בכולם
                 let ringBestId = null, ringBestRt = Infinity;
@@ -2441,7 +2451,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                         {gRt > 0 && <span className={`absolute bottom-0.5 right-0.5 px-1 rounded-lg flex items-center justify-center font-black leading-none text-white shadow ${isCur ? 'min-w-[34px] h-[34px] text-[22px]' : 'min-w-[18px] h-[18px] text-[11px] opacity-80'}`} dir="ltr"
                                             style={{background: gRt <= 20 ? 'rgba(220,38,38,0.92)' : 'rgba(234,88,12,0.92)'}}>{gRt}</span>}
                                         {gFin && <span className="absolute bottom-0.5 right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[11px] font-black leading-none text-white shadow" style={{background:'rgba(22,163,74,0.95)'}}>✓</span>}
-                                        {skipX && <span className="absolute inset-0 flex items-center justify-center text-[34px] font-black leading-none" style={{color:'#ef4444', textShadow:'0 0 3px #fff, 0 0 6px #fff'}}>✕</span>}
+                                        {skipX && <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" fill="none"/><path d="M6 6L18 18M18 6L6 18" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round" fill="none"/></svg>}
                                         {/* תג מספר התרגיל — במקום שורת המספרים הנפרדת שהוסרה */}
                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                             style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>
@@ -2505,7 +2515,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             return (
                                 <div className="mt-1">
                                     <div className="text-[9px] font-black text-slate-400 px-1 leading-none mb-0.5">סגורים</div>
-                                    <div className="flex flex-wrap gap-2" dir="rtl">
+                                    <div className="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-1" dir="rtl">
                                         {closed.map(g => {
                                             const img = imgOf(g);
                                             return (
@@ -2514,7 +2524,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                                         style={{ width:ITEM, height:ITEM, filter:'grayscale(100%)', opacity:0.55 }}>
                                                         {img ? <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                                                              : <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">{g.icon||'🏋️'}</div>}
-                                                        {isSkipG(g) && <span className="absolute inset-0 flex items-center justify-center text-[34px] font-black leading-none" style={{color:'#ef4444', textShadow:'0 0 3px #fff, 0 0 6px #fff'}}>✕</span>}
+                                                        {isSkipG(g) && <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 24 24"><path d="M6 6L18 18M18 6L6 18" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" fill="none"/><path d="M6 6L18 18M18 6L6 18" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round" fill="none"/></svg>}
                                                         <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center leading-none"
                                                             style={{background:'rgba(15,23,42,0.55)', color:'#ffffff'}}>{allGroups.findIndex(x=>x.id===g.id)+1}</span>
                                                     </button>
@@ -4302,6 +4312,8 @@ function App() {
     const [workoutStartTime, setWorkoutStartTime] = useState(()=>LS.get('gym-workout-start', Date.now()));
     const [sessionEndTime,   setSessionEndTime]   = useState(()=>LS.get('gym-session-end', null));
     const [editingDates,     setEditingDates]     = useState(null);
+    const [showHdrDates, setShowHdrDates] = useState(false); // התאריכים ברצועה העליונה מוצגים רק בלחיצה
+    const [rowMenu, setRowMenu] = useState(null); // id של קבוצה שתפריט ה-⋯ שלה פתוח במסך הבית
     // תחילת אימונים במכון — שדה נפרד מתחילת התוכנית. ללא ערך שמור מוצג תאריך תחילת התוכנית (כמו עד היום)
     const [gymStartTime,     setGymStartTime]     = useState(()=>LS.get('gym-gym-start', null));
     const [scrollToExId,     setScrollToExId]     = useState(null);
@@ -6065,97 +6077,83 @@ function App() {
                     const timerStr = `${String(Math.floor(workoutSec/60)).padStart(2,'0')}:${String(workoutSec%60).padStart(2,'0')}`;
 
                     return (
-                        <div className="px-4 mb-1 mt-1 flex items-stretch justify-between gap-3">
-                            {/* תאריכים + מד — מימין */}
-                            <div onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime, gymStart:gymStartTime})}
-                                className="shrink-0 rounded-2xl bg-white border border-slate-200 px-3 py-1.5 cursor-pointer active:scale-[0.98] transition-all touch-manipulation select-none shadow-sm"
+                        <div className="px-3 mt-1">
+                        <div className="flex items-center justify-between gap-2">
+                            {/* מידע דחוס: ותק במכון + האימון הנוכחי; לחיצה חושפת את התאריכים */}
+                            <div onClick={()=>setShowHdrDates(v=>!v)}
+                                className="flex-1 min-w-0 rounded-2xl bg-white border border-slate-200 px-3 py-1 cursor-pointer active:scale-[0.99] transition-all touch-manipulation select-none shadow-sm"
                                 style={{WebkitUserSelect:'none'}}>
                                 {(()=>{
                                     const gs = new Date(gymStartTime ?? sessionStartTime);
-                                    // מרווחים של חצי חודש (ח')
-                                    const mo = Math.max(0, Math.floor(((now.getTime() - gs.getTime()) / 86400000) / 15.2) / 2);
+                                    const mo = Math.max(0, Math.floor(((now.getTime() - gs.getTime()) / 86400000) / 15.2) / 2); // מרווחים של חצי חודש (ח')
+                                    const clk = d => d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',hour12:false});
+                                    const startClock = workoutSec > 0 ? clk(new Date(now.getTime() - workoutSec*1000)) : '—';
                                     return (
                                         <>
-                                        <div className="flex items-baseline gap-4 flex-wrap">
-                                            <span className="text-[9px] font-bold text-slate-400 tracking-wide">מאז</span>
-                                            <span className="text-[13px] font-black text-slate-800 leading-none">{gs.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-[10px] font-bold text-slate-400 shrink-0">מתאמן בחד״כ</span>
                                             <span className="text-[16px] font-black leading-none" style={{color:'#0d9488'}}>{mo === 0 ? 'פחות מ-½' : mo}<span style={{fontSize:'10px'}}> ח׳</span></span>
                                         </div>
-                                        <div className="my-2 h-px w-full" style={{background:'linear-gradient(to left, transparent, #94a3b8 20%, #94a3b8 80%, transparent)', opacity:0.55}} />
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <span className="text-[10px] font-bold text-slate-400 shrink-0">אימון נוכחי:</span>
+                                            <span className="text-[12px] font-black text-slate-700 shrink-0" dir="ltr">{startClock}</span>
+                                            <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden min-w-[16px]">
+                                                <div className="h-full rounded-full transition-all duration-500" style={{width:`${Math.min(100, workoutSec/36)}%`, background: isWorkoutComplete ? '#10b981' : '#2d4a6f'}} />
+                                            </div>
+                                            <span className="text-[12px] font-black text-slate-700 shrink-0" dir="ltr">{clk(now)}</span>
+                                        </div>
                                         </>
                                     );
                                 })()}
-                                <div className="flex gap-5 items-start mb-1">
+                            </div>
+                            {/* שעון (ריבוע קטן כמו שאר הכפתורים), מוזיקה והערות */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button onClick={()=>setIsWorkoutActive(v=>!v)}
+                                    className={`h-8 min-w-[2rem] px-1 rounded-lg flex items-center justify-center font-mono font-black leading-none tracking-tight transition-all active:scale-90 shrink-0
+                                        ${isWorkoutComplete ? 'bg-emerald-500 text-white' : isWorkoutActive ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 text-slate-600'}`}
+                                    style={{fontSize: timerStr.length > 5 ? '9px' : '11px'}} dir="ltr">{timerStr}</button>
+                                <button onClick={()=>setMusicPanelOpen(o=>!o)}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 shrink-0
+                                        ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'}`}>
+                                    <Icon name="Music" size={15} />
+                                </button>
+                                <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} dark={false} square />
+                            </div>
+                        </div>
+                        {showHdrDates && (
+                            <div className="mt-1.5 rounded-2xl bg-slate-50 border border-slate-200 px-3 py-1.5 fade-in">
+                                <div className="flex gap-5 items-start mb-1 cursor-pointer" onClick={()=>setEditingDates({start:sessionStartTime, end:sessionEndTime, gymStart:gymStartTime})}>
                                     <div className="text-right">
-                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">התחלה</div>
-                                        <div className="text-[15px] font-black text-slate-800 leading-none">{start.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
+                                        <div className="text-[9px] font-bold text-slate-400 mb-0.5">התחלה</div>
+                                        <div className="text-[14px] font-black text-slate-800 leading-none">{start.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">סוף</div>
-                                        <div className="text-[15px] font-black text-slate-800 leading-none">{end?.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}) || '—'}</div>
+                                        <div className="text-[9px] font-bold text-slate-400 mb-0.5">סוף</div>
+                                        <div className="text-[14px] font-black text-slate-800 leading-none">{end?.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}) || '—'}</div>
                                     </div>
-                                </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1 shadow-inner">
-                                    <div className="h-full rounded-full transition-all duration-500"
-                                        style={{width:`${progress}%`, background:'#2d4a6f'}} />
-                                </div>
-                                {end ? (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-[15px] font-black" style={{color:'#2d4a6f'}}>{daysPassed}</span>
-                                        <span className="text-[11px] font-bold" style={{color:'#3b5998'}}>ימים עברו</span>
-                                        <span className="text-slate-300 font-bold">·</span>
-                                        <span className="text-[15px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
-                                        <span className="text-[11px] font-bold text-orange-400">נותרו</span>
+                                    <div>
+                                        <div className="text-[9px] font-bold text-slate-400 mb-0.5">במכון מאז</div>
+                                        <div className="text-[14px] font-black text-slate-800 leading-none">{new Date(gymStartTime ?? sessionStartTime).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
                                     </div>
-                                ) : (
-                                    <span className="text-[13px] font-bold text-slate-400">לחץ לעריכה</span>
-                                )}
-                            </div>
-
-                            {/* מונה תרגילים שבוצעו או דולגו מתוך הכל — ברווח שבין התאריכים לשעון */}
-                            {(()=>{
-                                const doneN = visibleGroups.filter(g => skippedGroups.includes(g.id) || g.exercises.every(e => {
-                                    const sl = logs.filter(l=>l.exId===e.id && new Date(l.timestamp).getTime()>workoutStartTime);
-                                    return sl.some(l=>l.setNum===1) && sl.some(l=>l.setNum===2);
-                                })).length;
-                                return (
-                                    <div className="flex-1 min-w-0 flex flex-col items-center justify-center" dir="ltr">
-                                        <span className="text-[22px] font-black leading-none" style={{color: doneN>0 && doneN===visibleGroups.length ? '#16a34a' : '#2d4a6f'}}>{doneN}/{visibleGroups.length}</span>
-                                        <span className="text-[9px] font-bold text-slate-400 mt-0.5" dir="rtl">תרגילים</span>
-                                    </div>
-                                );
-                            })()}
-
-                            {/* מוזיקה/הערות + שעון מלבני — משמאל */}
-                            <div className="flex flex-col items-center justify-center gap-1.5 shrink-0">
-                                <div className="flex items-center gap-1.5">
-                                    <button onClick={()=>setMusicPanelOpen(o=>!o)}
-                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 shrink-0
-                                            ${musicPlaying ? 'bg-purple-500 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'}`}>
-                                        <Icon name="Music" size={15} />
-                                    </button>
-                                    <DevNoteButton noteKey="page-list" pageLabel={PAGE_NOTE_LABELS['page-list']} devNotes={devNotes} devNotesDone={devNotesDone} onSaveDevNote={handleSaveDevNote} dark={false} square />
+                                    <span className="mr-auto text-[11px] font-black text-blue-600 self-center">✏️ עריכה</span>
                                 </div>
-                                <div className="relative" style={{width:'5.5rem', height:'5rem'}}>
-                                    <button onClick={()=>setIsWorkoutActive(v=>!v)} className="relative w-full h-full active:scale-95 transition-transform">
-                                        <svg viewBox="0 0 100 90" className="w-full h-full" style={{filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))'}}>
-                                            <rect x="3" y="3" width="94" height="84" rx="14" fill="none" stroke="#cbd5e1" strokeWidth="4" />
-                                            {workoutSec > 0 && <rect x="3" y="3" width="94" height="84" rx="14" fill="none" stroke={isWorkoutComplete ? '#10b981' : isWorkoutActive ? '#3b82f6' : '#64748b'} strokeWidth="4" strokeLinecap="round"
-                                                strokeDasharray={`${2*(94+84)}`} strokeDashoffset={`${2*(94+84) * (1 - Math.min(1, workoutSec/3600))}`}
-                                                style={{transition:'stroke-dashoffset 1s linear'}} />}
-                                            <rect x="9" y="9" width="82" height="72" rx="10" fill={isWorkoutComplete ? '#10b981' : '#2d4a6f'} />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                                            <Icon name={isWorkoutActive?'Pause':'Play'} size={16} className="mb-1" />
-                                            <span className="font-mono text-[18px] font-black tracking-wider leading-none" dir="ltr">{timerStr}</span>
+                                <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1">
+                                    <div className="h-full rounded-full transition-all duration-500" style={{width:`${progress}%`, background:'#2d4a6f'}} />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    {end ? (
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-[14px] font-black" style={{color:'#2d4a6f'}}>{daysPassed}</span>
+                                            <span className="text-[11px] font-bold" style={{color:'#3b5998'}}>ימים עברו</span>
+                                            <span className="text-slate-300 font-bold">·</span>
+                                            <span className="text-[14px] font-black text-orange-500">{Math.max(0,daysRemaining)}</span>
+                                            <span className="text-[11px] font-bold text-orange-400">נותרו</span>
                                         </div>
-                                    </button>
-                                    <button onClick={e=>{e.stopPropagation();requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0));}}
-                                        className="absolute top-1.5 left-1.5 text-white/60 active:text-white">
-                                        <Icon name="RotateCcw" size={11} />
-                                    </button>
+                                    ) : <span className="text-[12px] font-bold text-slate-400">לחץ על התאריכים לעריכה</span>}
+                                    <button onClick={()=>requestConfirm('לאפס סטופר?',()=>setWorkoutSec(0))} className="text-[11px] font-black text-slate-500 bg-white border border-slate-200 rounded-full px-2.5 py-1 active:scale-95">↺ אפס סטופר</button>
                                 </div>
                             </div>
+                        )}
                         </div>
                     );
                 })()}
@@ -6165,7 +6163,9 @@ function App() {
                 {visibleGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
-                    const isDoneReal = isDone && !isSkipped;
+                    // תרגיל שכל סטיו דולגו מדף התרגיל (משקל 0 וחזרות 0) — מוצג כדולג (✕) ולא כבוצע
+                    const logSkipped = isDone && !isSkipped && group.exercises.every(ex => { const sl = logs.filter(l=>l.exId===ex.id && l.setNum>=1 && new Date(l.timestamp).getTime()>workoutStartTime); return sl.length>0 && sl.every(l=>l.weight===0 && l.reps===0); });
+                    const isDoneReal = isDone && !isSkipped && !logSkipped;
                     const isNext    = idx===nextIncompleteIndex;
                     return (
                         <div id={`ex-btn-${idx}`} key={group.id} className="flex items-center gap-2">
@@ -6186,38 +6186,39 @@ function App() {
                                 style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
                                     border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
                                     boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
-                                <div className={`flex items-center justify-between px-3 py-2 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
-                                    <div className="flex items-center gap-3 min-w-0">
+                                <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
                                         <div className="relative shrink-0">
-                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-16 h-16 rounded-xl object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-16 h-16 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-3xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
+                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-11 h-11 rounded-lg object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-11 h-11 bg-gradient-to-br ${group.color} text-white rounded-lg flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
                                             <span className={isNext ? 'absolute -top-1 -right-1 leading-none text-[10px] font-black text-white px-1.5 py-0.5 rounded-full shadow' : 'absolute -top-1 -right-1 leading-none text-[10px] font-black text-slate-500 bg-white/90 px-1.5 py-0.5 rounded-full shadow'} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
+                                            {(()=>{ const lastW = logs.filter(l=>group.exercises.some(e=>e.id===l.exId)&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lastW ? <span className="absolute -bottom-1 -left-1 leading-none text-[10px] font-black text-orange-500 bg-white px-1 py-0.5 rounded-full shadow border border-orange-200 whitespace-nowrap" dir="rtl">{lastW.weight} קג</span> : null; })()}
                                         </div>
-                                        <div className="flex flex-col justify-center min-w-0" style={{minHeight:'3rem'}}>
-                                            <div className={`font-black text-[15px] leading-tight ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
-                                            {group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
-                                        </div>
-                                            <div className="flex items-center gap-2 mt-0.5 flex-nowrap">
-                                                <div className={`text-[12px] font-black ${isDone?'text-slate-400':group.badgeColor.replace(/bg-\S+\s*/,'')}`}>{group.category}</div>
-                                                {(()=>{ const lastW = logs.filter(l=>group.exercises.some(e=>e.id===l.exId)&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lastW ? <span className="text-[11px] font-black text-orange-500">{lastW.weight} kg</span> : null; })()}
+                                        <div className="flex flex-col justify-center min-w-0 flex-1 mr-1">
+                                            <div className={`font-black text-[14px] leading-tight truncate ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
+                                                {group.exercises.length===1 && customNames[group.exercises[0].id] ? customNames[group.exercises[0].id] : group.title}
                                             </div>
+                                            <div className={`text-[11px] font-black leading-tight truncate ${isDone?'text-slate-400':group.badgeColor.replace(/bg-\S+\s*/,'')}`}>{group.category}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        {!isDoneReal && (
-                                            <button onClick={e=>{e.stopPropagation(); if (isSkipped) handleSkipGroup(group.id); else setSkipGroupDlg(group);}}
-                                                className={`text-[11px] font-bold px-2.5 py-1.5 rounded-full active:scale-95 transition-all
-                                                    ${isSkipped?'bg-orange-200 text-orange-600':'text-slate-500'}`}
-                                                style={isSkipped?{}:{background:'linear-gradient(145deg, #dde1e7, #c0c5cc)', boxShadow:'2px 2px 4px rgba(0,0,0,0.1), -1px -1px 3px rgba(255,255,255,0.5)'}}>
-                                                {isSkipped ? '↩ בטל' : 'דלג'}
-                                            </button>
-                                        )}
-                                        <button onClick={e=>{e.stopPropagation(); requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', ()=>group.exercises.forEach(ex=>handleToggleExercise(ex.id)));}}
-                                            className="text-[11px] font-bold px-2.5 py-1.5 rounded-full text-slate-400 active:scale-95 bg-slate-100">הסתר</button>
+                                    <div className="flex items-center gap-1.5 shrink-0 relative">
                                         {isDoneReal
-                                            ? <div className="flex flex-col items-center gap-0.5 w-9"><div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.1)'}}><Icon name="CheckCircle2" size={20} /></div><span className="text-[9px] font-black text-emerald-600 leading-none">בוצע</span></div>
-                                            : isSkipped
-                                            ? <div className="flex flex-col items-center gap-0.5 w-9"><div className="w-9 h-9 bg-orange-200 rounded-full flex items-center justify-center text-orange-600 font-black text-lg" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.12)'}}>✕</div><span className="text-[9px] font-black text-orange-600 leading-none">דולג</span></div>
+                                            ? <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.1)'}}><Icon name="CheckCircle2" size={18} /></div>
+                                            : (isSkipped || logSkipped)
+                                            ? <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center" style={{boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.12)'}}><svg viewBox="0 0 24 24" className="w-5 h-5"><path d="M6 6L18 18M18 6L6 18" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" fill="none"/></svg></div>
                                             : null}
+                                        <button onClick={e=>{e.stopPropagation(); setRowMenu(m => m===group.id ? null : group.id);}}
+                                            className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-black text-lg leading-none flex items-center justify-center active:scale-90" aria-label="אפשרויות">⋯</button>
+                                        {rowMenu===group.id && (<>
+                                            <div className="fixed inset-0 z-20" onClick={e=>{e.stopPropagation(); setRowMenu(null);}} />
+                                            <div className="absolute left-0 top-full mt-1 z-30 bg-white rounded-xl shadow-xl border border-slate-200 p-1 flex flex-col gap-1 min-w-[7.5rem]" onClick={e=>e.stopPropagation()}>
+                                                {!isDoneReal && !logSkipped && (
+                                                    <button onClick={e=>{e.stopPropagation(); setRowMenu(null); if (isSkipped) handleSkipGroup(group.id); else setSkipGroupDlg(group);}}
+                                                        className="text-[13px] font-black px-3 py-2 rounded-lg text-slate-700 bg-slate-100 active:scale-95 text-right">{isSkipped ? '↩ בטל דילוג' : 'דלג'}</button>
+                                                )}
+                                                <button onClick={e=>{e.stopPropagation(); setRowMenu(null); requestConfirm('להסתיר את התרגיל? הוא יוסר לצמיתות מרשימת התרגילים (אפשר להחזיר בניהול ← תרגילים)', ()=>group.exercises.forEach(ex=>handleToggleExercise(ex.id)));}}
+                                                    className="text-[13px] font-black px-3 py-2 rounded-lg text-slate-500 bg-slate-100 active:scale-95 text-right">הסתר</button>
+                                            </div>
+                                        </>)}
                                     </div>
                                 </div>
                             </div>
