@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.61';
+const APP_VERSION = '10.62';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1179,7 +1179,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     // הסט האחרון המוצג בפועל (הרגיל או האחרון מבין הנוספים) — רק בסיומו עוברים אוטומטית לתרגיל הבא
                     if (num === lastSetNum && isLast) setTimeout(()=>onFinish(true), 800);
                 }
-                setPend(p => p[num] ? {...p, [num]: false} : p);
+                setPend(p => p[num] ? {...p, [num]: false} : p); setHandRest(null);
                 if (num===1) setS1(p=>({...p,wC:false,rC:false}));
                 else if (num===2) setS2(p=>({...p,wC:false,rC:false}));
                 else setExtraVals(p=>({...p, [num]: {...(p[num]||state), wC:false, rC:false}}));
@@ -1203,6 +1203,10 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
 
     const betweenTimer = done.s1 && !done.s2 && restTimerTotal > 0 && !forceSet2Disabled;
 
+    // מנוחה קצרה בין יד ימין ליד שמאל (מצב יד-יד): נספרת על תא היד השנייה, אפשר ללחוץ ולדלג עליה. משך ב-localStorage 'gym-hand-rest' (ברירת מחדל 30 שנ׳)
+    const [handRest, setHandRest] = useState(null);
+    useEffect(() => { if (!handRest || handRest.rem <= 0) return; const t = setTimeout(() => setHandRest(h => h && h.rem > 0 ? {...h, rem: h.rem - 1} : h), 1000); return () => clearTimeout(t); }, [handRest]);
+    const startHandRest = (num) => { const n = Math.max(5, Number(LS.get('gym-hand-rest', 30)) || 30); setHandRest({ num, rem: n, tot: n }); };
     const conicStyle = (rt, tot) => {
         if (!tot) return null;
         if (rt === 0) { const o = { border:`4px solid ${accentColor}`, borderRadius:'1.6rem', background:`${accentColor}18`, boxShadow:`0 2px 12px ${accentColor}55` }; _finTimerStyles.add(o); return o; }
@@ -1377,7 +1381,9 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     if (phC) {
                         const pd = !!pend[num];
                         if (side === 'R') { isDone = logged || pd; if (pd && !logged) { canAct = !isSaving; canActFinal = canAct; isActive = false; } }
-                        else { conic = null; countdown = 0; showCDown = false; canAct = logged ? canAct : (pd && !isSaving); canActFinal = canAct; isActive = !logged && pd && !isSaving; }
+                        else { conic = null; countdown = 0; showCDown = false; canAct = logged ? canAct : (pd && !isSaving); canActFinal = canAct; isActive = !logged && pd && !isSaving;
+                            const hr = (!logged && pd && handRest && handRest.num === num) ? handRest : null;
+                            if (hr) { conic = conicStyle(hr.rem, hr.tot); countdown = hr.rem; showCDown = hr.rem > 0; isActive = false; } }
                         dimDone = logged && !(state.wC || state.rC);
                     }
                     const repV = side === 'L' ? (state.l != null ? state.l : state.r) : state.r;
@@ -1393,7 +1399,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             <button onClick={(e)=>{ e.stopPropagation(); if (!canActFinal) return; setSelNum(null); setSelField(null);
                                 if (isWarm) { handleWarmupSave(); return; }
                                 if (isTimerEx) { if (timerState?.num===num) { clearInterval(timerIntervalRef.current); setTimerState(null); } handleSetSave(num, {...state, r: isDone ? (state.r||bellyTimerSecs) : bellyTimerSecs}); return; }
-                                if (phC && !logged) { if (side === 'R') setPend(p => ({...p, [num]: !p[num]})); else handleSetSave(num, state); return; }
+                                if (phC && !logged) { if (side === 'R') { const on = !pend[num]; setPend(p => ({...p, [num]: on})); if (on) startHandRest(num); else setHandRest(null); } else handleSetSave(num, state); return; }
                                 handleSetSave(num, state); }}
                                 aria-disabled={!canActFinal}
                                 className={`flex-1 min-w-0 h-[26px] self-center rounded-lg flex flex-row items-center justify-center font-black text-white active:scale-95 transition-all
@@ -1462,7 +1468,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                             pi.setState(p => ({...p, w, [key]: r, wC: p.wC || w !== p.w, rC: p.rC || r !== (key === 'l' ? (p.l != null ? p.l : p.r) : p.r)}));
                             if (opt.autoClose && opt.repsTouched && pi.canActFinal) {
                                 setSelNum(null); setSelField(null);
-                                if (pSide === 'R') setPend(p => ({...p, [pi.num]: true}));
+                                if (pSide === 'R') { setPend(p => ({...p, [pi.num]: true})); startHandRest(pi.num); }
                                 else handleSetSave(pi.num, {...pi.state, w, ...(pSide === 'L' ? {l: r} : {r})});
                             }
                         }} />}
@@ -2085,10 +2091,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                                     if (fPrevRt > 0 && fPrevTot > 0) { exRt = fPrevRt; exTot = fPrevTot; }
                                     else {
                                         Object.keys(restTimers).forEach(k => { const r = restTimers[k]||0, t = restTimerTotals[k]||0; if (k !== ex.id && r > exRt && t > 0) { exRt = r; exTot = t; } });
+                                        // אין מנוחה רצה, אבל המנוחה מהתרגיל הקודם הסתיימה — ✓ ירוק במקום ריבוע ריק
+                                        if (!(exRt > 0) && !(exTot > 0) && fPrevTot > 0 && fPrevRt <= 0) { exRt = 0; exTot = fPrevTot; }
                                     }
                                 }
                                 // המנוחה הסתיימה והתרגיל עוד פתוח — מציגים "מוכן" במקום שהריבוע ייעלם (כדי שלא ייראה שהטיימר נעלם)
-                                if (exTot > 0 && exRt <= 0 && !(doneS1Ex && doneS2Ex)) return (
+                                if (exTot > 0 && exRt <= 0) return (
                                     <div className="rounded-2xl flex flex-col items-center justify-center bg-emerald-50 border-[3px] border-emerald-400">
                                         <span className="text-2xl font-black text-emerald-600 leading-none">✓</span>
                                         <span className="text-[9px] font-black text-emerald-500 mt-0.5">מוכן</span>
