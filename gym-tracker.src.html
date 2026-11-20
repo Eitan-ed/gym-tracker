@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.62';
+const APP_VERSION = '10.63';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -439,8 +439,13 @@ function speakBelly(txt, rate=1.0) {
 const exById = id => { for (const g of exerciseGroups) for (const e of g.exercises) if (String(e.id) === String(id)) return e; return null; };
 const spokenNameById = id => { const ex = exById(id); return ex ? spokenName(ex) : ''; };
 // הכרזה קולית אחת לכל המערכת: [תרגיל N] משקל [חימום]
+let _lastSpoken = { key: '', t: 0 };
 function speakNextSet(info, label, cancel=false) {
     if (!window.speechSynthesis || !info || !(info.weight > 0)) return;
+    // אותה הכרזה בדיוק (תרגיל + משקל + חימום) לא נאמרת פעמיים בתוך 8 שניות — למשל מעבר אוטומטי ובמקביל סיום טיימר
+    const key = `${label}|${info.weight}|${info.isWarmup ? 1 : 0}`; const nowT = Date.now();
+    if (_lastSpoken.key === key && nowT - _lastSpoken.t < 8000) return;
+    _lastSpoken = { key, t: nowT };
     if (cancel) window.speechSynthesis.cancel();
     const say = (txt) => { const u = new SpeechSynthesisUtterance(String(txt)); u.lang = 'he-IL'; u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u); };
     if (label) say(label);
@@ -5067,7 +5072,8 @@ function App() {
                         setActiveGroup(other); setView('detail');
                         setScrollToExId(oEx.id);
                         if (oInfo.weight > 0) setAutoTransitionSplash({ title: other.title, weight: oInfo.weight, reps: oInfo.reps, isWarmup: oInfo.isWarmup, exId: oEx.id });
-                        speakNextSet(oInfo, spokenName(oEx), true);
+                        // התרגיל השני עדיין במנוחה: לא מכריזים עכשיו — ההכרזה תישמע פעם אחת, בסיום הטיימר שלו (במקום פעמיים)
+                        if (!((restTimersRef.current[oEx.id] || 0) > 0)) speakNextSet(oInfo, spokenName(oEx), true);
                     }
                 }
             }

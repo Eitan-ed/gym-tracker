@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.62';
+var APP_VERSION = '10.63';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -1088,9 +1088,21 @@ var spokenNameById = function spokenNameById(id) {
   return ex ? spokenName(ex) : '';
 };
 // הכרזה קולית אחת לכל המערכת: [תרגיל N] משקל [חימום]
+var _lastSpoken = {
+  key: '',
+  t: 0
+};
 function speakNextSet(info, label) {
   var cancel = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
   if (!window.speechSynthesis || !info || !(info.weight > 0)) return;
+  // אותה הכרזה בדיוק (תרגיל + משקל + חימום) לא נאמרת פעמיים בתוך 8 שניות — למשל מעבר אוטומטי ובמקביל סיום טיימר
+  var key = "".concat(label, "|").concat(info.weight, "|").concat(info.isWarmup ? 1 : 0);
+  var nowT = Date.now();
+  if (_lastSpoken.key === key && nowT - _lastSpoken.t < 8000) return;
+  _lastSpoken = {
+    key: key,
+    t: nowT
+  };
   if (cancel) window.speechSynthesis.cancel();
   var say = function say(txt) {
     var u = new SpeechSynthesisUtterance(String(txt));
@@ -11902,7 +11914,8 @@ function App() {
               isWarmup: oInfo.isWarmup,
               exId: oEx.id
             });
-            speakNextSet(oInfo, spokenName(oEx), true);
+            // התרגיל השני עדיין במנוחה: לא מכריזים עכשיו — ההכרזה תישמע פעם אחת, בסיום הטיימר שלו (במקום פעמיים)
+            if (!((restTimersRef.current[oEx.id] || 0) > 0)) speakNextSet(oInfo, spokenName(oEx), true);
           }
         }
       }
