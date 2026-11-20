@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.60';
+const APP_VERSION = '10.61';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -2776,16 +2776,42 @@ const restoreMediaFromDir = async (dirHandle) => {
         return n;
     } catch { return 0; }
 };
+// כתיבה בטוחה לקובץ בתיקייה מחוברת (FILING): תור לכל קובץ (בלי כתיבות מקבילות שמרוקנות אותו), ביטול כתיבה שנכשלה,
+// אימות שהקובץ אינו ריק אחרי הכתיבה, וניסיון חוזר. append=true מוסיף לתוכן קיים (למשל דוח מתוארך שני באותו יום).
+const _fileQueues = {};
+const writeFileSafe = (dir, fname, data, { append = false, bom = true } = {}) => {
+    const attempt = async (doAppend) => {
+        const fh = await dir.getFileHandle(fname, { create: true });
+        let body = data;
+        if (doAppend && typeof data === 'string') {
+            try { const old = (await (await fh.getFile()).text()).replace(/^﻿/, ''); if (old.trim()) body = old.replace(/\s+$/, '') + '\n\n' + data; } catch {}
+        }
+        const w = await fh.createWritable();
+        try { await w.write(typeof body === 'string' ? new Blob([(bom ? '﻿' : '') + body], { type: 'text/plain;charset=utf-8' }) : body); await w.close(); }
+        catch (e) { try { await w.abort(); } catch {} throw e; }
+        const size = (await fh.getFile()).size;
+        if (!size) throw new Error('empty-file');
+        return true;
+    };
+    const run = async () => {
+        let lastErr;
+        for (let i = 0; i < 3; i++) {
+            try { return await attempt(append && i === 0); }
+            catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 300 * (i + 1))); }
+        }
+        throw lastErr;
+    };
+    const next = (_fileQueues[fname] || Promise.resolve()).catch(() => {}).then(run);
+    _fileQueues[fname] = next;
+    return next;
+};
 const writeToDir = async (dirHandle, json, fname) => {
     const perm = await dirHandle.queryPermission({mode:'readwrite'});
     if (perm !== 'granted') {
         const req = await dirHandle.requestPermission({mode:'readwrite'});
         if (req !== 'granted') return false;
     }
-    const fh = await dirHandle.getFileHandle(fname, {create:true});
-    const writable = await fh.createWritable();
-    await writable.write(json);
-    await writable.close();
+    await writeFileSafe(dirHandle, fname, json, { bom: false });
     return true;
 };
 
@@ -4412,19 +4438,13 @@ function App() {
     // שומר קובץ טקסט לתיקיית FILING אם מחוברת, אחרת מוריד כרגיל
     // תמיד שומר גם קובץ מקומי (הורדה רגילה) וגם, אם תיקיית FILING מחוברת, כותב לשם במקביל.
     // מחזיר true אם הכתיבה ל-FILING הצליחה (למטרות הודעת סטטוס בלבד).
-    const saveTextFile = async (fname, txt) => {
+    const saveTextFile = async (fname, txt, append=false) => {
         let filingOk = false;
         if (filingDirRef.current) {
             try {
                 let perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
                 if (perm !== 'granted') perm = await filingDirRef.current.requestPermission({ mode: 'readwrite' });
-                if (perm === 'granted') {
-                    const fh = await filingDirRef.current.getFileHandle(fname, { create: true });
-                    const w = await fh.createWritable();
-                    await w.write(new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'}));
-                    await w.close();
-                    filingOk = true;
-                }
+                if (perm === 'granted') filingOk = await writeFileSafe(filingDirRef.current, fname, txt, { append });
             } catch {}
         }
         const blob = new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'});
@@ -4435,16 +4455,16 @@ function App() {
         return filingOk;
     };
     // כתיבה שקטה ל-FILING בלבד (ללא הורדה מקומית) — לשימוש בסנכרון אוטומטי ברקע, לא בפעולה יזומה של המשתמש
+    const lastSyncedRef = React.useRef({});
     const syncTextFileToFilingOnly = async (fname, txt) => {
         if (!filingDirRef.current) return false;
+        if (lastSyncedRef.current[fname] === txt) return true; // אותו תוכן כבר נכתב — לא כותבים שוב
         try {
             let perm = await filingDirRef.current.queryPermission({ mode: 'readwrite' });
             if (perm !== 'granted') perm = await filingDirRef.current.requestPermission({ mode: 'readwrite' });
             if (perm !== 'granted') return false;
-            const fh = await filingDirRef.current.getFileHandle(fname, { create: true });
-            const w = await fh.createWritable();
-            await w.write(new Blob(['﻿'+txt], {type:'text/plain;charset=utf-8'}));
-            await w.close();
+            await writeFileSafe(filingDirRef.current, fname, txt);
+            lastSyncedRef.current[fname] = txt;
             return true;
         } catch { return false; }
     };
@@ -4478,7 +4498,7 @@ function App() {
         txt += `חדשות (טרם יוצאו):\n\n`;
         pending.forEach(([exId,t])=>{ txt += `• ${nameOfNoteKey(exId)}:\n${markImplemented(t)}\n\n`; });
         const fname = `gym-dev-notes-report-${new Date().toISOString().slice(0,10)}.txt`;
-        const savedToFiling = await saveTextFile(fname, txt);
+        const savedToFiling = await saveTextFile(fname, txt, true); // מצטרף לדוח של אותו יום (לא דורס)
         const nextMap = {...exportedMap}; pending.forEach(([k,t])=>{ nextMap[k] = t; });
         LS.set('gym-dev-notes-exported', nextMap);
         purgeImplementedNotes();
@@ -6144,7 +6164,7 @@ function App() {
                 })()}
             </header>
 
-            <main className="p-4 space-y-3 flex-1 overflow-y-auto no-scrollbar pb-36" style={{boxShadow:'inset 0 6px 10px -8px rgba(45,74,111,0.15)'}}>
+            <main className="px-3 py-2 space-y-1.5 flex-1 overflow-y-auto no-scrollbar pb-36" style={{boxShadow:'inset 0 6px 10px -8px rgba(45,74,111,0.15)'}}>
                 {visibleGroups.map((group,idx)=>{
                     const isSkipped = skippedGroups.includes(group.id);
                     const isDone    = isGroupDone(group);
@@ -6171,12 +6191,13 @@ function App() {
                                 style={{background: isDoneReal ? 'linear-gradient(145deg, #d1d5db, #e5e7eb)' : isSkipped ? 'linear-gradient(145deg, #fed7aa, #fef3c7)' : '#ffffff',
                                     border: (!isDoneReal && !isSkipped) ? (isNext ? '4px solid #3b82f6' : '2px solid #cbd5e1') : 'none',
                                     boxShadow: (isDoneReal || isSkipped) ? '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.7)' : '0 2px 6px rgba(0,0,0,0.06)'}}>
-                                <div className={`flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
+                                <div className={`flex flex-wrap items-center justify-between gap-1.5 px-2 py-1 rounded-[1.4rem]`} style={{background: isDoneReal ? 'linear-gradient(145deg, #e5e7eb, #d1d5db)' : isSkipped ? 'linear-gradient(145deg, #fff7ed, #fed7aa80)' : '#ffffff'}}>
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                                        <div className="relative shrink-0">
-                                            {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-11 h-11 rounded-lg object-cover shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div className={`w-11 h-11 bg-gradient-to-br ${group.color} text-white rounded-lg flex items-center justify-center text-2xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
-                                            <span className={isNext ? 'absolute -top-1 -right-1 leading-none text-[10px] font-black text-white px-1.5 py-0.5 rounded-full shadow' : 'absolute -top-1 -right-1 leading-none text-[10px] font-black text-slate-500 bg-white/90 px-1.5 py-0.5 rounded-full shadow'} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
-                                            {(()=>{ const lastW = logs.filter(l=>group.exercises.some(e=>e.id===l.exId)&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lastW ? <span className="absolute -bottom-1 -left-1 leading-none text-[10px] font-black text-orange-500 bg-white px-1 py-0.5 rounded-full shadow border border-orange-200 whitespace-nowrap" dir="rtl">{lastW.weight} קג</span> : null; })()}
+                                        {(()=>{ const ex0=group.exercises[0]; const src=images?.[ex0?.id]||(EXERCISE_IMAGES[ex0?.id]?`images/${EXERCISE_IMAGES[ex0.id]}`:null); const gRt = Math.max(0, ...group.exercises.map(e => restTimers[e.id]||0)); const ringSt = gRt > 0 ? {boxShadow:`0 0 0 3px ${gRt <= 20 ? '#ef4444' : '#f97316'}`} : undefined; return src ? <img src={src} style={ringSt} className={`w-[4.5rem] h-14 rounded-xl object-cover shrink-0 shadow-inner ${isDone?'opacity-50 grayscale':''}`} /> : <div style={ringSt} className={`w-[4.5rem] h-14 shrink-0 bg-gradient-to-br ${group.color} text-white rounded-xl flex items-center justify-center text-3xl shadow-inner ${isDone?'opacity-50 grayscale':''}`}>{group.icon}</div>; })()}
+                                        {/* עמודה צרה משמאל לתמונה: מספר התרגיל מעל, המשקל האחרון מתחתיו — לא מסתירים את התמונה */}
+                                        <div className="flex flex-col items-center justify-center gap-1 shrink-0 w-9" dir="rtl">
+                                            <span className={`leading-none text-[10px] font-black px-1.5 py-0.5 rounded-full ${isNext ? 'text-white' : 'text-slate-500 bg-slate-100'}`} style={isNext ? {background:group.hex} : undefined}>{idx+1}/{visibleGroups.length}</span>
+                                            {(()=>{ const lastW = logs.filter(l=>group.exercises.some(e=>e.id===l.exId)&&l.weight>0).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0]; return lastW ? <span className="leading-none text-[11px] font-black text-orange-500 whitespace-nowrap">{lastW.weight}<span className="text-[8px] opacity-80"> קג</span></span> : <span className="leading-none text-[11px] font-black text-slate-300">—</span>; })()}
                                         </div>
                                         <div className="flex flex-col justify-center min-w-0 flex-1 mr-1">
                                             <div className={`font-black text-[14px] leading-tight truncate ${isDone?'text-slate-500 line-through':'text-slate-800'}`}>
