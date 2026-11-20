@@ -64,7 +64,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.59';
+var APP_VERSION = '10.60';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -3385,10 +3385,8 @@ function ExerciseEntryRow(_ref15) {
       });
       var borderSt = isSkipC ? {
         border: '2px solid #fb923c'
-      } : isWarm ? isDone ? {
+      } : isWarm && isDone ? {
         border: '2px solid #d97706'
-      } : {
-        border: '2px dashed #f59e0b'
       } : conic || (isActive ? {
         border: "2px solid ".concat(accentColor),
         boxShadow: "0 3px 10px ".concat(accentColor, "30")
@@ -4735,7 +4733,7 @@ var DetailView = memo(function DetailView(_ref23) {
       onClick: function onClick() {
         return onToggleWorkout && onToggleWorkout();
       },
-      className: "flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl font-black active:scale-95 border transition-colors\n                    ".concat(isWorkoutActive ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-200 border-slate-300 text-slate-600')
+      className: "flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl font-black active:scale-95 border transition-colors\n                    ".concat(isWorkoutActive ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white border-slate-200 text-slate-700')
     }, /*#__PURE__*/React.createElement(Icon, {
       name: isWorkoutActive ? 'Pause' : 'Play',
       size: 18
@@ -4943,7 +4941,7 @@ var DetailView = memo(function DetailView(_ref23) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, !p[ex.id]));
         });
       },
-      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((notes === null || notes === void 0 ? void 0 : notes[ex.id]) || '').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600')
+      className: "flex-1 flex items-center justify-center gap-1 px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(((notes === null || notes === void 0 ? void 0 : notes[ex.id]) || '').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600')
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "BookOpen",
       size: 15
@@ -4953,7 +4951,7 @@ var DetailView = memo(function DetailView(_ref23) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, !p[ex.id]));
         });
       },
-      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(historyOpen[ex.id] ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600')
+      className: "flex-1 flex items-center justify-center gap-1 px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            ".concat(historyOpen[ex.id] ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600')
     }, /*#__PURE__*/React.createElement(Icon, {
       name: "History",
       size: 15
@@ -4966,9 +4964,9 @@ var DetailView = memo(function DetailView(_ref23) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, ex.id, next));
         });
       },
-      className: "flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            bg-transparent"
+      className: "flex-1 flex items-center justify-center gap-1 px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                            bg-transparent border border-transparent"
     }, /*#__PURE__*/React.createElement("span", {
-      className: "text-[18px] leading-none",
+      className: "text-[16px] leading-none",
       style: ((_warmupOpenMap$ex$id2 = warmupOpenMap[ex.id]) !== null && _warmupOpenMap$ex$id2 !== void 0 ? _warmupOpenMap$ex$id2 : !!warmupEmbed[ex.id]) ? undefined : {
         filter: 'grayscale(1)',
         opacity: 0.55
@@ -4978,7 +4976,7 @@ var DetailView = memo(function DetailView(_ref23) {
         return togglePerHand(ex.id, isPH);
       },
       title: "\u05D9\u05D7\u05D3 / \u05D9\u05D3",
-      className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                                ".concat(isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600')
+      className: "flex-1 flex items-center justify-center px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all\n                                ".concat(isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600')
     }, isPH ? 'יד' : 'יחד'), onUpdateSettings && /*#__PURE__*/React.createElement("select", {
       value: String((weightStepsOverrides === null || weightStepsOverrides === void 0 ? void 0 : weightStepsOverrides[ex.id]) !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id]) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1),
       onChange: function onChange(e) {
@@ -4986,7 +4984,7 @@ var DetailView = memo(function DetailView(_ref23) {
         onUpdateSettings('weightSteps', _objectSpread(_objectSpread({}, weightStepsOverrides || {}), {}, _defineProperty({}, ex.id, v)));
       },
       title: "\u05DE\u05E8\u05D5\u05D5\u05D7 \u05DE\u05E9\u05E7\u05DC",
-      className: "shrink-0 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center"
+      className: "shrink-0 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-1 h-9 text-[11px] font-black outline-none w-14 text-center"
     }, ['0.25', '0.5', '1', '2', '2.5', '4', '5', '4-5', '10', 'seq-bar', 'seq-stack', 'seq-thigh', 'seq-leg'].map(function (o) {
       return /*#__PURE__*/React.createElement("option", {
         key: o,
@@ -4995,12 +4993,12 @@ var DetailView = memo(function DetailView(_ref23) {
     })), /*#__PURE__*/React.createElement("button", {
       onClick: handleSelSkip,
       disabled: selN == null || selHasLog && !selSkipLog,
-      className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95\n                            ".concat(selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700' : selN == null || selHasLog ? 'bg-slate-100 border-slate-200 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600')
+      className: "flex-1 flex items-center justify-center px-2 h-9 rounded-xl border text-[11px] font-black active:scale-95\n                            ".concat(selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700' : selN == null || selHasLog ? 'bg-slate-100 border-slate-200 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600')
     }, selSkipLog ? '↩ בטל' : 'דלג'), onHideGroup && /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         return onHideGroup(group);
       },
-      className: "flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-500 active:scale-95"
+      className: "flex-1 flex items-center justify-center px-2 h-9 rounded-xl border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-500 active:scale-95"
     }, "\u05D4\u05E1\u05EA\u05E8")), showDetails[ex.id] && /*#__PURE__*/React.createElement("section", {
       className: "bg-slate-50 rounded-3xl border border-slate-100 mb-2 shadow-inner overflow-hidden"
     }, showDetails[ex.id] && /*#__PURE__*/React.createElement("div", {
@@ -13786,7 +13784,7 @@ function App() {
         style: {
           color: '#0d9488'
         }
-      }, mo === 0 ? 'פחות מ-½' : mo, /*#__PURE__*/React.createElement("span", {
+      }, mo === 0 ? 0.5 : mo, /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: '10px'
         }
@@ -13796,7 +13794,7 @@ function App() {
         className: "text-[10px] font-bold text-slate-400 shrink-0"
       }, "\u05D0\u05D9\u05DE\u05D5\u05DF \u05E0\u05D5\u05DB\u05D7\u05D9:"), /*#__PURE__*/React.createElement("span", {
         className: "text-[12px] font-black text-slate-700 shrink-0"
-      }, moCur === 0 ? '<½' : moCur, " \u05D7\u05F3")));
+      }, moCur === 0 ? 0.5 : moCur, " \u05D7\u05F3")));
     }()), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-1.5 shrink-0"
     }, /*#__PURE__*/React.createElement("button", {
@@ -13805,7 +13803,7 @@ function App() {
           return !v;
         });
       },
-      className: "h-8 min-w-[2rem] px-1 rounded-lg flex items-center justify-center font-mono font-black leading-none tracking-tight transition-all active:scale-90 shrink-0\n                                        ".concat(isWorkoutComplete ? 'bg-emerald-500 text-white' : isWorkoutActive ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 text-slate-600'),
+      className: "h-8 min-w-[2rem] px-1 rounded-lg flex items-center justify-center font-mono font-black leading-none tracking-tight transition-all active:scale-90 shrink-0\n                                        ".concat(isWorkoutComplete ? 'bg-emerald-500 text-white' : isWorkoutActive ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700'),
       style: {
         fontSize: timerStr.length > 5 ? '9px' : '11px'
       },

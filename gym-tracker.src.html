@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.59';
+const APP_VERSION = '10.60';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -1383,7 +1383,7 @@ function ExerciseEntryRow({ ex, logs, sessionStartTime, onSave, onFinish, isLast
                     const repV = side === 'L' ? (state.l != null ? state.l : state.r) : state.r;
                     const isSel = num === selEff;
                     const isSkipC = isDone && logs.some(l => l.exId===ex.id && l.setNum===num && new Date(l.timestamp).getTime()>sessionStartTime && l.weight===0 && l.reps===0);
-                    const borderSt = isSkipC ? {border:'2px solid #fb923c'} : isWarm ? (isDone ? {border:'2px solid #d97706'} : {border:'2px dashed #f59e0b'})
+                    const borderSt = isSkipC ? {border:'2px solid #fb923c'} : isWarm && isDone ? {border:'2px solid #d97706'}
                         : conic || (isActive ? {border:`2px solid ${accentColor}`, boxShadow:`0 3px 10px ${accentColor}30`} : isDone ? {border:'2px solid #94a3b8'} : {border:'1px solid #e2e8f0'});
                     const changed = logged && (state.wC || state.rC);
                     return (
@@ -2012,7 +2012,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
         const miniTimer = (
             <button onClick={()=>onToggleWorkout&&onToggleWorkout()}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl font-black active:scale-95 border transition-colors
-                    ${isWorkoutActive ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-200 border-slate-300 text-slate-600'}`}>
+                    ${isWorkoutActive ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>
                 <Icon name={isWorkoutActive?'Pause':'Play'} size={18} />
                 <span className="font-mono text-[15px] font-black tracking-widest leading-none" dir="ltr">{wTimerStr}</span>
             </button>
@@ -2111,12 +2111,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                 {/* שורה מאוחדת: איך לבצע / היסטוריה / חימום (דילוג מתבצע מרשימת התרגילים בלבד, ומוצג בהיסטוריה) */}
                 <div className="flex items-center gap-1.5 mt-4 mb-4">
                     <button onClick={()=>setShowDetails(p=>({...p,[ex.id]:!p[ex.id]}))}
-                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${(notes?.[ex.id]||'').trim() ? 'bg-red-100 text-red-600 border border-red-300' : showDetails[ex.id] ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}`}>
                         <Icon name="BookOpen" size={15} />
                     </button>
                     <button onClick={()=>setHistoryOpen(p=>({...p,[ex.id]:!p[ex.id]}))}
-                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all
                             ${historyOpen[ex.id] ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600'}`}>
                         <Icon name="History" size={15} />
                     </button>
@@ -2125,13 +2125,13 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             if (next) handleWarmupOpened(ex.id); else handleWarmupClosed(ex.id);
                             return {...p,[ex.id]:next};
                         })}
-                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
-                            bg-transparent`}>
-                        <span className="text-[18px] leading-none" style={(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? undefined : {filter:'grayscale(1)', opacity:0.55}}>🔥</span>
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                            bg-transparent border border-transparent`}>
+                        <span className="text-[16px] leading-none" style={(warmupOpenMap[ex.id] ?? !!warmupEmbed[ex.id]) ? undefined : {filter:'grayscale(1)', opacity:0.55}}>🔥</span>
                     </button>
                     {!isTimerEx && (
                         <button onClick={()=>togglePerHand(ex.id, isPH)} title="יחד / יד"
-                            className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl text-[11px] font-black active:scale-95 transition-all
+                            className={`flex-1 flex items-center justify-center px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all
                                 ${isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600'}`}>
                             {isPH ? 'יד' : 'יחד'}
                         </button>
@@ -2141,12 +2141,12 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                             value={String((weightStepsOverrides?.[ex.id] !== undefined && ALLOWED_WEIGHT_STEPS.has(weightStepsOverrides[ex.id])) ? effectiveStepOv(ex.id, weightStepsOverrides[ex.id]) : (CUSTOM_WEIGHT_VALUES[ex.id] ? '4-5' : isBarExercise(ex.id) ? 'seq-bar' : (DEFAULT_WEIGHT_STEPS[ex.id] !== undefined ? DEFAULT_WEIGHT_STEPS[ex.id] : 1)))}
                             onChange={e => { const v = parseStepVal(e.target.value); onUpdateSettings('weightSteps', {...(weightStepsOverrides||{}), [ex.id]: v}); }}
                             title="מרווח משקל"
-                            className="shrink-0 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-1 py-1.5 text-[11px] font-black outline-none w-14 text-center">
+                            className="shrink-0 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl px-1 h-9 text-[11px] font-black outline-none w-14 text-center">
                             {['0.25','0.5','1','2','2.5','4','5','4-5','10','seq-bar','seq-stack','seq-thigh','seq-leg'].map(o => <option key={o} value={o}>{WEIGHT_SEQ_LABELS[o] || o}</option>)}
                         </select>
                     )}
                     <button onClick={handleSelSkip} disabled={selN==null || (selHasLog && !selSkipLog)}
-                        className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border text-[11px] font-black active:scale-95
+                        className={`flex-1 flex items-center justify-center px-2 h-9 rounded-xl border text-[11px] font-black active:scale-95
                             ${selSkipLog ? 'bg-orange-200 border-orange-300 text-orange-700'
                               : (selN==null || selHasLog) ? 'bg-slate-100 border-slate-200 text-slate-300'
                                 : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
@@ -2154,7 +2154,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     </button>
                     {onHideGroup && (
                         <button onClick={()=>onHideGroup(group)}
-                            className="flex-1 flex items-center justify-center px-2 py-1.5 rounded-xl border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-500 active:scale-95">
+                            className="flex-1 flex items-center justify-center px-2 h-9 rounded-xl border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-500 active:scale-95">
                             הסתר
                         </button>
                     )}
@@ -6081,11 +6081,11 @@ function App() {
                                         <>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-[10px] font-bold text-slate-400 shrink-0">מתאמן בחד״כ</span>
-                                            <span className="text-[16px] font-black leading-none" style={{color:'#0d9488'}}>{mo === 0 ? 'פחות מ-½' : mo}<span style={{fontSize:'10px'}}> ח׳</span></span>
+                                            <span className="text-[16px] font-black leading-none" style={{color:'#0d9488'}}>{mo === 0 ? 0.5 : mo}<span style={{fontSize:'10px'}}> ח׳</span></span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
                                             <span className="text-[10px] font-bold text-slate-400 shrink-0">אימון נוכחי:</span>
-                                            <span className="text-[12px] font-black text-slate-700 shrink-0">{moCur === 0 ? '<½' : moCur} ח׳</span>
+                                            <span className="text-[12px] font-black text-slate-700 shrink-0">{moCur === 0 ? 0.5 : moCur} ח׳</span>
                                         </div>
                                         </>
                                     );
@@ -6095,7 +6095,7 @@ function App() {
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <button onClick={()=>setIsWorkoutActive(v=>!v)}
                                     className={`h-8 min-w-[2rem] px-1 rounded-lg flex items-center justify-center font-mono font-black leading-none tracking-tight transition-all active:scale-90 shrink-0
-                                        ${isWorkoutComplete ? 'bg-emerald-500 text-white' : isWorkoutActive ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 text-slate-600'}`}
+                                        ${isWorkoutComplete ? 'bg-emerald-500 text-white' : isWorkoutActive ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700'}`}
                                     style={{fontSize: timerStr.length > 5 ? '9px' : '11px'}} dir="ltr">{timerStr}</button>
                                 <button onClick={()=>setMusicPanelOpen(o=>!o)}
                                     className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 shrink-0
