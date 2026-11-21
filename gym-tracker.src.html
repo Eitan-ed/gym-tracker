@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.64';
+const APP_VERSION = '10.65';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -2147,7 +2147,7 @@ const DetailView = memo(function DetailView({ group, logs, notes, onSaveNote, im
                     {!isTimerEx && (
                         <button onClick={()=>togglePerHand(ex.id, isPH)} title="יחד / יד"
                             className={`flex-1 flex items-center justify-center px-2 h-9 rounded-xl text-[11px] font-black active:scale-95 transition-all
-                                ${isPH ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200' : 'bg-slate-100 text-slate-600'}`}>
+                                bg-slate-100 text-slate-600`}>
                             {isPH ? 'יד' : 'יחד'}
                         </button>
                     )}
@@ -4397,7 +4397,7 @@ function App() {
     const [devNotes,         setDevNotes]         = useState(()=>LS.get('gym-dev-notes',{}));
     const [devNotesDone,     setDevNotesDone]     = useState(()=>LS.get('gym-dev-notes-done',{}));
     // v10.38: איפוס חד-פעמי של כל היסטוריית התיקונים (לפי בקשת איתן 12.11.26) — מכאן והלאה הערות שהוטמעו נכנסות להיסטוריה אוטומטית
-    const [devNotesHistory,  setDevNotesHistory]  = useState(()=>{ if (!LS.get('gym-hist-wiped-1038', false)) { LS.set('gym-hist-wiped-1038', true); LS.set('gym-dev-notes-history', []); return []; } return LS.get('gym-dev-notes-history',[]); });
+    const [devNotesHistory,  setDevNotesHistory]  = useState(()=>{ if (!LS.get('gym-hist-wiped-1038', false)) { LS.set('gym-hist-wiped-1038', true); LS.set('gym-dev-notes-history', []); return []; } return (LS.get('gym-dev-notes-history',[])||[]).map(h => h && h.via==='implemented' && !h.verified ? {...h, verified:true, verifiedAt:h.sentAt||new Date().toISOString()} : h); });
     // ─── תיקיית FILING (File System Access API) — ברמת האפליקציה כדי לאפשר סנכרון אוטומטי של הערות ───
     const [filingDirName, setFilingDirName] = useState(null);
     const [filingLoaded, setFilingLoaded] = useState(false);
@@ -4719,7 +4719,7 @@ function App() {
         });
         if (!archived.length) return;
         const at = new Date().toISOString();
-        setDevNotesHistory(prev => [...(prev||[]), ...archived.map(([k, txt], i) => ({ id:`h-impl-${Date.now()}-${i}-${k}`, key:k, name:nameOfNoteKey(k), text:txt, sentAt:at, via:'implemented', verified:false, verifiedAt:null }))]);
+        setDevNotesHistory(prev => [...(prev||[]), ...archived.map(([k, txt], i) => ({ id:`h-impl-${Date.now()}-${i}-${k}`, key:k, name:nameOfNoteKey(k), text:txt, sentAt:at, via:'implemented', verified:true, verifiedAt:at }))]);
         devNotesLive.current = next;
         setDevNotes(next);
     }, [customNames]);
