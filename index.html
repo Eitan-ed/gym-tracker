@@ -65,7 +65,7 @@ var _React = React,
   useMemo = _React.useMemo,
   useCallback = _React.useCallback,
   memo = _React.memo;
-var APP_VERSION = '10.63';
+var APP_VERSION = '10.64';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function () {
   var dOrig = Date.prototype.toLocaleDateString,
@@ -709,6 +709,8 @@ var looksGeneral = function looksGeneral(t) {
   return /כלל|לכל ה|בכל ה|בכל מקום|בכל מסך|בכל תרגיל|תמיד/.test(String(t || ''));
 };
 // הערות כלליות (מפתח general) מוצגות תמיד ראשונות — בדוח, בקובץ ה-FILING וברשימה באפליקציה
+// כותרת קבועה בראש כל מסמך הערות לשיפור שהאפליקציה כותבת (הוראת איתן 21.11.26): מזהה את האפליקציה ומחייבת את Claude לעבור על ההערות ולשפר את האפ
+var DEV_NOTES_HEADER = "\u05DE\u05E1\u05DE\u05DA \u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u05E9\u05DC \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D9\u05EA GYM Tracker (\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D9\u05EA \u05D4\u05D0\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC \u05D0\u05D9\u05EA\u05DF)\n\u26A0 \u05D4\u05E0\u05D7\u05D9\u05D4 \u05DC-Claude: \u05E2\u05DC\u05D9\u05DA \u05DC\u05E2\u05D1\u05D5\u05E8 \u05E2\u05DC \u05DB\u05DC \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA \u05D1\u05DE\u05E1\u05DE\u05DA \u05D6\u05D4 \u05D5\u05DC\u05E9\u05E4\u05E8 \u05D0\u05EA \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D1\u05D4\u05EA\u05D0\u05DD.\n".concat('─'.repeat(40), "\n\n");
 var generalFirst = function generalFirst(entries) {
   return _toConsumableArray(entries).sort(function (a, b) {
     return (b[0] === GENERAL_NOTE_KEY) - (a[0] === GENERAL_NOTE_KEY);
@@ -9062,7 +9064,7 @@ var ManageView = function ManageView(_ref36) {
         showToast('אין הערות לשיפור', true);
         return;
       }
-      var txt = "\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 ".concat(new Date().toLocaleDateString('he-IL'), "\n");
+      var txt = DEV_NOTES_HEADER + "\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 ".concat(new Date().toLocaleDateString('he-IL'), "\n");
       txt += "".concat('═'.repeat(40), "\n\n");
       if (pending.length) {
         txt += "\u05D7\u05D3\u05E9\u05D5\u05EA (\u05D8\u05E8\u05DD \u05D8\u05D5\u05E4\u05DC\u05D5):\n\n";
@@ -10755,12 +10757,12 @@ function App() {
         t = _ref104[1];
       return t && t.trim() && !(doneObj !== null && doneObj !== void 0 && doneObj[k]);
     }));
-    var txt = pending.length ? pending.map(function (_ref105) {
+    var txt = DEV_NOTES_HEADER + (pending.length ? pending.map(function (_ref105) {
       var _ref106 = _slicedToArray(_ref105, 2),
         exId = _ref106[0],
         t = _ref106[1];
       return "\u2022 ".concat(nameOfNoteKey(exId), ":\n").concat(markImplemented(t));
-    }).join('\n\n') : '(אין הערות חדשות)';
+    }).join('\n\n') : '(אין הערות חדשות)');
     syncTextFileToFilingOnly('gym-dev-notes-current.txt', txt);
   }, [customNames]);
   // ייצוא דוח הערות-שיפור מתוארך — רק אם יש הערות חדשות שטרם טופלו. משמש בשרשרת השמירה
@@ -10790,7 +10792,7 @@ function App() {
               exported: false
             });
           case 1:
-            txt = "\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 ".concat(new Date().toLocaleDateString('he-IL'), "\n");
+            txt = DEV_NOTES_HEADER + "\u05D4\u05E2\u05E8\u05D5\u05EA \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u2014 ".concat(new Date().toLocaleDateString('he-IL'), "\n");
             txt += "".concat('═'.repeat(40), "\n\n");
             txt += "\u05D7\u05D3\u05E9\u05D5\u05EA (\u05D8\u05E8\u05DD \u05D9\u05D5\u05E6\u05D0\u05D5):\n\n";
             pending.forEach(function (_ref109) {
@@ -11722,7 +11724,20 @@ function App() {
           // אחרת — לא מזיזים את המשתמש (גם לא בתוך הקבוצה)
         }
       }
-      setRestTimers(next);
+      // עדכון פונקציונלי: מפחיתים רק טיימרים שלא השתנו מאז הצילום, כך שטיימר שהתחיל/אופס בדיוק באותו רגע
+      // (שמירת סט בתרגיל משולב) לא נדרס ולא נעלם בגלל ה-tick
+      setRestTimers(function (prev) {
+        var n = {};
+        Object.entries(prev).forEach(function (_ref133) {
+          var _ref134 = _slicedToArray(_ref133, 2),
+            k = _ref134[0],
+            v = _ref134[1];
+          if (cur[k] !== undefined && v === cur[k]) {
+            if (v > 1) n[k] = v - 1;
+          } else n[k] = v;
+        });
+        return n;
+      });
     }, 1000);
     return function () {
       return clearInterval(t);
@@ -12366,9 +12381,9 @@ function App() {
       }
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       var next = _toConsumableArray(prev);
-      var _ref133 = [next[targetIdx], next[curIdx]];
-      next[curIdx] = _ref133[0];
-      next[targetIdx] = _ref133[1];
+      var _ref135 = [next[targetIdx], next[curIdx]];
+      next[curIdx] = _ref135[0];
+      next[targetIdx] = _ref135[1];
       return next;
     });
   };
@@ -13386,10 +13401,10 @@ function App() {
         strokeWidth: "2",
         strokeLinejoin: "round",
         strokeLinecap: "round"
-      }), pts.map(function (_ref135, i) {
-        var _ref136 = _slicedToArray(_ref135, 2),
-          x = _ref136[0],
-          y = _ref136[1];
+      }), pts.map(function (_ref137, i) {
+        var _ref138 = _slicedToArray(_ref137, 2),
+          x = _ref138[0],
+          y = _ref138[1];
         return /*#__PURE__*/React.createElement("circle", {
           key: i,
           cx: x,
@@ -13656,7 +13671,7 @@ function App() {
     className: "relative w-full bg-red-500 text-white text-[12px] font-black py-1.5 active:scale-[0.99]"
   }, "\u26A0 \u05EA\u05D9\u05E7\u05D9\u05D9\u05EA FILING \u05DC\u05D0 \u05DE\u05E7\u05D5\u05E9\u05E8\u05EA", filingSupported ? ' — לחץ לקישור' : ' (נשמר רק במכשיר)'), backupAgeDays() > 5 && logs.length > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: (/*#__PURE__*/function () {
-      var _ref140 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee34(e) {
+      var _ref142 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee34(e) {
         return _regenerator().w(function (_context35) {
           while (1) switch (_context35.n) {
             case 0:
@@ -13674,7 +13689,7 @@ function App() {
         }, _callee34);
       }));
       return function (_x22) {
-        return _ref140.apply(this, arguments);
+        return _ref142.apply(this, arguments);
       };
     }()),
     className: "relative w-full bg-amber-500 text-slate-900 text-[12px] font-black py-1.5 active:scale-[0.99]"

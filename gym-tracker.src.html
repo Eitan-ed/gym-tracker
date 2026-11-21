@@ -37,7 +37,7 @@
 <div id="root"></div>
 <script id="app-source" type="text/plain">
 const { useState, useEffect, useMemo, useCallback, memo } = React;
-const APP_VERSION = '10.63';
+const APP_VERSION = '10.64';
 // כל התאריכים בפורמט d.m.yy — בלי אפס מוביל ביום/חודש ושנה בשתי ספרות (27.4.26)
 (function(){
     const dOrig = Date.prototype.toLocaleDateString, sOrig = Date.prototype.toLocaleString;
@@ -236,6 +236,8 @@ const PAGE_NOTE_LABELS = { 'general':'כלליות — לכל האפליקציה
 // הערה שנרשמה בתוך תרגיל אבל נשמעת כללית ("כלל", "לכל התרגילים", "בכל מסך"...) — מוצעת להעברה לכללי (לא מועברת אוטומטית)
 const looksGeneral = t => /כלל|לכל ה|בכל ה|בכל מקום|בכל מסך|בכל תרגיל|תמיד/.test(String(t || ''));
 // הערות כלליות (מפתח general) מוצגות תמיד ראשונות — בדוח, בקובץ ה-FILING וברשימה באפליקציה
+// כותרת קבועה בראש כל מסמך הערות לשיפור שהאפליקציה כותבת (הוראת איתן 21.11.26): מזהה את האפליקציה ומחייבת את Claude לעבור על ההערות ולשפר את האפ
+const DEV_NOTES_HEADER = `מסמך הערות לשיפור של אפליקציית GYM Tracker (אפליקציית האימונים של איתן)\n⚠ הנחיה ל-Claude: עליך לעבור על כל ההערות במסמך זה ולשפר את האפליקציה בהתאם.\n${'─'.repeat(40)}\n\n`;
 const generalFirst = entries => [...entries].sort((a, b) => (b[0] === GENERAL_NOTE_KEY) - (a[0] === GENERAL_NOTE_KEY));
 
 // ─── מרווחי משקל ברירת מחדל פר תרגיל ───────────────────────
@@ -3794,7 +3796,7 @@ const ManageView = ({ logs, notes, images, videos, settings, sessionStartTime, s
                                 };
                                 const pending = generalFirst(Object.entries(devNotes||{}).filter(([,t])=>t && t.trim()));
                                 if (!pending.length && !(devNotesHistory||[]).length) { showToast('אין הערות לשיפור', true); return; }
-                                let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
+                                let txt = DEV_NOTES_HEADER + `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
                                 txt += `${'═'.repeat(40)}\n\n`;
                                 if (pending.length) {
                                     txt += `חדשות (טרם טופלו):\n\n`;
@@ -4491,9 +4493,9 @@ function App() {
     const syncDevNotesFile = useCallback((notesObj, doneObj) => {
         if (!filingDirRef.current) return;
         const pending = generalFirst(Object.entries(notesObj||{}).filter(([k,t])=>t && t.trim() && !doneObj?.[k]));
-        const txt = pending.length
+        const txt = DEV_NOTES_HEADER + (pending.length
             ? pending.map(([exId,t])=>`• ${nameOfNoteKey(exId)}:\n${markImplemented(t)}`).join('\n\n')
-            : '(אין הערות חדשות)';
+            : '(אין הערות חדשות)');
         syncTextFileToFilingOnly('gym-dev-notes-current.txt', txt);
     }, [customNames]);
     // ייצוא דוח הערות-שיפור מתוארך — רק אם יש הערות חדשות שטרם טופלו. משמש בשרשרת השמירה
@@ -4506,7 +4508,7 @@ function App() {
         const exportedMap = LS.get('gym-dev-notes-exported', {});
         const pending = generalFirst(Object.entries(devNotes||{}).filter(([k,t])=>t && t.trim() && exportedMap[k] !== t));
         if (!pending.length) return { exported:false };
-        let txt = `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
+        let txt = DEV_NOTES_HEADER + `הערות לשיפור — ${new Date().toLocaleDateString('he-IL')}\n`;
         txt += `${'═'.repeat(40)}\n\n`;
         txt += `חדשות (טרם יוצאו):\n\n`;
         pending.forEach(([exId,t])=>{ txt += `• ${nameOfNoteKey(exId)}:\n${markImplemented(t)}\n\n`; });
@@ -4973,7 +4975,16 @@ function App() {
                     // אחרת — לא מזיזים את המשתמש (גם לא בתוך הקבוצה)
                 }
             }
-            setRestTimers(next);
+            // עדכון פונקציונלי: מפחיתים רק טיימרים שלא השתנו מאז הצילום, כך שטיימר שהתחיל/אופס בדיוק באותו רגע
+            // (שמירת סט בתרגיל משולב) לא נדרס ולא נעלם בגלל ה-tick
+            setRestTimers(prev => {
+                const n = {};
+                Object.entries(prev).forEach(([k, v]) => {
+                    if (cur[k] !== undefined && v === cur[k]) { if (v > 1) n[k] = v - 1; }
+                    else n[k] = v;
+                });
+                return n;
+            });
         },1000);
         return ()=>clearInterval(t);
     },[]);
